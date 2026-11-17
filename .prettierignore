@@ -1,0 +1,26 @@
+# Dependencies and outputs
+node_modules
+.pnpm-store
+.svelte-kit
+build
+coverage
+internal/webui/dist
+bin
+.tools
+playwright-report
+test-results
+pnpm-lock.yaml
+
+# Generated files
+src/lib/api/wyo-api.d.ts
+**/gen/**
+
+# Saved from the outside, kept as published
+api/wildberries/**
+docs/marketplaces/**
+
+# Go
+internal/**
+cmd/**
+tools/**
+*.go

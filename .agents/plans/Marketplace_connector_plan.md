@@ -216,6 +216,23 @@ lettered sections, data, code, tests, stages and gate, not in the plan, rules fo
 order, label, status and hand-over parts; Stage 2's stock and Stage 5's supplies need its stock and supply parts. Each is developed and
 tested against the fake fulfilment centre.
 
+**The detailed plans written on 2026-11-17, and what the maintainer decided that day:**
+
+- Stage 0 is **Plan 1**,
+  `.agents/plans/wyo-repository-set-up-agent-rules-skills-constitution-tools-component-library-theme-fakes-fulfilment-centre-api.md`.
+- Stage 1 is **three plans** (the maintainer: «3»), each releasable alone: **Plan 2**, the program itself,
+  `.agents/plans/wyo-program-go-server-embedded-interface-database-owner-sign-in-installer-https-updates-signed-release.md`;
+  **Plan 3**, Wildberries read-only, `.agents/plans/wyo-wildberries-keys-adapter-synchronisation-engine-order-list-request-journal.md`;
+  **Plan 4**, «External API» and the exchange,
+  `.agents/plans/wyo-external-api-wildberries-fbs-exchange-with-a-fulfilment-centre-orders-stickers-codes-hand-over.md`.
+- The interface is in Russian only, with the machinery for more languages kept («Russian only. But do create the languages
+  capability.»).
+- One owner signs in; "more people added by the owner" of «What it is built of» waits in the register («What more people? … Is this
+  a sought-after functionality?»).
+- The whole set of checks runs in GitHub Actions, the installer's and the certificate's tests included («If the GH Actions passes
+  fine for you - not a problem!»); the choice between CertMagic and Caddy in front is made there, not on a bare server.
+- The signature of a release is made by Plan 2, together with the installer and the updater that check it, not by Stage 0.
+
 ## Not in this plan
 
 - A cloud edition hosted for many sellers: Wildberries' Personal token may not be used in a cloud service (R4), so it would need

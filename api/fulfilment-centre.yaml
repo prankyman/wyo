@@ -1,0 +1,3049 @@
+openapi: 3.1.0
+info:
+    title: Fulfilment centre API
+    version: '1'
+    description: |
+        The API of a fulfilment centre: the system that stores a seller's goods, picks and packs the seller's orders and hands the
+        parcels to a carrier. The seller's own system (an online shop, an accounting system, or a program that exchanges data with
+        marketplaces using the seller's own marketplace keys) sends orders and labels in, and learns what the fulfilment centre did
+        with every order. This file is the whole contract between the two sides; either side can be replaced by any program that keeps it.
+
+        How a call is made
+
+        - Every address starts with `/api/v1`; every request and answer body is JSON; every moment is ISO 8601 in UTC.
+        - The key goes in the header `Authorization: Bearer <key>`. A key names exactly one seller, so no call carries a seller field.
+        - Lists are read in pages: `limit` (50 by default, at most 200) and `cursor`, the value of `next_cursor` of the previous page.
+        - A refusal is `{ "error": { "code", "params"?, "issues"? } }` with the status that goes with the code (see `Error`). `issues`
+          lists `{ path, code }` pairs: where in the body the fault is and what it is. Values of the body never come back.
+        - A record that belongs to another seller is answered exactly like one that does not exist (`404 not_found`).
+        - Limits: 300 requests a minute per key (over it, `429 rate_limited` with `Retry-After`); a JSON body of at most 1 MB, and at most
+          8 MB for the calls that carry files; events, journal and deliveries are kept 30 days.
+        - Every write can be repeated safely: an order by its `external_id`, a label, a set of documents and a problem by `PUT`, a
+          cancel and a cut by stating the wanted end state.
+
+        What the fulfilment centre tells back
+
+        Everything that happens to an order or a hand-over becomes an event with a growing `sequence`. A program reads the events with
+        `GET /events`, or receives each one as a signed notification (the `webhooks` of this file, signed as the Standard Webhooks
+        specification describes: https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md).
+servers:
+    - url: /api/v1
+      description: Every address of this file is below /api/v1.
+security:
+    - sellerKey: []
+tags:
+    - name: account
+      description: 'The seller and the warehouses: what this key may do and where orders can be sent.'
+    - name: orders
+      description: 'Orders: send an order in, read it, change it, cancel it, attach its label, report a problem.'
+    - name: held
+      description: 'Orders that wait: the fulfilment centre received the order but cannot turn it into a working order yet.'
+    - name: events
+      description: 'Events: everything that happened to orders and hand-overs, in order.'
+    - name: handovers
+      description: 'Hand-overs: the parcels that leave together, and the documents the receiving side needs.'
+paths:
+    /account:
+        get:
+            operationId: account
+            tags:
+                - account
+            summary: Read what the key allows
+            description:
+                Returns the seller's name, whether the API is switched on for the seller, this key's access level,
+                the marketplaces whose orders the seller sends, the limits that apply and the fulfilment centre's own clock.
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Account'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
+    /warehouses:
+        get:
+            operationId: warehouses
+            tags:
+                - account
+            summary: List the warehouses
+            description:
+                Returns the warehouses an order can be sent to. The `code` of a warehouse is what the `warehouse`
+                field of an order takes.
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    warehouses:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/Warehouse'
+                                required:
+                                    - warehouses
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
+    /orders:
+        post:
+            operationId: orderCreate
+            tags:
+                - orders
+            summary: Send an order
+            description:
+                "Hands one order to the fulfilment centre. The order is created inside the call. `201` with `state:
+                accepted` means a working order exists. `202` with `state: held` means the order was received but waits
+                (an unknown product, an unknown warehouse, the seller's work stopped); it is kept with its reasons, tried
+                again later and never dropped. `200` with `duplicate: true` means this `external_id` was already taken in
+                with the same lines: the same order is returned and no second one is made. The same `external_id` with other
+                lines is `409 external_id_reused`. A line's product is found by `barcode` first, then by `article`, then
+                by `marketplace_item_id`; an article and a barcode that point at two different products hold the order."
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/OrderIn'
+            x-max-megabytes: 1
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    state:
+                                        type: string
+                                        const: accepted
+                                    duplicate:
+                                        type: boolean
+                                        const: true
+                                    order:
+                                        $ref: '#/components/schemas/Order'
+                                required:
+                                    - state
+                                    - duplicate
+                                    - order
+                '201':
+                    description: Created.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    state:
+                                        type: string
+                                        const: accepted
+                                    order:
+                                        $ref: '#/components/schemas/Order'
+                                required:
+                                    - state
+                                    - order
+                '202':
+                    description: Received; `state` says what happens next.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    state:
+                                        type: string
+                                        const: held
+                                    held:
+                                        $ref: '#/components/schemas/HeldOrder'
+                                required:
+                                    - state
+                                    - held
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '409':
+                    $ref: '#/components/responses/Conflict'
+                '413':
+                    $ref: '#/components/responses/TooLarge'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - read_only_key
+                - bad_request
+                - too_large
+                - marketplace_not_enabled
+                - external_id_reused
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
+        get:
+            operationId: orderList
+            tags:
+                - orders
+            summary: List the orders
+            description:
+                Returns the seller's orders, however they reached the fulfilment centre, newest change first, in
+                pages.
+            parameters:
+                - name: updated_since
+                  in: query
+                  required: false
+                  schema:
+                      type: string
+                      format: date-time
+                  description: Only orders changed at or after this moment.
+                - name: status
+                  in: query
+                  required: false
+                  schema:
+                      type: string
+                      enum:
+                          - accepted
+                          - waitingStock
+                          - reserved
+                          - picking
+                          - packing
+                          - packed
+                          - shipped
+                          - cancelled
+                  description: Only orders in this stage.
+                - name: marketplace
+                  in: query
+                  required: false
+                  schema:
+                      type: string
+                  description: A marketplace code, or `none` for the seller's own shop.
+                - name: external_id
+                  in: query
+                  required: false
+                  schema:
+                      type: string
+                  description: Only the order with this sender's number.
+                - name: limit
+                  in: query
+                  required: false
+                  schema:
+                      type: integer
+                      minimum: 1
+                      maximum: 200
+                      default: 50
+                  description: The page size.
+                - name: cursor
+                  in: query
+                  required: false
+                  schema:
+                      type: string
+                  description: The `next_cursor` of the previous page.
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    orders:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/Order'
+                                    next_cursor:
+                                        type:
+                                            - string
+                                            - 'null'
+                                required:
+                                    - orders
+                                    - next_cursor
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - bad_request
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
+    /orders/{id}:
+        get:
+            operationId: orderGet
+            tags:
+                - orders
+            summary: Read one order
+            description: Returns one order as it is now.
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                  description: The record's id, as the object carries it.
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    order:
+                                        $ref: '#/components/schemas/Order'
+                                required:
+                                    - order
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - not_found
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
+        patch:
+            operationId: orderPatch
+            tags:
+                - orders
+            summary: Change the deadline and the note
+            description: Moves the hand-over deadline and/or replaces the packer's note. Only an order that came through
+                this API can be changed (`409 not_api_order` otherwise); an order already handed over is `409 handed_over`.
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                  description: The record's id, as the object carries it.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/OrderPatch'
+            x-max-megabytes: 1
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    state:
+                                        type: string
+                                        enum:
+                                            - cancelled
+                                            - reduced
+                                            - updated
+                                    order:
+                                        $ref: '#/components/schemas/Order'
+                                required:
+                                    - state
+                                    - order
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '409':
+                    $ref: '#/components/responses/Conflict'
+                '413':
+                    $ref: '#/components/responses/TooLarge'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - read_only_key
+                - bad_request
+                - too_large
+                - not_found
+                - not_api_order
+                - handed_over
+                - conflict
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
+    /orders/{id}/cancel:
+        post:
+            operationId: orderCancel
+            tags:
+                - orders
+            summary: Cancel an order
+            description: '`200 cancelled`: the order is cancelled and its goods are free again. `202 waiting`: a picker
+                is walking the shelves with the order; the fulfilment centre repeats the cancel by itself. `202 needs_person`:
+                a parcel is already closed and only a person at the fulfilment centre can cancel it. `409 handed_over`:
+                too late. Cancelling a cancelled order succeeds.'
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                  description: The record's id, as the object carries it.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/OrderCancel'
+            x-max-megabytes: 1
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    state:
+                                        type: string
+                                        enum:
+                                            - cancelled
+                                            - reduced
+                                            - updated
+                                    order:
+                                        $ref: '#/components/schemas/Order'
+                                required:
+                                    - state
+                                    - order
+                '202':
+                    description: Received; `state` says what happens next.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    state:
+                                        type: string
+                                        enum:
+                                            - waiting
+                                            - needs_person
+                                    order:
+                                        $ref: '#/components/schemas/Order'
+                                required:
+                                    - state
+                                    - order
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '409':
+                    $ref: '#/components/responses/Conflict'
+                '413':
+                    $ref: '#/components/responses/TooLarge'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - read_only_key
+                - bad_request
+                - too_large
+                - not_found
+                - not_api_order
+                - handed_over
+                - conflict
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
+    /orders/{id}/reduce:
+        post:
+            operationId: orderReduce
+            tags:
+                - orders
+            summary: Reduce an order
+            description: 'States, for each named line, how many units are wanted now (0 removes the line). Answers like
+                a cancel: `200 reduced`, `202 waiting`, `202 needs_person`, `409 handed_over`. A number above the current
+                one is `400` with the issue code `above_current`; an unknown line is `400` with `unknown_line`. When every
+                line is brought to zero the call is a cancel of the order.'
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                  description: The record's id, as the object carries it.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/OrderReduce'
+            x-max-megabytes: 1
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    state:
+                                        type: string
+                                        enum:
+                                            - cancelled
+                                            - reduced
+                                            - updated
+                                    order:
+                                        $ref: '#/components/schemas/Order'
+                                required:
+                                    - state
+                                    - order
+                '202':
+                    description: Received; `state` says what happens next.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    state:
+                                        type: string
+                                        enum:
+                                            - waiting
+                                            - needs_person
+                                    order:
+                                        $ref: '#/components/schemas/Order'
+                                required:
+                                    - state
+                                    - order
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '409':
+                    $ref: '#/components/responses/Conflict'
+                '413':
+                    $ref: '#/components/responses/TooLarge'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - read_only_key
+                - bad_request
+                - too_large
+                - not_found
+                - not_api_order
+                - handed_over
+                - conflict
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
+    /orders/{id}/problem:
+        put:
+            operationId: orderProblemSet
+            tags:
+                - orders
+            summary: Report a problem with an order
+            description:
+                Tells the fulfilment centre that something is wrong with this order on the seller's side (for example
+                a marketplace refused a marking code). An order has one problem; sending another replaces it. It is allowed
+                at any stage, even after the hand-over, and only the sender clears it.
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                  description: The record's id, as the object carries it.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ProblemIn'
+            x-max-megabytes: 1
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    state:
+                                        type: string
+                                        enum:
+                                            - cancelled
+                                            - reduced
+                                            - updated
+                                    order:
+                                        $ref: '#/components/schemas/Order'
+                                required:
+                                    - state
+                                    - order
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '409':
+                    $ref: '#/components/responses/Conflict'
+                '413':
+                    $ref: '#/components/responses/TooLarge'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - read_only_key
+                - bad_request
+                - too_large
+                - not_found
+                - not_api_order
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
+        delete:
+            operationId: orderProblemClear
+            tags:
+                - orders
+            summary: Clear an order's problem
+            description: Removes the problem the seller's system reported.
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                  description: The record's id, as the object carries it.
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    state:
+                                        type: string
+                                        enum:
+                                            - cancelled
+                                            - reduced
+                                            - updated
+                                    order:
+                                        $ref: '#/components/schemas/Order'
+                                required:
+                                    - state
+                                    - order
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '409':
+                    $ref: '#/components/responses/Conflict'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - read_only_key
+                - not_found
+                - not_api_order
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
+    /orders/{id}/parcels/{number}/label:
+        put:
+            operationId: labelPut
+            tags:
+                - orders
+            summary: Attach a label to a parcel
+            description: 'A marketplace issues its label after packing, so an order is created without one and the label
+                follows. The file is checked by its bytes: an empty file, a file over 5 MB or one of another type is `400`
+                with the issue path `data`. `scan_code` is the text a scanner reads from the label, when known: the parcel
+                can then be closed only by scanning exactly that code (a code taken by another parcel is `409 conflict`).
+                Without it any scan is accepted. A label cannot be sent once the order is handed over (`409 handed_over`)
+                or cancelled (`409 conflict`).'
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                  description: The record's id, as the object carries it.
+                - name: number
+                  in: path
+                  required: true
+                  schema:
+                      type: integer
+                      minimum: 1
+                  description: The parcel's number in the order, from 1.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Label'
+            x-max-megabytes: 8
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    state:
+                                        type: string
+                                        enum:
+                                            - cancelled
+                                            - reduced
+                                            - updated
+                                    order:
+                                        $ref: '#/components/schemas/Order'
+                                required:
+                                    - state
+                                    - order
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '409':
+                    $ref: '#/components/responses/Conflict'
+                '413':
+                    $ref: '#/components/responses/TooLarge'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - read_only_key
+                - bad_request
+                - too_large
+                - not_found
+                - not_api_order
+                - handed_over
+                - conflict
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
+        delete:
+            operationId: labelDelete
+            tags:
+                - orders
+            summary: Remove a parcel's label
+            description: Removes the label while the parcel is still open.
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                  description: The record's id, as the object carries it.
+                - name: number
+                  in: path
+                  required: true
+                  schema:
+                      type: integer
+                      minimum: 1
+                  description: The parcel's number in the order, from 1.
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    state:
+                                        type: string
+                                        enum:
+                                            - cancelled
+                                            - reduced
+                                            - updated
+                                    order:
+                                        $ref: '#/components/schemas/Order'
+                                required:
+                                    - state
+                                    - order
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '409':
+                    $ref: '#/components/responses/Conflict'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - read_only_key
+                - not_found
+                - not_api_order
+                - handed_over
+                - conflict
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
+    /held-orders:
+        get:
+            operationId: heldList
+            tags:
+                - held
+            summary: List the orders that wait
+            description: Returns every received order that has not been turned into a working order, with its reasons.
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    held_orders:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/HeldOrder'
+                                required:
+                                    - held_orders
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
+    /held-orders/{id}:
+        get:
+            operationId: heldGet
+            tags:
+                - held
+            summary: Read a received order
+            description: Returns the record of a received order in any of its states.
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                  description: The record's id, as the object carries it.
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    held:
+                                        $ref: '#/components/schemas/HeldOrder'
+                                required:
+                                    - held
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - not_found
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
+        delete:
+            operationId: heldWithdraw
+            tags:
+                - held
+            summary: Withdraw an order that waits
+            description: Takes an order off the waiting list. Its state becomes `withdrawn` and it is never tried again.
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                  description: The record's id, as the object carries it.
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    held:
+                                        $ref: '#/components/schemas/HeldOrder'
+                                required:
+                                    - held
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - read_only_key
+                - not_found
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
+    /events:
+        get:
+            operationId: eventList
+            tags:
+                - events
+            summary: Read the events
+            description:
+                Returns the events after the number `after` (from the start when absent), oldest first. `next_after`
+                is the last number of the page when more events wait behind it, otherwise `null`. A reader keeps the last
+                number it applied and asks again from there. `types` is a comma-separated list of event types.
+            parameters:
+                - name: after
+                  in: query
+                  required: false
+                  schema:
+                      type: integer
+                      minimum: 0
+                      default: 0
+                  description: Return events after this number.
+                - name: types
+                  in: query
+                  required: false
+                  schema:
+                      type: string
+                  description: A comma-separated list of event types.
+                - name: limit
+                  in: query
+                  required: false
+                  schema:
+                      type: integer
+                      minimum: 1
+                      maximum: 200
+                      default: 50
+                  description: The page size.
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    events:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/Event'
+                                    next_after:
+                                        type:
+                                            - integer
+                                            - 'null'
+                                required:
+                                    - events
+                                    - next_after
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - bad_request
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
+    /handovers:
+        get:
+            operationId: handoverList
+            tags:
+                - handovers
+            summary: List the hand-overs
+            description: Returns the seller's hand-overs in pages; `state=open` leaves only those that have not left yet.
+            parameters:
+                - name: state
+                  in: query
+                  required: false
+                  schema:
+                      type: string
+                      enum:
+                          - open
+                  description: Only hand-overs that have not left yet.
+                - name: limit
+                  in: query
+                  required: false
+                  schema:
+                      type: integer
+                      minimum: 1
+                      maximum: 200
+                      default: 50
+                  description: The page size.
+                - name: cursor
+                  in: query
+                  required: false
+                  schema:
+                      type: string
+                  description: The `next_cursor` of the previous page.
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    handovers:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/Handover'
+                                    next_cursor:
+                                        type:
+                                            - string
+                                            - 'null'
+                                required:
+                                    - handovers
+                                    - next_cursor
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - bad_request
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
+    /handovers/{id}:
+        get:
+            operationId: handoverGet
+            tags:
+                - handovers
+            summary: Read one hand-over
+            description: Returns one hand-over as it is now.
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                  description: The record's id, as the object carries it.
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    handover:
+                                        $ref: '#/components/schemas/Handover'
+                                required:
+                                    - handover
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - not_found
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
+    /handovers/{id}/documents:
+        put:
+            operationId: handoverDocuments
+            tags:
+                - handovers
+            summary: Send the hand-over's documents
+            description:
+                A marketplace gives the documents of a hand-over (the code the receiver scans, a label per transport
+                box, an act) only after its own supply is closed, and a closed supply takes no more orders. So the fulfilment
+                centre asks for them when the parcels are ready (the event `handover.requested`) and the seller's system
+                answers with this call. A repeat replaces the earlier set. `409 conflict` when the documents were not asked
+                for, or the hand-over is completed.
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                  description: The record's id, as the object carries it.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/HandoverDocuments'
+            x-max-megabytes: 8
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    handover:
+                                        $ref: '#/components/schemas/Handover'
+                                required:
+                                    - handover
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '409':
+                    $ref: '#/components/responses/Conflict'
+                '413':
+                    $ref: '#/components/responses/TooLarge'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - read_only_key
+                - bad_request
+                - too_large
+                - not_found
+                - conflict
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
+    /handovers/{id}/problem:
+        put:
+            operationId: handoverProblemSet
+            tags:
+                - handovers
+            summary: Report a problem with a hand-over
+            description: Tells the fulfilment centre that the seller's system could not close its side of the hand-over.
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                  description: The record's id, as the object carries it.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ProblemIn'
+            x-max-megabytes: 1
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    handover:
+                                        $ref: '#/components/schemas/Handover'
+                                required:
+                                    - handover
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '409':
+                    $ref: '#/components/responses/Conflict'
+                '413':
+                    $ref: '#/components/responses/TooLarge'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - read_only_key
+                - bad_request
+                - too_large
+                - not_found
+                - conflict
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
+        delete:
+            operationId: handoverProblemClear
+            tags:
+                - handovers
+            summary: Clear a hand-over's problem
+            description: Removes the problem the seller's system reported.
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                  description: The record's id, as the object carries it.
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    handover:
+                                        $ref: '#/components/schemas/Handover'
+                                required:
+                                    - handover
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - read_only_key
+                - not_found
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
+webhooks:
+    order.accepted:
+        post:
+            operationId: webhook_order_accepted
+            summary: 'A working order exists: made at once or taken from the waiting list.'
+            description:
+                The notification is a signed `POST` with the headers `webhook-id`, `webhook-timestamp` and `webhook-signature`,
+                as the Standard Webhooks specification describes. Any `2xx` answer means it was received; any other answer,
+                a redirect, or no answer within 10 seconds means it was not, and it is sent again later (8 attempts over
+                about 27 hours).
+            parameters:
+                - name: webhook-id
+                  in: header
+                  required: true
+                  description: The event's id; the same on every attempt.
+                  schema:
+                      type: string
+                - name: webhook-timestamp
+                  in: header
+                  required: true
+                  description:
+                      The moment of this attempt, in seconds since 1970-01-01 UTC. A receiver refuses one more than
+                      five minutes away.
+                  schema:
+                      type: string
+                - name: webhook-signature
+                  in: header
+                  required: true
+                  description:
+                      "`v1,` followed by the base64 of HMAC-SHA256 over the text `<webhook-id>.<webhook-timestamp>.<body>`,
+                      keyed by the secret's bytes (the base64 text after `whsec_`)."
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Event'
+            responses:
+                2XX:
+                    description: Received.
+    order.held:
+        post:
+            operationId: webhook_order_held
+            summary: The order was received and waits.
+            description:
+                The notification is a signed `POST` with the headers `webhook-id`, `webhook-timestamp` and `webhook-signature`,
+                as the Standard Webhooks specification describes. Any `2xx` answer means it was received; any other answer,
+                a redirect, or no answer within 10 seconds means it was not, and it is sent again later (8 attempts over
+                about 27 hours).
+            parameters:
+                - name: webhook-id
+                  in: header
+                  required: true
+                  description: The event's id; the same on every attempt.
+                  schema:
+                      type: string
+                - name: webhook-timestamp
+                  in: header
+                  required: true
+                  description:
+                      The moment of this attempt, in seconds since 1970-01-01 UTC. A receiver refuses one more than
+                      five minutes away.
+                  schema:
+                      type: string
+                - name: webhook-signature
+                  in: header
+                  required: true
+                  description:
+                      "`v1,` followed by the base64 of HMAC-SHA256 over the text `<webhook-id>.<webhook-timestamp>.<body>`,
+                      keyed by the secret's bytes (the base64 text after `whsec_`)."
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Event'
+            responses:
+                2XX:
+                    description: Received.
+    order.reserved:
+        post:
+            operationId: webhook_order_reserved
+            summary: The order's goods are set aside.
+            description:
+                The notification is a signed `POST` with the headers `webhook-id`, `webhook-timestamp` and `webhook-signature`,
+                as the Standard Webhooks specification describes. Any `2xx` answer means it was received; any other answer,
+                a redirect, or no answer within 10 seconds means it was not, and it is sent again later (8 attempts over
+                about 27 hours).
+            parameters:
+                - name: webhook-id
+                  in: header
+                  required: true
+                  description: The event's id; the same on every attempt.
+                  schema:
+                      type: string
+                - name: webhook-timestamp
+                  in: header
+                  required: true
+                  description:
+                      The moment of this attempt, in seconds since 1970-01-01 UTC. A receiver refuses one more than
+                      five minutes away.
+                  schema:
+                      type: string
+                - name: webhook-signature
+                  in: header
+                  required: true
+                  description:
+                      "`v1,` followed by the base64 of HMAC-SHA256 over the text `<webhook-id>.<webhook-timestamp>.<body>`,
+                      keyed by the secret's bytes (the base64 text after `whsec_`)."
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Event'
+            responses:
+                2XX:
+                    description: Received.
+    order.picking_started:
+        post:
+            operationId: webhook_order_picking_started
+            summary: The order was released to picking.
+            description:
+                The notification is a signed `POST` with the headers `webhook-id`, `webhook-timestamp` and `webhook-signature`,
+                as the Standard Webhooks specification describes. Any `2xx` answer means it was received; any other answer,
+                a redirect, or no answer within 10 seconds means it was not, and it is sent again later (8 attempts over
+                about 27 hours).
+            parameters:
+                - name: webhook-id
+                  in: header
+                  required: true
+                  description: The event's id; the same on every attempt.
+                  schema:
+                      type: string
+                - name: webhook-timestamp
+                  in: header
+                  required: true
+                  description:
+                      The moment of this attempt, in seconds since 1970-01-01 UTC. A receiver refuses one more than
+                      five minutes away.
+                  schema:
+                      type: string
+                - name: webhook-signature
+                  in: header
+                  required: true
+                  description:
+                      "`v1,` followed by the base64 of HMAC-SHA256 over the text `<webhook-id>.<webhook-timestamp>.<body>`,
+                      keyed by the secret's bytes (the base64 text after `whsec_`)."
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Event'
+            responses:
+                2XX:
+                    description: Received.
+    order.picked:
+        post:
+            operationId: webhook_order_picked
+            summary: The order is picked and waits for packing.
+            description:
+                The notification is a signed `POST` with the headers `webhook-id`, `webhook-timestamp` and `webhook-signature`,
+                as the Standard Webhooks specification describes. Any `2xx` answer means it was received; any other answer,
+                a redirect, or no answer within 10 seconds means it was not, and it is sent again later (8 attempts over
+                about 27 hours).
+            parameters:
+                - name: webhook-id
+                  in: header
+                  required: true
+                  description: The event's id; the same on every attempt.
+                  schema:
+                      type: string
+                - name: webhook-timestamp
+                  in: header
+                  required: true
+                  description:
+                      The moment of this attempt, in seconds since 1970-01-01 UTC. A receiver refuses one more than
+                      five minutes away.
+                  schema:
+                      type: string
+                - name: webhook-signature
+                  in: header
+                  required: true
+                  description:
+                      "`v1,` followed by the base64 of HMAC-SHA256 over the text `<webhook-id>.<webhook-timestamp>.<body>`,
+                      keyed by the secret's bytes (the base64 text after `whsec_`)."
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Event'
+            responses:
+                2XX:
+                    description: Received.
+    order.packing_finished:
+        post:
+            operationId: webhook_order_packing_finished
+            summary: "Packing is finished: the contents of the parcels and every unit's marking code are final. This is
+                the event that carries the codes."
+            description:
+                The notification is a signed `POST` with the headers `webhook-id`, `webhook-timestamp` and `webhook-signature`,
+                as the Standard Webhooks specification describes. Any `2xx` answer means it was received; any other answer,
+                a redirect, or no answer within 10 seconds means it was not, and it is sent again later (8 attempts over
+                about 27 hours).
+            parameters:
+                - name: webhook-id
+                  in: header
+                  required: true
+                  description: The event's id; the same on every attempt.
+                  schema:
+                      type: string
+                - name: webhook-timestamp
+                  in: header
+                  required: true
+                  description:
+                      The moment of this attempt, in seconds since 1970-01-01 UTC. A receiver refuses one more than
+                      five minutes away.
+                  schema:
+                      type: string
+                - name: webhook-signature
+                  in: header
+                  required: true
+                  description:
+                      "`v1,` followed by the base64 of HMAC-SHA256 over the text `<webhook-id>.<webhook-timestamp>.<body>`,
+                      keyed by the secret's bytes (the base64 text after `whsec_`)."
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Event'
+            responses:
+                2XX:
+                    description: Received.
+    order.label_attached:
+        post:
+            operationId: webhook_order_label_attached
+            summary: A label was attached to a parcel (`details.parcel`).
+            description:
+                The notification is a signed `POST` with the headers `webhook-id`, `webhook-timestamp` and `webhook-signature`,
+                as the Standard Webhooks specification describes. Any `2xx` answer means it was received; any other answer,
+                a redirect, or no answer within 10 seconds means it was not, and it is sent again later (8 attempts over
+                about 27 hours).
+            parameters:
+                - name: webhook-id
+                  in: header
+                  required: true
+                  description: The event's id; the same on every attempt.
+                  schema:
+                      type: string
+                - name: webhook-timestamp
+                  in: header
+                  required: true
+                  description:
+                      The moment of this attempt, in seconds since 1970-01-01 UTC. A receiver refuses one more than
+                      five minutes away.
+                  schema:
+                      type: string
+                - name: webhook-signature
+                  in: header
+                  required: true
+                  description:
+                      "`v1,` followed by the base64 of HMAC-SHA256 over the text `<webhook-id>.<webhook-timestamp>.<body>`,
+                      keyed by the secret's bytes (the base64 text after `whsec_`)."
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Event'
+            responses:
+                2XX:
+                    description: Received.
+    order.parcel_closed:
+        post:
+            operationId: webhook_order_parcel_closed
+            summary: A parcel was closed (`details.parcel`).
+            description:
+                The notification is a signed `POST` with the headers `webhook-id`, `webhook-timestamp` and `webhook-signature`,
+                as the Standard Webhooks specification describes. Any `2xx` answer means it was received; any other answer,
+                a redirect, or no answer within 10 seconds means it was not, and it is sent again later (8 attempts over
+                about 27 hours).
+            parameters:
+                - name: webhook-id
+                  in: header
+                  required: true
+                  description: The event's id; the same on every attempt.
+                  schema:
+                      type: string
+                - name: webhook-timestamp
+                  in: header
+                  required: true
+                  description:
+                      The moment of this attempt, in seconds since 1970-01-01 UTC. A receiver refuses one more than
+                      five minutes away.
+                  schema:
+                      type: string
+                - name: webhook-signature
+                  in: header
+                  required: true
+                  description:
+                      "`v1,` followed by the base64 of HMAC-SHA256 over the text `<webhook-id>.<webhook-timestamp>.<body>`,
+                      keyed by the secret's bytes (the base64 text after `whsec_`)."
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Event'
+            responses:
+                2XX:
+                    description: Received.
+    order.packed:
+        post:
+            operationId: webhook_order_packed
+            summary: 'The last parcel was closed: the whole order is packed.'
+            description:
+                The notification is a signed `POST` with the headers `webhook-id`, `webhook-timestamp` and `webhook-signature`,
+                as the Standard Webhooks specification describes. Any `2xx` answer means it was received; any other answer,
+                a redirect, or no answer within 10 seconds means it was not, and it is sent again later (8 attempts over
+                about 27 hours).
+            parameters:
+                - name: webhook-id
+                  in: header
+                  required: true
+                  description: The event's id; the same on every attempt.
+                  schema:
+                      type: string
+                - name: webhook-timestamp
+                  in: header
+                  required: true
+                  description:
+                      The moment of this attempt, in seconds since 1970-01-01 UTC. A receiver refuses one more than
+                      five minutes away.
+                  schema:
+                      type: string
+                - name: webhook-signature
+                  in: header
+                  required: true
+                  description:
+                      "`v1,` followed by the base64 of HMAC-SHA256 over the text `<webhook-id>.<webhook-timestamp>.<body>`,
+                      keyed by the secret's bytes (the base64 text after `whsec_`)."
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Event'
+            responses:
+                2XX:
+                    description: Received.
+    order.reopened:
+        post:
+            operationId: webhook_order_reopened
+            summary: 'A parcel was reopened or packing was restarted: the marking codes sent before no longer hold.'
+            description:
+                The notification is a signed `POST` with the headers `webhook-id`, `webhook-timestamp` and `webhook-signature`,
+                as the Standard Webhooks specification describes. Any `2xx` answer means it was received; any other answer,
+                a redirect, or no answer within 10 seconds means it was not, and it is sent again later (8 attempts over
+                about 27 hours).
+            parameters:
+                - name: webhook-id
+                  in: header
+                  required: true
+                  description: The event's id; the same on every attempt.
+                  schema:
+                      type: string
+                - name: webhook-timestamp
+                  in: header
+                  required: true
+                  description:
+                      The moment of this attempt, in seconds since 1970-01-01 UTC. A receiver refuses one more than
+                      five minutes away.
+                  schema:
+                      type: string
+                - name: webhook-signature
+                  in: header
+                  required: true
+                  description:
+                      "`v1,` followed by the base64 of HMAC-SHA256 over the text `<webhook-id>.<webhook-timestamp>.<body>`,
+                      keyed by the secret's bytes (the base64 text after `whsec_`)."
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Event'
+            responses:
+                2XX:
+                    description: Received.
+    order.reduced:
+        post:
+            operationId: webhook_order_reduced
+            summary: Lines of the order were cut.
+            description:
+                The notification is a signed `POST` with the headers `webhook-id`, `webhook-timestamp` and `webhook-signature`,
+                as the Standard Webhooks specification describes. Any `2xx` answer means it was received; any other answer,
+                a redirect, or no answer within 10 seconds means it was not, and it is sent again later (8 attempts over
+                about 27 hours).
+            parameters:
+                - name: webhook-id
+                  in: header
+                  required: true
+                  description: The event's id; the same on every attempt.
+                  schema:
+                      type: string
+                - name: webhook-timestamp
+                  in: header
+                  required: true
+                  description:
+                      The moment of this attempt, in seconds since 1970-01-01 UTC. A receiver refuses one more than
+                      five minutes away.
+                  schema:
+                      type: string
+                - name: webhook-signature
+                  in: header
+                  required: true
+                  description:
+                      "`v1,` followed by the base64 of HMAC-SHA256 over the text `<webhook-id>.<webhook-timestamp>.<body>`,
+                      keyed by the secret's bytes (the base64 text after `whsec_`)."
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Event'
+            responses:
+                2XX:
+                    description: Received.
+    order.change_waits:
+        post:
+            operationId: webhook_order_change_waits
+            summary: A cancel or a cut waits for a person at the fulfilment centre (`details.field`, `details.why`).
+            description:
+                The notification is a signed `POST` with the headers `webhook-id`, `webhook-timestamp` and `webhook-signature`,
+                as the Standard Webhooks specification describes. Any `2xx` answer means it was received; any other answer,
+                a redirect, or no answer within 10 seconds means it was not, and it is sent again later (8 attempts over
+                about 27 hours).
+            parameters:
+                - name: webhook-id
+                  in: header
+                  required: true
+                  description: The event's id; the same on every attempt.
+                  schema:
+                      type: string
+                - name: webhook-timestamp
+                  in: header
+                  required: true
+                  description:
+                      The moment of this attempt, in seconds since 1970-01-01 UTC. A receiver refuses one more than
+                      five minutes away.
+                  schema:
+                      type: string
+                - name: webhook-signature
+                  in: header
+                  required: true
+                  description:
+                      "`v1,` followed by the base64 of HMAC-SHA256 over the text `<webhook-id>.<webhook-timestamp>.<body>`,
+                      keyed by the secret's bytes (the base64 text after `whsec_`)."
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Event'
+            responses:
+                2XX:
+                    description: Received.
+    order.cancelled:
+        post:
+            operationId: webhook_order_cancelled
+            summary: The order is cancelled; `details.by` is `outside_system` or `warehouse`.
+            description:
+                The notification is a signed `POST` with the headers `webhook-id`, `webhook-timestamp` and `webhook-signature`,
+                as the Standard Webhooks specification describes. Any `2xx` answer means it was received; any other answer,
+                a redirect, or no answer within 10 seconds means it was not, and it is sent again later (8 attempts over
+                about 27 hours).
+            parameters:
+                - name: webhook-id
+                  in: header
+                  required: true
+                  description: The event's id; the same on every attempt.
+                  schema:
+                      type: string
+                - name: webhook-timestamp
+                  in: header
+                  required: true
+                  description:
+                      The moment of this attempt, in seconds since 1970-01-01 UTC. A receiver refuses one more than
+                      five minutes away.
+                  schema:
+                      type: string
+                - name: webhook-signature
+                  in: header
+                  required: true
+                  description:
+                      "`v1,` followed by the base64 of HMAC-SHA256 over the text `<webhook-id>.<webhook-timestamp>.<body>`,
+                      keyed by the secret's bytes (the base64 text after `whsec_`)."
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Event'
+            responses:
+                2XX:
+                    description: Received.
+    order.handed_over:
+        post:
+            operationId: webhook_order_handed_over
+            summary: The last parcel left with the carrier.
+            description:
+                The notification is a signed `POST` with the headers `webhook-id`, `webhook-timestamp` and `webhook-signature`,
+                as the Standard Webhooks specification describes. Any `2xx` answer means it was received; any other answer,
+                a redirect, or no answer within 10 seconds means it was not, and it is sent again later (8 attempts over
+                about 27 hours).
+            parameters:
+                - name: webhook-id
+                  in: header
+                  required: true
+                  description: The event's id; the same on every attempt.
+                  schema:
+                      type: string
+                - name: webhook-timestamp
+                  in: header
+                  required: true
+                  description:
+                      The moment of this attempt, in seconds since 1970-01-01 UTC. A receiver refuses one more than
+                      five minutes away.
+                  schema:
+                      type: string
+                - name: webhook-signature
+                  in: header
+                  required: true
+                  description:
+                      "`v1,` followed by the base64 of HMAC-SHA256 over the text `<webhook-id>.<webhook-timestamp>.<body>`,
+                      keyed by the secret's bytes (the base64 text after `whsec_`)."
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Event'
+            responses:
+                2XX:
+                    description: Received.
+    handover.requested:
+        post:
+            operationId: webhook_handover_requested
+            summary: "The fulfilment centre asks for the hand-over's documents: the sender closes its supply and sends
+                them. From now on the hand-over takes no more parcels."
+            description:
+                The notification is a signed `POST` with the headers `webhook-id`, `webhook-timestamp` and `webhook-signature`,
+                as the Standard Webhooks specification describes. Any `2xx` answer means it was received; any other answer,
+                a redirect, or no answer within 10 seconds means it was not, and it is sent again later (8 attempts over
+                about 27 hours).
+            parameters:
+                - name: webhook-id
+                  in: header
+                  required: true
+                  description: The event's id; the same on every attempt.
+                  schema:
+                      type: string
+                - name: webhook-timestamp
+                  in: header
+                  required: true
+                  description:
+                      The moment of this attempt, in seconds since 1970-01-01 UTC. A receiver refuses one more than
+                      five minutes away.
+                  schema:
+                      type: string
+                - name: webhook-signature
+                  in: header
+                  required: true
+                  description:
+                      "`v1,` followed by the base64 of HMAC-SHA256 over the text `<webhook-id>.<webhook-timestamp>.<body>`,
+                      keyed by the secret's bytes (the base64 text after `whsec_`)."
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Event'
+            responses:
+                2XX:
+                    description: Received.
+    handover.request_withdrawn:
+        post:
+            operationId: webhook_handover_request_withdrawn
+            summary: The fulfilment centre withdrew its request for the documents.
+            description:
+                The notification is a signed `POST` with the headers `webhook-id`, `webhook-timestamp` and `webhook-signature`,
+                as the Standard Webhooks specification describes. Any `2xx` answer means it was received; any other answer,
+                a redirect, or no answer within 10 seconds means it was not, and it is sent again later (8 attempts over
+                about 27 hours).
+            parameters:
+                - name: webhook-id
+                  in: header
+                  required: true
+                  description: The event's id; the same on every attempt.
+                  schema:
+                      type: string
+                - name: webhook-timestamp
+                  in: header
+                  required: true
+                  description:
+                      The moment of this attempt, in seconds since 1970-01-01 UTC. A receiver refuses one more than
+                      five minutes away.
+                  schema:
+                      type: string
+                - name: webhook-signature
+                  in: header
+                  required: true
+                  description:
+                      "`v1,` followed by the base64 of HMAC-SHA256 over the text `<webhook-id>.<webhook-timestamp>.<body>`,
+                      keyed by the secret's bytes (the base64 text after `whsec_`)."
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Event'
+            responses:
+                2XX:
+                    description: Received.
+    handover.completed:
+        post:
+            operationId: webhook_handover_completed
+            summary: Every parcel of the hand-over left.
+            description:
+                The notification is a signed `POST` with the headers `webhook-id`, `webhook-timestamp` and `webhook-signature`,
+                as the Standard Webhooks specification describes. Any `2xx` answer means it was received; any other answer,
+                a redirect, or no answer within 10 seconds means it was not, and it is sent again later (8 attempts over
+                about 27 hours).
+            parameters:
+                - name: webhook-id
+                  in: header
+                  required: true
+                  description: The event's id; the same on every attempt.
+                  schema:
+                      type: string
+                - name: webhook-timestamp
+                  in: header
+                  required: true
+                  description:
+                      The moment of this attempt, in seconds since 1970-01-01 UTC. A receiver refuses one more than
+                      five minutes away.
+                  schema:
+                      type: string
+                - name: webhook-signature
+                  in: header
+                  required: true
+                  description:
+                      "`v1,` followed by the base64 of HMAC-SHA256 over the text `<webhook-id>.<webhook-timestamp>.<body>`,
+                      keyed by the secret's bytes (the base64 text after `whsec_`)."
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Event'
+            responses:
+                2XX:
+                    description: Received.
+    ping:
+        post:
+            operationId: webhook_ping
+            summary: A test notification, sent on request, to check the address and the signature.
+            description:
+                The notification is a signed `POST` with the headers `webhook-id`, `webhook-timestamp` and `webhook-signature`,
+                as the Standard Webhooks specification describes. Any `2xx` answer means it was received; any other answer,
+                a redirect, or no answer within 10 seconds means it was not, and it is sent again later (8 attempts over
+                about 27 hours).
+            parameters:
+                - name: webhook-id
+                  in: header
+                  required: true
+                  description: The event's id; the same on every attempt.
+                  schema:
+                      type: string
+                - name: webhook-timestamp
+                  in: header
+                  required: true
+                  description:
+                      The moment of this attempt, in seconds since 1970-01-01 UTC. A receiver refuses one more than
+                      five minutes away.
+                  schema:
+                      type: string
+                - name: webhook-signature
+                  in: header
+                  required: true
+                  description:
+                      "`v1,` followed by the base64 of HMAC-SHA256 over the text `<webhook-id>.<webhook-timestamp>.<body>`,
+                      keyed by the secret's bytes (the base64 text after `whsec_`)."
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Event'
+            responses:
+                2XX:
+                    description: Received.
+components:
+    securitySchemes:
+        sellerKey:
+            type: http
+            scheme: bearer
+            description: 'Every call carries `Authorization: Bearer <key>`. The key is an opaque secret text that names
+                one seller. It is shown once, when it is created; the fulfilment centre keeps only a fingerprint and cannot
+                show it again.'
+    responses:
+        BadRequest:
+            description: The body or a parameter is wrong; `issues` names each place.
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/Error'
+        Unauthorized:
+            description: There is no key, it is mistyped or it is revoked.
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/Error'
+        Forbidden:
+            description:
+                "Refused: the seller's work is switched off, the API is off, the key is read-only, or the marketplace
+                is not enabled."
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/Error'
+        NotFound:
+            description: No such record for this seller.
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/Error'
+        Conflict:
+            description: The call cannot be done in the record's present state.
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/Error'
+        TooLarge:
+            description: The body is over its limit.
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/Error'
+        RateLimited:
+            description: More than 300 requests a minute; wait `Retry-After` seconds.
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/Error'
+        Unavailable:
+            description: The fulfilment centre is in maintenance.
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/Error'
+    schemas:
+        Account:
+            description: What the key may do.
+            type: object
+            properties:
+                seller:
+                    description: The seller this key belongs to.
+                    x-go-type-name: AccountSeller
+                    type: object
+                    properties:
+                        name:
+                            description: The seller's name.
+                            type: string
+                    required:
+                        - name
+                api:
+                    description: The state of the API for this seller.
+                    x-go-type-name: AccountApi
+                    type: object
+                    properties:
+                        enabled:
+                            description: 'False when the seller switched the API off: every call is refused until it is
+                                switched on.'
+                            type: boolean
+                    required:
+                        - enabled
+                key:
+                    description: This key.
+                    x-go-type-name: AccountKey
+                    type: object
+                    properties:
+                        name:
+                            description: The name given to the key when it was created.
+                            type: string
+                        access:
+                            description: '`read_only` keys are refused on every write with `read_only_key`.'
+                            type: string
+                            enum:
+                                - read_write
+                                - read_only
+                    required:
+                        - name
+                        - access
+                marketplaces:
+                    description: The marketplaces whose orders the seller sends through this API. An order names one of
+                        these codes.
+                    type: array
+                    items:
+                        x-go-type-name: AccountMarketplace
+                        type: object
+                        properties:
+                            code:
+                                description: The marketplace's code, as an order's `marketplace` takes it.
+                                type: string
+                            name:
+                                description: The marketplace's name for a person to read.
+                                type: string
+                        required:
+                            - code
+                            - name
+                limits:
+                    description: The limits that apply to this key.
+                    x-go-type-name: AccountLimits
+                    type: object
+                    properties:
+                        requests_per_minute:
+                            description: Requests a minute per key.
+                            type: integer
+                        body_bytes:
+                            description: The largest JSON body.
+                            type: integer
+                        file_body_bytes:
+                            description: The largest body of a call that carries a file.
+                            type: integer
+                        page_size:
+                            description: The page size when `limit` is absent.
+                            type: integer
+                        max_page_size:
+                            description: The largest `limit`.
+                            type: integer
+                        retention_days:
+                            description: How long events, the journal and deliveries are kept.
+                            type: integer
+                    required:
+                        - requests_per_minute
+                        - body_bytes
+                        - file_body_bytes
+                        - page_size
+                        - max_page_size
+                        - retention_days
+                server_time:
+                    description: The fulfilment centre's clock, to compare with the caller's.
+                    type: string
+                    format: date-time
+            required:
+                - seller
+                - api
+                - key
+                - marketplaces
+                - limits
+                - server_time
+        Warehouse:
+            description: A warehouse orders can be sent to.
+            type: object
+            properties:
+                code:
+                    description: What an order's `warehouse` takes.
+                    type: string
+                name:
+                    description: The warehouse's name.
+                    type: string
+                city:
+                    description: The city, when known.
+                    type:
+                        - string
+                        - 'null'
+            required:
+                - code
+                - name
+                - city
+        OrderIn:
+            description: An order sent in. Unknown fields are refused, so no buyer data can travel in an order.
+            type: object
+            properties:
+                external_id:
+                    description: "The sender's own number of the order. Together with the marketplace it identifies the
+                        order: sending it again is a repeat."
+                    type: string
+                    minLength: 1
+                    maxLength: 64
+                marketplace:
+                    description: A code from `GET /account`; absent for an order of the seller's own shop.
+                    type:
+                        - string
+                        - 'null'
+                    minLength: 1
+                    maxLength: 32
+                group_id:
+                    description: The buyer's basket, when several orders belong together.
+                    type:
+                        - string
+                        - 'null'
+                    minLength: 1
+                    maxLength: 64
+                warehouse:
+                    description:
+                        A code from `GET /warehouses`. May be left out when the fulfilment centre has one working
+                        warehouse.
+                    type:
+                        - string
+                        - 'null'
+                    minLength: 1
+                    maxLength: 16
+                ship_by:
+                    description: The deadline for handing the order to the carrier.
+                    type: string
+                    format: date-time
+                packing_note:
+                    description: A note for the packer.
+                    type:
+                        - string
+                        - 'null'
+                    maxLength: 300
+                lines:
+                    description: One to 200 lines. Two lines of one product are added up.
+                    minItems: 1
+                    maxItems: 200
+                    type: array
+                    items:
+                        x-go-type-name: OrderInLine
+                        type: object
+                        properties:
+                            article:
+                                description: The product's article (its code at the seller).
+                                type: string
+                                minLength: 1
+                                maxLength: 64
+                            barcode:
+                                description:
+                                    The product's barcode, unique per seller. A box's or a pallet's barcode does
+                                    not name a product.
+                                type: string
+                                minLength: 1
+                                maxLength: 64
+                            marketplace_item_id:
+                                description: The marketplace's own id of the product.
+                                type: string
+                                minLength: 1
+                                maxLength: 64
+                            quantity:
+                                description: How many units, a whole number from 1.
+                                type: integer
+                                minimum: 1
+                                maximum: 1000000
+                        required:
+                            - quantity
+                        additionalProperties: false
+            required:
+                - external_id
+                - ship_by
+                - lines
+            additionalProperties: false
+        OrderCancel:
+            description: The reason for a cancel.
+            type: object
+            properties:
+                reason:
+                    description: Why the order is cancelled.
+                    type: string
+                    minLength: 1
+                    maxLength: 300
+            required:
+                - reason
+            additionalProperties: false
+        OrderReduce:
+            description: The wanted quantities of the lines to reduce.
+            type: object
+            properties:
+                lines:
+                    description: The lines to reduce.
+                    minItems: 1
+                    maxItems: 200
+                    type: array
+                    items:
+                        x-go-type-name: OrderReduceLine
+                        type: object
+                        properties:
+                            line:
+                                description: The line's number in the order.
+                                type: integer
+                                minimum: 1
+                            quantity:
+                                description: How many units are wanted now; 0 removes the line.
+                                type: integer
+                                minimum: 0
+                                maximum: 1000000
+                        required:
+                            - line
+                            - quantity
+                        additionalProperties: false
+            required:
+                - lines
+            additionalProperties: false
+        OrderPatch:
+            description: The fields of an order that can still be changed.
+            type: object
+            properties:
+                ship_by:
+                    description: The new deadline.
+                    type: string
+                    format: date-time
+                packing_note:
+                    description: The new note; null clears it.
+                    type:
+                        - string
+                        - 'null'
+                    maxLength: 300
+            additionalProperties: false
+        ProblemIn:
+            description: A problem the seller's system reports.
+            type: object
+            properties:
+                code:
+                    description: 'A short code the sender chooses: lower-case letters, digits and `_.-`.'
+                    type: string
+                    minLength: 1
+                    maxLength: 64
+                    pattern: ^[a-z0-9_.-]+$
+                message:
+                    description: What is wrong, in words for a person at the fulfilment centre.
+                    type: string
+                    minLength: 1
+                    maxLength: 300
+            required:
+                - code
+                - message
+            additionalProperties: false
+        Label:
+            description: A label file for one parcel.
+            type: object
+            properties:
+                content_type:
+                    description: The file's type.
+                    type: string
+                    enum:
+                        - application/pdf
+                        - image/png
+                        - image/jpeg
+                data:
+                    description: The file, base64-encoded; at most 5 MB.
+                    type: string
+                    minLength: 1
+                    format: base64
+                    contentEncoding: base64
+                scan_code:
+                    description: The text a scanner reads from the label.
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+            required:
+                - content_type
+                - data
+            additionalProperties: false
+        HandoverDocuments:
+            description: The documents of a hand-over.
+            type: object
+            properties:
+                external_id:
+                    description: The sender's own number of the hand-over (its supply on the marketplace).
+                    type: string
+                    minLength: 1
+                    maxLength: 64
+                documents:
+                    description: One to 60 files.
+                    minItems: 1
+                    maxItems: 60
+                    type: array
+                    items:
+                        x-go-type-name: HandoverDocumentIn
+                        type: object
+                        properties:
+                            kind:
+                                description:
+                                    '`handover_code` is the code the receiver scans; `box_label` a label per transport
+                                    box; `act` the act; `other` anything else.'
+                                type: string
+                                enum:
+                                    - handover_code
+                                    - box_label
+                                    - act
+                                    - other
+                            title:
+                                description: A title for a person to read.
+                                type: string
+                                minLength: 1
+                                maxLength: 120
+                            content_type:
+                                description: The file's type.
+                                type: string
+                                enum:
+                                    - application/pdf
+                                    - image/png
+                                    - image/jpeg
+                            data:
+                                description: The file, base64-encoded; at most 5 MB.
+                                type: string
+                                minLength: 1
+                                format: base64
+                                contentEncoding: base64
+                            scan_code:
+                                description: The text a scanner reads from the document.
+                                type: string
+                                minLength: 1
+                                maxLength: 128
+                        required:
+                            - kind
+                            - title
+                            - content_type
+                            - data
+                        additionalProperties: false
+            required:
+                - external_id
+                - documents
+            additionalProperties: false
+        Problem:
+            description: A problem the seller's system reported, as the fulfilment centre keeps it.
+            type: object
+            properties:
+                code:
+                    description: The code the sender gave.
+                    type: string
+                message:
+                    description: The message the sender gave.
+                    type: string
+                at:
+                    description: When it was reported.
+                    type: string
+            required:
+                - code
+                - message
+                - at
+        Order:
+            description: An order as the fulfilment centre holds it. It carries no buyer data.
+            type: object
+            properties:
+                id:
+                    description:
+                        The order's id at the fulfilment centre; it stands in the address of every call about the
+                        order.
+                    type: string
+                number:
+                    description: The order's number as the people at the fulfilment centre see it.
+                    type: integer
+                external_id:
+                    description: The sender's own number of the order.
+                    type: string
+                group_id:
+                    description: The buyer's basket, when one was given.
+                    type:
+                        - string
+                        - 'null'
+                marketplace:
+                    description: The marketplace's code; null is an order of the seller's own shop.
+                    type:
+                        - string
+                        - 'null'
+                via:
+                    description:
+                        'How the order reached the fulfilment centre: `api` through this API, `cabinet` typed by
+                        the seller, `file` loaded from a file, `office` typed at the fulfilment centre, `marketplace` taken
+                        in by a direct marketplace connection, `shop` by an online-shop connection.'
+                    type: string
+                    enum:
+                        - api
+                        - cabinet
+                        - file
+                        - office
+                        - marketplace
+                        - shop
+                warehouse:
+                    description: The code of the warehouse the order is picked in.
+                    type: string
+                status:
+                    description: "The order's stage in plain words: `waitingStock` waits for goods, `reserved` goods set
+                        aside, `shipped` handed to the carrier."
+                    type: string
+                    enum:
+                        - accepted
+                        - waitingStock
+                        - reserved
+                        - picking
+                        - packing
+                        - packed
+                        - shipped
+                        - cancelled
+                warehouse_status:
+                    description: The detailed status inside the warehouse; `status` is enough for most systems.
+                    type: string
+                    enum:
+                        - new
+                        - waiting_stock
+                        - reserved
+                        - picking
+                        - picked
+                        - packing
+                        - awaiting_check
+                        - checking
+                        - ready_to_close
+                        - packed
+                        - shipped
+                        - cancelled
+                ship_by:
+                    description: The deadline for handing the order to the carrier.
+                    type: string
+                    format: date-time
+                packing_note:
+                    description: The note for the packer.
+                    type:
+                        - string
+                        - 'null'
+                lines:
+                    description: The order's lines.
+                    type: array
+                    items:
+                        x-go-type-name: OrderLine
+                        type: object
+                        properties:
+                            line:
+                                description: The line's number in the order.
+                                type: integer
+                            article:
+                                description: The product's article.
+                                type: string
+                            quantity:
+                                description: How many units were ordered.
+                                type: number
+                                format: double
+                            cancelled_quantity:
+                                description: How many of them were taken out; what ships is `quantity` minus this.
+                                type: number
+                                format: double
+                            packed_quantity:
+                                description: How many units are packed.
+                                type: number
+                                format: double
+                            marking_required:
+                                description: Whether each unit of the line carries a marking code that must be scanned.
+                                    The product's card decides it, not the order; it lets the sender notice a disagreement
+                                    with its marketplace.
+                                type: boolean
+                        required:
+                            - line
+                            - article
+                            - quantity
+                            - cancelled_quantity
+                            - packed_quantity
+                            - marking_required
+                parcels:
+                    description: The order's parcels; most orders have one.
+                    type: array
+                    items:
+                        x-go-type-name: OrderParcel
+                        type: object
+                        properties:
+                            number:
+                                description: The parcel's number in the order, from 1.
+                                type: integer
+                            closed_at:
+                                description: When the parcel was closed; null while it is open.
+                                type:
+                                    - string
+                                    - 'null'
+                                format: date-time
+                            handed_over_at:
+                                description: When the parcel left with the carrier.
+                                type:
+                                    - string
+                                    - 'null'
+                                format: date-time
+                            label_attached:
+                                description: Whether a label is attached.
+                                type: boolean
+                            units:
+                                description: The packed units with their marking codes. Filled once packing is finished,
+                                    empty again when packing is restarted.
+                                type: array
+                                items:
+                                    x-go-type-name: OrderParcelUnit
+                                    type: object
+                                    properties:
+                                        line:
+                                            description: The order line the unit belongs to.
+                                            type: integer
+                                        marking_code:
+                                            description:
+                                                The unit's whole marking code, group separator included (in JSON
+                                                `\u001d`), exactly as scanned.
+                                            type: string
+                                    required:
+                                        - line
+                                        - marking_code
+                        required:
+                            - number
+                            - closed_at
+                            - handed_over_at
+                            - label_attached
+                            - units
+                problem:
+                    description: The problem the sender reported; null when there is none.
+                    oneOf:
+                        - $ref: '#/components/schemas/Problem'
+                        - description: The problem the sender reported; null when there is none.
+                          type: 'null'
+                handover_id:
+                    description: The hand-over the parcels leave in; null until the first parcel is closed.
+                    type:
+                        - string
+                        - 'null'
+                sequence:
+                    description: The number of the order's latest event; it tells which of two states of the order is newer.
+                    type:
+                        - integer
+                        - 'null'
+                updated_at:
+                    description: When the order last changed.
+                    type: string
+                    format: date-time
+            required:
+                - id
+                - number
+                - external_id
+                - group_id
+                - marketplace
+                - via
+                - warehouse
+                - status
+                - warehouse_status
+                - ship_by
+                - packing_note
+                - lines
+                - parcels
+                - problem
+                - handover_id
+                - sequence
+                - updated_at
+        HeldOrder:
+            description: 'The record of a received order: waiting, taken in or withdrawn.'
+            type: object
+            properties:
+                id:
+                    description: The record's id.
+                    type: string
+                external_id:
+                    description: The sender's own number of the order.
+                    type: string
+                marketplace:
+                    description: The marketplace's code; null for the seller's own shop.
+                    type:
+                        - string
+                        - 'null'
+                state:
+                    description:
+                        "`held_link` a product is unknown, or an article and a barcode point at two products; `held_warehouse`
+                        the warehouse is unknown or not named; `held_work` the seller's work is stopped; `held_refused`
+                        the order service refused it; `accepted` a working order exists; `withdrawn` taken off the list."
+                    type: string
+                    enum:
+                        - held_link
+                        - held_warehouse
+                        - held_work
+                        - held_refused
+                        - accepted
+                        - withdrawn
+                reasons:
+                    description:
+                        Why the order waits. Each reason is a code with the names it concerns (which article, which
+                        warehouse).
+                    type: array
+                    items:
+                        x-go-type-name: HeldReason
+                        type: object
+                        properties:
+                            code:
+                                description: The reason's code.
+                                type: string
+                            params:
+                                description: What the reason names; each value is a text or a number.
+                                type: object
+                                propertyNames:
+                                    type: string
+                                additionalProperties: true
+                        required:
+                            - code
+                received_at:
+                    description: When the order was received.
+                    type: string
+                    format: date-time
+                order_id:
+                    description: The working order, once there is one.
+                    type:
+                        - string
+                        - 'null'
+            required:
+                - id
+                - external_id
+                - marketplace
+                - state
+                - reasons
+                - received_at
+                - order_id
+        Handover:
+            description: The parcels of one seller, one warehouse and one marketplace that leave together on one day.
+            type: object
+            properties:
+                id:
+                    description: The hand-over's id.
+                    type: string
+                number:
+                    description: The number the people at the fulfilment centre see.
+                    type: integer
+                warehouse:
+                    description: The warehouse's code.
+                    type: string
+                marketplace:
+                    description: The marketplace's code; null for the seller's own shop.
+                    type:
+                        - string
+                        - 'null'
+                planned_date:
+                    description: The day the parcels leave.
+                    type: string
+                    format: date
+                state:
+                    description:
+                        '`open` not yet left; `documents_requested` the fulfilment centre waits for the documents
+                        (no more parcels join); `documents_ready` they arrived; `completed` every parcel left.'
+                    type: string
+                    enum:
+                        - open
+                        - documents_requested
+                        - documents_ready
+                        - completed
+                transport_boxes:
+                    description: How many transport boxes there are, when the fulfilment centre said.
+                    type:
+                        - integer
+                        - 'null'
+                external_id:
+                    description: The sender's own number, once the documents were sent.
+                    type:
+                        - string
+                        - 'null'
+                parcels:
+                    description: The parcels in the hand-over.
+                    type: array
+                    items:
+                        x-go-type-name: HandoverParcel
+                        type: object
+                        properties:
+                            order_id:
+                                description: The order's id.
+                                type: string
+                            external_id:
+                                description: The order's number at the sender.
+                                type: string
+                            number:
+                                description: The parcel's number in the order.
+                                type: integer
+                            scan_code:
+                                description: The label's scan text, when known.
+                                type:
+                                    - string
+                                    - 'null'
+                        required:
+                            - order_id
+                            - external_id
+                            - number
+                            - scan_code
+                documents:
+                    description: The documents that arrived, without their files.
+                    type: array
+                    items:
+                        x-go-type-name: HandoverDocument
+                        type: object
+                        properties:
+                            kind:
+                                description: The document's kind.
+                                type: string
+                                enum:
+                                    - handover_code
+                                    - box_label
+                                    - act
+                                    - other
+                            title:
+                                description: The document's title.
+                                type: string
+                        required:
+                            - kind
+                            - title
+                problem:
+                    description: The problem the sender reported; null when there is none.
+                    oneOf:
+                        - $ref: '#/components/schemas/Problem'
+                        - description: The problem the sender reported; null when there is none.
+                          type: 'null'
+            required:
+                - id
+                - number
+                - warehouse
+                - marketplace
+                - planned_date
+                - state
+                - transport_boxes
+                - external_id
+                - parcels
+                - documents
+                - problem
+        Event:
+            description:
+                One fact about an order or a hand-over. `data` holds the object as it is at the moment the event
+                is read or sent, and `details` the event's small facts. A receiver discards an event whose `sequence` is
+                lower than one it already applied.
+            type: object
+            properties:
+                id:
+                    description: The event's id; the same on every attempt to deliver it.
+                    type: string
+                type:
+                    description: The event's type, for example `order.packed`.
+                    type: string
+                occurred_at:
+                    description: When it happened.
+                    type: string
+                    format: date-time
+                sequence:
+                    description: A growing number; a reader keeps the last one it applied.
+                    type: integer
+                data:
+                    description: What the event is about, as it is now.
+                    x-go-type-name: EventData
+                    type: object
+                    properties:
+                        order:
+                            description: The order, for an `order.*` event.
+                            $ref: '#/components/schemas/Order'
+                        held:
+                            description: The waiting order's record, for `order.held`.
+                            $ref: '#/components/schemas/HeldOrder'
+                        handover:
+                            description: The hand-over, for a `handover.*` event.
+                            $ref: '#/components/schemas/Handover'
+                        details:
+                            description: "The event's small facts: the parcel's number, who cancelled, why a change waits."
+                            type: object
+                            propertyNames:
+                                type: string
+                            additionalProperties: {}
+            required:
+                - id
+                - type
+                - occurred_at
+                - sequence
+                - data
+        Error:
+            description: A refusal.
+            type: object
+            properties:
+                error:
+                    description: The refusal.
+                    x-go-type-name: ErrorBody
+                    type: object
+                    properties:
+                        code:
+                            description:
+                                "What went wrong. `bad_request` (400): The body or a parameter is wrong; `issues`
+                                names each place. `unauthorized` (401): No key, a mistyped key, or a revoked key. `forbidden`
+                                (403): The seller's work is switched off at the fulfilment centre. `api_off` (403): The
+                                seller switched the API off; a right key does not work until it is switched on. `read_only_key`
+                                (403): A write with a read-only key. `marketplace_not_enabled` (403): The order's marketplace
+                                is not enabled for this seller. `not_found` (404): No such record for this seller (another
+                                seller's record answers the same). `not_api_order` (409): Only an order that came through
+                                this API can be changed. `external_id_reused` (409): A repeat of an order number with other
+                                lines. `handed_over` (409): The order is already handed over; too late. `conflict` (409):
+                                The call cannot be done now: the order is cancelled, the documents were not asked for, the
+                                hand-over is completed, the scan code is taken by another parcel. `too_large` (413): The
+                                body is over its limit. `rate_limited` (429): More than 300 requests a minute. `unavailable`
+                                (503): The fulfilment centre is in maintenance."
+                            type: string
+                            enum:
+                                - bad_request
+                                - unauthorized
+                                - forbidden
+                                - api_off
+                                - read_only_key
+                                - marketplace_not_enabled
+                                - not_found
+                                - not_api_order
+                                - external_id_reused
+                                - handed_over
+                                - conflict
+                                - too_large
+                                - rate_limited
+                                - unavailable
+                        params:
+                            description: What the code names; each value is a text or a number.
+                            type: object
+                            propertyNames:
+                                type: string
+                            additionalProperties: true
+                        issues:
+                            description: Where in the body the fault is.
+                            type: array
+                            items:
+                                x-go-type-name: ErrorIssue
+                                type: object
+                                properties:
+                                    path:
+                                        description: The place in the body.
+                                        type: string
+                                    code:
+                                        description: What is wrong there.
+                                        type: string
+                                required:
+                                    - path
+                                    - code
+                    required:
+                        - code
+            required:
+                - error
+x-limits:
+    requests_per_minute: 300
+    body_megabytes: 1
+    file_body_megabytes: 8
+    page_size: 50
+    max_page_size: 200
+    retention_days: 30
+    notification_attempts: 8
+x-errors:
+    - code: bad_request
+      status: 400
+      description: The body or a parameter is wrong; `issues` names each place.
+    - code: unauthorized
+      status: 401
+      description: No key, a mistyped key, or a revoked key.
+    - code: forbidden
+      status: 403
+      description: The seller's work is switched off at the fulfilment centre.
+    - code: api_off
+      status: 403
+      description: The seller switched the API off; a right key does not work until it is switched on.
+    - code: read_only_key
+      status: 403
+      description: A write with a read-only key.
+    - code: marketplace_not_enabled
+      status: 403
+      description: The order's marketplace is not enabled for this seller.
+    - code: not_found
+      status: 404
+      description: No such record for this seller (another seller's record answers the same).
+    - code: not_api_order
+      status: 409
+      description: Only an order that came through this API can be changed.
+    - code: external_id_reused
+      status: 409
+      description: A repeat of an order number with other lines.
+    - code: handed_over
+      status: 409
+      description: The order is already handed over; too late.
+    - code: conflict
+      status: 409
+      description:
+          'The call cannot be done now: the order is cancelled, the documents were not asked for, the hand-over is
+          completed, the scan code is taken by another parcel.'
+    - code: too_large
+      status: 413
+      description: The body is over its limit.
+    - code: rate_limited
+      status: 429
+      description: More than 300 requests a minute.
+    - code: unavailable
+      status: 503
+      description: The fulfilment centre is in maintenance.

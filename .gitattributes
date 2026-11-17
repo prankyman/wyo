@@ -1,0 +1,4 @@
+# Generated from api/wyo.yaml by `pnpm generate`; never edited by hand.
+src/lib/api/wyo-api.d.ts linguist-generated=true
+# Saved pages and description files of the marketplaces, kept as published.
+docs/marketplaces/** linguist-documentation

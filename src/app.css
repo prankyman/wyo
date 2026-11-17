@@ -1,0 +1,243 @@
+@import 'tailwindcss';
+
+@plugin '@tailwindcss/forms';
+
+/*
+ * The theme: ALL colours are named once, here, and nowhere else (`theme-policy.test.ts` fails a Tailwind palette class such as
+ * `bg-indigo-600` and any colour code written outside this file). A component writes `bg-brand-600`, `text-ink-800`,
+ * `bg-ok-50`; changing the look of the whole interface later is an edit of this one block.
+ * https://tailwindcss.com/docs/theme
+ *
+ *   brand  indigo                the main button, links, the chosen menu item, the focus ring, the page-change bar, the
+ *                                informational tone
+ *   ink    cool grey (slate)     text, borders and the page background
+ *   ok     emerald               done
+ *   wait   sky                   waiting
+ *   warn   amber                 attention
+ *   stop   red                   stopped, a refusal
+ *
+ * `static`: every variable is written to the built CSS even when no class uses it, because the start-up bar of
+ * `src/app.html` (drawn before the interface's code runs) reads `--color-brand-100` and `--color-brand-500` directly.
+ */
+@theme static {
+    /* Tailwind's own palette is switched off: only the named scales below (and white and black) exist. */
+    --color-*: initial;
+
+    --color-white: oklch(100% 0 0);
+    --color-black: oklch(0% 0 0);
+
+    --color-brand-50: oklch(96.2% 0.018 272.314);
+    --color-brand-100: oklch(93% 0.034 272.788);
+    --color-brand-200: oklch(87% 0.065 274.039);
+    --color-brand-300: oklch(78.5% 0.115 274.713);
+    --color-brand-400: oklch(67.3% 0.182 276.935);
+    --color-brand-500: oklch(58.5% 0.233 277.117);
+    --color-brand-600: oklch(51.1% 0.262 276.966);
+    --color-brand-700: oklch(45.7% 0.24 277.023);
+    --color-brand-800: oklch(39.8% 0.195 277.366);
+    --color-brand-900: oklch(35.9% 0.144 278.697);
+    --color-brand-950: oklch(25.7% 0.09 281.288);
+
+    --color-ink-50: oklch(98.4% 0.003 247.858);
+    --color-ink-100: oklch(96.8% 0.007 247.896);
+    --color-ink-200: oklch(92.9% 0.013 255.508);
+    --color-ink-300: oklch(86.9% 0.022 252.894);
+    --color-ink-400: oklch(70.4% 0.04 256.788);
+    --color-ink-500: oklch(55.4% 0.046 257.417);
+    --color-ink-600: oklch(44.6% 0.043 257.281);
+    --color-ink-700: oklch(37.2% 0.044 257.287);
+    --color-ink-800: oklch(27.9% 0.041 260.031);
+    --color-ink-900: oklch(20.8% 0.042 265.755);
+    --color-ink-950: oklch(12.9% 0.042 264.695);
+
+    --color-ok-50: oklch(97.9% 0.021 166.113);
+    --color-ok-100: oklch(95% 0.052 163.051);
+    --color-ok-200: oklch(90.5% 0.093 164.15);
+    --color-ok-300: oklch(84.5% 0.143 164.978);
+    --color-ok-400: oklch(76.5% 0.177 163.223);
+    --color-ok-500: oklch(69.6% 0.17 162.48);
+    --color-ok-600: oklch(59.6% 0.145 163.225);
+    --color-ok-700: oklch(50.8% 0.118 165.612);
+    --color-ok-800: oklch(43.2% 0.095 166.913);
+    --color-ok-900: oklch(37.8% 0.077 168.94);
+    --color-ok-950: oklch(26.2% 0.051 172.552);
+
+    --color-wait-50: oklch(97.7% 0.013 236.62);
+    --color-wait-100: oklch(95.1% 0.026 236.824);
+    --color-wait-200: oklch(90.1% 0.058 230.902);
+    --color-wait-300: oklch(82.8% 0.111 230.318);
+    --color-wait-400: oklch(74.6% 0.16 232.661);
+    --color-wait-500: oklch(68.5% 0.169 237.323);
+    --color-wait-600: oklch(58.8% 0.158 241.966);
+    --color-wait-700: oklch(50% 0.134 242.749);
+    --color-wait-800: oklch(44.3% 0.11 240.79);
+    --color-wait-900: oklch(39.1% 0.09 240.876);
+    --color-wait-950: oklch(29.3% 0.066 243.157);
+
+    --color-warn-50: oklch(98.7% 0.022 95.277);
+    --color-warn-100: oklch(96.2% 0.059 95.617);
+    --color-warn-200: oklch(92.4% 0.12 95.746);
+    --color-warn-300: oklch(87.9% 0.169 91.605);
+    --color-warn-400: oklch(82.8% 0.189 84.429);
+    --color-warn-500: oklch(76.9% 0.188 70.08);
+    --color-warn-600: oklch(66.6% 0.179 58.318);
+    --color-warn-700: oklch(55.5% 0.163 48.998);
+    --color-warn-800: oklch(47.3% 0.137 46.201);
+    --color-warn-900: oklch(41.4% 0.112 45.904);
+    --color-warn-950: oklch(27.9% 0.077 45.635);
+
+    --color-stop-50: oklch(97.1% 0.013 17.38);
+    --color-stop-100: oklch(93.6% 0.032 17.717);
+    --color-stop-200: oklch(88.5% 0.062 18.334);
+    --color-stop-300: oklch(80.8% 0.114 19.571);
+    --color-stop-400: oklch(70.4% 0.191 22.216);
+    --color-stop-500: oklch(63.7% 0.237 25.331);
+    --color-stop-600: oklch(57.7% 0.245 27.325);
+    --color-stop-700: oklch(50.5% 0.213 27.518);
+    --color-stop-800: oklch(44.4% 0.177 26.899);
+    --color-stop-900: oklch(39.6% 0.141 25.723);
+    --color-stop-950: oklch(25.8% 0.092 26.042);
+
+    --breakpoint-xs: 30rem;
+
+    /* Corners: 6 px on boxes, buttons and cards. */
+    --radius: 0.375rem;
+    --radius-xs: 0.25rem;
+    --radius-sm: 0.375rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+
+    /* The system font: no font is fetched from anywhere. */
+    --font-sans:
+        ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+}
+
+/*
+ * `pressable:` - the control can act: it is not `disabled`, not `aria-disabled` (its action is running, or it is a link
+ * that cannot be followed), and, for a `ClickableCard`/`ClickableRow`, its record link is not already opening. Every hover and
+ * pressed look goes behind it (`pressable:hover:...`, `pressable:active:...`), so a greyed-out or busy control does not change
+ * under the pointer or the finger (`src/lib/components/ui/press.ts`). Custom variant syntax:
+ * https://tailwindcss.com/docs/adding-custom-styles#adding-custom-variants.
+ *
+ * The card condition sits in `:where()`: a browser without `:has()` drops only that part and keeps the rule, where an unknown
+ * selector inside a plain `:not()` would throw the whole rule away.
+ */
+@custom-variant pressable (&:not(:disabled, [aria-disabled='true']):not(:where(:has([data-stretched-link][aria-disabled='true']))));
+
+@layer base {
+    html {
+        -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+        @apply bg-ink-50 text-ink-800;
+        font-family: var(--font-sans);
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        @apply font-semibold text-ink-900;
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+}
+
+button {
+    cursor: pointer;
+}
+
+button:disabled {
+    cursor: not-allowed;
+}
+
+/*
+ * A select's arrow keeps its room. `@tailwindcss/forms` draws the arrow 0.5rem from the right edge and gives a drop-down 2.5rem
+ * of right padding so its text stops before the arrow. A screen's `px-3` is a utility in Tailwind's `utilities` layer and comes
+ * after the plugin's rule in the `base` layer, so it would cut that room to 0.75rem and the shown text would run under the arrow.
+ *
+ * This rule is in no layer on purpose: a rule outside every layer beats every rule inside one, whatever the specificity and the
+ * order, so no utility class can take the room away (CSS Cascading and Inheritance Level 5, section 6.4.3 "Layer Ordering":
+ * https://www.w3.org/TR/css-cascade-5/#layer-ordering). The right edge is a physical property because the arrow is drawn at
+ * `right`. Lists (`multiple`, `size`) draw no arrow and keep their own padding, exactly as the plugin leaves them.
+ */
+select:not([multiple]):not([size]) {
+    padding-right: 2.5rem;
+}
+
+/*
+ * Only the sheet is printed. A printed document marks its root with `data-print-root`. On paper everything that neither is the
+ * sheet nor holds it leaves the page, and what holds it loses its padding, gaps, borders and screen-height minimums, so nothing
+ * of the interface's chrome takes room. The sheet stays in the flow: the browser reads a named page (`page`) only from a box in
+ * the normal flow. The rule is global and outside every layer: a page's own stylesheet stays in the tab after in-app navigation,
+ * so a rule written per page could hide the next page's sheet; this one asks for the marked root first.
+ */
+@media print {
+    html:has([data-print-root]),
+    body:has([data-print-root]) {
+        margin: 0;
+        padding: 0;
+        background: var(--color-white);
+    }
+
+    body:has([data-print-root]) *:not([data-print-root], [data-print-root] *, :has([data-print-root])) {
+        display: none !important;
+    }
+
+    body:has([data-print-root]) *:has([data-print-root]) {
+        display: block !important;
+        position: static !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        gap: 0 !important;
+        border: 0 !important;
+        overflow: visible !important;
+        box-shadow: none !important;
+    }
+}
+
+/*
+ * Clickable cards and rows - `ClickableCard`, `ClickableRow` and the `StretchedLink` inside them (src/lib/components/ui). The one
+ * link of a card or row is the record's number or name; its `::after` is stretched over the whole `.clickable-surface`, so a press
+ * anywhere opens the record while screen readers and the keyboard still meet exactly one link with a real name.
+ *
+ * Every other control inside is lifted above that stretched area, so a checkbox, a button or a second link keeps working on its
+ * own. `:where()` keeps those two declarations weak: a control that positions itself (`absolute`, `sticky`) with a utility class
+ * still wins, because utilities come after this layer.
+ *
+ * The pressed, hover and "opening" looks are utility classes on the components themselves.
+ */
+@layer components {
+    .clickable-surface {
+        position: relative;
+    }
+
+    .clickable-surface [data-stretched-link]::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+    }
+
+    .clickable-surface
+        :where(a, button, input, select, textarea, label, summary, [role='button'], [tabindex]):not(
+            [data-stretched-link]
+        ) {
+        position: relative;
+        z-index: 1;
+    }
+
+    /* The keyboard focus ring goes around the whole card or row, not around the link text. */
+    .clickable-surface [data-stretched-link]:focus-visible::after {
+        outline: 2px solid var(--color-brand-600);
+        outline-offset: -2px;
+    }
+}

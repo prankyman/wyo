@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "sveltekit-testing": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/sveltekit-testing/SKILL.md",
+      "computedHash": "local"
+    },
+    "go-testing": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/go-testing/SKILL.md",
+      "computedHash": "local"
+    },
+    "smoke-testing": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/smoke-testing/SKILL.md",
+      "computedHash": "local"
+    }
+  }
+}

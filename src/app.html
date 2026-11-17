@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ru">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="text-scale" content="scale" />
+        <link rel="icon" href="%sveltekit.assets%/favicon.svg" type="image/svg+xml" />
+        <script>
+            // Start-up submission guard (press feedback and single submission). The wyo interface is static files: a form
+            // has nothing to be posted to, so a form sent before the interface's code has started must not be posted
+            // at all. Until then this stops every submission; nothing is sent, and the interface's own form guard
+            // (PageChangeGuard.svelte calls `release()` once it is live) takes over from the first press it can answer.
+            // `release()` answers whether a submission was stopped, so a page can tell the person to press again.
+            (function () {
+                var stopped = false;
+                function onSubmit(event) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    stopped = true;
+                }
+                document.addEventListener('submit', onSubmit, true);
+                window.__startupSubmitGuard = {
+                    release: function () {
+                        document.removeEventListener('submit', onSubmit, true);
+                        var wasStopped = stopped;
+                        stopped = false;
+                        return wasStopped;
+                    }
+                };
+            })();
+        </script>
+        <script data-startup="page-change-bar">
+            // Start-up page-change bar. Until the interface's code has started, a press on a link makes the browser load a
+            // whole new page by itself, and nothing on the page says so: the running bar (PageChangeGuard.svelte) exists
+            // only once the code runs. This draws the same bar, 6 px along the lower edge of the header, 150 ms after such
+            // a press, in the theme's brand colour (the colour variables are the ones `src/app.css` defines).
+            //
+            // The same bar also runs from the start: until the code has started, the page looks ready but nothing on it
+            // reacts to typing. It appears 150 ms after the page was read, so a page that starts sooner never shows it.
+            //
+            // PageChangeGuard.svelte calls `release()` once the interface has started: no further press is watched here,
+            // the start-up bar goes away, and a bar of a press stays until the new page replaces this one.
+            (function () {
+                var bar = null;
+                var timer = null;
+                var pressed = false;
+                var released = false;
+                function schedule() {
+                    if (released || bar || timer) return;
+                    timer = setTimeout(function () {
+                        timer = null;
+                        var style = document.createElement('style');
+                        style.textContent =
+                            '@keyframes startup-bar-run{from{transform:translateX(-100%)}to{transform:translateX(300%)}}' +
+                            '@media (prefers-reduced-motion: reduce){[data-startup-bar-runner]{width:100%!important;' +
+                            'animation:none!important;opacity:.6}}';
+                        bar = document.createElement('div');
+                        bar.setAttribute('role', 'progressbar');
+                        bar.setAttribute('data-test', 'startup-page-change-bar');
+                        // Along the lower edge of the pinned header; at the window's top on a page without one.
+                        var header = document.querySelector('header');
+                        var top = header ? Math.max(0, Math.round(header.getBoundingClientRect().bottom)) : 0;
+                        bar.style.cssText =
+                            'position:fixed;left:0;right:0;top:' +
+                            top +
+                            'px;z-index:100;height:6px;overflow:hidden;' +
+                            'background:var(--color-brand-100);pointer-events:none';
+                        var runner = document.createElement('div');
+                        runner.setAttribute('data-startup-bar-runner', '');
+                        runner.style.cssText =
+                            'height:100%;width:33.333%;background:var(--color-brand-500);' +
+                            'animation:startup-bar-run 1.1s ease-in-out infinite';
+                        bar.appendChild(style);
+                        bar.appendChild(runner);
+                        document.documentElement.appendChild(bar);
+                    }, 150);
+                }
+                // A press loads a new page: its bar stays after the interface has started.
+                function show() {
+                    pressed = true;
+                    schedule();
+                }
+                function hide() {
+                    if (timer) clearTimeout(timer);
+                    timer = null;
+                    if (bar) bar.remove();
+                    bar = null;
+                }
+                // A link this page follows itself: same site, this window, a plain left press, not a download or a jump
+                // within the same page. Watched first of all (the window, while the press goes down): nothing on the page
+                // cancels a press before the interface starts.
+                function onClick(event) {
+                    if (event.button !== 0) return;
+                    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                    var link = event.target && event.target.closest ? event.target.closest('a[href]') : null;
+                    if (!link || link.hasAttribute('download')) return;
+                    var target = link.getAttribute('target');
+                    if (target && target !== '_self') return;
+                    var url = new URL(link.href, location.href);
+                    if (url.origin !== location.origin) return;
+                    if (url.pathname === location.pathname && url.search === location.search && url.hash) return;
+                    show();
+                }
+                // Back from the back/forward cache: nothing is loading.
+                function onPageShow(event) {
+                    if (event.persisted) hide();
+                }
+                window.addEventListener('click', onClick, true);
+                window.addEventListener('pageshow', onPageShow);
+                // The start-up bar: counted from when the page has been read, so the header is there to run along.
+                if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', schedule);
+                else schedule();
+                window.__startupPageChangeBar = {
+                    release: function () {
+                        released = true;
+                        window.removeEventListener('click', onClick, true);
+                        document.removeEventListener('DOMContentLoaded', schedule);
+                        if (!pressed) hide();
+                    }
+                };
+            })();
+        </script>
+        %sveltekit.head%
+    </head>
+    <body data-sveltekit-preload-data="hover">
+        <div style="display: contents">%sveltekit.body%</div>
+    </body>
+</html>

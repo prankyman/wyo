@@ -1,0 +1,217 @@
+name: CI/CD
+
+# The whole gate on a clean machine (every pull request and every push to main), and the release (a push to main whose
+# commits since the last version tag hold a `feat` or a `fix`). Standard GitHub-hosted runners are free for a public
+# repository: https://docs.github.com/en/billing/concepts/product-billing/github-actions
+
+on:
+    pull_request:
+    push:
+        branches: [main]
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: ci-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+    GITLEAKS_VERSION: 8.30.1
+    GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+
+jobs:
+    check-skip-ci:
+        runs-on: ubuntu-24.04
+        outputs:
+            skip_ci: ${{ steps.check.outputs.skip_ci }}
+            should_release: ${{ steps.release.outputs.should_release }}
+            from: ${{ steps.range.outputs.from }}
+            to: ${{ steps.range.outputs.to }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+                  ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+            # The last commit's subject decides: a commit of documents only ends its subject with [skip ci].
+            - name: Check for the skip-ci marker
+              id: check
+              run: |
+                  if [ "${{ github.event_name }}" != "workflow_dispatch" ] && git log -1 --pretty=%s | grep -qF "[skip ci]"; then
+                    echo "skip_ci=true" >> "$GITHUB_OUTPUT"
+                    echo "The last commit's subject holds [skip ci]: the run ends here."
+                  else
+                    echo "skip_ci=false" >> "$GITHUB_OUTPUT"
+                  fi
+
+            # The commits this run judges: the pull request's own, or the ones this push added.
+            - name: The range of pushed commits
+              id: range
+              run: |
+                  if [ "${{ github.event_name }}" = "pull_request" ]; then
+                    FROM="${{ github.event.pull_request.base.sha }}"
+                    TO="${{ github.event.pull_request.head.sha }}"
+                  else
+                    FROM="${{ github.event.before }}"
+                    TO="${{ github.sha }}"
+                    if [ -z "$FROM" ] || [ "$FROM" = "0000000000000000000000000000000000000000" ] \
+                       || ! git cat-file -e "$FROM^{commit}" 2>/dev/null; then
+                      FROM="$(git rev-list --max-parents=0 HEAD | tail -1)"
+                    fi
+                  fi
+                  echo "from=$FROM" >> "$GITHUB_OUTPUT"
+                  echo "to=$TO" >> "$GITHUB_OUTPUT"
+                  echo "Commits judged: $FROM..$TO"
+
+            - name: Is a release due
+              id: release
+              run: |
+                  if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ github.ref }}" != "refs/heads/main" ]; then
+                    echo "should_release=false" >> "$GITHUB_OUTPUT"; exit 0
+                  fi
+                  LAST_TAG=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "")
+                  if [ -z "$LAST_TAG" ]; then SUBJECTS=$(git log --pretty=%s); else SUBJECTS=$(git log "${LAST_TAG}..HEAD" --pretty=%s); fi
+                  if echo "$SUBJECTS" | grep -qE '^(feat|fix)(\([^)]*\))?:'; then
+                    echo "should_release=true" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "should_release=false" >> "$GITHUB_OUTPUT"
+                  fi
+
+    gate:
+        runs-on: ubuntu-24.04
+        needs: check-skip-ci
+        if: needs.check-skip-ci.outputs.skip_ci == 'false'
+        timeout-minutes: 40
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+                  ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+            - name: Secret scan of the pushed commits
+              run: |
+                  ARCHIVE="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+                  curl -sSfL -o "$ARCHIVE" "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${ARCHIVE}"
+                  echo "${GITLEAKS_SHA256}  ${ARCHIVE}" | sha256sum -c -
+                  tar -xzf "$ARCHIVE" gitleaks
+                  ./gitleaks detect --redact --no-banner --config .gitleaks.toml \
+                    --log-opts="${{ needs.check-skip-ci.outputs.from }}..${{ needs.check-skip-ci.outputs.to }}"
+                  rm -f gitleaks "$ARCHIVE"
+
+            - uses: pnpm/action-setup@v6
+            - uses: actions/setup-node@v7
+              with:
+                  node-version-file: .nvmrc
+                  cache: pnpm
+            - uses: actions/setup-go@v7
+              with:
+                  go-version-file: go.mod
+                  cache: true
+
+            - name: Install the interface's packages
+              run: pnpm install --frozen-lockfile
+
+            - name: Commit messages of the pushed commits
+              run: |
+                  pnpm exec commitlint --from "${{ needs.check-skip-ci.outputs.from }}" \
+                    --to "${{ needs.check-skip-ci.outputs.to }}" --verbose
+
+            - name: Install the Go tools
+              run: pnpm tools:install
+
+            - name: Install the browser for the browser tests
+              run: pnpm exec playwright install --with-deps chromium
+
+            - name: Generate, lint, type checks, tests with coverage, build
+              run: pnpm precommit
+
+            - name: Browser tests
+              run: pnpm test:e2e
+
+            - name: Keep the reports
+              if: always()
+              uses: actions/upload-artifact@v7
+              with:
+                  name: reports-${{ github.run_id }}
+                  path: |
+                      coverage/
+                      playwright-report/
+                      test-results/
+                  if-no-files-found: ignore
+                  retention-days: 14
+
+    release:
+        runs-on: ubuntu-24.04
+        needs: [check-skip-ci, gate]
+        if: needs.check-skip-ci.outputs.should_release == 'true'
+        concurrency:
+            group: release
+            cancel-in-progress: false
+        permissions:
+            contents: write
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+                  ref: main
+
+            - uses: pnpm/action-setup@v6
+            - uses: actions/setup-node@v7
+              with:
+                  node-version-file: .nvmrc
+                  cache: pnpm
+            - uses: actions/setup-go@v7
+              with:
+                  go-version-file: go.mod
+                  cache: true
+
+            - name: Install the interface's packages
+              run: pnpm install --frozen-lockfile
+
+            - name: The next version and its change log
+              id: version
+              run: |
+                  pnpm release
+                  VERSION=$(node -p "require('./package.json').version")
+                  echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+                  # The version's own part of CHANGELOG.md: from its heading to the next version's heading.
+                  awk -v v="$VERSION" '
+                    /^#{2,3} / { if (found) exit; if (index($0, v)) { found = 1; next } }
+                    found { print }
+                  ' CHANGELOG.md > release-notes.md
+                  test -s release-notes.md || echo "Release $VERSION." > release-notes.md
+
+            - name: Commit and tag the version
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git add package.json CHANGELOG.md
+                  git commit -m "chore(release): ${{ steps.version.outputs.version }} [skip ci]"
+                  git tag "v${{ steps.version.outputs.version }}"
+                  git push origin HEAD:main
+                  git push origin "v${{ steps.version.outputs.version }}"
+
+            - name: Build the wyo server for linux/amd64 and linux/arm64
+              run: |
+                  VERSION="${{ steps.version.outputs.version }}"
+                  pnpm exec vite build
+                  mkdir -p release
+                  for ARCH in amd64 arm64; do
+                    CGO_ENABLED=0 GOOS=linux GOARCH="$ARCH" go build -trimpath \
+                      -ldflags "-s -w -X github.com/prankyman/wyo/internal/version.Version=${VERSION}" \
+                      -o "release/wyo_linux_${ARCH}" ./cmd/wyo
+                  done
+                  (cd release && sha256sum wyo_linux_amd64 wyo_linux_arm64 > checksums.txt)
+
+            - name: Publish the GitHub Release
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  VERSION="${{ steps.version.outputs.version }}"
+                  gh release create "v${VERSION}" --title "wyo ${VERSION}" --notes-file release-notes.md \
+                    release/wyo_linux_amd64 release/wyo_linux_arm64 release/checksums.txt
