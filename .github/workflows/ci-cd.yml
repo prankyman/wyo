@@ -186,15 +186,18 @@ jobs:
                   ' CHANGELOG.md > release-notes.md
                   test -s release-notes.md || echo "Release $VERSION." > release-notes.md
 
+            # The gate job above ran every check; the hooks of .husky/ would only run them again, without the Go tools.
             - name: Commit and tag the version
+              env:
+                  HUSKY: 0
               run: |
                   git config user.name "github-actions[bot]"
                   git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
                   git add package.json CHANGELOG.md
-                  git commit -m "chore(release): ${{ steps.version.outputs.version }} [skip ci]"
+                  git commit --no-verify -m "chore(release): ${{ steps.version.outputs.version }} [skip ci]"
                   git tag "v${{ steps.version.outputs.version }}"
-                  git push origin HEAD:main
-                  git push origin "v${{ steps.version.outputs.version }}"
+                  git push --no-verify origin HEAD:main
+                  git push --no-verify origin "v${{ steps.version.outputs.version }}"
 
             - name: Build the wyo server for linux/amd64 and linux/arm64
               run: |
