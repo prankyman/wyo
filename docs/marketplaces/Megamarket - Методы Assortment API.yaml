@@ -1,0 +1,3788 @@
+openapi: 3.0.0
+info:
+  version: "1.0"
+  title: Методы Assortment API
+servers:
+  - url: "https://api.megamarket.tech"
+  - url: "https://api-test.megamarket.tech"
+paths:
+  /api/merchantIntegration/assortment/v1/price/getByOfferId:
+    post:
+      tags:
+        - цены
+      summary: Получение цен по идентификатору товара продавца
+      description: Получение цен по идентификатору товара продавца (`offerId`).
+      operationId: getPricesByOfferId
+      parameters:
+        - name: X-Merchant-Token
+          in: header
+          required: true
+          allowEmptyValue: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetPricesByOfferIdRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetPricesResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "422":
+          description: Unprocessable Entity (WebDAV)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/defaultError"
+              examples:
+                Example 1:
+                  value:
+                    errors:
+                      - code: validationError
+                        message: Склад с id <имя_склада> не найден
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+  /api/merchantIntegration/assortment/v1/price/getByGoodsId:
+    post:
+      tags:
+        - цены
+      summary: Получение цен по идентификатору Мегамаркета
+      description: "Получение цен по идентификатору [Мегамаркете](https://megamarket.ru/) (`goodsId`)."
+      operationId: getPricesByGoodsId
+      parameters:
+        - name: X-Merchant-Token
+          in: header
+          required: true
+          allowEmptyValue: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetPricesByGoodsIdRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetPricesResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "422":
+          description: Unprocessable Entity (WebDAV)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/defaultError"
+              examples:
+                Example 1:
+                  value:
+                    errors:
+                      - code: validationError
+                        message: Склад с id <имя_склада> не найден
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+  /api/merchantIntegration/assortment/v1/price/get:
+    post:
+      tags:
+        - цены
+      summary: Получение цен по номеру склада продавца
+      description: Получение цен по номеру склада продавца (`locationId`).
+      operationId: getPricesByLocation
+      parameters:
+        - name: X-Merchant-Token
+          in: header
+          required: true
+          allowEmptyValue: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetPricesByLocationRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetPricesByLocationResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "422":
+          description: Unprocessable Entity (WebDAV)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/defaultError"
+              examples:
+                Example 1:
+                  value:
+                    errors:
+                      - code: validationError
+                        message: Склад с id <имя_склада> не найден
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+  /api/merchantIntegration/assortment/v1/categoryTree/get:
+    get:
+      tags:
+        - получение дерева категорий
+      summary: Запрос полного дерева категорий
+      description: "С помощью этого метода можно получить полное дерево категорий.\r\n\r\nДерево категорий - это иерархическая структура, представляющая собой множество категорий и подкатегорий с `1-ого` по `6-ой` уровень, которые помогают систематизировать товары, доступные на платформе.\r\n\r\nСоздание товара возможно только в категории `6-го уровня`.\r\n"
+      operationId: get-api-merchant-integration-assortment-v1-category-tree-get
+      parameters:
+        - name: X-Merchant-Token
+          in: header
+          required: true
+          allowEmptyValue: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/categoryTreeResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+  /api/merchantIntegration/assortment/v1/categoryParent/list:
+    get:
+      tags:
+        - получение дерева категорий
+      summary: Запрос всех категорий 1-го уровня
+      description: С помощью этого метода можно получить дерево категорий в *усечённом виде* - в виде списка категорий первого уровня.
+      operationId: get-api-merchant-integration-assortment-v1-category-parent-list
+      parameters:
+        - name: X-Merchant-Token
+          in: header
+          required: true
+          allowEmptyValue: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/categoryParentResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+  /api/merchantIntegration/assortment/v1/categoryBranch/get:
+    post:
+      tags:
+        - получение дерева категорий
+      summary: Запрос всех вложенных категорий по заданной категории 1-го уровня
+      description: |
+        С помощью этого метода можно получить дерево категорий в усечённом виде — в виде одной ветки категории первого уровня.
+
+        Для запроса необходимо указать категорию *первого уровня*, по которой нужно получить все вложенные категории.
+
+        С помощью параметра `skipIntermediateCategory` можно убрать все уровни, кроме 6-го:
+        - `true` — вернутся только категории 6-го уровня.
+        - `false` — вернутся все категории с 1-го по 6-й уровень.
+
+        По умолчанию `skipIntermediateCategory` равен `false`.
+      operationId: post-api-merchant-integration-assortmen-v1-category-parent-get
+      parameters:
+        - name: X-Merchant-Token
+          in: header
+          required: true
+          allowEmptyValue: false
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/categoryBranchRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/categoryBranchResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/defaultError"
+              examples:
+                Example 1:
+                  value:
+                    errors:
+                      - code: validationError
+                        message: Не найдена категория
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+  /api/merchantIntegration/assortment/v1/infomodel/get:
+    post:
+      tags:
+        - получение инфомодели
+      summary: Запрос инфомодели
+      description: |
+        Инфомодель — набор атрибутов товара.
+
+        > <span style="color: #d41f1c;">**Важно!** </span>
+
+        Атрибуты делятся на два типа:
+        - **Мастер атрибуты** — атрибуты, общие для всех категорий (пример: название товара, бренд)
+        - **Контент атрибуты** — атрибуты, уникальные для выбранной категории (пример: количество скоростей (для категории Велосипеды), размер экрана (для категории Телефоны))
+
+        Атрибуты, у которых значение `isRequired`: `true`, обязательны для заполнения при создании карточки товара.
+
+        При работе с атрибутами, у которых `valueTypeCode` равен `enum` (имеют словарь значений), следует ориентироваться на значение `isSuggest`:
+        - Если значение `true`, то можно как выбрать предложенное значение из словаря, так и предложить собственное.
+        - Если значение `false`, то возможно только выбрать предложенное значение из словаря.
+
+        При этом для всех атрибутов, кроме «Бренд», новое значение может содержать только следующие символы:
+        - Цифры
+        - Кириллица
+        - Латиница
+        - Буквы греческого алфавита α β Ω ω γ
+        - Символы "", : ? ( ) - + / ! ' . ° % $ @ # № & < > ² ³ [ ] | \ * Ø ® ™
+
+        Для атрибута «Бренд» разрешены только следующие символы:
+        - Цифры
+        - Кириллица
+        - Латиница
+        - Символы # № & - + : \  / . ' % ? !
+
+        Для атрибутов, у которых `valueTypeCode` не равен `enum`, всегда указывается собственное значение.
+      operationId: post-api-merchant-integration-assortmen-v1-infomodel-get
+      requestBody:
+        description: ""
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/infomodelGetRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/infomodelGetResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnprocessableResponse"
+              examples:
+                Example 1:
+                  value:
+                    errors:
+                      - code: validationError
+                        message: Передан categoryId с несуществующим идентификатором
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+  /api/merchantIntegration/assortment/v1/card/save:
+    post:
+      tags:
+        - карточки товара
+      summary: Создание и обновление карточек товаров
+      description: |
+        Карточка товара — это сущность, содержащая набор характеристик товара, которые будут отображаться покупателям на витрине [Мегамаркета](https://megamarket.ru/).
+
+        Метод используется для создания и обновления карточки товара с их текущими статусами по фильтру. Отфильтровать карточки можно по статусу, категории, дате создания, атрибуту "Артикул Мегамаркета" или атрибуту "Код товара продавца". Например, если вы хотите найти все карточки, по которым найдены ошибки, передайте параметр status равный `ERROR` или `CHANGES_REJECTED`
+
+        ### Чтобы создать карточку товара:
+        1. Получить дерево категорий
+        2. Найти категорию `6-ого уровня`, подходящую к товару, которую вы хотите создать
+        3. Сделать запрос Инфомодели с помощью идентификатора выбранной категории
+        4. Сделать запрос на создание карточки, ориентируясь на полученные значения из Инфомодели
+        5. Статус созданной карточки можно проверить с помощью [метода запроса информации о товаре по фильтру](/assortment/openapi#tag/kartochkige-tovara/operation/post-api-merchant-integration-assortment-v1-card-get).
+        6. Если статус сменился на (`ERROR`) - воспользоваться [методом для получения детализации ошибок](/assortment/openapi#tag/kartochki-tovara/operation/post-api-merchantInternal-candidate-card-adaper-v1-card-getErrors). После этого следует снова загрузить обновленную версию карточки с исправлениями. Если товар перешел в статус (`ACTIVE`) - он готов к публикации. После добавления цен и остатков - покупатели смогут делать заказы с этим товаром.
+
+        > <span style="color: #d41f1c;">**Важно!** </span>
+
+        Неверно заполненная карточка будет создана, но не будет опубликована на витрине. Для создания карточки достаточно указать (`offerId`). Для публикации требуется заполнить обязательные атрибуты, имеющие значение `isRequired: true` непустыми значениями.
+
+        ### Общие требования к элементам карточки товара
+        #### Штрихкоды
+        ##### Требования к значению:
+        - Должен содержать только цифры
+        - Одной карточке может быть присвоено до 8 ШК
+
+        #### Фотографии
+        ##### Технические требования к фотографиям:
+        - Ссылка на фотографию не должна вести на облачное хранилище (Google.Диск, Яндекс.Диск, Dropbox)
+        - Доступ к фотографии по ссылке не должен требовать авторизацию
+        - Фотография должна храниться на ресурсе, имеющем сертификат безопасности
+        - По ссылкам должны открываться и скачиваться только сами файлы
+        - Формат: .jpg, .jpeg, .webp, .png
+        - Размер: не более 20 Мб и не менее 0 байт
+        - Разрешение: от 500х500px
+        - В карточку можно добавить от 1 до 16 фотографий
+
+        ##### Что нельзя размещать на фото:
+        - Размытые и нечёткие фотографии.
+        - Непрофессиональные фотографии, сделанные на складе или дома.
+        - Водяные знаки, ссылки, рекламу магазина, номера телефонов, аккаунты соц.сетей  и мессенджеров
+        - Указание цен, акций, скидок, пометок «Лучшее предложение», «выгодная покупка» и так далее.
+        - Призывы к действию (например, купить или написать в мессенджеры).
+        - Нежелательная символика или символика, которую можно трактовать двояко.
+        - Пропаганда ЛГБТ и педофилии.
+        - Контент, разжигающий ненависть.
+        - Использовать скриншоты с отзывами с других площадок.
+        - Использовать фотографии и прочий контент, который защищён авторскими правами. При необходимости вам может потребоваться подтвердить право на его использование.
+        - Размещать в категориях Товаров для взрослых и Нижнем белье фото женской груди или гениталий. Их необходимо сделать размытыми.
+        - Использовать заглушки вместо фотографии. Исключение: для товаров категории «Автозапчасти» допустимо использовать только нашу заглушку, если для них нет фото или оно низкого качества
+        - Загружать вместо фото сертификаты или инструкции. Для этих документов в карточке товара есть отдельные поля. Их можно приложить в карточку на этапе её создания.
+
+        #### Описание товара
+        ##### Требования к описанию
+        - Не содержит грамматических, стилистических и пунктуационных ошибок;
+        - Не содержит нецензурную и ненормативную лексику;
+        - Отражает соответствующую действительности информацию о товаре, без преувеличений и сравнения с конкурентными товарами;
+        - Не содержит внешних ссылок;
+        - Имеет структурированный вид;
+        - Маркетинговое описание не должно содержать цену товара, призывы к покупке, информацию об акциях и распродажах, действующих в магазине продавца;
+        - Не допускается использование больших букв и жирного текста;
+        - Если вы хотите использовать форматирование текста, вам требуется создать обращение-;
+        - Если в шаблоне категории нет характеристик, позволяющих отразить состав или комплектацию, следует указать эти данные в маркетинговом описании;
+        - Длина не превышает 2500 символов.
+
+        ##### Поддержка HTML разметки в описании товара
+        Для более выразительного описания товара можно использовать HTML теги, они поддерживаются в визуальном редакторе при создании карточки через интерфейс, так и при создании карточки через Excel-файл.
+
+        ##### Разрешенные HTML теги
+        * Тег \<p\> (Параграф)
+        * Тег \<br\> (Перенос текста на новую строку)
+        * Тег \<ol\>\<li\>\</li\>\</ol\> (Нумерованный список)
+        * \<ul\>\<li\>\</li\>\</ul\> (Маркированный список)
+        * Тег \<strong\> (Полужирный)
+        * Тег \<u\> (Подчеркнутый)
+
+        #### Инструкция
+        ##### Технические требования к инструкции:
+        * Ссылка на фотографию не должна вести на облачное хранилище (Google.Диск, Яндекс.Диск, Dropbox)
+        * Доступ к фотографии по ссылке не должен требовать авторизацию
+        * Фотография должна храниться на ресурсе, имеющем сертификат безопасности
+        * По ссылкам должны открываться и скачиваться только сами файлы
+        * Формат: .jpg, .jpeg, .webp, .png, .pdf
+        * Размер: не более 20 Мб и не менее 0 байт
+        * Разрешение: от 500х500px, только если файл не .pdf
+
+        #### Сертификат
+        ##### Технические требования к сертификату:
+        * Ссылка на фотографию не должна вести на облачное хранилище (Google.Диск, Яндекс.Диск, Dropbox)
+        * Доступ к фотографии по ссылке не должен требовать авторизацию
+        * Фотография должна храниться на ресурсе, имеющем сертификат безопасности
+        * По ссылкам должны открываться и скачиваться только сами файлы
+        * Формат: .jpg, .jpeg, .webp, .png, .pdf
+        * Размер: не более 20 Мб и не менее 0 байт
+        * Разрешение: от 500х500px, только если файл не .pdf
+
+        #### Документ соответствия
+        ##### Технические требования к документу соответствия:
+        * Заполняется Код ОКПД2 - `"attributeId": 32941`
+        * Товару не требуется сертификат или декларация соответствия - `"attributeId": 32937` (Заполняется `true`, если данный товар не нуждается в документе соответствия. Заполняется `false`, если документ нужен и обязательно заполняются даты и номер документа)
+        * Номер декларации или сертификата соответствия - `"attributeId": 32938`
+        * Дата начала действия документа соответствия - `"attributeId": 32939` (формат: "2025-10-23")
+        * Дата окончания действия документа соответствия - `"attributeId": 32940` (формат: "2025-10-23")
+
+        ### Чтобы обновить карточку товара:
+        Для обновления данных требуется передать все ранее заполненные атрибуты.
+        Повторно отправленные данные полностью заменят предыдущие.
+
+        > <span style="color: #d41f1c;">**Важно!** </span>
+
+        если при повторном запросе не передать ранее созданные атрибуты, то они будут удалены и заменены на `null`.
+
+
+        ### В ответе будет следующая информация:
+        - `successTotal` — количество успешно загруженных карточек
+        - `errorTotal` — количество карточек, данные по которым не удалось загрузить из-за критичных ошибок
+        - `successCards` — список успешно загруженных карточек
+        - `errorCards` — список карточек с ошибками, данные по которым не удалось загрузить из-за критичных ошибок. С детализацией ошибок по каждой карточке
+        - `changes` — описание изменений, которые произошли на этапе валидации (например: удалены лишние пробелы и неподдерживаемые символы, изменена категория)
+      operationId: post-api-merchant-integration-assortment-v1-card-save
+      parameters:
+        - name: X-Merchant-Token
+          in: header
+          description: Токен продавца
+          allowEmptyValue: false
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/cardSaveRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/cardSaveResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "422":
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/defaultError"
+              examples:
+                Example 1:
+                  value:
+                    errors:
+                      - message: validationError
+                        code: Не нашли указанную категорию товара в каталоге
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+  /api/merchantIntegration/assortment/v1/card/get:
+    post:
+      tags:
+        - карточки товара
+      summary: Запрос информации о товаре по фильтру
+      description: |
+        С помощью этого метода можно получить список загруженных карточек с указанием текущего статуса обработки.
+
+        > <span style="color: #d41f1c;">**Важно!** </span>
+
+        Список возможных статусов:
+        - `PROCESSING` — первичная обработка данных после загрузки
+        - `MODERATION` — загруженные данные находятся на модерации
+        - `ACTIVE` — товар доступен к отображению на витрине
+        - `ERROR` — есть ошибки, из-за которых мы не можем опубликовать вашу карточку на витрину
+        - `CHANGES_REJECTED` — изменения не приняты, при этом предыдущая версия карточки готова к публикации
+        - `BLOCKED` — карточка заблокирована и снята с публикации на витрине
+
+        При указании одновременно (`goodsId`) и (`offerId`) будет получена ошибка.
+        В запросе необходимо указать либо (`goodsId`), либо (`offerId`).
+      operationId: post-api-merchant-integration-assortment-v1-card-get
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/getListRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/getListResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+  /api/merchantIntegration/assortment/v1/card/getAttributes:
+    post:
+      tags:
+        - карточки товара
+      summary: Запрос списка атрибутов карточек товаров
+      description: "С помощью этого метода можно получить список загруженных карточек с **полным списком** заполненных атрибутов.\r\n\r\nПри указании одновременно (`goodsId`) и (`offerId`) будет получена ошибка.\r\nВ запросе необходимо указать либо (`goodsId`), либо (`offerId`)."
+      operationId: post-api-merchant-integration-assortmen-v1-product-getAttribute
+      parameters:
+        - name: X-Merchant-Token
+          in: header
+          required: true
+          allowEmptyValue: false
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/getAttributesRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/getAttributesResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+  /api/merchantIntegration/assortment/v1/card/getError:
+    post:
+      tags:
+        - карточки товара
+      summary: Запрос списка ошибок по карточкам товаров
+      description: "С помощью этого метода можно получить список всех карточек, по которым есть **ошибки**.\r\n\r\nПри указании одновременно (`goodsId`) и (`offerId`) будет получена ошибка.\r\nВ запросе необходимо указать либо (`goodsId`), либо (`offerId`).\r\n\r\nОшибки могут быть четырех типов: \r\n1. Ошибка по атрибуту или его значению. \r\n2. Ошибка по категории. Например, вы передали идентификатор категории, которого нет на Мегамаркете.\r\n3. Ошибка модерации. Например, вы хотите создать товар, который запрещен к продаже на Мегамаркете. Модератор оставит комментарий и укажет причину, по которой карточка была отклонена.\r\n4. Технические ошибки, из-за которых данные по карточке не получилось экспортировать на витрину."
+      operationId: post-api-merchant-integration-assortment-v1-card-getError
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/getErrorsRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/getErrorsResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+  /api/merchantIntegration/assortment/v1/price/updateByOfferId:
+    post:
+      tags:
+        - цены
+      summary: Обновление цен по идентификатору товара продавца
+      description: Обновление цен по идентификатору товара продавца (`offerId`).
+      operationId: post-api-merchant-integration-assortmen-v1-price-updateByOfferId
+      parameters:
+        - name: X-Merchant-Token
+          in: header
+          description: Токен продавца
+          required: true
+          allowEmptyValue: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PriceUpdateByOfferIdRequestBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceUpdateResponseBody"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "422":
+          description: Unprocessable Entity (WebDAV)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/defaultError"
+              examples:
+                Example 1:
+                  value:
+                    errors:
+                      - code: validationError
+                        message: Склад с id <имя_склада> не найден
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+  /api/merchantIntegration/assortment/v1/price/updateByGoodsId:
+    post:
+      tags:
+        - цены
+      summary: Обновление цен по идентификатору товара в системе Мегамаркета
+      description: "Обновление цен по идентификатору товара в системе [Мегамаркета](https://megamarket.ru/) (`goodsId`)."
+      operationId: post-api-merchant-integration-assortmen-v1-price-update-by-goods-id
+      parameters:
+        - name: X-Merchant-Token
+          in: header
+          description: Токен продавца
+          required: true
+          allowEmptyValue: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PriceUpdateByGoodsIdRequestBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceUpdateResponseBody"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "422":
+          description: Unprocessable Entity (WebDAV)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/defaultError"
+              examples:
+                Example 1:
+                  value:
+                    errors:
+                      - code: validationError
+                        message: Склад с id <имя_склада> не найден
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+  /api/merchantIntegration/assortment/v2/price/updateByGoodsId:
+    post:
+      tags:
+        - цены
+      summary: Массовое обновление цен по идентификатору товара в системе Мегамаркета
+      description: "Массовое обновление цен по идентификатору товара в системе [Мегамаркета](https://megamarket.ru/) (`goodsId`)."
+      operationId: post-api-merchant-integration-assortmen-v2-price-update-by-goods-id
+      parameters:
+        - name: X-Merchant-Token
+          in: header
+          description: Токен продавца
+          required: true
+          allowEmptyValue: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PriceUpdateByGoodsIdRequestBodyV2"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceUpdateResponseBody"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "422":
+          description: Unprocessable Entity (WebDAV)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/defaultError"
+              examples:
+                Example 1:
+                  value:
+                    errors:
+                      - code: validationError
+                        message: Склад с id <имя_склада> не найден
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+  /api/merchantIntegration/assortment/v2/price/updateByOfferId:
+    post:
+      tags:
+        - цены
+      summary: Массовое обновление цен по идентификатору товара продавца
+      description: Массовое обновление цен по идентификатору товара продавца (`offerId`).
+      operationId: post-api-merchant-integration-assortmen-v2-price-updateByOfferId
+      parameters:
+        - name: X-Merchant-Token
+          in: header
+          description: Токен продавца
+          required: true
+          allowEmptyValue: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PriceUpdateByOfferIdRequestBodyV2"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceUpdateResponseBody"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "422":
+          description: Unprocessable Entity (WebDAV)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/defaultError"
+              examples:
+                Example 1:
+                  value:
+                    errors:
+                      - code: validationError
+                        message: Склад с id <имя_склада> не найден
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+  /api/merchantIntegration/assortment/v1/stock/getByOfferId:
+    post:
+      tags:
+        - остатки
+      summary: Получение остатков по идентификатору товара продавца
+      description: Получение остатков по идентификатору товара продавца (`offerId`).
+      operationId: post-api-merchant-integration-assortmen-v1-stock-get-by-offer-id
+      parameters:
+        - name: X-Merchant-Token
+          in: header
+          description: Токен продавца
+          required: true
+          allowEmptyValue: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StocksGetByOfferIdRequestBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StocksGetResponseBody"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/defaultError"
+              examples:
+                Example 1:
+                  value:
+                    errors:
+                      - code: validationError
+                        message: Склад с id <имя_склада> не найден
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+  /api/merchantIntegration/assortment/v1/stock/getByGoodsId:
+    post:
+      tags:
+        - остатки
+      summary: Получение остатков по идентификатору Мегамаркета
+      description: "Получение остатков по идентификатору [Мегамаркете](https://megamarket.ru/) (`goodsId`)."
+      operationId: post-api-merchant-integration-assortmen-v1-get-by-goods-id
+      parameters:
+        - name: X-Merchant-Token
+          in: header
+          description: Токен продавца
+          required: true
+          allowEmptyValue: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StocksGetByGoodsIdRequestBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StocksGetResponseBody"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "422":
+          description: Unprocessable Entity (WebDAV)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/defaultError"
+              examples:
+                Example 1:
+                  value:
+                    errors:
+                      - code: validationError
+                        message: Склад с id <имя_склада> не найден
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+  /api/merchantIntegration/assortment/v1/stock/get:
+    post:
+      tags:
+        - остатки
+      summary: Получение остатков по номеру склада продавца
+      description: Получение остатков по номеру склада продавца (`locationId`).
+      operationId: post-api-merchant-integration-assortmen-v1-stock-get
+      parameters:
+        - name: X-Merchant-Token
+          in: header
+          description: Токен продавца
+          required: true
+          allowEmptyValue: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StocksGetByLocationIdRequestBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StocksGetByLocationIdResponseBody"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "422":
+          description: Unprocessable Entity (WebDAV)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/defaultError"
+              examples:
+                Example 1:
+                  value:
+                    errors:
+                      - code: validationError
+                        message: Склад с id <имя_склада> не найден
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+  /api/merchantIntegration/assortment/v1/stock/updateByOfferId:
+    post:
+      tags:
+        - остатки
+      summary: Обновление остатков по идентификатору товара продавца
+      description: Обновление остатков по идентификатору товара продавца (`offerId`).
+      operationId: post-api-merchant-integration-assortmen-v1-stock-update-by-offer-id
+      parameters:
+        - name: X-Merchant-Token
+          in: header
+          description: Токен продавца
+          required: true
+          allowEmptyValue: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StocksUpdateByOfferIdRequestBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StocksUpdateResponseBody"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "422":
+          description: Unprocessable Entity (WebDAV)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/defaultError"
+              examples:
+                Example 1:
+                  value:
+                    errors:
+                      - code: validationError
+                        message: Склад с id <имя_склада> не найден
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+  /api/merchantIntegration/assortment/v1/stock/updateByGoodsId:
+    post:
+      tags:
+        - остатки
+      summary: Обновление остатков по идентификатору Мегамаркета
+      description: "Обновление остатков по идентификатору [Мегамаркете](https://megamarket.ru/) (`goodsId`)."
+      operationId: post-api-merchant-integration-assortmen-v1-stock-update-by-goods-id
+      parameters:
+        - name: X-Merchant-Token
+          in: header
+          description: Токен продавца
+          required: true
+          allowEmptyValue: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StocksUpdateByGoodsIdRequestBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StocksUpdateResponseBody"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "422":
+          description: Unprocessable Entity (WebDAV)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/defaultError"
+              examples:
+                Example 1:
+                  value:
+                    errors:
+                      - code: validationError
+                        message: Склад с id <имя_склада> не найден
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+  /api/merchantIntegration/assortment/v2/stock/updateByOfferId:
+    post:
+      tags:
+        - остатки
+      summary: Массовое обновление остатков по идентификатору товара продавца
+      description: Массовое обновление остатков по идентификатору товара продавца (`offerId`).
+      operationId: post-api-merchant-integration-assortmen-v2-stock-update-by-offer-id
+      parameters:
+        - name: X-Merchant-Token
+          in: header
+          description: Токен продавца
+          required: true
+          allowEmptyValue: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StocksUpdateByOfferIdRequestBodyV2"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StocksUpdateResponseBody"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "422":
+          description: Unprocessable Entity (WebDAV)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/defaultError"
+              examples:
+                Example 1:
+                  value:
+                    errors:
+                      - code: validationError
+                        message: Склад с id <имя_склада> не найден
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+  /api/merchantIntegration/assortment/v2/stock/updateByGoodsId:
+    post:
+      tags:
+        - остатки
+      summary: Массовое обновление остатков по идентификатору Мегамаркета
+      description: "Массовое обновление остатков по идентификатору [Мегамаркете](https://megamarket.ru/) (`goodsId`)."
+      operationId: post-api-merchant-integration-assortmen-v2-stock-update-by-goods-id
+      parameters:
+        - name: X-Merchant-Token
+          in: header
+          description: Токен продавца
+          required: true
+          allowEmptyValue: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StocksUpdateByGoodsIdRequestBodyV2"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StocksUpdateResponseBody"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/badRequest"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/authorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/forbiddenError"
+        "408":
+          description: Request Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/requestTimeout"
+        "422":
+          description: Unprocessable Entity (WebDAV)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/defaultError"
+              examples:
+                Example 1:
+                  value:
+                    errors:
+                      - code: validationError
+                        message: Склад с id <имя_склада> не найден
+        "429":
+          description: Too Many Requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tooManyRequests"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/internalServerError"
+      servers:
+        - url: "https://api.megamarket.tech"
+        - url: "https://api-test.megamarket.tech"
+
+tags:
+  - name: получение дерева категорий
+    description: Получение дерева категорий
+  - name: получение инфомодели
+    description: Получение инфомодели
+  - name: карточки товара
+    description: Работа с карточками
+  - name: цены
+    description: Работа с ценами
+  - name: остатки
+    description: Работа со стоком
+components:
+  schemas:
+    GetPricesByOfferIdRequest:
+      type: object
+      description: Запрос на получение цен
+      properties:
+        data:
+          type: object
+          properties:
+            locationId:
+              type: string
+              description: Идентификатор склада
+              example: Склад_01
+            offerIds:
+              type: array
+              description: Массив идентификаторов товара мерчанта
+              maxItems: 1000
+              items:
+                type: string
+                example: SN100
+          required:
+            - locationId
+            - offerIds
+      required:
+        - data
+    GetPricesByGoodsIdRequest:
+      type: object
+      description: Запрос на получение цен по идентифкатору ММ
+      properties:
+        data:
+          type: object
+          properties:
+            locationId:
+              type: string
+              description: Идентификатор склада
+              example: Склад_01
+            goodsIds:
+              type: array
+              description: Массив идентификаторов МегаМаркета
+              maxItems: 1000
+              items:
+                type: integer
+                example: 123749227
+          required:
+            - locationId
+            - goodsIds
+      required:
+        - data
+    GetPricesResponse:
+      type: object
+      description: Ответ на запрос получения цен
+      properties:
+        data:
+          type: object
+          properties:
+            locationId:
+              type: string
+              description: Идентификатор склада
+              example: Склад_01
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/GetResponseItem"
+          required:
+            - locationId
+            - items
+      required:
+        - data
+    GetResponseItem:
+      type: object
+      description: Элемент списка цен
+      properties:
+        offerId:
+          type: string
+          description: Идентификатор оффера
+          example: SN100
+        goodsId:
+          type: integer
+          description: Идентификатор товара
+          format: int64
+          example: 600018246128
+        price:
+          type: integer
+          description: Цена мерчанта
+          format: int32
+          example: 1000
+        oldPrice:
+          type: integer
+          description: Старая цена
+          format: int32
+          example: 1500
+        vat:
+          type: string
+          description: Размер НДС
+          example: "20"
+      required:
+        - offerId
+        - goodsId
+        - price
+    badRequest:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+                description: Код ошибки
+                example: badRequest
+              message:
+                type: string
+                description: Текст ошибки
+                example: Некорректный запрос. Проверьте параметры или формат запроса
+            required:
+              - code
+              - message
+    authorizedError:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+                example: unauthorized
+              message:
+                type: string
+                example: Ошибка авторизации
+      required:
+        - errors
+    forbiddenError:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+                description: Код ошибки
+                example: forbidden
+              message:
+                type: string
+                description: Причина ошибки
+                example: Доступ запрещён
+    requestTimeout:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+                example: timeOut
+              message:
+                type: string
+                example: Сервер прервал соединение из-за превышения времени ожидания запроса
+      required:
+        - errors
+    defaultError:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+                description: Код ошибки
+                example: Запрос не может быть обработан из-за ошибок в содержимом. Проверьте данные на корректность
+              message:
+                type: string
+                description: Текст ошибки
+                example: unprocessableEntity
+            required:
+              - code
+              - message
+    tooManyRequests:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+                description: Код ошибки
+                example: tooManyRequests
+              message:
+                type: string
+                description: Причина ошибки
+                example: "Превышено допустимое количество запросов, попробуйте повторить запрос позже"
+      required:
+        - errors
+    internalServerError:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+                description: Код ошибки
+                example: internalError
+              message:
+                type: string
+                description: Причина ошибки
+                example: "Сервис недоступен, попробуйте повторить запрос позже"
+      required:
+        - errors
+    GetPricesByLocationRequest:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            locationId:
+              type: string
+              description: Идентификатор склада продавца
+            lastId:
+              type: integer
+              description: "ID последнего полученного товара для пагинации.\r\nВ первом запросе не передается. В последующих передается значение, полученное в предыдущем запросе."
+              format: int64
+              example: 7478788774724
+            limit:
+              type: integer
+              description: Количество значений в ответе
+              format: int32
+              minimum: 1
+              maximum: 1000
+              default: 100
+              example: 100
+          required:
+            - locationId
+    GetPricesByLocationResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            locationId:
+              type: string
+              description: Идентификатор склада продавца
+            items:
+              $ref: "#/components/schemas/GetResponseItem"
+            lastId:
+              type: integer
+              description: "`ID` последнего полученного товара для пагинации.\r\nНеобходимо передать в последующем запросе для получения следующей группы товаров."
+              format: int64
+              example: 7478788774724
+          required:
+            - locationId
+            - items
+    categoryTreeResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/category"
+      example:
+        data:
+          - level: 1
+            id: 2463684633818876
+            name: Мебель
+            children:
+              - level: 2
+                id: 2463684633819005
+                name: Мебель
+                children:
+                  - level: 4
+                    id: 2463684633818905
+                    name: Мягкая мебель
+                    children:
+                      - level: 5
+                        id: 2463684633818885
+                        name: Диваны и кушетки
+                        children:
+                          - level: 6
+                            id: 2463684633818887
+                            name: Диван
+    category:
+      type: object
+      title: category
+      properties:
+        level:
+          type: integer
+          description: Уровень категории в иерархии
+          example: 1
+        id:
+          type: integer
+          description: Идентификатор категории
+          example: 2463684633818876
+        name:
+          type: string
+          description: Название категории
+          example: Мебель
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/category"
+    categoryParentResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: Идентификатор категории
+              name:
+                type: string
+                description: Название категории
+    categoryBranchRequest:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            parentId:
+              type: integer
+              description: Идентификатор родительской категории
+              example: 82
+            skipIntermediateCategory:
+              type: boolean
+              description: "Флаг для пропуска промежуточных категорий. Если установлено значение true, то будут возвращены только категории 6-го уровня."
+          required:
+            - parentId
+    categoryBranchResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/category"
+      example:
+        data:
+          level: 1
+          id: 2463684633818876
+          name: Мебель
+          children:
+            - level: 2
+              id: 2463684633819005
+              name: Мебель
+              children:
+                - level: 4
+                  id: 2463684633818905
+                  name: Мягкая мебель
+                  children:
+                    - level: 5
+                      id: 2463684633818885
+                      name: Диваны и кушетки
+                      children:
+                        - level: 6
+                          id: 2463684633818887
+                          name: Диван
+    infomodelGetRequest:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            categoryId:
+              type: integer
+              description: Идентификатор категории
+          required:
+            - categoryId
+    infomodelGetResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            categoryId:
+              type: integer
+              description: Идентификатор категории
+            masterAttributes:
+              type: array
+              description: Массив объектов со списком мастер атрибутов и характеристик
+              items:
+                type: object
+                properties:
+                  attributeId:
+                    type: integer
+                    description: Идентификатор мастер атрибута
+                  attributeName:
+                    type: string
+                    description: Наименование мастер атрибута
+                  attributeCode:
+                    type: string
+                    description: Код мастер атрибута
+                  valueTypeCode:
+                    type: string
+                    description: Код типа значения
+                  isMultiple:
+                    type: boolean
+                    description: "Признак того, что атрибут может иметь несколько значений"
+                  isSuggest:
+                    type: boolean
+                    description: "Признак того, что можно предложить своё значение, если не найдено подходящее в словаре. Актуально только в случае наличия словаря. Если словарь отсутствует, то предложить своё значение можно всегда."
+                  isRequired:
+                    type: boolean
+                    description: Признак обязательности атрибута
+                  sequence:
+                    type: integer
+                    description: Порядковый номер атрибута
+                  minValue:
+                    type: number
+                    nullable: true
+                    description: Максимальное значение
+                  maxValue:
+                    type: number
+                    nullable: true
+                    description: Минимальное значение
+                  unit:
+                    type: object
+                    nullable: true
+                    description: Единица измерения
+                    properties:
+                      id:
+                        type: string
+                        description: Идентификатор единицы измерения
+                      name:
+                        type: string
+                        description: Наименование единицы измерения
+                  dictionaryValues:
+                    type: array
+                    description: Словарь значений
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: Идентификатор записи в словаре
+                        name:
+                          type: string
+                          description: Значение записи в словаре
+                required:
+                  - attributeId
+                  - attributeName
+                  - attributeCode
+                  - valueTypeCode
+                  - isMultiple
+                  - isSuggest
+                  - isRequired
+                  - sequence
+            contentAttributes:
+              type: array
+              description: Массив объектов со списком контент атрибутов и характеристик
+              items:
+                type: object
+                properties:
+                  attributeId:
+                    type: integer
+                    description: Идентификатор контент атрибута
+                  attributeName:
+                    type: string
+                    description: Наименование контент атрибута
+                  valueTypeCode:
+                    type: string
+                    description: Код типа значения
+                  isMultiple:
+                    type: boolean
+                    description: "Признак того, что атрибут может иметь несколько значений"
+                  isSuggest:
+                    type: boolean
+                    description: "Признак того, что можно предложить своё значение, если не найдено подходящее в словаре. Актуально только в случае наличия словаря. Если словарь отсутствует, то предложить своё значение можно всегда."
+                  isRequired:
+                    type: boolean
+                    description: Признак обязательности атрибута
+                  sequence:
+                    type: integer
+                    description: Порядковый номер атрибута
+                  minValue:
+                    type: number
+                    nullable: true
+                    description: Максимальное значение
+                  maxValue:
+                    type: number
+                    nullable: true
+                    description: Минимальное значение
+                  unit:
+                    type: object
+                    nullable: true
+                    description: Единица измерения
+                    properties:
+                      id:
+                        type: integer
+                        description: Идентификатор единицы измерения
+                      name:
+                        type: string
+                        description: Наименование единицы измерения
+                  dictionaryValues:
+                    type: array
+                    description: Словарь значений
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: Идентификатор записи в словаре
+                        name:
+                          type: string
+                          description: Значение записи в словаре
+                required:
+                  - attributeId
+                  - attributeName
+                  - valueTypeCode
+                  - isMultiple
+                  - isSuggest
+                  - isRequired
+                  - sequence
+          required:
+            - categoryId
+            - masterAttributes
+    UnprocessableResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Error"
+      required:
+        - errors
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Код ошибки
+        message:
+          type: string
+          description: Текст ошибки
+      required:
+        - code
+        - message
+    cardSaveRequest:
+      type: object
+      properties:
+        categoryId:
+          type: number
+          description: Идентификатор категории
+          example: 180203010101
+        cards:
+          type: array
+          description: Массив товаров для создания и изменения
+          maxItems: 100
+          items:
+            type: object
+            properties:
+              offerId:
+                type: string
+                description: Код товара продавца
+                maxLength: 35
+                example: SN100
+              brand:
+                type: string
+                description: Бренд
+                maxLength: 255
+                example: Nike
+              name:
+                type: string
+                description: Наименование карточки
+                maxLength: 90
+                example: Кроссовки Nike Air Force 1
+              photos:
+                type: array
+                description: "Фотографии (в виде ссылок). Первая фотография в массиве будет фотографией по умолчанию. "
+                maxItems: 15
+                items:
+                  type: string
+                  maxLength: 3000
+                  example: "https://some.site/photo01.jpg"
+              barcodes:
+                type: array
+                description: Штрихкод
+                items:
+                  type: string
+                  minLength: 8
+                  maxLength: 13
+                  example: "886691229063"
+              manufacturerNo:
+                type: string
+                description: Артикул производителя
+                maxLength: 50
+                example: 315122-111
+              description:
+                type: string
+                description: Описание
+                maxLength: 2500
+                example: Культовые кроссовки Nike AIR FORCE 1'07 высоты low с фирменной вышивкой на задниках и фирменной металлической шильдой на шнурках в честь первого выпуска.
+              instruction:
+                type: string
+                description: Инструкция
+                maxLength: 3000
+                example: Носить на ногах.
+              model:
+                type: string
+                description: Модель
+                maxLength: 200
+                example: Air Force 1
+              series:
+                type: string
+                description: Серия
+                maxLength: 200
+                example: Air Force
+              certificate:
+                type: string
+                description: Сертификат (в виде ссылки)
+                maxLength: 3000
+                example: "https://some.site/certificate.pdf"
+              package:
+                type: object
+                description: Информация об упаковке
+                properties:
+                  length:
+                    type: number
+                    description: Длина
+                    format: double
+                    example: 20.5
+                  width:
+                    type: number
+                    description: Ширина
+                    format: double
+                    example: 40.5
+                  height:
+                    type: number
+                    description: Высота
+                    format: double
+                    example: 20.5
+                  weight:
+                    type: number
+                    description: Вес
+                    format: double
+                    example: 500.5
+              contentAttributes:
+                type: array
+                description: Массив контент атрибутов
+                items:
+                  type: object
+                  properties:
+                    attributeId:
+                      type: number
+                      description: Идентификатор контент атрибута
+                      minimum: 1
+                      example: 17922
+                    values:
+                      type: array
+                      description: Значения атрибута
+                      items:
+                        type: string
+                        example: белый
+                  required:
+                    - attributeId
+            required:
+              - offerId
+      required:
+        - categoryId
+        - cards
+    cardSaveResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            successTotal:
+              type: integer
+              description: Количество успешно загруженных карточек
+              example: 1
+            errorTotal:
+              type: integer
+              description: Количество карточек с ошибками
+              example: 1
+            successCards:
+              type: array
+              description: Массив успешно загруженных карточек
+              items:
+                type: object
+                properties:
+                  offerId:
+                    type: string
+                    description: "Идентификатор товара продавца "
+                    example: SN100
+            errorCards:
+              type: array
+              description: Массив карточек с неуспешной превалидацией
+              items:
+                type: object
+                properties:
+                  offerId:
+                    type: string
+                    description: Идентификатор товара продавца
+                    example: SN101
+                  error:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        code:
+                          type: string
+                          description: Код ошибки
+                          example: "2"
+                        message:
+                          type: string
+                          description: Текст ошибки
+                          example: Категория товара не соответствует категории товара в базе.
+            changes:
+              type: object
+              description: "Изменения, внесённые при валидации"
+              properties:
+                attributeChanges:
+                  type: array
+                  description: Изменение в атрибутах после валидации
+                  items:
+                    type: object
+                    properties:
+                      attributeCode:
+                        type: string
+                        description: Идентификатор мастер атрибута
+                        example: description
+                      attributeId:
+                        type: number
+                        description: Идентификатор контент атрибута
+                      values:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            valueOld:
+                              type: string
+                              description: Старое значение атрибута
+                              example: "Культовые      кроссовки Nike AIR FORCE 1'07 высоты     low с фирменной     вышивкой на задниках.   "
+                            value:
+                              type: string
+                              description: Новое значение атрибута
+                              example: Культовые кроссовки Nike AIR FORCE 1'07 высоты low с фирменной вышивкой на задниках.
+                categoryChanges:
+                  type: array
+                  description: Изменение в категории после валидации
+                  items:
+                    type: object
+                    properties:
+                      offerId:
+                        type: array
+                        description: "Массив идентификаторов товара продавца, для которых поменялась категория"
+                        items:
+                          type: string
+                          example: SN100
+                      valueOld:
+                        type: string
+                        description: Идентификатор старой категории
+                        example: "180203010101"
+                      value:
+                        type: string
+                        description: Идентификатор новой категории
+                        example: "180110010101"
+          required:
+            - successTotal
+            - errorTotal
+      required:
+        - data
+    getListRequest:
+      type: object
+      required: 
+          - limit
+      properties:
+        filter:
+          type: object
+          description: Фильтрация
+          properties:
+            offerId:
+              type: array
+              description: Массив идентификаторов товара продавца
+              items:
+                type: string
+                example: SN100
+            goodsId:
+              type: array
+              description: Массив идентификаторов товара Мегамаркет
+              items:
+                type: integer
+                example: 600018246128
+            status:
+              type: string
+              description: Статус карточки для продавца
+              example: processing
+            categoryId:
+              type: array
+              description: Идентификатор категории
+              items:
+                type: integer
+                example: 180110010101
+            cardCreatedAtFrom:
+              type: string
+              description: Период создания карточки "от"
+              example: "2024-09-09T00:00:00Z"
+            cardCreatedAtTill:
+              type: string
+              description: Период создания карточки "до"
+              example: "2024-09-10T00:00:00Z"
+        sorting:
+          type: object
+          properties:
+            fieldName:
+              type: string
+              enum:
+                - created
+                - cardName
+                - brand
+              description: "Сортировка\r\n\r\n- created - по дате создания карточки\r\n- cardName - по наименованию товара;\r\n- brand - по наименования бренда."
+            order:
+              type: string
+              enum:
+                - asc
+                - desc
+              description: "Сортировка\r\n\r\n- asc - по возрастанию;\r\n- desc - по убыванию."
+          required:
+            - fieldName
+            - order
+        searchAfter:
+          type: string
+          description: "Параметр для пагинации. Заполняется значением, полученным в ответе."
+        limit:
+          type: integer
+          description: "Максимальное количество карточек, которые необходимо вернуть в ответе"
+          minimum: 1
+          maximum: 10000
+    getListResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            totalAmount:
+              type: integer
+              description: Общее количество карточек
+              example: 1
+            cardsInfo:
+              type: array
+              description: Информация о карточке
+              items:
+                type: object
+                properties:
+                  offerId:
+                    type: string
+                    description: Идентификатор товара продавца
+                    example: SN100
+                  goodsId:
+                    type: integer
+                    description: Идентификатор товара Мегамаркет
+                    example: 600018246128
+                  cardCreatedAt:
+                    type: string
+                    description: Дата создания карточки
+                    example: "2024-09-09T13:28:08Z"
+                  status:
+                    type: object
+                    description: Информация об агрегированном статусе
+                    properties:
+                      code:
+                        type: string
+                        description: Код
+                        example: PROCESSING
+                      name:
+                        type: string
+                        description: Статус
+                        example: Обрабатываем данные
+                      description:
+                        type: string
+                        description: Описание
+                        example: "Проверяем, правильно ли заполнены данные товара. Это автоматическая проверка, которая занимает несколько минут"
+                      updatedAt:
+                        type: string
+                        description: Дата обновления
+                        example: "2024-09-09T13:28:08Z"
+                    required:
+                      - code
+                      - name
+                      - description
+                      - updatedAt
+                  searchAfter:
+                    type: string
+                    description: Параметры пагинации
+                required:
+                  - offerId
+            searchAfter:
+              type: string
+              description: Параметры пагинации
+          required:
+            - totalAmount
+    getAttributesRequest:
+      type: object
+      properties:
+        filter:
+          type: object
+          description: Фильтрация
+          properties:
+            offerId:
+              type: array
+              description: Фильтр по идентификатору товара продавца
+              maxItems: 100
+              items:
+                type: string
+            goodsId:
+              type: array
+              description: Фильтр по идентификатору товара Мегмаркет
+              maxItems: 100
+              items:
+                type: integer
+        sorting:
+          type: object
+          description: Сортировка
+          properties:
+            fieldName:
+              type: string
+              enum:
+                - goodsId
+                - offerId
+              description: "Поле для сортировки\r\n\r\n- goodsId - по коду товара Мегамаркета;\r\n- offerId - по коду товара продавца."
+            order:
+              type: string
+              enum:
+                - asc
+                - desc
+              description: "Порядок сортировки\r\n\r\n- asc - по возрастанию;\r\n- desc - по убыванию."
+          required:
+            - fieldName
+            - order
+        targetFields:
+          type: string
+          enum:
+            - all
+            - masterAttributes
+            - contentAttributes
+          description: "Атрибуты необходимые в ответе\r\n\r\n- all - все атрибуты;\r\n- masterAttributes - только мастер атрибуты;\r\n- contentAttributes - только контент атрибуты."
+      required:
+        - targetFields
+    getAttributesResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            cards:
+              type: array
+              description: Массив объектов карточек
+              items:
+                type: object
+                properties:
+                  categoryId:
+                    type: integer
+                    description: Идентификатор категории
+                    example: 180110010101
+                  offerId:
+                    type: string
+                    description: Идентификатор товара продавца
+                    example: SN100
+                  goodsId:
+                    type: integer
+                    description: Идентификатор товара Мегамаркет
+                    example: 600018246128
+                  brand:
+                    type: string
+                    description: Бренд
+                    example: Nike
+                  name:
+                    type: string
+                    description: Наименование товара
+                    example: Кроссовки Nike Air Force 1
+                  photos:
+                    type: array
+                    description: Фото
+                    items:
+                      type: string
+                      example: "https://some.site/photo01.jpg"
+                  barcodes:
+                    type: array
+                    description: Штрихкод
+                    items:
+                      type: string
+                      example: "886691229063"
+                  manufacturerNo:
+                    type: string
+                    description: Артикул производителя
+                    example: 315122-111
+                  description:
+                    type: string
+                    description: Описание
+                    example: Культовые кроссовки Nike AIR FORCE 1'07 высоты low с фирменной вышивкой на задниках и фирменной металлической шильдой на шнурках в честь первого выпуска.
+                  instruction:
+                    type: string
+                    description: Инструкция
+                    example: Носить на ногах.
+                  model:
+                    type: string
+                    description: Модель
+                    example: Air Force 1
+                  series:
+                    type: string
+                    description: Серия
+                    example: Air Force
+                  certificate:
+                    type: string
+                    description: Сертификат
+                    example: "https://some.site/certificate.pdf"
+                  package:
+                    type: object
+                    description: Информация об упаковке
+                    properties:
+                      length:
+                        type: number
+                        description: Длина
+                        format: double
+                        example: 20.5
+                      width:
+                        type: number
+                        description: Ширина
+                        format: double
+                        example: 40.5
+                      height:
+                        type: number
+                        description: Высота
+                        format: double
+                        example: 20.5
+                      weight:
+                        type: number
+                        description: Вес
+                        format: double
+                        example: 50.5
+                    required:
+                      - length
+                      - width
+                      - height
+                      - weight
+                  contentAttributes:
+                    type: array
+                    description: Массив контент атрибутов
+                    items:
+                      type: object
+                      properties:
+                        attributeId:
+                          type: integer
+                          description: Идентификатор атрибута
+                          example: 17922
+                        values:
+                          type: array
+                          description: Значение атрибута
+                          items:
+                            type: string
+                            example: белый
+                      required:
+                        - attributeId
+                        - values
+                required:
+                  - categoryId
+                  - offerId
+          required:
+            - cards
+    getErrorsRequest:
+      type: object
+      properties:
+        filter:
+          type: object
+          description: Фильтрация
+          properties:
+            offerId:
+              type: array
+              description: Фильтр по идентификатору товара продавца
+              items:
+                type: string
+                example: SN100
+            goodsId:
+              type: array
+              description: Фильтр по идентификатору товара Мегамаркет
+              items:
+                type: integer
+                example: 886691229063
+        sorting:
+          type: object
+          description: Сортировка
+          properties:
+            fieldName:
+              type: string
+              enum:
+                - goodsId
+                - offerId
+              description: "Поле для сортировки\r\n\r\n- goodsId - по коду товара Мегамаркета;\r\n- offerId - по коду товара продавца."
+            order:
+              type: string
+              enum:
+                - asc
+                - desc
+              description: "Порядок сортировки\r\n\r\n- asc - по возрастанию;\r\n- desc - по убыванию."
+              default: asc
+          required:
+            - fieldName
+            - order
+        pagination:
+          type: object
+          description: Элементы для пагинации
+          properties:
+            limit:
+              type: integer
+              description: Лимит
+              maximum: 100
+              example: 50
+            offset:
+              type: integer
+              description: Смещение для пагинации
+              default: 0
+          required:
+            - limit
+      required:
+        - pagination
+    getErrorsResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            totalAmount:
+              type: integer
+              description: Общее количество карточек
+              example: 1
+            cards:
+              type: array
+              description: Массив объектов карточек товара
+              items:
+                type: object
+                properties:
+                  offerId:
+                    type: string
+                    description: Идентификатор товара продавца
+                    example: SN100
+                  goodsId:
+                    type: integer
+                    description: Идентификатор товара Мегамаркета
+                    example: 600018246128
+                  categoryErrors:
+                    type: array
+                    description: Ошибки категории
+                    items:
+                      type: object
+                      properties:
+                        categoryId:
+                          type: integer
+                          description: Идентификатор категории
+                        code:
+                          type: string
+                          description: Код ошибки
+                        message:
+                          type: string
+                          description: Описание ошибки
+                      required:
+                        - categoryId
+                        - code
+                        - message
+                  attributesErrors:
+                    type: array
+                    description: Ошибки атрибутов
+                    items:
+                      type: object
+                      properties:
+                        attributeName:
+                          type: string
+                          description: Наименование атрибута
+                        attributeCode:
+                          type: string
+                          description: Идентификатор атрибута
+                        attributeId:
+                          type: integer
+                          description: Код атрибута (для мастер атрибутов)
+                        value:
+                          type: string
+                          description: Значение атрибута
+                        code:
+                          type: string
+                          description: Код ошибки
+                        message:
+                          type: string
+                          description: Описание ошибки
+                      required:
+                        - attributeName
+                        - code
+                        - message
+                  moderationErrors:
+                    type: array
+                    description: Ошибки модерации
+                    items:
+                      type: object
+                      properties:
+                        rejectionReasons:
+                          type: array
+                          description: Причины отклонения
+                          items:
+                            type: string
+                        comment:
+                          type: string
+                          description: Комментарий
+                  exportError:
+                    type: array
+                    description: Ошибка экспорта товара на витрину
+                    items:
+                      type: object
+                      properties:
+                        code:
+                          type: string
+                          description: Код ошибки
+                        message:
+                          type: string
+                          description: Описание ошибки
+                      required:
+                        - code
+                        - message
+                required:
+                  - offerId
+          required:
+            - totalAmount
+    PriceUpdateByOfferIdRequestBody:
+      type: object
+      description: Тело запроса на обновление цен по offerId
+      properties:
+        data:
+          type: object
+          properties:
+            locationId:
+              type: string
+              description: Идентификатор склада продавца
+              example: "314365"
+            items:
+              type: array
+              description: Список данных с ценами
+              minItems: 1
+              maxItems: 1000
+              items:
+                type: object
+                properties:
+                  offerId:
+                    type: string
+                    description: Идентификатор товара продавца
+                    example: SN100
+                  oldPrice:
+                    type: integer
+                    nullable: true
+                    description: Старая цена (используется для отображения перечёркнутой цены на витрине). Должна быть больше или равна Price.
+                    minimum: 1
+                    maximum: 99999999
+                    example: 3000
+                  price:
+                    type: integer
+                    description: Актуальная цена. В рублях без копеек.
+                    minimum: 1
+                    maximum: 99999999
+                    example: 2000
+                  vat:
+                    type: string
+                    enum:
+                      - "5"
+                      - "7"
+                      - "10"
+                      - "22"
+                      - NOT
+                    description: Размер НДС
+                  version:
+                    type: string
+                    description: |
+                      Временная метка версии цены. Формат: 2024-06-14T11:55:10.123456Z
+                    example: "2024-06-14T11:55:10.123456Z"
+                required:
+                  - offerId
+                  - oldPrice
+                  - price
+                  - vat
+                  - version
+          required:
+            - locationId
+            - items
+      required:
+        - data
+    PriceUpdateByOfferIdRequestBodyV2:
+      type: object
+      description: Тело запроса на обновление цен по offerId (v2)
+      properties:
+        data:
+          type: object
+          properties:
+            externalLocationIds:
+              description: |
+                Идентификаторы складов продавца.
+                Если null — обновление применяется ко всем точкам продавца.
+                Если передан массив — обновление применяется только к указанным складам.
+                Пустой массив недопустим (ошибка валидации).
+              oneOf:
+                - type: "null"
+                - type: array
+                  minItems: 1
+                  uniqueItems: true
+                  items:
+                    type: string
+                    description: Внешний идентификатор склада продавца
+                    example: "314365"
+            items:
+              type: array
+              description: Список данных с ценами
+              minItems: 1
+              maxItems: 1000
+              items:
+                type: object
+                properties:
+                  offerId:
+                    type: string
+                    description: Идентификатор товара продавца
+                    example: SN100
+                  oldPrice:
+                    type: integer
+                    nullable: true
+                    description: Старая цена (используется для отображения перечёркнутой цены на витрине). Должна быть больше или равна Price.
+                    minimum: 1
+                    maximum: 99999999
+                    example: 3000
+                  price:
+                    type: integer
+                    description: Актуальная цена. В рублях без копеек.
+                    minimum: 1
+                    maximum: 99999999
+                    example: 2000
+                  vat:
+                    type: string
+                    enum:
+                      - "5"
+                      - "7"
+                      - "10"
+                      - "22"
+                      - NOT
+                    description: Размер НДС
+                  version:
+                    type: string
+                    description: |
+                      Временная метка версии цены. Формат: 2024-06-14T11:55:10.123456Z
+                    example: "2024-06-14T11:55:10.123456Z"
+                required:
+                  - offerId
+                  - oldPrice
+                  - price
+                  - vat
+                  - version
+          required:
+            - externalLocationIds
+            - items
+      required:
+        - data
+    PriceUpdateResponseBody:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            locationId:
+              type: string
+              description: Идентификатор склада продавца
+              example: "314365"
+            successItemsCount:
+              type: integer
+              description: Количество успешных записей
+              example: 1
+            failedItemsCount:
+              type: integer
+              description: Количество неуспешных записей
+              example: 1
+            successItems:
+              type: array
+              nullable: true
+              description: Список успешно записанных данных
+              items:
+                type: object
+                properties:
+                  offerId:
+                    type: string
+                    description: Записанный идентификатор товара продавца
+                    example: SN100
+                  goodsId:
+                    type: integer
+                    description: Записанный идентификатор товара Мегамаркет
+                    example: 600018246128
+                  oldPrice:
+                    type: integer
+                    nullable: true
+                    description: Старая цена
+                    example: 3000
+                  price:
+                    type: integer
+                    description: Актуальная цена. В рублях без копеек
+                    example: 2000
+                  vat:
+                    type: string
+                    description: Размер НДС
+                  updated:
+                    type: boolean
+                    description: Признак успешного обновления цены
+                required:
+                  - offerId
+                  - goodsId
+                  - oldPrice
+                  - price
+                  - vat
+                  - updated
+            failedItems:
+              type: array
+              nullable: true
+              description: Список данных не прошедших валидацию
+              items:
+                type: object
+                properties:
+                  offerId:
+                    type: string
+                    nullable: true
+                    description: Переданный идентификатор товара продавца
+                    example: SN101
+                  goodsId:
+                    type: integer
+                    nullable: true
+                    description: Переданный идентификатор товара Мегамаркет
+                    example: 600018246821
+                  oldPrice:
+                    type: integer
+                    nullable: true
+                    description: Переданная старая цена
+                    example: 4000
+                  price:
+                    type: integer
+                    description: Переданная актуальная цена
+                    example: 3000
+                  vat:
+                    type: string
+                    description: Переданный размер НДС
+                  updated:
+                    type: boolean
+                    description: Признак успешного обновления цены
+                  errors:
+                    type: array
+                    nullable: true
+                    items:
+                      type: object
+                      properties:
+                        code:
+                          type: string
+                        message:
+                          type: string
+                          nullable: true
+                      required:
+                        - code
+                required:
+                  - oldPrice
+                  - price
+                  - vat
+                  - updated
+          required:
+            - locationId
+            - successItemsCount
+            - failedItemsCount
+            - successItems
+            - failedItems
+      required:
+        - data
+    PriceUpdateByGoodsIdRequestBody:
+      type: object
+      description: Тело запроса на обновление цен по goodsId
+      properties:
+        data:
+          type: object
+          properties:
+            locationId:
+              type: string
+              description: Идентификатор склада продавца
+              example: "314365"
+            items:
+              type: array
+              description: Список данных с ценами
+              minItems: 1
+              maxItems: 1000
+              items:
+                type: object
+                properties:
+                  goodsId:
+                    type: integer
+                    description: Идентификатор товара Мегамаркет
+                    example: 600018246128
+                  oldPrice:
+                    type: integer
+                    nullable: true
+                    description: Старая цена (используется для отображения перечёркнутой цены на витрине). Должна быть больше или равна Price.
+                    minimum: 1
+                    maximum: 99999999
+                    example: 3000
+                  price:
+                    type: integer
+                    description: Актуальная цена. В рублях без копеек
+                    minimum: 1
+                    maximum: 99999999
+                    example: 2000
+                  vat:
+                    type: string
+                    enum:
+                      - "5"
+                      - "7"
+                      - "10"
+                      - "22"
+                      - NOT
+                    description: Размер НДС
+                  version:
+                    type: string
+                    description: |
+                      Временная метка версии цены. Формат: 2024-06-14T11:55:10.123456Z
+                    example: "2024-06-14T11:55:10.123456Z"
+                required:
+                  - goodsId
+                  - oldPrice
+                  - price
+                  - vat
+                  - version
+          required:
+            - locationId
+            - items
+      required:
+        - data
+    PriceUpdateByGoodsIdRequestBodyV2:
+      type: object
+      description: Тело запроса на обновление цен по goodsId (v2)
+      properties:
+        data:
+          type: object
+          properties:
+            externalLocationIds:
+              type: array
+              nullable: true
+              description: |
+                Идентификаторы складов продавца.
+                Если null — обновление применяется ко всем точкам продавца.
+                Если передан массив — обновление применяется только к указанным складам.
+                Пустой массив недопустим (ошибка валидации).
+              minItems: 1
+              uniqueItems: true
+              items:
+                type: string
+                description: Внешний идентификатор склада продавца
+                example: "314365"
+            items:
+              type: array
+              description: Список данных с ценами
+              minItems: 1
+              maxItems: 1000
+              items:
+                type: object
+                properties:
+                  goodsId:
+                    type: integer
+                    description: Идентификатор товара Мегамаркет
+                    example: 600018246128
+                  oldPrice:
+                    type: integer
+                    nullable: true
+                    description: Старая цена (используется для отображения перечёркнутой цены на витрине). Должна быть больше или равна Price.
+                    minimum: 1
+                    maximum: 99999999
+                    example: 3000
+                  price:
+                    type: integer
+                    description: Актуальная цена. В рублях без копеек
+                    minimum: 1
+                    maximum: 99999999
+                    example: 2000
+                  vat:
+                    type: string
+                    enum:
+                      - "5"
+                      - "7"
+                      - "10"
+                      - "22"
+                      - NOT
+                    description: Размер НДС
+                  version:
+                    type: string
+                    description: |
+                      Временная метка версии цены. Формат: 2024-06-14T11:55:10.123456Z
+                    example: "2024-06-14T11:55:10.123456Z"
+                required:
+                  - goodsId
+                  - oldPrice
+                  - price
+                  - vat
+                  - version
+          required:
+            - externalLocationIds
+            - items
+      required:
+        - data
+    StocksGetByOfferIdRequestBody:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            locationId:
+              type: string
+              description: Идентификатор склада продавца
+              example: "314365"
+            offerIds:
+              type: array
+              description: Массив идентификаторов товара продавца
+              minItems: 1
+              maxItems: 1000
+              items:
+                type: string
+                example: SN100
+          required:
+            - locationId
+            - offerIds
+      required:
+        - data
+    StocksGetResponseBody:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            locationId:
+              type: string
+              description: Идентификатор склада продавца
+              example: "314365"
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/GetStockItem"
+          required:
+            - locationId
+            - items
+      required:
+        - data
+    GetStockItem:
+      type: object
+      properties:
+        offerId:
+          type: string
+          description: Идентификатор товара продавца
+          example: SN100
+        goodsId:
+          type: integer
+          description: Идентификатор товара Мегамаркет
+          example: 600018246128
+        sourceQuantity:
+          type: integer
+          description: "Остаток, который передал продавец"
+          example: 10
+        remainQuantity:
+          type: integer
+          description: Доступный остаток
+          example: 9
+      required:
+        - offerId
+        - goodsId
+        - sourceQuantity
+        - remainQuantity
+    StocksGetByGoodsIdRequestBody:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            locationId:
+              type: string
+              description: Идентификатор склада продавца
+              example: Склад_01
+            goodsIds:
+              type: array
+              description: Массив идентификаторов товара Мегамаркет
+              minItems: 1
+              maxItems: 1000
+              items:
+                type: integer
+                example: 600018246128
+          required:
+            - locationId
+            - goodsIds
+      required:
+        - data
+    StocksGetByLocationIdRequestBody:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            locationId:
+              type: string
+              description: Идентификатор склада продавца
+              example: Склад_01
+            lastId:
+              type: string
+              nullable: true
+              description: |
+                ID последнего полученного товара для пагинации.
+                В первом запросе не передается. В последующих передается значение, полученное в предыдущем запросе.
+              example: MTIzNA==
+            limit:
+              type: integer
+              description: Количество значений в ответе
+              minimum: 1
+              maximum: 1000
+              example: 500
+          required:
+            - locationId
+            - limit
+      required:
+        - data
+    StocksGetByLocationIdResponseBody:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            locationId:
+              type: string
+              description: Идентификатор склада продавца
+              example: Склад_01
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/GetStockItem"
+            lastId:
+              type: string
+              nullable: true
+              description: |
+                `ID` последнего полученного товара для пагинации.
+                Необходимо передать в последующем запросе для получения следующей группы товаров.
+              example: MTIzNA==
+          required:
+            - locationId
+            - items
+      required:
+        - data
+    StocksUpdateByOfferIdRequestBody:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            locationId:
+              type: string
+              description: Идентификатор склада продавца
+              example: Склад_01
+            items:
+              type: array
+              description: Массив с данными по остаткам
+              minItems: 1
+              maxItems: 1000
+              items:
+                type: object
+                properties:
+                  offerId:
+                    type: string
+                    description: Идентификатор товара продавца
+                    example: SN100
+                  quantity:
+                    type: integer
+                    description: "Остаток, передаваемый продавцом"
+                    example: 100
+                required:
+                  - offerId
+                  - quantity
+          required:
+            - locationId
+            - items
+      required:
+        - data
+    StocksUpdateByOfferIdRequestBodyV2:
+      type: object
+      description: Тело запроса на обновление остатков по offerId (v2)
+      properties:
+        data:
+          type: object
+          properties:
+            externalLocationIds:
+              description: |
+                Идентификаторы складов продавца.
+                Если null — обновление применяется ко всем точкам продавца.
+                Если передан массив — обновление применяется только к указанным складам.
+                Пустой массив недопустим (ошибка валидации).
+              oneOf:
+                - type: "null"
+                - type: array
+                  minItems: 1
+                  uniqueItems: true
+                  items:
+                    type: string
+                    description: Внешний идентификатор склада продавца
+                    example: Склад_01
+            items:
+              type: array
+              description: Массив с данными по остаткам
+              minItems: 1
+              maxItems: 1000
+              items:
+                type: object
+                properties:
+                  offerId:
+                    type: string
+                    description: Идентификатор товара продавца
+                    example: SN100
+                  quantity:
+                    type: integer
+                    description: "Остаток, передаваемый продавцом"
+                    example: 100
+                required:
+                  - offerId
+                  - quantity
+          required:
+            - externalLocationIds
+            - items
+      required:
+        - data
+    StocksUpdateResponseBody:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            locationId:
+              type: string
+              description: Идентификатор склада продавца
+              example: Склад_01
+            items:
+              type: array
+              description: Массив с данными по остаткам
+              minItems: 1
+              maxItems: 1000
+              items:
+                type: object
+                properties:
+                  offerId:
+                    type: string
+                    nullable: true
+                    description: Идентификатор товара продавца
+                    example: SN100
+                  goodsId:
+                    type: integer
+                    nullable: true
+                    description: Идентификатор товара Мегамаркет
+                    example: 600018246128
+                  quantity:
+                    type: integer
+                    description: "Остаток, который передал продавец"
+                    example: 100
+                  updated:
+                    type: boolean
+                    description: Признак успешного обновления остатка
+                  errors:
+                    type: array
+                    nullable: true
+                    description: Список ошибок при обновлении товара
+                    items:
+                      type: object
+                      properties:
+                        code:
+                          type: string
+                          description: "Код ошибки. \r\nВозможные значения:\r\n\r\n- GOODS_ID_NOT_FOUND_FOR_OFFER\r\n- DUPLICATED_ID_PASSED"
+                        message:
+                          type: string
+                          description: Текст ошибки
+                      required:
+                        - code
+                        - message
+                required:
+                  - quantity
+                  - updated
+          required:
+            - locationId
+            - items
+      required:
+        - data
+    StocksUpdateByGoodsIdRequestBody:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            locationId:
+              type: string
+              description: Идентификатор склада продавца
+              example: Склад_01
+            items:
+              type: array
+              description: Массив с данными по остаткам
+              minItems: 1
+              maxItems: 1000
+              items:
+                type: object
+                properties:
+                  goodsId:
+                    type: integer
+                    description: Идентификатор товара Мегамаркет
+                    example: 600018246128
+                  quantity:
+                    type: integer
+                    description: "Остаток, передаваемый продавцом"
+                    example: 100
+                required:
+                  - goodsId
+                  - quantity
+          required:
+            - locationId
+            - items
+      required:
+        - data
+    StocksUpdateByGoodsIdRequestBodyV2:
+      type: object
+      description: Тело запроса на обновление остатков по goodsId (v2)
+      properties:
+        data:
+          type: object
+          properties:
+            externalLocationIds:
+              description: |
+                Идентификаторы складов продавца.
+                Если null — обновление применяется ко всем точкам продавца.
+                Если передан массив — обновление применяется только к указанным складам.
+                Пустой массив недопустим (ошибка валидации).
+              oneOf:
+                - type: "null"
+                - type: array
+                  minItems: 1
+                  uniqueItems: true
+                  items:
+                    type: string
+                    description: Внешний идентификатор склада продавца
+                    example: Склад_01
+            items:
+              type: array
+              description: Массив с данными по остаткам
+              minItems: 1
+              maxItems: 1000
+              items:
+                type: object
+                properties:
+                  goodsId:
+                    type: integer
+                    description: Идентификатор товара Мегамаркет
+                    example: 600018246128
+                  quantity:
+                    type: integer
+                    description: "Остаток, передаваемый продавцом"
+                    example: 100
+                required:
+                  - goodsId
+                  - quantity
+          required:
+            - externalLocationIds
+            - items
+      required:
+        - data

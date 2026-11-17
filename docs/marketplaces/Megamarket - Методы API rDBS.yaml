@@ -1,0 +1,1503 @@
+openapi: 3.0.3
+info:
+  version: 1.0.0
+  title: Методы API rDBS
+servers:
+  - url: 'https://api.megamarket.tech'
+  - url: 'https://api-test.megamarket.tech'
+paths:
+  /api/market/v1/orderService/order/new:
+    post:
+      tags:
+        - работа с заказом
+      summary: Создание нового заказа
+      description: |
+        **Описание метода Order/New**
+
+        URL метода: `/order/new` предоставляется Продавцом специалистам Мегамаркета.
+
+        > <span style="color: #d41f1c;">**Важно!** </span>
+
+        Запрос выполняется от Мегамаркета к Продавцу с информацией о новом заказе, оформленном на сайте Мегамаркета.
+
+        В поле `quantity` всегда указывается единица. Количество лотов передается по факту количеством элементов `items`.
+
+        Лот со стоимостью доставки указывается в отдельном `itemindex`. Его не нужно включать в запросы на комплектацию, выдачу и отмену.
+      operationId: post-order-new
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/orderNewRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/responseDefault'
+      servers:
+        - url: 'https://api.megamarket.tech'
+        - url: 'https://api-test.megamarket.tech'
+  /api/market/v1/orderService/order/cancel:
+    post:
+      tags:
+        - работа с заказом
+      summary: Отмена заказа
+      description: |
+        URL метода: `order/cancel` предоставляет Продавец специалистам Мегамаркета.
+
+        > <span style="color: #d41f1c;">**Важно!** </span>
+
+        Запрос выполняется от Мегамаркета к Продавцу с информацией об отмене Лотов в Отправлении.
+      operationId: post-order-cancel
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/orderCancelRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/responseDefault'
+      servers:
+        - url: 'https://api.megamarket.tech'
+        - url: 'https://api-test.megamarket.tech'
+  /api/market/v1/orderService/order/confirm:
+    post:
+      tags:
+        - работа с заказом
+      summary: Подтверждение заказа
+      description: Продавец сообщает об изменении даты доставки. Метод может быть вызван для актуализации информации по заказу.
+      operationId: post-order-confirm
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/orderConfirmRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/responseDefault'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/responseError'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/responseError'
+      servers:
+        - url: 'https://api.megamarket.tech'
+        - url: 'https://api-test.megamarket.tech'
+  /api/market/v1/orderService/order/packing:
+    post:
+      tags:
+        - работа с заказом
+      summary: Комплектация отправления
+      description: |
+        **Описание метода `/order/packing`**
+
+        **URL метода:** `/order/packing`
+
+        Запрос выполняется Продавцом для информирования Мегамаркета о комплектации заказа на стороне Продавца.
+        Метод `order/packing` может вызываться несколько раз, если комплектация происходит поэтапно. Каждый раз передается информация о тех лотах, которые были скомплектованы к настоящему моменту.<br>
+        Значение порядкового номера лота (`itemIndex`) должно соответствовать значению, полученному в запросах `order/new` и `order/get`.<br>
+        Идентификатор заказа Продавца (`orderCode`) может содержать только латиницу, цифры, и символы «_» и «-». Кириллица и другие специальные символы недопустимы.<br>
+        В поле `quantity` всегда передается единица.<br>
+        Не рекомендуется включать в метод лот доставки, переданный в `order/new`, в запросе его можно игнорировать.<br>
+        Запрос может быть сформирован двумя способами:
+
+        - с генерацией штрихкода
+        - без генерации штрихкода
+
+        В первом случае Продавец генерирует штрихкод самостоятельно и передаёт в запросе в массиве boxes[].
+
+        Во втором случае Продавец передаёт только порядковые номера коробок (1, 2, 3 и т.д.) в boxIndex в массиве items[].
+
+        **Генерация штрихкода (boxCode)**
+        
+        boxCode представляет из себя последовательность символов, разделённых звёздочкой, вида "A\*B\*C", где
+
+        - A - merchantId (id Продавца в системе ММ)
+        - B - orderCode (номер заказа в системе Продавца)
+        - C - boxIndex (порядковый номер коробки, начиная с 1)
+
+        В контракте, где 
+
+        - merchantId = 456
+        - orderCode = CODE123
+        - boxIndex = 1
+
+        boxCode будет собран в 456\*CODE123\*1
+
+        **Дополнительная информация:**
+        - Код маркировки по стандарту GS1 состоит из блоков: GTIN, серийный номер, а для некоторых товаров - дополнительные поля (МРЦ, срок годности). Для разделения блоков используется непечатный символ GS. Сканер при считывании маркировки должен работать в режим эмуляции COM-порта (Virtual COM Port), в противном случае передача разделителя GS будет некорректна, код маркировки не будет распознан системой. Подробнее про структуру маркировки можно почитать тут: https://markirovka.ru/knowledge/tovarnye-gruppy/radioelektronnaya-produktsiya-noutbuki-i-smartfony/sostav-koda-markirovki-radioelektronika?ysclid=mue86pgl3210377701
+        - Наша система не является безотказной и иногда может быть недоступна. В таких случаях будет ответ с кодом ошибки "500". Рекомендуется предусмотреть функционал обработки ответов от маркетплейса и в случае необходимости автоматической повторной отправки запроса.
+        
+      operationId: post-order-packing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/orderPackingRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/responseDefault'
+              examples:
+                newDBS:
+                  value:
+                    data:
+                      token: "string"
+                      shipments:
+                        - shipmentId: "string"
+                          orderCode: "string"
+                          items:
+                            - itemIndex: 0
+                              boxIndex: 0
+                              digitalMark: "string"
+                oldFBS:
+                  value:
+                    data:
+                      token: "string"
+                      shipments:
+                        - shipmentId: "string"
+                          orderCode: "string"
+                          items:
+                            - itemIndex: 0
+                              digitalMark: "string"
+                              boxes:
+                                - boxIndex: 0
+                                  boxCode: "string"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/responseError'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/responseError'
+      servers:
+        - url: 'https://api.megamarket.tech'
+        - url: 'https://api-test.megamarket.tech'
+  /api/market/v1/orderService/order/reject:
+    post:
+      tags:
+        - работа с заказом
+      summary: Отмена лотов по инициативе продавца
+      description: 'Продавец сообщает Мегамаркет об отмене лотов. Метод может быть вызван на любом этапе до выдачи заказа покупателю. Допустимо вызывать метод несколько раз, если необходимость отмены лотов возникает несколько раз в процессе исполнения заказа.'
+      operationId: post-order-reject
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/orderRejectRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/responseDefault'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/responseError'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/responseError'
+      servers:
+        - url: 'https://api.megamarket.tech'
+        - url: 'https://api-test.megamarket.tech'
+  /api/merchantIntegration/rdbs/v1/sticker/print:
+    post:
+      tags:
+        - работа с заказом
+      summary: Печать этикеток
+      operationId: post-sticker-print
+      parameters:
+        - name: X-Merchant-Token
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/stickerPrintRequest'
+      responses:
+        '200':
+          description: В случае успешного ответа возвращается сформированный файл.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/stickerPrintResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/responseError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/responseError'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/responseError'
+      servers:
+        - url: 'https://api.megamarket.tech'
+        - url: 'https://api-test.megamarket.tech'
+  /api/market/v1/orderService/order/search:
+    post:
+      tags:
+        - работа с заказом
+      summary: Получение отправлений по критериям
+      operationId: post-order-search
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/orderSearchRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orderSearchResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/responseError'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/responseError'
+      servers:
+        - url: 'https://api.megamarket.tech'
+        - url: 'https://api-test.megamarket.tech'
+  /api/market/v2/orderService/order/get:
+    post:
+      tags:
+        - работа с заказом
+      summary: Получение детальной информации по отправлению
+      operationId: post-order-get
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/orderGetRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/orderGetResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/responseError'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/responseError'
+      servers:
+        - url: 'https://api.megamarket.tech'
+        - url: 'https://api-test.megamarket.tech'
+components:
+  schemas:
+    orderNewRequest:
+      type: object
+      properties:
+        meta:
+          type: object
+          description: Объект с метаданными
+        data:
+          type: object
+          description: Объект с полезными данными
+          properties:
+            merchantId:
+              type: integer
+              description: Идентификатор продавца в системе Мегамаркет
+            shipments:
+              type: array
+              description: Массив отправлений
+              items:
+                type: object
+                properties:
+                  shipmentId:
+                    type: string
+                    description: Идентификатор отправления
+                  shipmentDate:
+                    type: string
+                    description: 'Дата, к которой необходимо отгрузить отправление'
+                    format: date-time
+                  items:
+                    type: array
+                    description: Массив с лотами
+                    items:
+                      type: object
+                      properties:
+                        itemIndex:
+                          type: string
+                          description: Порядковый номер лота
+                        goodsId:
+                          type: string
+                          description: Идентификатор товара в системе продавца
+                        offerId:
+                          type: string
+                          description: Идентификатор товара в системе Мегамаркет
+                        itemName:
+                          type: string
+                          description: Название товара
+                        price:
+                          type: integer
+                          description: Стоимость без учёта скидок
+                        finalPrice:
+                          type: integer
+                          description: Стоимость с учётом всех скидок
+                        discounts:
+                          type: array
+                          description: Массив с информацией о скидках
+                          items:
+                            type: object
+                            properties:
+                              discountType:
+                                type: string
+                                description: Код примененной скидки
+                              discountDescription:
+                                type: string
+                                description: Описание примененной скидки
+                              discountAmount:
+                                type: integer
+                                description: Сумма скидки
+                        quantity:
+                          type: integer
+                          description: Количество (всегда равно 1)
+                        taxRate:
+                          type: string
+                          description: Ставка НДС
+                        reservationPerformed:
+                          type: boolean
+                          description: Флаг "товар зарезервирован"
+                        isDigitalMarkRequired:
+                          type: boolean
+                          description: Флаг "для товара потребуется указать КИЗ на комплектации"
+                      required:
+                        - itemIndex
+                        - goodsId
+                        - offerId
+                        - itemName
+                        - price
+                        - finalPrice
+                        - discounts
+                        - quantity
+                        - taxRate
+                        - reservationPerformed
+                        - isDigitalMarkRequired
+                  handover:
+                    type: object
+                    description: Объект с данными о доставке
+                    properties:
+                      packingDate:
+                        type: string
+                        description: 'Дата, к которой товар должен быть скомплектован'
+                        format: date-time
+                      reserveExpirationDate:
+                        type: string
+                        description: 'Дата окончания резерва товара, после которой заказ будет отменён, если не будет скомплектован'
+                        format: date-time
+                      outletId:
+                        type: string
+                        description: Идентификатор склада продавца (в rDBS всегда 0)
+                      serviceScheme:
+                        type: string
+                        description: Схема доставки
+                      depositedAmount:
+                        type: integer
+                        description: 'Сумма, которая была захолдирована у клиента при создании заказа'
+                      deliveryId:
+                        type: integer
+                        description: Идентификатор доставки
+                      deliveryInterval:
+                        type: object
+                        description: Объект с данными об интервалах доставки
+                        properties:
+                          dateFrom:
+                            type: string
+                            description: 'Ожидаемое время доставки, от'
+                            format: date-time
+                          dateTo:
+                            type: string
+                            description: 'Ожидаемое время доставки, до'
+                            format: date-time
+                        required:
+                          - dateFrom
+                          - dateTo
+                    required:
+                      - packingDate
+                      - reserveExpirationDate
+                      - serviceScheme
+                      - depositedAmount
+                      - deliveryId
+                      - deliveryInterval
+                  customer:
+                    type: object
+                    description: Объект с информацией о клиенте
+                    properties:
+                      customerFullName:
+                        type: string
+                        description: Полное имя клиента
+                      phone:
+                        type: string
+                        description: Телефон клиента
+                      email:
+                        type: string
+                        description: Электронная почта клиента
+                      address:
+                        type: object
+                        description: Объект с данными об адресе
+                        properties:
+                          source:
+                            type: string
+                            description: Полный адрес
+                          postalCode:
+                            type: string
+                            description: Почтовый индекс
+                          regionKladrId:
+                            type: string
+                            description: Код региона
+                          house:
+                            type: string
+                            description: Дом
+                          block:
+                            nullable: true
+                            description: Корпус
+                          flat:
+                            type: string
+                            description: Квартира
+                          regionWithType:
+                            type: string
+                            description: Регион
+                          cityWithType:
+                            type: string
+                            description: Город
+                          cityArea:
+                            type: string
+                            description: Район
+                          streetWithType:
+                            type: string
+                            description: Улица
+                          fias:
+                            type: object
+                            description: Объект с данными ФИАС
+                            properties:
+                              regionId:
+                                type: string
+                                description: Код региона
+                              destinationId:
+                                type: string
+                                description: Код в системе ФИАС
+                            required:
+                              - regionId
+                              - destinationId
+                          geo:
+                            type: object
+                            description: Объект с данными геолокации
+                            properties:
+                              lat:
+                                type: string
+                                description: Широта
+                              lon:
+                                type: string
+                                description: Долгота
+                            required:
+                              - lat
+                              - lon
+                          access:
+                            type: object
+                            description: Объект с дополнительными данными об адресе
+                            properties:
+                              entrance:
+                                type: string
+                                description: Подъезд
+                              floor:
+                                type: integer
+                                description: Этаж
+                              intercom:
+                                type: string
+                                description: Код домофона
+                              apartment:
+                                type: string
+                                description: Квартира
+                              comment:
+                                nullable: true
+                                description: Комментарий
+                              detachedHouse:
+                                type: boolean
+                                description: Флаг "частный дом"
+                              cargoElevator:
+                                type: boolean
+                                description: Флаг "наличие грузового лифта"
+                        required:
+                          - source
+                          - postalCode
+                          - regionKladrId
+                          - house
+                          - block
+                          - flat
+                          - regionWithType
+                          - cityWithType
+                          - cityArea
+                          - streetWithType
+                    required:
+                      - phone
+                      - address
+                  flags:
+                    type: array
+                    items:
+                      type: object
+                required:
+                  - shipmentId
+                  - shipmentDate
+                  - items
+                  - handover
+                  - customer
+                  - flags
+          required:
+            - merchantId
+            - shipments
+      required:
+        - data
+    responseDefault:
+      type: object
+      properties:
+        success:
+          type: integer
+          description: Признак успешности ответа
+        error:
+          type: object
+          description: Описание ошибки (при наличии ошибок)
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+      required:
+        - success
+    orderCancelRequest:
+      type: object
+      properties:
+        data:
+          type: object
+          description: Объет с полезными данными
+          properties:
+            merchantId:
+              type: integer
+              description: Идентификатор продавца
+            shipments:
+              type: array
+              description: Массив отправлений
+              items:
+                type: object
+                properties:
+                  shipmentId:
+                    type: string
+                    description: Идентификатор отправления
+                  items:
+                    type: array
+                    description: Массив лотов
+                    items:
+                      type: object
+                      properties:
+                        itemIndex:
+                          type: string
+                          description: Порядковый номер лота
+                        goodsId:
+                          type: string
+                          description: Идентификатор товара в системе ММ
+                        offerId:
+                          type: string
+                          description: Идентификатор товара в системе продавца
+                        cancellationType:
+                          type: string
+                          description: Тип отмены
+                      required:
+                        - itemIndex
+                        - goodsId
+                        - offerId
+                required:
+                  - shipmentId
+                  - items
+          required:
+            - merchantId
+            - shipments
+      required:
+        - data
+    orderConfirmRequest:
+      type: object
+      properties:
+        data:
+          type: object
+          description: Объект с полезными данными
+          properties:
+            token:
+              type: string
+              description: Токен продавца
+            shipments:
+              type: array
+              description: Массив с отправлениями на подтверждение
+              items:
+                type: object
+                properties:
+                  shipmentId:
+                    type: string
+                    description: Уникальный идентификатор отправления
+                  orderCode:
+                    type: string
+                    description: Уникальный идентификатор заказа в системе продавца
+                  items:
+                    type: array
+                    description: Массив с лотами на подтверждение
+                    items:
+                      type: object
+                      properties:
+                        itemIndex:
+                          type: string
+                          description: Упрощенный идентификатор лота
+                        offerId:
+                          type: string
+                          description: Идентификатор товара продавца
+                        shippingDate:
+                          type: string
+                          description: Новая дата отгрузки
+                      required:
+                        - itemIndex
+                required:
+                  - shipmentId
+                  - items
+          required:
+            - token
+            - shipments
+      required:
+        - data
+    responseError:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+                description: Код ошибки
+              message:
+                type: string
+                description: Причина ошибки
+      required:
+        - errors
+    orderPackingRequest:
+      type: object
+      properties:
+        data:
+          type: object
+          description: Объект с полезными данными
+          properties:
+            token:
+              type: string
+              description: Токен продавца
+            shipments:
+              type: array
+              description: Массив отправлений
+              items:
+                type: object
+                properties:
+                  shipmentId:
+                    type: string
+                    description: Уникальный идентификатор отправления
+                  orderCode:
+                    type: string
+                    description: Уникальный идентификатор заказа в системе продавца
+                  items:
+                    type: array
+                    description: Массив с лотами на комплектацию
+                    items:
+                      type: object
+                      properties:
+                        itemIndex:
+                          type: integer
+                          description: Упрощенный идентификатор лота
+                        boxIndex:
+                          type: integer
+                          description: 'Порядковый номер грузового места. Указывается, если штрихкод будет генерировать Мегамаркет'
+                        digitalMark:
+                          type: string
+                          description: Код маркировки в открытом виде
+                        boxes:
+                          type: array
+                          description: 'Массив с грузоместами. Указывается, если штрихкод генерирует Продавец'
+                          items:
+                            type: object
+                            properties:
+                              boxIndex:
+                                type: integer
+                                description: Порядковый номер грузового места
+                              boxCode:
+                                type: string
+                                description: Код грузового места
+                            required:
+                              - boxIndex
+                              - boxCode
+                        requestIdTrueSign:
+                          type: string
+                          description: "id запроса в Честный знак"
+                        requestTimestampTrueSign:
+                          type: integer
+                          description: "Время запроса в Честный знак"
+                        localInstanceIdTrueSign:
+                          type: string
+                          description: "id локального устройства, на котором производится проверка Честного знака (передаётся только в случае оффлайн проверки)"
+                        localDatabaseVersionTrueSign:
+                          type: string
+                          description: "Версия базы данных на локальном устройстве (передаётся только в случае оффлайн проверки)"
+                      required:
+                        - itemIndex
+                required:
+                  - shipmentId
+                  - orderCode
+                  - items
+          required:
+            - token
+            - shipments
+      required:
+        - data
+    orderRejectRequest:
+      type: object
+      properties:
+        data:
+          type: object
+          description: Объект с полезными данными
+          properties:
+            token:
+              type: string
+              description: Токен продавца
+            reason:
+              type: object
+              description: Объект с причиной отмены
+              properties:
+                type:
+                  type: string
+                  description: Причина отмены
+            shipments:
+              type: array
+              description: Массив с отправлениями на отмену
+              items:
+                type: object
+                properties:
+                  shipmentId:
+                    type: string
+                    description: Уникальный идентификатор отправления
+                  items:
+                    type: array
+                    description: Массив с лотами на отмену
+                    items:
+                      type: object
+                      properties:
+                        itemIndex:
+                          type: string
+                          description: Упрощенный идентификатор лота
+                        offerId:
+                          type: string
+                          description: Идентификатор товара продавца
+                      required:
+                        - itemIndex
+                required:
+                  - shipmentId
+                  - items
+          required:
+            - token
+            - shipments
+    stickerPrintRequest:
+      type: object
+      properties:
+        data:
+          type: object
+          description: Объект с полезными данными
+          properties:
+            shipmentId:
+              type: array
+              description: Массив отправлений
+              items:
+                type: string
+            stickerFormat:
+              type: string
+              enum:
+                - pdf
+                - json
+              description: Формат стикера (pdf или json)
+              default: pdf
+          required:
+            - shipmentId
+      required:
+        - data
+    stickerPrintResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          description: Объект с полезными данными
+          properties:
+            merchantId:
+              type: integer
+              description: Идентификатор Продавца
+            stickers:
+              type: array
+              description: Массив стикеров
+              items:
+                type: object
+                properties:
+                  shipmentId:
+                    type: string
+                    description: Идентификатор отправления
+                  deliveryId:
+                    type: string
+                    description: Идентификатор доставки
+                  shippingDate:
+                    type: string
+                    description: Дата отгрузки
+                    format: date-time
+                  orderCode:
+                    type: string
+                    description: Идентификатор заказа Продавца
+                  shippingAddress:
+                    type: string
+                    description: Адрес ПВЗ СДЭК
+                  boxCodes:
+                    type: array
+                    description: Массив штрихкод
+                    items:
+                      type: string
+                required:
+                  - shipmentId
+                  - deliveryId
+                  - shippingDate
+                  - orderCode
+                  - shippingAddress
+                  - boxCodes
+          required:
+            - merchantId
+            - stickers
+      required:
+        - data
+    orderSearchRequest:
+      type: object
+      properties:
+        data:
+          type: object
+          description: Объект с полезными данными
+          properties:
+            token:
+              type: string
+              description: Токен продавца
+            searchQuery:
+              type: string
+              description: |-
+                Идентификатор мультипоиска:
+
+                - по shipmentId - поле shipment_partititioned.id (без ограничения глубины поиска, если shippingDate, dateFrom и dateTo не заданы)
+                - orderCode -  поле shipment_partititioned.order_code
+                - deliveryId -  поле shipment_partititioned.delivery_id
+                - offerId -  поле shipment_partititioned.merchant_offer_Ids
+            dateFrom:
+              type: string
+              description: |-
+                Фильтр по дате заказа (диапазон - от)
+
+                Дата без таймзоны приводится в UTC
+            dateTo:
+              type: string
+              description: |-
+                Фильтр по дате заказа (диапазон - до)
+
+                Дата без таймзоны приводится в UTC
+            count:
+              type: integer
+              description: Максимальное количество элементов в ответе
+            offset:
+              type: integer
+              description: Смещение итератора элементов в ответе
+            statuses:
+              type: array
+              description: |-
+                Фильтр по статусам отправления
+                Возможные значения:
+
+                - "NEW"
+                - "CONFIRMED"
+                - "PACKED"
+                - "PACKING_EXPIRED"
+                - "SHIPPED"
+                - "DELIVERED"
+                - "MERCHANT_CANCELED"
+                - "CUSTOMER_CANCELED"
+              items:
+                type: string
+            shipmentId:
+              type: string
+              description: Идентификатор отправления
+            orderBy:
+              type: object
+              description: Параметры сортировки
+              properties:
+                confirmationDate:
+                  type: string
+                  description: |-
+                    Сортировка по дате подтверждения:
+
+                    - asc
+                    - desc
+                packingDate:
+                  type: string
+                  description: |-
+                    Сортировка по дате комплектации:
+
+                    - asc
+                    - desc
+                shippingDate:
+                  type: string
+                  description: |-
+                    Сортировка по дате отгрузки:
+
+                    - asc
+                    - desc
+                creationDate:
+                  type: string
+                  description: |-
+                    Сортировка по дате создания:
+
+                    - asc
+                    - desc
+            orderCode:
+              type: string
+              description: Номер заказа продавца
+            customerOrderId:
+              type: string
+              description: Идентификатор заказа покупателя
+            processSchemes:
+              type: array
+              description: Схемы заказа
+              items:
+                type: object
+                properties:
+                  scheme:
+                    type: string
+                    description: |-
+                      Название схемы
+
+                      - FBO
+                      - FBS
+                      - DBS
+                      - CC
+                  deliveryOperator:
+                    type: string
+                    description: |-
+                      Оператор доставки:
+
+                      - CDEK
+                      - SBL
+                required:
+                  - scheme
+            deliveryId:
+              type: string
+              description: Идентификатор доставки
+            serviceSchemes:
+              type: array
+              description: |-
+                Фильтр по сервисным схемам:
+
+                - DELIVERY_BY_GOODS
+                - DELIVERY_BY_MERCHANT
+                - COLLECT_BY_CUSTOMER
+              items:
+                type: string
+            fulfillmentMethod:
+              type: array
+              description: |-
+                Фильтр по методу фулфилмента:
+
+                - FULFILLMENT_BY_MERCHANT
+                - FULFILLMENT_BY_GOODS
+              items:
+                type: string
+            shippingDate:
+              type: string
+              description: |-
+                Фильтр по дате отгрузки
+
+                Поиск проводится в рамках одного дня
+            shippingPointIds:
+              type: array
+              description: Фильтр по идентификатору локации продавца
+              items:
+                type: string
+            shippingPoints:
+              type: array
+              items:
+                type: string
+            locationIds:
+              type: array
+              description: Фильтр по внутреннему идентификатору локации
+              items:
+                type: integer
+            isCancellationPending:
+              type: boolean
+              description: Фильтр по заказам у которых имеются лоты находящиеся в процессе отмены
+          required:
+            - token
+      required:
+        - data
+    orderSearchResponse:
+      type: object
+      properties:
+        success:
+          type: integer
+          description: Признак успешности запроса
+        data:
+          type: object
+          description: Объект с полезными данными
+          properties:
+            shipments:
+              type: array
+              description: Массив найденных отправлений
+              items:
+                type: string
+          required:
+            - shipments
+      required:
+        - success
+        - data
+    orderGetRequest:
+      type: object
+      properties:
+        data:
+          type: object
+          description: Объект с полезными данными
+          properties:
+            token:
+              type: string
+              description: Токен продавца
+            shipments:
+              type: array
+              description: Массив номеров отправлений
+              items:
+                type: string
+          required:
+            - token
+            - shipments
+      required:
+        - data
+    orderGetResponse:
+      type: object
+      properties:
+        success:
+          type: integer
+          description: Признак успешности запроса
+        data:
+          type: object
+          description: Объект с полезными данными
+          properties:
+            shipments:
+              type: array
+              description: Массив отправлений
+              items:
+                type: object
+                properties:
+                  shipmentId:
+                    type: string
+                    description: Идентификатор отправления в системе ММ
+                  orderCode:
+                    type: string
+                    description: Идентификатор отправления в системе продавца
+                  status:
+                    type: string
+                    description: |-
+                      Состояние отправления
+
+                      - NEW - ожидание подтверждения
+                      - CONFIRMED - подтверждено продавцом
+                      - PACKED - скомплектовано продавцом
+                      - SHIPPED - отгружено продавцом
+                      - DELIVERED - исполнение заказа 
+                      - MERCHANT_CANCELED - отмена продавцом
+                      - CUSTOMER_CANCELED - отмена покупателем
+                  statusDate:
+                    type: string
+                    description: Дата установки текущего статуса
+                  confirmedTimeLimit:
+                    type: string
+                    description: 'Дата и время, до которого должно быть произведно подтверждение заказа'
+                  packingTimeLimit:
+                    type: string
+                    description: 'Дата и время, до которого должны быть произведна комплектации'
+                  shippingTimeLimit:
+                    type: string
+                    description: 'Дата и время, до которого должны быть произведна отгрузка'
+                  shipmentDateFrom:
+                    type: string
+                    description: Начало интервала отгрузки
+                  shipmentDateTo:
+                    type: string
+                    description: Конец интервала отгрузки
+                  packingDate:
+                    type: string
+                    description: Дата комплектации
+                  reserveExpirationDate:
+                    type: string
+                    description: Окончание даты резерва
+                  deliveryId:
+                    type: string
+                    description: Идентификатор доставки
+                  customerOrderId:
+                    type: string
+                    description: Идентификатор заказа в системе ММ
+                  shipmentDateShift:
+                    type: boolean
+                    description: Возможность изменения даты отгрузки
+                  shipmentIsChangeable:
+                    type: boolean
+                    description: Возможность перекомлектации отправления
+                  customerFullName:
+                    type: string
+                    description: Имя и фамилия покупателя
+                  customerAddress:
+                    type: string
+                    description: Адрес покупателя
+                  shippingPoint:
+                    type: string
+                    description: Идентификатор склада
+                  creationDate:
+                    type: string
+                    description: Дата создания заказа
+                  deliveryDate:
+                    type: string
+                    description: Дата доставки
+                  deliveryDateFrom:
+                    type: string
+                    description: Начало интервала доставки
+                  deliveryDateTo:
+                    type: string
+                    description: Конец интервала доставки
+                  fulfillmentMethod:
+                    type: string
+                    description: Метод фулфилмента
+                  items:
+                    type: array
+                    description: Массив лотов
+                    items:
+                      type: object
+                      properties:
+                        itemIndex:
+                          type: string
+                          description: Упрощенный идентификатор лота в отправлении
+                        itemId:
+                          type: string
+                        status:
+                          type: string
+                          description: Состояние лота
+                        subStatus:
+                          type: string
+                          description: Уточнение мерчантской отмены
+                        statusDate:
+                          type: string
+                          description: Дата установки текущего статуса
+                        price:
+                          type: integer
+                          description: Цена лота без учета лояльности
+                        finalPrice:
+                          type: integer
+                          description: Цена лота с учетом лояльности
+                        discounts:
+                          type: array
+                          description: Информация о примененной покупателем лояльности
+                          items:
+                            type: object
+                            properties:
+                              discountType:
+                                type: string
+                                description: Неуникальный идентификатор примененной скидки от МегаМаркета
+                              discountDescription:
+                                type: string
+                                description: Описание
+                              discountAmount:
+                                type: integer
+                                description: Сумма скидки
+                        quantity:
+                          type: integer
+                          description: Количество
+                        offerId:
+                          type: string
+                          description: Идентификатор товара в системе продавца
+                        goodsId:
+                          type: string
+                          description: Идентификатор товара в системе ММ
+                        digitalMark:
+                          type: string
+                          description: Код маркировки
+                        goodsData:
+                          type: object
+                          description: Информация о товаре
+                          properties:
+                            name:
+                              type: string
+                              description: Название товарной карточки
+                            categoryName:
+                              type: string
+                              description: Категория товара
+                            isDelivery:
+                              type: boolean
+                              description: 'Индикатор, что лот не товар, а услуга доставки'
+                            isDigitalMarkRequired:
+                              type: boolean
+                              description: Необходимость маркировки
+                          required:
+                            - name
+                            - categoryName
+                            - isDelivery
+                            - isDigitalMarkRequired
+                        boxes:
+                          type: array
+                          description: Информация о грузовых местах
+                          items:
+                            type: object
+                            properties:
+                              boxIndex:
+                                type: string
+                                description: Упрощенный идентификатор грузового места в рамках отправления
+                              boxCode:
+                                type: string
+                                description: Уникальный идентификатор грузового места
+                            required:
+                              - boxIndex
+                              - boxCode
+                        priceAdjustments:
+                          type: array
+                          description: Информации о скидке рекламного кабинета продавца
+                          items:
+                            type: object
+                            properties:
+                              priceAdjustmentType:
+                                type: string
+                                description: Неуникальный идентификатор примененной скидки от продавца (через рекламный кабинет)
+                              priceAdjustmentDescription:
+                                type: string
+                                description: Описание
+                              priceAdjustmentAmount:
+                                type: integer
+                                description: Сумма скидки
+                        events:
+                          type: array
+                          description: Хронология событий по лоту
+                          items:
+                            type: object
+                            properties:
+                              eventName:
+                                type: string
+                                description: Дата события
+                              eventValue:
+                                type: string
+                                description: Объект события
+                              cancellationReason:
+                                type: string
+                                description: Причина отмены
+                              eventDate:
+                                type: string
+                                description: Название события
+                        itemIsChangeable:
+                          type: boolean
+                          description: Возможность перекомлектации лота
+                        isCancellationPending:
+                          type: boolean
+                          description: Признак ожидания отмены продавцом
+                      required:
+                        - itemIndex
+                        - status
+                        - subStatus
+                        - statusDate
+                        - price
+                        - finalPrice
+                        - discounts
+                        - quantity
+                        - offerId
+                        - goodsId
+                        - digitalMark
+                        - goodsData
+                        - boxes
+                        - priceAdjustments
+                        - events
+                        - itemIsChangeable
+                  deliveryMethodId:
+                    type: string
+                    description: Метод доставки
+                  deliveryOperator:
+                    type: string
+                    description: Оператор доставки
+                  serviceScheme:
+                    type: string
+                    description: Схема исполнения заказа
+                  depositedAmount:
+                    type: integer
+                    description: Сумма предоплаты
+                  deliveryTrackNumber:
+                    type: string
+                    description: Трек-номер отправления в системе логистического оператора
+                  customer:
+                    type: object
+                    description: Информация о покупателе
+                    properties:
+                      id:
+                        type: string
+                      firstName:
+                        type: string
+                      lastName:
+                        type: string
+                      middleName:
+                        type: string
+                      email:
+                        type: string
+                      dateOfBirth:
+                        type: string
+                      registerDate:
+                        type: string
+                      phone:
+                        type: string
+                      phoneMisc:
+                        type: string
+                      comment:
+                        type: string
+                      groups:
+                        type: string
+                  shippingPointInfo:
+                    type: object
+                    description: Информация по складу отгрузки
+                    properties:
+                      name:
+                        type: string
+                        description: Название локации
+                      locationId:
+                        type: integer
+                        description: Идентификатор локации в системе ММ
+                      address:
+                        type: string
+                        description: Адрес локации
+                      externalId:
+                        type: string
+                        description: Идентификатор локации в системе продавца
+                    required:
+                      - name
+                      - locationId
+                      - address
+                      - externalId
+                  access:
+                    type: object
+                    description: Детальная информация об адресе доставки
+                    properties:
+                      detachedHouse:
+                        type: boolean
+                        description: Частный дом
+                      entrance:
+                        type: string
+                        description: Подъезд
+                      floor:
+                        type: integer
+                        description: Этаж
+                      intercom:
+                        type: string
+                        description: Домофон
+                      comment:
+                        type: string
+                        description: Комментарий покупателя
+                    required:
+                      - detachedHouse
+                      - entrance
+                      - floor
+                      - intercom
+                      - comment
+                  partnerId:
+                    type: string
+                    description: Идентификатор партнёра
+                required:
+                  - shipmentId
+                  - orderCode
+                  - status
+                  - statusDate
+                  - confirmedTimeLimit
+                  - packingTimeLimit
+                  - shippingTimeLimit
+                  - shipmentDateFrom
+                  - shipmentDateTo
+                  - packingDate
+                  - reserveExpirationDate
+                  - deliveryId
+                  - customerOrderId
+                  - shipmentDateShift
+                  - shipmentIsChangeable
+                  - customerFullName
+                  - customerAddress
+                  - shippingPoint
+                  - creationDate
+                  - deliveryDate
+                  - deliveryDateFrom
+                  - deliveryDateTo
+                  - fulfillmentMethod
+                  - items
+                  - deliveryMethodId
+                  - serviceScheme
+                  - depositedAmount
+                  - customer
+                  - shippingPointInfo
+                  - partnerId
+          required:
+            - shipments
+      required:
+        - success
+        - data
