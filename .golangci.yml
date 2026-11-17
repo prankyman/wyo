@@ -1,0 +1,58 @@
+# golangci-lint v2 (https://golangci-lint.run/docs/configuration/). Strict from the first commit.
+# Run: pnpm lint (scripts/go/lint.sh). The version is pinned in scripts/tools/versions.sh.
+version: "2"
+
+run:
+    timeout: 5m
+    relative-path-mode: gomod
+    tests: true
+
+linters:
+    # The standard set (errcheck, govet, ineffassign, staticcheck, unused) plus the ones below.
+    default: standard
+    enable:
+        - bodyclose # a response body is always closed
+        - exhaustive # a switch over an enumeration lists every member
+        - forbidigo # the calls this project keeps in one place (settings below)
+        - gosec # security
+        - misspell # misspelled English words
+        - noctx # an HTTP request carries a context
+        - nolintlint # a //nolint names its linter and gives its reason
+    settings:
+        errcheck:
+            check-type-assertions: true
+        exhaustive:
+            default-signifies-exhaustive: false
+        forbidigo:
+            analyze-types: true
+            forbid:
+                - pattern: ^time\.(Now|Since|Until)$
+                  msg: take the time from an injected clock.Clock; only internal/clock reads the system time
+                - pattern: ^time\.Sleep$
+                  msg: never sleep to wait for something; wait on the event itself (a channel, a context, the injected clock)
+                - pattern: ^http\.(DefaultClient|Get|Head|Post|PostForm)$
+                  msg: build an http.Client with a timeout and send a request that carries a context
+                - pattern: ^(fmt\.Print(|f|ln)|print|println)$
+                  msg: log with the logger from internal/logging, or write to an io.Writer you were given
+                - pattern: ^os\.(Getenv|LookupEnv|Environ|ExpandEnv)$
+                  msg: only internal/config reads the environment; take what you need from config.Config
+        nolintlint:
+            require-explanation: true
+            require-specific: true
+            allow-unused: false
+
+    exclusions:
+        # Generated files (the standard "Code generated ... DO NOT EDIT." header) are not linted.
+        generated: lax
+        warn-unused: true
+        presets: []
+        rules:
+            # The one package that reads the system time may do so.
+            - path: ^internal/clock/
+              linters:
+                  - forbidigo
+            # The one package that reads the environment may do so.
+            - path: ^internal/config/
+              text: os\.(Getenv|LookupEnv|Environ|ExpandEnv)
+              linters:
+                  - forbidigo

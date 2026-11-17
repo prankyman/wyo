@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/v2.8.2/configuration-schema.json
+# Wildberries' description file api/wildberries/02-items.yaml, limited to the methods the connector uses (listed in
+# .agents/research/wildberries-official-description-files-check-2026-11-17.md, section 2): the types and a client.
+package: items
+output: internal/marketplace/wildberries/wbapi/items/items.gen.go
+generate:
+    models: true
+    client: true
+output-options:
+    resolve-type-name-collisions: true
+    include-operation-ids:
+        - getV3Warehouses
+        - getV3Offices

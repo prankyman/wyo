@@ -1,0 +1,16 @@
+# Secret scan first: the cheapest check, and the only one whose failure means "do not let this leave the
+# machine". `--staged` scans exactly what is about to be committed; `--redact` keeps the finding out of the
+# terminal and the shell history. The pipeline runs the same scan and does not degrade.
+if command -v gitleaks >/dev/null 2>&1; then
+    gitleaks protect --staged --redact --config .gitleaks.toml || {
+        echo ""
+        echo "gitleaks found a secret in the staged changes (value redacted above)."
+        echo "Move it out of the repository and stage again. If it is a false positive,"
+        echo "make an exception by its value in .gitleaks.toml - do not disable the hook."
+        exit 1
+    }
+else
+    echo "warning: gitleaks is not installed, skipping the secret scan"
+fi
+
+pnpm lint

@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/v2.8.2/configuration-schema.json
+# Wildberries' description file api/wildberries/03-orders-fbs.yaml, limited to the methods the connector uses (listed in
+# .agents/research/wildberries-official-description-files-check-2026-11-17.md, section 2): the types and a client.
+package: orders
+output: internal/marketplace/wildberries/wbapi/orders/orders.gen.go
+generate:
+    models: true
+    client: true
+output-options:
+    resolve-type-name-collisions: true
+    include-operation-ids:
+        - getV3OrdersNew
+        - getV3Orders
+        - postV3OrdersStatus
+        - getV3SuppliesOrdersReshipment
+        - patchV3OrdersOrderIdCancel
+        - postV3OrdersStickers
+        - postV3OrdersMeta
+        - deleteV3OrdersOrderIdMeta
+        - putV3OrdersOrderIdMetaSgtin
+        - postV3Supplies
+        - getV3Supplies
+        - patchV3SuppliesSupplyIdOrders
+        - getV3SuppliesSupplyId
+        - deleteV3SuppliesSupplyId
+        - getV3SuppliesSupplyIdOrderIds
+        - patchV3FbsSuppliesSupplyIdOrdersTransfer
+        - getV3FbsSuppliesSupplyIdShippingPoints
+        - patchV3FbsSuppliesShippingMethod
+        - patchV3SuppliesSupplyIdDeliver
+        - getV3SuppliesSupplyIdBarcode
+        - getV3SuppliesSupplyIdTrbx
+        - postV3SuppliesSupplyIdTrbx
+        - deleteV3SuppliesSupplyIdTrbx
+        - postV3SuppliesSupplyIdTrbxStickers

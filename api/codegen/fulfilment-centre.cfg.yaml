@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/v2.8.2/configuration-schema.json
+# The neutral fulfilment-centre API (api/fulfilment-centre.yaml): the types, a client for the side that sends orders, and a
+# server skeleton for a program that plays the fulfilment centre (the fake of the tests).
+package: fcapi
+output: internal/fulfilment/fcapi/fcapi.gen.go
+generate:
+    models: true
+    client: true
+    std-http-server: true
+    embedded-spec: true
+output-options:
+    resolve-type-name-collisions: true

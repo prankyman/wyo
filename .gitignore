@@ -1,0 +1,36 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Dependencies
+node_modules
+.pnpm-store
+
+# Builds: the interface goes into internal/webui/dist/, the wyo server into bin/
+/.svelte-kit
+/build
+internal/webui/dist/
+bin/
+.tools/
+vite.config.ts.timestamp-*
+
+# Tests and coverage
+/coverage
+test-results/
+playwright-report/
+blob-report/
+
+# Environment
+.env
+.env.*
+
+# Editors and systems
+.vscode/*
+!.vscode/extensions.json
+.idea
+.history
+.DS_Store
+Thumbs.db
+*.sw?

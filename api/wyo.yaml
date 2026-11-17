@@ -1,0 +1,72 @@
+openapi: 3.1.0
+info:
+    title: wyo server API
+    version: 0.0.1
+    description: >-
+        The API the wyo interface calls. Every answer is data or a code with parameters; the wyo server never writes a
+        sentence for a person (the texts live in the interface's `messages/`).
+servers:
+    - url: /
+paths:
+    /api/v1/meta:
+        get:
+            operationId: getMeta
+            summary: The program's name, version and mode.
+            responses:
+                '200':
+                    description: The program's name, version and mode.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Meta'
+                default:
+                    description: A refusal.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Refusal'
+components:
+    schemas:
+        Meta:
+            type: object
+            additionalProperties: false
+            required: [name, version, mode]
+            properties:
+                name:
+                    type: string
+                    description: Always `wyo`.
+                version:
+                    type: string
+                    description: The release version, or `dev` for a build that was not stamped.
+                mode:
+                    type: string
+                    enum: [release, development, test]
+                    description: >-
+                        `release` for a released wyo server; `development` and `test` only in a build made with the
+                        `wyotest` tag.
+        Refusal:
+            type: object
+            additionalProperties: false
+            required: [error]
+            properties:
+                error:
+                    type: object
+                    additionalProperties: false
+                    required: [code]
+                    properties:
+                        code:
+                            type: string
+                        params:
+                            type: object
+                            additionalProperties: true
+                        issues:
+                            type: array
+                            items:
+                                type: object
+                                additionalProperties: false
+                                required: [path, code]
+                                properties:
+                                    path:
+                                        type: string
+                                    code:
+                                        type: string
