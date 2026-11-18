@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.4](https://github.com/prankyman/wyo/compare/v0.0.3...v0.0.4) (2026-11-18)
+
+### Features
+
+* wildberries accounts, order list, request journal; updates with a short stop ([a103996](https://github.com/prankyman/wyo/commit/a103996dbecdc0ae6780677baa60596a75de4456))
+
 ## [0.0.3](https://github.com/prankyman/wyo/compare/v0.0.2...v0.0.3) (2026-11-18)
 
 ### Bug Fixes
