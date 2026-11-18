@@ -37,11 +37,24 @@ type role struct {
 	Methods []string `json:"methods"`
 }
 
-// warehouse is a seller's warehouse. seq is its place in the list, which is what a cursor remembers.
+// The label types of a warehouse, «carriage_label_type» of /v2/warehouse/list (OZC section 6). A warehouse that does not name
+// one is UNSPECIFIED.
+const (
+	labelUnspecified = "UNSPECIFIED"
+	labelBig         = "BIG"
+	labelSmall       = "SMALL"
+)
+
+var labelTypes = []string{labelUnspecified, labelBig, labelSmall}
+
+// warehouse is a seller's warehouse. seq is its place in the list, which is what a cursor remembers. LabelType is one of
+// labelTypes ("" is UNSPECIFIED) and AutoAssembly is Ozon's «is_auto_assembly».
 type warehouse struct {
-	ID     int64  `json:"id"`
-	Name   string `json:"name"`
-	IsRfbs bool   `json:"is_rfbs"`
+	ID           int64  `json:"id"`
+	Name         string `json:"name"`
+	IsRfbs       bool   `json:"is_rfbs"`
+	LabelType    string `json:"label_type"`
+	AutoAssembly bool   `json:"auto_assembly"`
 
 	seq int
 }
@@ -52,6 +65,8 @@ type product struct {
 	OfferID  string   `json:"offer_id"`
 	Name     string   `json:"name"`
 	Barcodes []string `json:"barcodes"`
+
+	needs
 
 	id int64
 }
@@ -88,6 +103,20 @@ type posting struct {
 	shipmentDate time.Time
 	items        []lineItem
 	cancelled    *cancellation
+	// multibox is Ozon's «is_multibox»: the products of the posting go in several boxes, and Ozon asks how many (multi_box_qty).
+	multibox bool
+
+	// The marking codes (exemplars.go): the exemplars made on the first create-or-get, the number of boxes the last set gave, the
+	// check of that set and what a test commanded for the sets to come.
+	exemplars   map[int64][]*exemplar
+	multiBoxQty int32
+	check       *markCheck
+	plan        checkPlan
+
+	// The report of the packing (ship.go): what a test commanded for the reports, and the report that was answered and has not
+	// taken effect yet.
+	shipPlan shipPlan
+	pending  *pendingShip
 }
 
 // fboPosting is an FBO posting.
@@ -117,6 +146,19 @@ type state struct {
 	postings   []*posting
 	fbo        []*fboPosting
 	nextSeq    int
+
+	nextExemplar int64
+
+	// The labels (labels.go): the tasks, what a test commanded for the next ones, and the fetches of label files.
+	tasks    []*labelTask
+	nextTask int64
+	labels   labelPlan
+	fetches  []fileFetch
+
+	// The shipments (carriage.go) and what a test commanded for them.
+	carriages    []*carriage
+	nextCarriage int64
+	carr         carriagePlan
 }
 
 // newState is the state of a key nobody has set up: it refuses every call as an invalid key until a setup gives it a Client ID.
@@ -131,6 +173,15 @@ func newState(c clock.Clock) *state {
 		roles:      []role{{Name: roleAdmin, Methods: []string{}}},
 		sellerName: "Test seller",
 	}
+}
+
+// labelType is the warehouse's label type; one that was not named is UNSPECIFIED.
+func (w warehouse) labelType() string {
+	if w.LabelType == "" {
+		return labelUnspecified
+	}
+
+	return w.LabelType
 }
 
 func (st *state) postingOf(number string) *posting {

@@ -107,4 +107,16 @@ describe('HandoverSettingsSection', () => {
         await openSection();
         expect(screen.getByTestId('handover-none')).toHaveTextContent('Аккаунтов ещё нет');
     });
+
+    it('names an account whose marketplace declares no setting beside the accounts that have some, so no account is left out without a word', async () => {
+        const matches = marketplaceMatchesOf();
+        matches.rows[1] = { ...matches.rows[1], marketplace: 'no-settings' };
+        draw(matches, [MARKETPLACE, { ...MARKETPLACE, code: 'no-settings', handoverSettings: [] }]);
+        await openSection();
+
+        expect(screen.getAllByTestId('handover-account')).toHaveLength(1);
+        expect(screen.getByTestId('handover-account-none')).toHaveTextContent(
+            'Аккаунт «Второй магазин»: у его маркетплейса нет настроек передачи'
+        );
+    });
 });

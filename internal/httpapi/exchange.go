@@ -5,6 +5,7 @@ import (
 
 	"github.com/prankyman/wyo/internal/exchange"
 	"github.com/prankyman/wyo/internal/httpapi/gen"
+	"github.com/prankyman/wyo/internal/store"
 )
 
 // exchangeBody is an order's exchange in the list.
@@ -24,14 +25,28 @@ func exchangeBody(v exchange.View) *gen.OrderExchange {
 	return body
 }
 
+// parcelsBody are an order's parcels as the details show them: the marketplace's number of each and whether its label was
+// sent. The label's fingerprint and the marketplace's ticket for it stay in the wyo server.
+func parcelsBody(list []store.Parcel) []gen.OrderParcel {
+	parcels := make([]gen.OrderParcel, 0, len(list))
+
+	for _, p := range list {
+		parcels = append(parcels, gen.OrderParcel{
+			Number: int(p.Number), MarketplaceNumber: p.MpNumber, LabelSent: !p.LabelSentAt.IsZero(), LabelSentAt: moment(p.LabelSentAt),
+		})
+	}
+
+	return parcels
+}
+
 // exchangeDetailsBody is an order's exchange in its details: never a marking code, only how many units' codes were sent and
-// the verdict on them.
-func exchangeDetailsBody(d exchange.Details) *gen.OrderExchangeDetails {
+// the verdict on them; with the order's parcels.
+func exchangeDetailsBody(d exchange.Details, parcels []store.Parcel) *gen.OrderExchangeDetails {
 	short := exchangeBody(d.View)
 	body := &gen.OrderExchangeDetails{
 		State: short.State, Reason: short.Reason, Attention: short.Attention, Problem: short.Problem,
 		FcNumber: text(d.Row.FcNumber), HeldReasons: []gen.HeldReason{}, Verdicts: []gen.CodeVerdict{}, History: []gen.ExchangeEvent{},
-		Retryable: d.Sent && d.Row.Problem.Code != "",
+		Retryable: d.Sent && d.Row.Problem.Code != "", Parcels: parcelsBody(parcels),
 	}
 
 	for _, r := range d.Row.HeldReasons {

@@ -78,6 +78,8 @@ const control = (key: string, path: string, body?: unknown): Promise<unknown> =>
 /** What `/__control/setup` may change; only the fields sent change. */
 export interface IFcSetup {
     seller_name?: string;
+    /** The marketplaces the fulfilment centre takes orders of, by its own codes; the fake knows only `wildberries` until it is told. */
+    marketplaces?: { code: string; name: string }[];
     /** `read_only` makes the key refused for every write. */
     access?: 'read_write' | 'read_only';
     api_enabled?: boolean;
@@ -90,8 +92,21 @@ export async function setUpFc(key: string, setup: IFcSetup): Promise<void> {
     await control(key, 'setup', setup);
 }
 
-/** Products the fulfilment centre does not know (`unknown`, by barcode, article or marketplace id), or knows again (`known`). */
-export async function setFcProducts(key: string, products: { unknown?: string[]; known?: string[] }): Promise<void> {
+/** A product card at the fulfilment centre: whether each unit of the product carries a marking code that must be scanned. */
+export interface IFcProductCard {
+    article: string;
+    barcode: string;
+    marking_required: boolean;
+}
+
+/**
+ * Products the fulfilment centre does not know (`unknown`, by barcode, article or marketplace id), or knows again (`known`), and
+ * the cards of products (`catalog`), which an order sent after them takes its marking rule from.
+ */
+export async function setFcProducts(
+    key: string,
+    products: { unknown?: string[]; known?: string[]; catalog?: IFcProductCard[] }
+): Promise<void> {
     await control(key, 'products', products);
 }
 
@@ -99,11 +114,21 @@ export async function setFcProducts(key: string, products: { unknown?: string[];
 export type TFcOrderAction =
     'reserve' | 'wait-stock' | 'start-picking' | 'pick' | 'pack' | 'reopen' | 'cancel' | 'hand-over';
 
+/**
+ * A packed unit: the order line it belongs to, its marking code when the line needs one, and the parcel it lies in (from 1; the
+ * first parcel when left out). Units in two parcels make the order packed in two parcels.
+ */
+export interface IFcPackedUnit {
+    line: number;
+    marking_code?: string;
+    parcel?: number;
+}
+
 export async function fcOrderStep(
     key: string,
     orderId: string,
     action: TFcOrderAction,
-    body?: { units: { line: number; marking_code: string }[] }
+    body?: { units: IFcPackedUnit[] }
 ): Promise<void> {
     await control(key, `orders/${orderId}/${action}`, body);
 }
@@ -112,9 +137,10 @@ export async function fcOrderStep(
 export async function fcHandoverStep(
     key: string,
     handoverId: string,
-    action: 'request-documents' | 'withdraw-request'
+    action: 'request-documents' | 'withdraw-request',
+    body?: { transport_boxes: number }
 ): Promise<void> {
-    await control(key, `handovers/${handoverId}/${action}`);
+    await control(key, `handovers/${handoverId}/${action}`, body);
 }
 
 /** The address (and secret) the fake sends its notifications to; returns the secret, made by the fake when `secret` is left out. */
@@ -141,6 +167,8 @@ export interface IFcOrder {
     external_id: string;
     status: string;
     handover_id: string | null;
+    /** The order's parcels; most orders have one. */
+    parcels: { number: number; label_attached: boolean }[];
 }
 
 /** Every order the fulfilment centre holds for `key`, newest change first (`GET /api/v1/orders`). */

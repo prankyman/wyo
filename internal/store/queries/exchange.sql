@@ -71,7 +71,9 @@ UPDATE fc_events SET applied_at = ? WHERE id = ?;
 DELETE FROM fc_events WHERE received_at < ? AND applied_at IS NOT NULL;
 
 -- name: OrdersToSend :many
--- Only the orders of the marketplaces whose adapters hand orders over (sqlc.slice(marketplaces)) are sent.
+-- Only the orders of the marketplaces whose adapters hand orders over (sqlc.slice(marketplaces)) are sent. The limit is a plain
+-- placeholder: sqlc numbers a named one after the slice's first placeholder (`?2`), which with two marketplaces is the second
+-- marketplace's name, not the limit.
 SELECT o.id, o.account_id, o.number, o.basket, o.item_id, o.created_at, o.ship_by, o.warehouse_number,
        a.deadline_hours, m.fc_marketplace, w.fc_warehouse
 FROM orders o
@@ -83,7 +85,7 @@ WHERE o.scheme = 'fbs' AND o.state = 'new' AND x.order_id IS NULL
   AND a.state IN ('working', 'key_expiring', 'no_connection') AND a.read_only = 0
   AND a.marketplace IN (sqlc.slice(marketplaces))
 ORDER BY o.created_at, o.id
-LIMIT sqlc.arg(batch);
+LIMIT ?;
 
 -- name: GetExchangeOrder :one
 SELECT * FROM exchange_orders WHERE order_id = ?;
@@ -97,15 +99,17 @@ SELECT * FROM exchange_orders WHERE fc_held_id = ? AND fc_held_id <> '' LIMIT 1;
 -- name: SaveExchangeOrder :exec
 INSERT INTO exchange_orders (
     order_id, fc_id, fc_number, fc_held_id, state, held_reasons, attention, problem_code, problem_params, problem_mp_code,
-    problem_words, problem_at, problem_sent, failed_step, supply_id, confirmed_at, label_print, label_sent_at, codes_state,
-    codes_sent_at, next_check_at, cancel_answer, handed_over_at, sent_at, updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    problem_words, problem_at, problem_sent, failed_step, supply_id, confirmed_at, pack_reported_at, pack_tries, pack_next_at,
+    codes_resends, packed_at, ship_by_sent, codes_state, codes_sent_at, next_check_at, cancel_answer, handed_over_at, sent_at,
+    updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT (order_id) DO UPDATE SET fc_id = excluded.fc_id, fc_number = excluded.fc_number,
     fc_held_id = excluded.fc_held_id, state = excluded.state, held_reasons = excluded.held_reasons,
     attention = excluded.attention, problem_code = excluded.problem_code, problem_params = excluded.problem_params,
     problem_mp_code = excluded.problem_mp_code, problem_words = excluded.problem_words, problem_at = excluded.problem_at,
     problem_sent = excluded.problem_sent, failed_step = excluded.failed_step, supply_id = excluded.supply_id,
-    confirmed_at = excluded.confirmed_at, label_print = excluded.label_print, label_sent_at = excluded.label_sent_at,
+    confirmed_at = excluded.confirmed_at, pack_reported_at = excluded.pack_reported_at, pack_tries = excluded.pack_tries,
+    pack_next_at = excluded.pack_next_at, codes_resends = excluded.codes_resends, packed_at = excluded.packed_at, ship_by_sent = excluded.ship_by_sent,
     codes_state = excluded.codes_state, codes_sent_at = excluded.codes_sent_at, next_check_at = excluded.next_check_at,
     cancel_answer = excluded.cancel_answer, handed_over_at = excluded.handed_over_at, updated_at = excluded.updated_at;
 
@@ -126,11 +130,23 @@ WHERE x.state NOT IN ('handed_over', 'cancelled') AND x.cancel_answer = ''
   AND (sqlc.narg(order_state) IS NULL OR o.state = sqlc.narg(order_state))
 ORDER BY x.order_id;
 
+-- name: ListDeadlineChangedExchangeOrders :many
+SELECT x.* FROM exchange_orders x
+JOIN orders o ON o.id = x.order_id
+WHERE x.state NOT IN ('handed_over', 'cancelled') AND x.cancel_answer = '' AND x.fc_id <> ''
+  AND o.ship_by IS NOT NULL AND (x.ship_by_sent IS NULL OR x.ship_by_sent <> o.ship_by)
+ORDER BY x.order_id;
+
 -- name: ListExchangeOrdersByStep :many
 SELECT * FROM exchange_orders WHERE failed_step <> '' ORDER BY order_id;
 
 -- name: ListDueVerdictChecks :many
 SELECT * FROM exchange_orders WHERE codes_state = 'checking' AND next_check_at <= ? ORDER BY next_check_at LIMIT ?;
+
+-- name: ListDuePackChecks :many
+SELECT * FROM exchange_orders
+WHERE pack_next_at <= ? AND state NOT IN ('handed_over', 'cancelled') AND cancel_answer = ''
+ORDER BY pack_next_at, order_id LIMIT ?;
 
 -- name: CountExchangeAttention :many
 SELECT x.attention AS code, count(*) AS orders FROM exchange_orders x
@@ -153,7 +169,7 @@ SELECT * FROM exchange_history WHERE order_id = ? ORDER BY at, id;
 DELETE FROM order_codes WHERE order_id = ?;
 
 -- name: InsertOrderCode :exec
-INSERT INTO order_codes (order_id, unit, identifier, code) VALUES (?, ?, ?, ?);
+INSERT INTO order_codes (order_id, unit, line, identifier, code) VALUES (?, ?, ?, ?, ?);
 
 -- name: ListOrderCodes :many
 SELECT * FROM order_codes WHERE order_id = ? ORDER BY unit;
@@ -224,7 +240,7 @@ INSERT INTO handover_orders (handover_id, order_id) VALUES (?, ?) ON CONFLICT DO
 DELETE FROM handover_orders WHERE handover_id = ?;
 
 -- name: ListHandoverOrders :many
-SELECT o.id, o.account_id, o.number, o.grp, COALESCE(x.supply_id, 0) AS supply_id, COALESCE(x.label_print, '') AS label_print
+SELECT o.id, o.account_id, o.number, o.grp, o.warehouse_number, COALESCE(x.supply_id, 0) AS supply_id
 FROM handover_orders h
 JOIN orders o ON o.id = h.order_id
 LEFT JOIN exchange_orders x ON x.order_id = o.id
@@ -242,3 +258,23 @@ DELETE FROM handover_steps WHERE handover_id = ?;
 
 -- name: DeleteExchangeOrder :exec
 DELETE FROM exchange_orders WHERE order_id = ?;
+
+-- name: SaveParcel :exec
+INSERT INTO exchange_parcels (order_id, number, mp_number, ticket, label_print, label_sent_at, label_asked_at, label_next_at, label_tries)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT (order_id, number) DO UPDATE SET mp_number = excluded.mp_number, ticket = excluded.ticket,
+    label_print = excluded.label_print, label_sent_at = excluded.label_sent_at, label_asked_at = excluded.label_asked_at,
+    label_next_at = excluded.label_next_at, label_tries = excluded.label_tries;
+
+-- name: DeleteParcelsOf :exec
+DELETE FROM exchange_parcels WHERE order_id = ?;
+
+-- name: ListParcelsOf :many
+SELECT * FROM exchange_parcels WHERE order_id IN (sqlc.slice(ids)) ORDER BY order_id, number;
+
+-- name: ListDueLabelChecks :many
+SELECT p.* FROM exchange_parcels p
+JOIN exchange_orders x ON x.order_id = p.order_id
+WHERE p.label_next_at <= ? AND p.label_sent_at IS NULL
+  AND x.state NOT IN ('handed_over', 'cancelled') AND x.cancel_answer = ''
+ORDER BY p.label_next_at, p.order_id, p.number LIMIT ?;

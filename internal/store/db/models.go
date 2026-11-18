@@ -17,31 +17,47 @@ type ExchangeHistory struct {
 }
 
 type ExchangeOrder struct {
-	OrderID       int64
-	FcID          string
-	FcNumber      string
-	FcHeldID      string
-	State         string
-	HeldReasons   string
-	Attention     string
-	ProblemCode   string
-	ProblemParams string
-	ProblemMpCode string
-	ProblemWords  string
-	ProblemAt     sql.NullInt64
-	ProblemSent   int64
-	FailedStep    string
-	SupplyID      sql.NullInt64
-	ConfirmedAt   sql.NullInt64
-	LabelPrint    string
-	LabelSentAt   sql.NullInt64
-	CodesState    string
-	CodesSentAt   sql.NullInt64
-	NextCheckAt   sql.NullInt64
-	CancelAnswer  string
-	HandedOverAt  sql.NullInt64
-	SentAt        int64
-	UpdatedAt     int64
+	OrderID        int64
+	FcID           string
+	FcNumber       string
+	FcHeldID       string
+	State          string
+	HeldReasons    string
+	Attention      string
+	ProblemCode    string
+	ProblemParams  string
+	ProblemMpCode  string
+	ProblemWords   string
+	ProblemAt      sql.NullInt64
+	ProblemSent    int64
+	FailedStep     string
+	SupplyID       sql.NullInt64
+	ConfirmedAt    sql.NullInt64
+	CodesState     string
+	CodesSentAt    sql.NullInt64
+	NextCheckAt    sql.NullInt64
+	CancelAnswer   string
+	HandedOverAt   sql.NullInt64
+	SentAt         int64
+	UpdatedAt      int64
+	PackReportedAt sql.NullInt64
+	PackTries      int64
+	PackNextAt     sql.NullInt64
+	CodesResends   int64
+	PackedAt       sql.NullInt64
+	ShipBySent     sql.NullInt64
+}
+
+type ExchangeParcel struct {
+	OrderID      int64
+	Number       int64
+	MpNumber     string
+	Ticket       string
+	LabelPrint   string
+	LabelSentAt  sql.NullInt64
+	LabelAskedAt sql.NullInt64
+	LabelNextAt  sql.NullInt64
+	LabelTries   int64
 }
 
 type FcConnection struct {
@@ -163,6 +179,8 @@ type MarketplaceWarehouse struct {
 	Name           string
 	UpdatedAt      int64
 	SellerDelivers int64
+	LabelType      string
+	AutoAssembly   int64
 }
 
 type Order struct {
@@ -196,6 +214,7 @@ type OrderCode struct {
 	SentAt     sql.NullInt64
 	Verdict    string
 	Words      string
+	Line       int64
 }
 
 type OrderEvent struct {

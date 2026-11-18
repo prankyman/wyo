@@ -48,6 +48,14 @@ func apiError(w http.ResponseWriter, status int, code string) {
 	writeJSON(w, status, map[string]any{"code": code, "message": message})
 }
 
+// RefusalBody is the body of a refusal in Wildberries' own error shape, {"code", "message"}, for a test that queues a refusal
+// of its own with the kit's fault «refuse with this answer»: the same shape the fake answers its own refusals in.
+func RefusalBody(code, message string) string {
+	raw, _ := json.Marshal(map[string]any{"code": code, "message": message})
+
+	return string(raw)
+}
+
 // apiErrorWithData is apiError with the "data" the closing of a supply adds (the orders whose codes failed).
 func apiErrorWithData(w http.ResponseWriter, status int, code string, data any) {
 	writeJSON(w, status, map[string]any{"code": code, "message": messages[code], "data": data})

@@ -35,7 +35,8 @@
         </p>
         {#if problem.words}
             <p class="break-words" data-test="{testId}-words">
-                {t(`problem.words.${whose}`, lang)}: «{problem.words}»{problem.marketplaceCode
+                {t(`problem.words.${whose}`, lang)}: «{problem.words}»{problem.marketplaceCode &&
+                problem.marketplaceCode !== problem.words
                     ? ` (${t('problem.code', lang, { code: problem.marketplaceCode })})`
                     : ''}
             </p>

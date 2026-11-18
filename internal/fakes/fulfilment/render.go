@@ -95,7 +95,7 @@ func (st *state) renderHandover(h *handover) fcapi.Handover {
 	return fcapi.Handover{
 		Id: h.id, Number: h.number, Warehouse: h.warehouse, Marketplace: h.marketplace,
 		PlannedDate: types.Date{Time: h.plannedDate}, State: h.state, Parcels: parcels, Documents: documents,
-		ExternalId: h.externalID, Problem: problem,
+		ExternalId: h.externalID, Problem: problem, TransportBoxes: h.transportBoxes,
 	}
 }
 

@@ -27,10 +27,33 @@ func words(list []string) []string {
 	return list
 }
 
+// exchangeFlow is how the exchange treats a marketplace's orders: "pack" when the adapter claims the part that reports the
+// packing, "confirm" when it confirms the order at the reservation.
+func exchangeFlow(d marketplace.Description) gen.MarketplaceExchangeFlow {
+	if d.Supports(marketplace.OrdersPack) {
+		return gen.Pack
+	}
+
+	return gen.Confirm
+}
+
+// declaredSteps are the steps of a hand-over the adapter needs, in the order they run.
+func declaredSteps(d marketplace.Description) []gen.HandoverStep {
+	steps := make([]gen.HandoverStep, 0, len(marketplace.HandoverStepsAll))
+
+	for _, step := range marketplace.HandoverStepsAll {
+		if d.NeedsStep(step) {
+			steps = append(steps, gen.HandoverStep(step))
+		}
+	}
+
+	return steps
+}
+
 func marketplaceBody(d marketplace.Description) gen.Marketplace {
 	body := gen.Marketplace{
 		Code: d.Code, Mark: d.Mark, KeyFields: []gen.KeyField{}, Capabilities: []string{}, HandoverSettings: []gen.SettingField{},
-		GivesDeadline: d.GivesDeadline,
+		GivesDeadline: d.GivesDeadline, ExchangeFlow: exchangeFlow(d), HandoverSteps: declaredSteps(d),
 	}
 
 	for _, f := range d.HandoverSettings {

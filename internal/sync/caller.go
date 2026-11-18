@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/prankyman/wyo/internal/clock"
@@ -27,6 +28,9 @@ const (
 	maxErrorBody = 64 * 1024
 	// redirectCode is the journal's error code of a redirect, which the caller refuses.
 	redirectCode = "redirect"
+	// fileLinkPath is how the journal names the path of a request to a file link (a route with NoKey): the link holds a
+	// token, so neither its path nor its query is ever written.
+	fileLinkPath = "{label file}"
 )
 
 // repeatDelays are the waits before the second and the third attempt of a reading that met no answer or a server error;
@@ -247,7 +251,9 @@ func (d *doer) send(req *http.Request, route marketplace.Route, key BudgetKey, l
 	unpacked := marketplace.UnpackKey(fields, secret)
 	secrets := unpacked.Secrets(fields)
 
-	d.target.Adapter.Authorize(out.Header, unpacked)
+	if !route.NoKey {
+		d.target.Adapter.Authorize(out.Header, unpacked)
+	}
 
 	clk := d.caller.opts.Clock
 	started := clk.Now()
@@ -260,14 +266,14 @@ func (d *doer) send(req *http.Request, route marketplace.Route, key BudgetKey, l
 	elapsed := clk.Now().Sub(started)
 
 	entry := journal.Entry{
-		AccountID: d.target.AccountID, Marketplace: d.target.Adapter.Describe().Code, Method: req.Method, Path: route.Template,
+		AccountID: d.target.AccountID, Marketplace: d.target.Adapter.Describe().Code, Method: req.Method, Path: journalPath(route),
 		Duration: elapsed, Job: d.target.Job,
 	}
 
 	if err != nil {
 		cancel()
 
-		entry.Outcome, entry.ErrorText = journal.NoConnection, err.Error()
+		entry.Outcome, entry.ErrorText = journal.NoConnection, failureText(err, route)
 		d.caller.opts.Journal.Record(req.Context(), entry, secrets...)
 
 		if ctxErr := req.Context().Err(); ctxErr != nil {
@@ -289,6 +295,28 @@ func (d *doer) send(req *http.Request, route marketplace.Route, key BudgetKey, l
 	}
 
 	return a, nil
+}
+
+// journalPath is the path the journal names for a route: the route's template, or, for a request to a file link, only
+// that it was one.
+func journalPath(route marketplace.Route) string {
+	if route.NoKey {
+		return fileLinkPath
+	}
+
+	return route.Template
+}
+
+// failureText is what the journal keeps of a request that got no answer. The client's error repeats the address it was
+// asked for, and the address of a file link holds a token, so for such a route only the cause is kept.
+func failureText(err error, route marketplace.Route) string {
+	var addressed *url.Error
+
+	if route.NoKey && errors.As(err, &addressed) {
+		return addressed.Err.Error()
+	}
+
+	return err.Error()
 }
 
 // read classifies an answer. A success keeps its body for the adapter (the call's deadline ends when the adapter closes

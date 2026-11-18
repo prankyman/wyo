@@ -1,4 +1,4 @@
-import type { TOrderExchangeDetails, TProblem } from '$lib/components/exchange/types';
+import type { TOrderExchangeDetails, TOrderParcel, TProblem } from '$lib/components/exchange/types';
 import type {
     TEventsSetting,
     TExternalApi,
@@ -49,14 +49,16 @@ export function warehouseMatchesOf(overrides: Partial<TWarehouseMatches> = {}): 
                 marketplace: MARKETPLACE_CODE,
                 warehouseNumber: '1001',
                 warehouseName: 'Склад на Ленина',
-                fcWarehouse: 'MSK-1'
+                fcWarehouse: 'MSK-1',
+                autoAssembly: false
             },
             {
                 accountId: 7,
                 accountName: 'Магазин одежды',
                 marketplace: MARKETPLACE_CODE,
                 warehouseNumber: '1002',
-                warehouseName: 'Склад на Мира'
+                warehouseName: 'Склад на Мира',
+                autoAssembly: false
             }
         ],
         ...overrides
@@ -121,8 +123,14 @@ export function exchangeDetailsOf(overrides: Partial<TOrderExchangeDetails> = {}
             { at: '2026-11-18T12:30:00', state: 'reserved', code: 'reserved' }
         ],
         retryable: false,
+        parcels: [],
         ...overrides
     };
+}
+
+/** One parcel of an order: the marketplace's own number of it, and whether its label was attached at the fulfilment centre. */
+export function parcelOf(overrides: Partial<TOrderParcel> = {}): TOrderParcel {
+    return { number: 1, marketplaceNumber: '4455667788-1', labelSent: false, ...overrides };
 }
 
 /** A hand-over of the day that waits at its third step. */

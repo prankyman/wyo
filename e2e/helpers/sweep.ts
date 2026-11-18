@@ -44,6 +44,15 @@ async function sidewaysFindings(page: Page, widths: readonly number[]): Promise<
     return findings;
 }
 
+/**
+ * The page as it is now, with whatever the test opened on it (a panel beside a list, a note), never wider than its screen at the
+ * phone's width and at every width it is widened to. `what` names the state when a test checks several.
+ */
+export async function expectNoSidewaysScrollAtEveryWidth(page: Page, what: string): Promise<void> {
+    const findings = await sidewaysFindings(page, [PHONE.width, ...WIDER_WIDTHS]);
+    expect(findings, `${what} slides sideways:\n${findings.join('\n')}`).toEqual([]);
+}
+
 export interface ISweepOptions {
     /**
      * Runs once the page is drawn, at the phone's size, before anything is measured: for a page that keeps parts folded (the sections

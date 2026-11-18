@@ -442,7 +442,9 @@ func (e *Engine) takeWarehouses(ctx context.Context, a account) error {
 
 	rows := make([]store.Warehouse, 0, len(list))
 	for _, w := range list {
-		rows = append(rows, store.Warehouse{Number: w.Number, Name: w.Name, SellerDelivers: w.SellerDelivers})
+		rows = append(rows, store.Warehouse{
+			Number: w.Number, Name: w.Name, SellerDelivers: w.SellerDelivers, LabelType: w.LabelType, AutoAssembly: w.AutoAssembly,
+		})
 	}
 
 	return e.opts.Store.Do(ctx, func(q *store.Queries) error { return q.ReplaceWarehouses(ctx, a.row.ID, rows, e.opts.Clock.Now()) })

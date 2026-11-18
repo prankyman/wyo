@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/prankyman/wyo/internal/buildinfo"
+	"github.com/prankyman/wyo/internal/marketplace"
 )
 
 // Purpose says what a call is for; every purpose has its own list of addresses.
@@ -134,8 +135,10 @@ type Options struct {
 	LocalOrigin        string
 	// MarketplaceURL is a fake marketplace's address; the marketplaces' adapters put each host's name after it.
 	MarketplaceURL string
-	// MarketplaceHosts are the hosts of the registered marketplace adapters, each called over https. A test build lists
-	// none of them (rule R3).
+	// MarketplaceHosts are the hosts of the registered marketplace adapters, each called over https. A host written
+	// *.domain (at least two labels after the star) lists every host under that domain, on the standard port, and nothing
+	// else: not the bare domain, not another domain that merely ends with the same letters. A test build lists none of them
+	// (rule R3).
 	MarketplaceHosts []string
 	// Observe is told every address a client of the gate is asked to call, before the check, with its purpose; only a
 	// test build takes it (the tests of rule R3 record where the wyo server reaches).
@@ -204,9 +207,9 @@ func New(opts Options) (*Gate, error) {
 	}
 
 	for _, host := range opts.MarketplaceHosts {
-		origin, err := originOfAddress("https://" + host)
-		if err != nil || strings.ContainsAny(host, "/:@?#") {
-			return nil, fmt.Errorf("the marketplace host %q is not a host name", host)
+		origin, err := originOfHost(host)
+		if err != nil {
+			return nil, err
 		}
 
 		gate.origins[PurposeMarketplace] = append(gate.origins[PurposeMarketplace], origin)
@@ -229,6 +232,29 @@ func New(opts Options) (*Gate, error) {
 	}
 
 	return gate, nil
+}
+
+// wildcardOriginPrefix begins the origin kept for a host that an adapter lists as *.domain.
+const wildcardOriginPrefix = "https://*."
+
+// originOfHost is the origin an adapter's host is listed as: https://<host>, or https://*.<domain> for a host written
+// *.domain, which names every host under that domain (marketplace.HostMatches).
+func originOfHost(host string) (string, error) {
+	if strings.Contains(host, "*") {
+		domain, ok := marketplace.WildcardDomain(host)
+		if !ok || strings.ContainsAny(domain, "/:@?#") {
+			return "", fmt.Errorf("the marketplace host %q is not a host name or a *.domain of at least two labels", host)
+		}
+
+		return wildcardOriginPrefix + domain, nil
+	}
+
+	origin, err := originOfAddress("https://" + host)
+	if err != nil || strings.ContainsAny(host, "/:@?#") {
+		return "", fmt.Errorf("the marketplace host %q is not a host name", host)
+	}
+
+	return origin, nil
 }
 
 // SetFulfilment lists the fulfilment centre's address (scheme, host and port) as the only one of its purpose, or lists
@@ -289,12 +315,23 @@ func (g *Gate) Check(purpose Purpose, u *url.URL) error {
 
 	got := originOf(u)
 	for _, origin := range origins {
-		if got == origin {
+		if got == origin || underWildcard(origin, u) {
 			return nil
 		}
 	}
 
 	return fmt.Errorf("%w: %s (purpose %q)", ErrRefused, got, purpose)
+}
+
+// underWildcard says whether an address is on a host under the domain of a listed *.domain origin, over https on the
+// standard port.
+func underWildcard(origin string, u *url.URL) bool {
+	domain, wildcard := strings.CutPrefix(origin, wildcardOriginPrefix)
+	if !wildcard || !strings.EqualFold(u.Scheme, "https") || (u.Port() != "" && u.Port() != "443") {
+		return false
+	}
+
+	return marketplace.HostMatches("*."+domain, u.Hostname())
 }
 
 // record tells Observe the address a client is asked to call.

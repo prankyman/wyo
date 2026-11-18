@@ -1,6 +1,7 @@
 package ozon
 
 import (
+	"errors"
 	"net/http"
 	"slices"
 	"strings"
@@ -20,6 +21,25 @@ const (
 	codeOfferNotSigned     = "offer_not_signed"
 	codeAccessLevelMissing = "access_level_missing"
 	codeRequestRefused     = "request_refused"
+
+	// The refusals of the writing half. The first is Ozon's refusal of a call because the key lacks the level «Posting FBS»;
+	// the others are the adapter's own, made when what Ozon answered is not what the exchange can go on with (the texts are
+	// problem.marketplace_refused of messages/ru.json with Ozon's own words beside, where Ozon gave words).
+	codeWriteLevelMissing = "write_level_missing"
+	codeIdentifierRefused = "identifier_unsupported"
+	codeNotANumber        = "not_a_number"
+	codeCodesCount        = "codes_count_mismatch"
+	codeLabelTaskMissing  = "label_task_missing"
+	codeTicketUnreadable  = "label_ticket_unreadable"
+	codeFileLinkRefused   = "file_link_refused"
+	codeFileUnavailable   = "file_unavailable"
+	codeFileTooLarge      = "file_too_large"
+	codeFileNotAFile      = "file_not_a_label_or_document"
+	codePostingRefused    = "posting_refused"
+	codeBatchDiffers      = "batch_differs"
+	codeBatchCancelled    = "batch_cancelled"
+	codeBatchApproved     = "batch_approved"
+	codePostingsRemoved   = "postings_removed_from_act"
 )
 
 // The form fields a refusal of a key lies on (api/wyo.yaml, createAccount: `key.<field>`).
@@ -78,6 +98,8 @@ func refusalOf(status int, body []byte, category string) error {
 	}
 
 	switch {
+	case code == codeAccessLevelMissing && category == categoryPostingFBSWrite:
+		return &marketplace.Refusal{Code: codeWriteLevelMissing, Field: fieldPathAPIKey, Status: status, Params: map[string]any{"level": levels[category]}}
 	case code == codeAccessLevelMissing:
 		return &marketplace.Refusal{Code: code, Field: fieldPathAPIKey, Status: status, Params: map[string]any{"level": levels[category]}}
 	case code != "":
@@ -96,4 +118,59 @@ func keyRefusal(code string, status int) *marketplace.Refusal {
 	return &marketplace.Refusal{
 		Code: code, Field: fieldPathAPIKey, Status: status, State: marketplace.AccountKeyRefused, StopsJobs: true,
 	}
+}
+
+// writeRefusal is refusalOf for a call of the writing half, and the one place that turns Ozon's answer of such a call into a
+// refusal. A refusal of the key stays as refusalOf makes it. For any other answer the refusal carries Ozon's own error word
+// («HAS_INCORRECT_PRODUCT_QUANTITY», «POSTING_NOT_FOUND», ...) as its code when the message is one, and Ozon's words, cut to
+// 300 characters and otherwise as received, in Params["text"]; an answer whose message is not a single word keeps the code
+// request_refused with the status. Ozon's «details» are never kept: they may name the buyer's data.
+func writeRefusal(status int, body []byte) error {
+	err := refusalOf(status, body, categoryPostingFBSWrite)
+
+	var refusal *marketplace.Refusal
+	if !errors.As(err, &refusal) || refusal.Code != codeRequestRefused {
+		return err
+	}
+
+	if word := ozonErrorWord(refusal.Params["text"]); word != "" {
+		refusal.Code = word
+	}
+
+	return refusal
+}
+
+// ozonErrorWord is the message of an answer when it is one of Ozon's error words (capital letters, digits and underscores:
+// OZC §7 lists «POSTING_NOT_FOUND», «POSTING_ALREADY_SHIPPED», ...), and "" otherwise.
+func ozonErrorWord(text any) string {
+	words, _ := text.(string)
+	words = strings.TrimSpace(words)
+
+	if words == "" || strings.IndexFunc(words, func(r rune) bool { return (r < 'A' || r > 'Z') && (r < '0' || r > '9') && r != '_' }) >= 0 {
+		return ""
+	}
+
+	return words
+}
+
+// mentions says whether Ozon's answer holds the word, in any case: Ozon's error words are read from the message, because
+// the status that goes with each is not sourced.
+func mentions(status int, body []byte, word string) bool {
+	_, message := (&Adapter{}).ErrorOf(status, body)
+
+	return strings.Contains(strings.ToUpper(message), strings.ToUpper(word))
+}
+
+// ownRefusal is a refusal of the adapter itself, with the words it has for it (Ozon's, as received, or none) and its other
+// parameters.
+func ownRefusal(code, words string, params map[string]any) *marketplace.Refusal {
+	if params == nil {
+		params = map[string]any{}
+	}
+
+	if words != "" {
+		params["text"] = adapterkit.Cut(words)
+	}
+
+	return &marketplace.Refusal{Code: code, Params: params}
 }

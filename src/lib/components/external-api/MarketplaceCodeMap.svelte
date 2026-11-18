@@ -4,6 +4,7 @@
     import SelectBox from '$lib/components/ui/SelectBox.svelte';
     import Stack from '$lib/components/ui/Stack.svelte';
     import { t } from '$lib/i18n/i18n';
+    import { accountTextKey } from '$lib/marketplaces/refusals';
     import type { TLocale } from '$lib/i18n/types';
     import type { TFcMarketplace, TMarketplaceMatch } from './types';
 
@@ -12,7 +13,7 @@
      * centre has its own name for each marketplace it takes orders of, and wyo cannot guess it. When one of the fulfilment centre's
      * codes equals the adapter's, wyo proposes it and the proposed code is the one chosen for a row that has none saved yet. An
      * account with no code sends no order. An account whose key may only read cannot take an order into assembly, so its row warns
-     * with the remedy. An account whose marketplace cannot exchange with a fulfilment centre yet (`unsupported`) says so in a note
+     * with the remedy; a marketplace that has words of its own for it (`marketplace.<code>.note.readOnly`) names the level of access to add. An account whose marketplace cannot exchange with a fulfilment centre yet (`unsupported`) says so in a note
      * instead of its box: there is nothing to match for it. The chosen codes are the parent form's (`selected`, one for each row,
      * in the rows' order; a choice is told to `onSelect`); a refusal is laid on its row (`errors`, already worded).
      */
@@ -34,6 +35,9 @@
     let { lang, rows, fcMarketplaces, selected, onSelect, errors = [], unsupported = [], idPrefix }: IProps = $props();
 
     const options = $derived(fcMarketplaces.map((one) => ({ value: one.code, label: one.name })));
+    /** The marketplace's own words for a key that may only read, which name the level of access to add, else the shared remedy. */
+    const readOnlyKey = (marketplace: string) =>
+        accountTextKey('note', 'readOnly', marketplace, lang) ?? 'externalApi.marketplaces.readOnly';
     const nameOf = (code: string) => fcMarketplaces.find((one) => one.code === code)?.name ?? code;
 </script>
 
@@ -77,7 +81,7 @@
                     {/if}
                     {#if row.readOnly}
                         <NoteBox tone="warning" dataTest="{idPrefix}-{index}-read-only">
-                            {t('externalApi.marketplaces.readOnly', lang, { account: row.accountName })}
+                            {t(readOnlyKey(row.marketplace), lang, { account: row.accountName })}
                         </NoteBox>
                     {/if}
                 </Stack>

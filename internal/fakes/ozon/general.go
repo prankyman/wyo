@@ -63,6 +63,7 @@ func (c *call) warehouses() {
 	for i, w := range page {
 		out[i] = ozonapi.WarehouseListV2ResponseWarehouse{
 			WarehouseId: new(w.ID), Name: new(w.Name), Status: new(warehouseStatus), IsRfbs: new(w.IsRfbs),
+			CarriageLabelType: new(ozonapi.WarehouseCarriageLabelTypeEnum(w.labelType())), IsAutoAssembly: new(w.AutoAssembly),
 		}
 	}
 

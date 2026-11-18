@@ -7,6 +7,7 @@ import {
     waitForExchange
 } from '../helpers/external-api.js';
 import { openScreen } from '../helpers/open-screen.js';
+import { orderRowOf as rowOf } from '../helpers/order-rows.js';
 import { openSection } from '../helpers/sections.js';
 import { fcOrderStep, fcOrders, flushFc, MARKING_CODE, setFcProducts } from '../support/fake-fulfilment.js';
 import { makeFakeOrder, setFakeVerdict } from '../support/fake-wildberries.js';
@@ -22,12 +23,6 @@ import { ruText } from '../support/texts.js';
  * walks orders, so each runs on a wyo server of its own.
  */
 test.use({ serverKind: 'own' });
-
-/** The row of the order whose marketplace number is `number` in «Заказы». */
-const rowOf = (page: Page, number: string) =>
-    page
-        .getByTestId('orders-list-row')
-        .filter({ has: page.getByTestId('orders-list-link').getByText(number, { exact: true }) });
 
 /** The exchange state the list shows for the order, in the list's words. */
 async function expectListedState(page: Page, number: string, state: string): Promise<void> {

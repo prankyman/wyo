@@ -47,6 +47,18 @@ describe('WarehouseMatchTable', () => {
         expect(screen.queryByTestId('warehouses-1-unmatched')).toBeNull();
     });
 
+    it('warns in the row of a warehouse with automatic assembly, and in no other row, while still letting the owner match it', () => {
+        draw({
+            rows: warehouseMatchesOf().rows.map((row, index) => ({ ...row, autoAssembly: index === 1 }))
+        });
+
+        expect(screen.queryByTestId('warehouses-0-auto-assembly')).toBeNull();
+        expect(screen.getByTestId('warehouses-1-auto-assembly')).toHaveTextContent(
+            'На этом складе включена автоматическая сборка'
+        );
+        expect(screen.getByTestId('warehouses-1-box')).toBeEnabled();
+    });
+
     it('says the fulfilment centre gave no warehouses when its list is empty', () => {
         draw({ fcWarehouses: [] });
 

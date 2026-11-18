@@ -121,7 +121,7 @@ func TestAMarketplaceTokenAndAFulfilmentCentreKeyReachOnlyTheirOwnSideThroughThe
 
 	// A walk with a refusal at every side, a lost call, a notification and a refused setting.
 	number, x := r.send(t, map[string]any{"required_meta": []string{"sgtin"}})
-	r.refuse(http.MethodPatch, `/supplies/[^/]+/orders$`, http.StatusConflict, "FailedToAddSupplyOrder", "Не удалось закрепить сборочное задание")
+	r.refuse(t, http.MethodPatch, "/orders", http.StatusConflict, "FailedToAddSupplyOrder", "Не удалось закрепить сборочное задание")
 	r.reserve(t, number)
 
 	if err := r.svc.Retry(t.Context(), x.OrderID); err != nil {

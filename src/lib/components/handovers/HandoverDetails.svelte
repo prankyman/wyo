@@ -16,8 +16,9 @@
     import type { THandoverDetails } from './types';
 
     /**
-     * One hand-over beside the list on «Передачи» (`GET /api/v1/handovers/{id}`): its state, the strip of its six steps with
-     * «Сейчас: …», its facts (the fulfilment centre's number, the day, the marketplace's numbers of the batches, the orders, the
+     * One hand-over beside the list on «Передачи» (`GET /api/v1/handovers/{id}`): its state, the strip of its steps — the ones
+     * its marketplace's adapter declares, six or four — with «Сейчас: …», a note for a marketplace with no step of boxes (the
+     * transport boxes the fulfilment centre named are not sent to it, and a request withdrawn after the approval undoes nothing), its facts (the fulfilment centre's number, the day, the marketplace's numbers of the batches, the orders, the
      * boxes), the problem in wyo's words and the other party's, the choice of the shipping point when the owner must make it,
      * «Повторить» when the wyo server says the failed step may be repeated, and a note that nothing can be undone once the batch
      * is closed. The page is told (`onChanged`) after a repeat or a saved point, to read the hand-over again.
@@ -31,6 +32,8 @@
     let { lang, details, onChanged }: IProps = $props();
 
     const handover = $derived(details.handover);
+    // The steps are the ones the marketplace's adapter declares: a marketplace with no step of boxes is not told of them.
+    const hasBoxesStep = $derived(details.steps.some((one) => one.step === 'boxes'));
     const retry = new ApiAction();
 
     async function press(): Promise<void> {
@@ -67,6 +70,9 @@
         <HandoverStateBadge {lang} state={handover.state} size="md" testId="handover-state" />
     </div>
     <HandoverSteps {lang} steps={details.steps} dataTest="handover-steps" />
+    {#if !hasBoxesStep}
+        <NoteBox tone="info" dataTest="handover-note">{t('handovers.note.noBoxes', lang)}</NoteBox>
+    {/if}
     {#if handover.problem}
         <ProblemLine {lang} problem={handover.problem} testId="handover-problem" />
     {/if}

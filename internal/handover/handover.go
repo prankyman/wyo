@@ -32,16 +32,34 @@ const (
 
 // The steps, in order (api/wyo.yaml, HandoverStep).
 const (
-	StepBatch     = "batch"
-	StepMove      = "move"
-	StepBoxes     = "boxes"
-	StepShipping  = "shipping"
-	StepClose     = "close"
-	StepDocuments = "documents"
+	StepBatch     = marketplace.StepBatch
+	StepMove      = marketplace.StepMove
+	StepBoxes     = marketplace.StepBoxes
+	StepShipping  = marketplace.StepShipping
+	StepClose     = marketplace.StepClose
+	StepDocuments = marketplace.StepDocuments
 )
 
-// Steps are the steps in their order.
-var Steps = []string{StepBatch, StepMove, StepBoxes, StepShipping, StepClose, StepDocuments}
+// Steps are the steps in their order; an adapter declares which of them it needs (Description.HandoverSteps).
+var Steps = marketplace.HandoverStepsAll
+
+// How often a hand-over that waits for its marketplace is tried again: a batch the marketplace cannot make yet every 5
+// minutes; documents it has not made yet every 20 seconds (the beat of the exchange's job that calls RunDue) during the first
+// 10 minutes after the request, then every 5 minutes.
+const (
+	retryBatchEvery    = 5 * time.Minute
+	retryDocumentsFast = 20 * time.Second
+	retryDocumentsFor  = 10 * time.Minute
+)
+
+// retryAfter is how long a hand-over's wait lasts before it is tried again, by the hand-over's problem and age.
+func retryAfter(h store.Handover, now time.Time) time.Duration {
+	if h.Problem.Code == problemDocumentsWait && now.Sub(h.RequestedAt) < retryDocumentsFor {
+		return retryDocumentsFast
+	}
+
+	return retryBatchEvery
+}
 
 // The problems of a hand-over (the interface's `problem.<code>`).
 const (
@@ -52,10 +70,11 @@ const (
 	problemPointGone     = "shipping_point_gone"
 	problemNoOrders      = "no_orders"
 	problemSettings      = "settings_missing"
+	problemBatchWaits    = "batch_waits"
+	problemDocumentsWait = "documents_wait"
 	roleHandover         = "handover"
 	job                  = "exchange.handover"
 	dayLayout            = "2006-01-02"
-	supplyNameDateLayout = "02.01.2006"
 )
 
 var (
@@ -140,24 +159,43 @@ func (r *Runner) Request(ctx context.Context, fc *fulfilment.Client, h fulfilmen
 	return r.Run(ctx, fc, id)
 }
 
-// RunWorking goes on with every hand-over whose steps were interrupted.
+// RunWorking goes on with every hand-over whose steps were interrupted, and with the ones that wait for their marketplace
+// and whose time to be tried again has come.
 func (r *Runner) RunWorking(ctx context.Context, fc *fulfilment.Client) error {
+	return r.runList(ctx, fc, r.opts.Clock.Now(), true)
+}
+
+// RunWaiting tries again the hand-overs that wait for their marketplace and whose time has come by a moment at.
+func (r *Runner) RunWaiting(ctx context.Context, fc *fulfilment.Client, at time.Time) error {
+	return r.runList(ctx, fc, at, false)
+}
+
+// runList goes through the hand-overs that are not finished; working says the ones whose steps were interrupted are run too.
+func (r *Runner) runList(ctx context.Context, fc *fulfilment.Client, now time.Time, working bool) error {
 	list, err := r.opts.Store.Read().WorkingHandovers(ctx)
 	if err != nil {
 		return err
 	}
 
 	for _, h := range list {
-		if h.State != StateWorking {
-			continue
-		}
-
-		if err := r.Run(ctx, fc, h.ID); err != nil {
-			return err
+		switch {
+		case working && h.State == StateWorking:
+			if err := r.Run(ctx, fc, h.ID); err != nil {
+				return err
+			}
+		case h.State == StateWaiting && waitsForMarketplace(h.Problem.Code) && now.Sub(h.UpdatedAt) >= retryAfter(h, now):
+			if err := r.Retry(ctx, fc, h.ID); err != nil {
+				return err
+			}
 		}
 	}
 
 	return nil
+}
+
+// waitsForMarketplace says whether a hand-over's wait is a marketplace's: it is tried again by itself.
+func waitsForMarketplace(code string) bool {
+	return code == problemBatchWaits || code == problemDocumentsWait
 }
 
 // group is the orders of a hand-over of one account and one group.
@@ -166,6 +204,9 @@ type group struct {
 	name    string
 	orders  []store.HandoverOrder
 }
+
+// warehouse is the marketplace's number of the warehouse of a group's orders (the first order's).
+func (g group) warehouse() string { return g.orders[0].Warehouse }
 
 // groups splits a hand-over's orders by account and group, in their order.
 func groups(orders []store.HandoverOrder) []group {
@@ -254,7 +295,9 @@ func (r *Runner) stop(ctx context.Context, fc *fulfilment.Client, h *store.Hando
 	p.At = h.UpdatedAt
 	h.Problem = p
 
-	if fc != nil {
+	// A wait for the marketplace (it has not made a batch or documents yet) is tried again by itself within minutes: it is not
+	// reported to the fulfilment centre as a problem.
+	if fc != nil && !waitsForMarketplace(p.Code) {
 		message := strings.TrimSpace(p.Words)
 		if message == "" {
 			message = p.MpCode
@@ -301,16 +344,31 @@ func (rn *run) refused(name string, err error) error {
 	text, _ := refusal.Params["text"].(string)
 	rn.h.Step = name
 
+	// What else the refusal names (the postings a marketplace took out of the act or put into the shipment) goes on the problem
+	// beside the step, so that the problem says which they are. The words and the HTTP status are kept in their own fields.
+	params := map[string]any{"step": name}
+
+	for k, v := range refusal.Params {
+		if k != "text" && k != "step" && k != "status" {
+			params[k] = v
+		}
+	}
+
 	return rn.r.stop(rn.ctx, rn.fc, &rn.h, StateProblem, store.Problem{
-		Code: problemMarketplace, Params: map[string]any{"step": name}, MpCode: refusal.Code, Words: text,
+		Code: problemMarketplace, Params: params, MpCode: refusal.Code, Words: text,
 	})
 }
 
 // waits stops the hand-over until the owner acts.
 func (rn *run) waits(name, code string) error {
+	return rn.waitsWords(name, code, "")
+}
+
+// waitsWords stops the hand-over with the marketplace's own words about what it waits for.
+func (rn *run) waitsWords(name, code, words string) error {
 	rn.h.Step = name
 
-	return rn.r.stop(rn.ctx, rn.fc, &rn.h, StateWaiting, store.Problem{Code: code})
+	return rn.r.stop(rn.ctx, rn.fc, &rn.h, StateWaiting, store.Problem{Code: code, Words: words})
 }
 
 // day is the hand-over's day.

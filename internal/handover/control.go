@@ -59,41 +59,45 @@ func (r *Runner) empty(ctx context.Context, sup store.Supply, orders []store.Han
 		return err
 	}
 
-	state, err := p.confirm.Batch(ctx, p.conn, sup.Number)
-	if err != nil {
-		return err
-	}
-
-	for _, o := range orders {
-		if o.AccountID != sup.AccountID || o.Group != sup.Group || !slices.Contains(state.Orders, o.Number) {
-			continue
-		}
-
-		back, err := r.opts.Store.Read().OpenAssemblySupply(ctx, o.AccountID, o.Group)
+	if p.confirm != nil {
+		state, err := p.reader.Batch(ctx, p.conn, sup.Number)
 		if err != nil {
 			return err
 		}
 
-		if err := p.confirm.PutInBatch(ctx, p.conn, back.Number, []string{o.Number}); err != nil {
-			return err
-		}
+		for _, o := range orders {
+			if o.AccountID != sup.AccountID || o.Group != sup.Group || !slices.Contains(state.Orders, o.Number) {
+				continue
+			}
 
-		if err := r.opts.Store.Do(ctx, func(q *store.Queries) error {
-			x, err := q.ExchangeOrder(ctx, o.OrderID)
+			back, err := r.opts.Store.Read().OpenAssemblySupply(ctx, o.AccountID, o.Group)
 			if err != nil {
 				return err
 			}
 
-			x.SupplyID = back.ID
+			if err := p.confirm.PutInBatch(ctx, p.conn, back.Number, []string{o.Number}); err != nil {
+				return err
+			}
 
-			return q.SaveExchangeOrder(ctx, x)
-		}); err != nil {
-			return err
+			if err := r.opts.Store.Do(ctx, func(q *store.Queries) error {
+				x, err := q.ExchangeOrder(ctx, o.OrderID)
+				if err != nil {
+					return err
+				}
+
+				x.SupplyID = back.ID
+
+				return q.SaveExchangeOrder(ctx, x)
+			}); err != nil {
+				return err
+			}
 		}
 	}
 
-	if err := p.group.DeleteBatch(ctx, p.conn, sup.Number); err != nil {
-		return err
+	if p.deleter != nil {
+		if err := p.deleter.DeleteBatch(ctx, p.conn, sup.Number); err != nil {
+			return err
+		}
 	}
 
 	return r.opts.Store.Do(ctx, func(q *store.Queries) error { return q.SetSupplyDeleted(ctx, sup.ID) })
@@ -165,7 +169,11 @@ func (r *Runner) Points(ctx context.Context, id int64) ([]marketplace.ShippingPo
 		return nil, "", err
 	}
 
-	points, err := p.group.ShippingPoints(ctx, p.conn, sup.Number, settings.Settings, rn.day())
+	if p.shipping == nil {
+		return nil, settings.Point, nil
+	}
+
+	points, err := p.shipping.ShippingPoints(ctx, p.conn, sup.Number, settings.Settings, rn.day())
 	if err != nil {
 		return nil, "", err
 	}

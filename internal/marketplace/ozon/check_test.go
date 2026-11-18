@@ -3,6 +3,7 @@ package ozon_test
 import (
 	"errors"
 	"reflect"
+	"slices"
 	"testing"
 	"time"
 
@@ -89,18 +90,36 @@ func TestTheKeyCheckReadsTheEndTheSellerAndWhatTheKeyMayCall(t *testing.T) {
 
 	r := newRig(t)
 	fbsOnly := []string{"/v4/posting/fbs/unfulfilled/list", "/v3/posting/fbs/get", "/v2/warehouse/list"}
+	// The methods of the writing half (the marking codes, the packing report, the labels, the shipment), one by one.
+	writing := []string{
+		"/v6/fbs/posting/product/exemplar/create-or-get", "/v6/fbs/posting/product/exemplar/set", "/v5/fbs/posting/product/exemplar/status",
+		"/v4/posting/fbs/ship", "/v3/posting/fbs/package-label/create", "/v2/posting/fbs/package-label/get",
+		"/v2/carriage/delivery/list", "/v1/carriage/create", "/v1/carriage/set-postings", "/v1/carriage/approve", "/v1/carriage/get",
+		"/v1/carriage/cancel", "/v2/posting/fbs/act/check-status", "/v2/posting/fbs/act/get-postings", "/v2/posting/fbs/act/get-pdf",
+		"/v2/posting/fbs/act/get-barcode", "/v2/posting/fbs/act/get-barcode/text",
+	}
 
 	cases := []struct {
-		name        string
-		change      func(setup)
-		wantMissing []string
-		wantSeller  string
-		wantCode    string
-		wantLevel   string
+		name         string
+		change       func(setup)
+		wantMissing  []string
+		wantReadOnly bool
+		wantSeller   string
+		wantCode     string
+		wantLevel    string
 	}{
 		{name: "the role Admin", change: func(setup) {}, wantSeller: "Тестовый продавец"},
-		{name: "only the FBS postings and the warehouses", change: rolesOf(fbsOnly...), wantMissing: []string{"posting_fbo", "product", "seller_info"}},
-		{name: "beginnings of paths", change: rolesOf("/v4/posting", "/v3/posting", "/v2/warehouse", "/v3/product", "/v1/seller"), wantMissing: []string{}, wantSeller: "Тестовый продавец"},
+		// A key that may read the orders but none of the writing half is accepted, is shown as one that only reads, and the level
+		// to add is named: «Posting FBS».
+		{name: "only the FBS postings and the warehouses", change: rolesOf(fbsOnly...), wantMissing: []string{"posting_fbo", "product", "seller_info", "posting_fbs_write"}, wantReadOnly: true},
+		{name: "one method of the writing half short", change: rolesOf(append(slices.Clone(fbsOnly), writing[1:]...)...), wantMissing: []string{"posting_fbo", "product", "seller_info", "posting_fbs_write"}, wantReadOnly: true},
+		{name: "every method of the writing half", change: rolesOf(append(slices.Clone(fbsOnly), writing...)...), wantMissing: []string{"posting_fbo", "product", "seller_info"}},
+		{
+			name: "beginnings of paths",
+			change: rolesOf("/v4/posting", "/v3/posting", "/v2/posting", "/v2/warehouse", "/v3/product", "/v1/seller", "/v6/fbs/posting", "/v5/fbs/posting",
+				"/v2/carriage", "/v1/carriage"),
+			wantMissing: []string{}, wantSeller: "Тестовый продавец",
+		},
 		{name: "no FBS postings", change: rolesOf("/v2/warehouse/list", "/v3/posting/fbo/list"), wantCode: "access_level_missing", wantLevel: "Posting FBS read-only"},
 		{name: "no warehouses", change: rolesOf("/v4/posting/fbs/unfulfilled/list", "/v3/posting/fbs/get"), wantCode: "access_level_missing", wantLevel: "Warehouse"},
 		{name: "a deactivated key", change: func(s setup) { s["key_state"] = "deactivated" }, wantCode: "key_deactivated"},
@@ -127,8 +146,9 @@ func TestTheKeyCheckReadsTheEndTheSellerAndWhatTheKeyMayCall(t *testing.T) {
 			}
 
 			if err != nil || checked.ProfileID != key["client_id"] || checked.SellerName != tc.wantSeller ||
-				!checked.ExpiresAt.Equal(synckit.Noon().Add(60*24*time.Hour)) || len(checked.MissingCategories) != len(tc.wantMissing) {
-				t.Fatalf("CheckKey = %+v, %v; want the seller %q, the end in 60 days, missing %v", checked, err, tc.wantSeller, tc.wantMissing)
+				!checked.ExpiresAt.Equal(synckit.Noon().Add(60*24*time.Hour)) || len(checked.MissingCategories) != len(tc.wantMissing) ||
+				checked.ReadOnly != tc.wantReadOnly {
+				t.Fatalf("CheckKey = %+v, %v; want the seller %q, the end in 60 days, missing %v, read only %v", checked, err, tc.wantSeller, tc.wantMissing, tc.wantReadOnly)
 			}
 
 			for i, m := range tc.wantMissing {
@@ -147,9 +167,34 @@ func TestTheWarehousesAreReadWithTheOnesTheSellerDeliversFrom(t *testing.T) {
 	key := r.key(t)
 
 	list, err := r.adapter.Warehouses(t.Context(), r.conn(t, key))
-	want := []marketplace.Warehouse{{Number: "1001", Name: "Склад FBS"}, {Number: "1002", Name: "Склад rFBS", SellerDelivers: true}}
+	// Ozon names a label type for every warehouse; the fake's default is «UNSPECIFIED», and none has automatic assembly.
+	want := []marketplace.Warehouse{
+		{Number: "1001", Name: "Склад FBS", LabelType: "UNSPECIFIED"}, {Number: "1002", Name: "Склад rFBS", SellerDelivers: true, LabelType: "UNSPECIFIED"},
+	}
 
 	if err != nil || !reflect.DeepEqual(list, want) {
 		t.Fatalf("Warehouses = %+v, %v", list, err)
+	}
+}
+
+func TestAWarehousesLabelTypeAndAutomaticAssemblyAreTakenAsOzonGivesThem(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(t)
+	key := r.key(t, func(s setup) {
+		s["warehouses"] = []map[string]any{
+			{"id": warehouseFBS, "name": "Склад FBS", "label_type": "SMALL", "auto_assembly": true},
+			{"id": warehouseRFBS, "name": "Склад rFBS", "is_rfbs": true, "label_type": "BIG"},
+		}
+	})
+
+	list, err := r.adapter.Warehouses(t.Context(), r.conn(t, key))
+	want := []marketplace.Warehouse{
+		{Number: "1001", Name: "Склад FBS", LabelType: "SMALL", AutoAssembly: true},
+		{Number: "1002", Name: "Склад rFBS", SellerDelivers: true, LabelType: "BIG"},
+	}
+
+	if err != nil || !reflect.DeepEqual(list, want) {
+		t.Fatalf("Warehouses = %+v, %v; want %+v", list, err, want)
 	}
 }

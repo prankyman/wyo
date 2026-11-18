@@ -17,7 +17,8 @@
     /**
      * The section «Передача заказов маркетплейсу» of «Внешний API»: what the marketplace of each account wants to know when a
      * group of orders is closed and handed over (how it travels, which kind of point takes it). The settings are drawn only from
-     * what each account's adapter declares (`AdapterSettingsForm`); an account whose adapter declares none is left out. Saved as
+     * what each account's adapter declares (`AdapterSettingsForm`); an account whose adapter declares none is named with a line that says
+     * there is nothing to fill in for it. Saved as
      * one form with `PUT /api/v1/external-api/marketplaces`, which leaves the marketplace codes alone.
      */
     interface IProps {
@@ -41,6 +42,9 @@
         const adapter = adapterOf(row.marketplace);
         return adapter && adapter.handoverSettings.length > 0 ? [{ row, index, adapter }] : [];
     });
+
+    /** The rows whose adapter declares none: named, so that an account is never missing without a word. */
+    const silent = drawn.rows.filter((row) => !shown.some((one) => one.row.accountId === row.accountId));
 
     const made = spaForm(
         handoverSettingsSchema,
@@ -113,6 +117,11 @@
                         />
                     </Stack>
                 </div>
+            {/each}
+            {#each silent as row (row.accountId)}
+                <p class="text-sm text-ink-700" data-test="handover-account-none">
+                    {t('externalApi.handover.accountNone', lang, { account: row.accountName })}
+                </p>
             {/each}
         {/if}
     </Stack>

@@ -39,14 +39,16 @@ type Handover struct {
 	UpdatedAt     time.Time
 }
 
-// HandoverOrder is an order of a hand-over with its account, group, the supply it stands in and its label's fingerprint.
+// HandoverOrder is an order of a hand-over with its account, group, the supply it stands in, the marketplace's number of its
+// warehouse and its parcels (each with its label's fingerprint), in the order of their numbers.
 type HandoverOrder struct {
-	OrderID    int64
-	AccountID  int64
-	Number     string
-	Group      string
-	SupplyID   int64
-	LabelPrint string
+	OrderID   int64
+	AccountID int64
+	Number    string
+	Group     string
+	SupplyID  int64
+	Warehouse string
+	Parcels   []Parcel
 }
 
 // HandoverStep is a finished step of a hand-over for one group of its orders.
@@ -223,10 +225,21 @@ func (q *Queries) HandoverOrders(ctx context.Context, handoverID int64) ([]Hando
 		return nil, kind(err)
 	}
 
+	ids := make([]int64, 0, len(rows))
+	for _, r := range rows {
+		ids = append(ids, r.ID)
+	}
+
+	parcels, err := q.ParcelsOfOrders(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
 	list := make([]HandoverOrder, 0, len(rows))
 	for _, r := range rows {
 		list = append(list, HandoverOrder{
-			OrderID: r.ID, AccountID: r.AccountID, Number: r.Number, Group: r.Grp, SupplyID: r.SupplyID, LabelPrint: r.LabelPrint,
+			OrderID: r.ID, AccountID: r.AccountID, Number: r.Number, Group: r.Grp, SupplyID: r.SupplyID,
+			Warehouse: r.WarehouseNumber, Parcels: parcels[r.ID],
 		})
 	}
 

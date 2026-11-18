@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { exchangeDetailsOf, exchangeProblemOf } from '$test/support/external-api';
+import { exchangeDetailsOf, exchangeProblemOf, parcelOf } from '$test/support/external-api';
 
 vi.mock('$lib/api/api', async (original) => ({
     ...(await original<typeof import('$lib/api/api')>()),
@@ -18,7 +18,9 @@ afterEach(() => {
 });
 
 function draw(details: TOrderExchangeDetails, onRetried = vi.fn()): void {
-    render(OrderExchangeDetails, { props: { lang: 'ru', orderId: 101, details, onRetried } });
+    render(OrderExchangeDetails, {
+        props: { lang: 'ru', orderId: 101, orderNumber: '4455667788', details, onRetried }
+    });
 }
 
 /** One order's exchange with the fulfilment centre in full: state, reason, held reasons, problem, verdicts, cancellation, history. */
@@ -34,6 +36,7 @@ describe('OrderExchangeDetails', () => {
         ]);
         for (const absent of [
             'exchange-held',
+            'parcels',
             'exchange-problem',
             'exchange-verdicts',
             'exchange-cancel',
@@ -41,6 +44,20 @@ describe('OrderExchangeDetails', () => {
         ]) {
             expect(screen.queryByTestId(absent)).toBeNull();
         }
+    });
+
+    it('draws the order’s parcels with the marketplace’s own number of each, from the details it is given', () => {
+        draw(
+            exchangeDetailsOf({
+                parcels: [
+                    parcelOf({ number: 1, marketplaceNumber: '4455667788-1', labelSent: true }),
+                    parcelOf({ number: 2, marketplaceNumber: '4455667788-2' })
+                ]
+            })
+        );
+
+        expect(screen.getByTestId('parcels-1-marketplaceNumber')).toHaveTextContent('4455667788-1');
+        expect(screen.getByTestId('parcels-2-marketplaceNumber')).toHaveTextContent('4455667788-2');
     });
 
     it('says why an order is not sent and what needs the owner, in sentences', () => {

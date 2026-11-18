@@ -1,6 +1,7 @@
 package handover
 
 import (
+	"errors"
 	"slices"
 	"strings"
 
@@ -9,38 +10,52 @@ import (
 	"github.com/prankyman/wyo/internal/store"
 )
 
-// parts are an adapter's parts of the contract a hand-over needs.
+// parts are an adapter's parts of the contract a hand-over needs. The optional ones are present only for an adapter that
+// declares the step they serve (Description.HandoverSteps).
 type parts struct {
 	conn     marketplace.Conn
-	confirm  marketplace.OrderConfirmer
-	labels   marketplace.LabelFetcher
+	desc     marketplace.Description
 	group    marketplace.HandoverGrouper
+	reader   marketplace.BatchReader
 	closer   marketplace.HandoverCloser
 	document marketplace.HandoverDocumenter
+	boxes    marketplace.BoxAdder
+	shipping marketplace.ShippingSetter
+	deleter  marketplace.BatchDeleter
+	confirm  marketplace.OrderConfirmer
+	labels   marketplace.LabelFetcher
 }
 
-// partsOf gives the parts of an account's adapter; false when it lacks one.
+// needs says whether the adapter declared a step: the runner skips the steps an adapter does not need.
+func (p parts) needs(step string) bool { return p.desc.NeedsStep(step) }
+
+// partsOf gives the parts of an account's adapter; false when it lacks a part of a step it declared.
 func (rn *run) partsOf(account int64) (parts, store.Account, bool, error) {
 	row, adapter, conn, err := rn.r.opts.Accounts(rn.ctx, account, job)
 	if err != nil {
 		return parts{}, store.Account{}, false, err
 	}
 
-	p := parts{conn: conn}
+	p := parts{conn: conn, desc: adapter.Describe()}
 
-	ok := capable(adapter, conn.Test, marketplace.OrdersConfirm, marketplace.LabelsFetch, marketplace.HandoverGroup,
-		marketplace.HandoverClose, marketplace.HandoverDocuments)
-	if !ok {
+	if !capable(adapter, conn.Test, marketplace.HandoverGroup, marketplace.HandoverClose, marketplace.HandoverDocuments) {
 		return p, row, false, nil
 	}
 
-	p.confirm, _ = adapter.(marketplace.OrderConfirmer)
-	p.labels, _ = adapter.(marketplace.LabelFetcher)
 	p.group, _ = adapter.(marketplace.HandoverGrouper)
+	p.reader, _ = adapter.(marketplace.BatchReader)
 	p.closer, _ = adapter.(marketplace.HandoverCloser)
 	p.document, _ = adapter.(marketplace.HandoverDocumenter)
+	p.boxes, _ = adapter.(marketplace.BoxAdder)
+	p.shipping, _ = adapter.(marketplace.ShippingSetter)
+	p.deleter, _ = adapter.(marketplace.BatchDeleter)
+	p.confirm, _ = adapter.(marketplace.OrderConfirmer)
+	p.labels, _ = adapter.(marketplace.LabelFetcher)
 
-	return p, row, p.confirm != nil && p.labels != nil && p.group != nil && p.closer != nil && p.document != nil, nil
+	ok := p.group != nil && p.reader != nil && p.closer != nil && p.document != nil &&
+		(!p.needs(StepBoxes) || p.boxes != nil) && (!p.needs(StepShipping) || p.shipping != nil)
+
+	return p, row, ok, nil
 }
 
 func capable(adapter marketplace.Adapter, test bool, list ...marketplace.Capability) bool {
@@ -69,7 +84,8 @@ func (rn *run) supplyOf(g group) (store.Supply, error) {
 	return store.Supply{}, nil
 }
 
-// group runs the steps of one group up to closing its supply and returns the supply's number.
+// group runs the steps of one group up to closing its supply and returns the supply's number. Only the steps the adapter
+// declared are run.
 func (rn *run) group(g group) (string, error) {
 	p, _, ok, err := rn.partsOf(g.account)
 	if err != nil {
@@ -86,7 +102,7 @@ func (rn *run) group(g group) (string, error) {
 	}
 
 	for _, name := range Steps[:5] {
-		if rn.done[doneKey(g.account, g.name, name)] {
+		if !p.needs(name) || rn.done[doneKey(g.account, g.name, name)] {
 			continue
 		}
 
@@ -117,15 +133,22 @@ func (rn *run) group(g group) (string, error) {
 	return sup.Number, nil
 }
 
-// makeBatch makes the group's supply, named after the hand-over.
+// makeBatch makes the group's batch, named after the hand-over, or finds the marketplace's own (one shipment for a warehouse
+// and a day). A marketplace that cannot make one yet leaves the hand-over waiting with its words; the next run tries again.
 func (rn *run) makeBatch(g group, p parts, sup store.Supply) (store.Supply, error) {
 	if sup.ID != 0 {
 		return sup, nil
 	}
 
-	name := "wyo — передача " + rn.h.Number + " " + rn.day().Format(supplyNameDateLayout)
+	number, err := p.group.MakeBatch(rn.ctx, p.conn, marketplace.BatchRequest{
+		Name: marketplace.HandoverBatchName(rn.h.Number, rn.day()), Warehouse: g.warehouse(), Day: rn.day(),
+	})
 
-	number, err := p.confirm.NewBatch(rn.ctx, p.conn, name)
+	var wait *marketplace.BatchWait
+	if errors.As(err, &wait) {
+		return store.Supply{}, rn.waitsWords(StepBatch, problemBatchWaits, wait.Words)
+	}
+
 	if err != nil {
 		return store.Supply{}, rn.refused(StepBatch, err)
 	}
@@ -145,29 +168,31 @@ func (rn *run) makeBatch(g group, p parts, sup store.Supply) (store.Supply, erro
 	return sup, err
 }
 
-// move puts exactly the hand-over's orders into the supply (those not in it yet), then reads their labels again: a label
-// that changed stops the hand-over, because a parcel with the old label would not be accepted.
+// numbersOf are the marketplace's numbers of the orders' parcels: what the batch holds (a marketplace that splits an order
+// has one number for each parcel; the others have the order's own number).
+func numbersOf(orders []store.HandoverOrder) []string {
+	var out []string
+
+	for _, o := range orders {
+		if len(o.Parcels) == 0 {
+			out = append(out, o.Number)
+
+			continue
+		}
+
+		for _, p := range o.Parcels {
+			out = append(out, p.MpNumber)
+		}
+	}
+
+	return out
+}
+
+// move makes the batch hold exactly the hand-over's orders, then, for a marketplace that answers labels at once, reads
+// their labels again: a label that changed stops the hand-over, because a parcel with the old label would not be accepted.
 func (rn *run) move(g group, p parts, sup store.Supply) error {
-	state, err := p.confirm.Batch(rn.ctx, p.conn, sup.Number)
-	if err != nil {
+	if err := p.group.FillBatch(rn.ctx, p.conn, sup.Number, numbersOf(g.orders)); err != nil {
 		return rn.refused(StepMove, err)
-	}
-
-	numbers := make([]string, 0, len(g.orders))
-	var missing []string
-
-	for _, o := range g.orders {
-		numbers = append(numbers, o.Number)
-
-		if !slices.Contains(state.Orders, o.Number) {
-			missing = append(missing, o.Number)
-		}
-	}
-
-	if len(missing) > 0 {
-		if err := p.confirm.PutInBatch(rn.ctx, p.conn, sup.Number, missing); err != nil {
-			return rn.refused(StepMove, err)
-		}
 	}
 
 	if err := rn.r.opts.Store.Do(rn.ctx, func(q *store.Queries) error {
@@ -188,6 +213,15 @@ func (rn *run) move(g group, p parts, sup store.Supply) error {
 		return err
 	}
 
+	if p.labels == nil {
+		return nil
+	}
+
+	numbers := make([]string, 0, len(g.orders))
+	for _, o := range g.orders {
+		numbers = append(numbers, o.Number)
+	}
+
 	labels, err := p.labels.Labels(rn.ctx, p.conn, numbers)
 	if err != nil {
 		return rn.refused(StepMove, err)
@@ -197,7 +231,7 @@ func (rn *run) move(g group, p parts, sup store.Supply) error {
 
 	for _, o := range g.orders {
 		for _, l := range labels {
-			if l.Number == o.Number && o.LabelPrint != "" && l.Print() != o.LabelPrint {
+			if l.Number == o.Number && len(o.Parcels) > 0 && o.Parcels[0].LabelPrint != "" && l.Print() != o.Parcels[0].LabelPrint {
 				changed = append(changed, o.Number)
 			}
 		}
@@ -220,13 +254,13 @@ func (rn *run) addBoxes(p parts, sup store.Supply) error {
 		return nil
 	}
 
-	state, err := p.confirm.Batch(rn.ctx, p.conn, sup.Number)
+	state, err := p.reader.Batch(rn.ctx, p.conn, sup.Number)
 	if err != nil {
 		return rn.refused(StepBoxes, err)
 	}
 
 	if missing := int(rn.h.Boxes) - len(state.Boxes); missing > 0 {
-		if err := p.group.AddBoxes(rn.ctx, p.conn, sup.Number, missing); err != nil {
+		if err := p.boxes.AddBoxes(rn.ctx, p.conn, sup.Number, missing); err != nil {
 			return rn.refused(StepBoxes, err)
 		}
 	}
@@ -237,7 +271,7 @@ func (rn *run) addBoxes(p parts, sup store.Supply) error {
 // ship sets how, when and where the supply is shipped: the account's hand-over settings, the point the owner chose (never
 // guessed) and the hand-over's day.
 func (rn *run) ship(g group, p parts, sup store.Supply) error {
-	state, err := p.confirm.Batch(rn.ctx, p.conn, sup.Number)
+	state, err := p.reader.Batch(rn.ctx, p.conn, sup.Number)
 	if err != nil {
 		return rn.refused(StepShipping, err)
 	}
@@ -259,7 +293,7 @@ func (rn *run) ship(g group, p parts, sup store.Supply) error {
 		return rn.waits(StepShipping, problemPointNeeded)
 	}
 
-	points, err := p.group.ShippingPoints(rn.ctx, p.conn, sup.Number, settings.Settings, rn.day())
+	points, err := p.shipping.ShippingPoints(rn.ctx, p.conn, sup.Number, settings.Settings, rn.day())
 	if err != nil {
 		return rn.refused(StepShipping, err)
 	}
@@ -268,7 +302,7 @@ func (rn *run) ship(g group, p parts, sup store.Supply) error {
 		return rn.waits(StepShipping, problemPointGone)
 	}
 
-	err = p.group.SetShipping(rn.ctx, p.conn, sup.Number, marketplace.Shipping{Settings: settings.Settings, Point: settings.Point, Day: rn.day()})
+	err = p.shipping.SetShipping(rn.ctx, p.conn, sup.Number, marketplace.Shipping{Settings: settings.Settings, Point: settings.Point, Day: rn.day()})
 	if err != nil {
 		return rn.refused(StepShipping, err)
 	}
@@ -278,7 +312,7 @@ func (rn *run) ship(g group, p parts, sup store.Supply) error {
 
 // close hands the supply to delivery, unless it is closed already.
 func (rn *run) close(p parts, sup store.Supply) error {
-	state, err := p.confirm.Batch(rn.ctx, p.conn, sup.Number)
+	state, err := p.reader.Batch(rn.ctx, p.conn, sup.Number)
 	if err != nil {
 		return rn.refused(StepClose, err)
 	}
@@ -294,8 +328,8 @@ func (rn *run) close(p parts, sup store.Supply) error {
 	return rn.r.opts.Store.Do(rn.ctx, func(q *store.Queries) error { return q.SetSupplyOpen(rn.ctx, sup.ID, false) })
 }
 
-// documents sends the supplies' codes and the boxes' labels: the code as the kind handover_code with the supply's number as
-// its scan text, the boxes' labels as box_label, and the supplies' numbers as the sender's own number of the hand-over.
+// documents sends the batches' documents, each with the kind the marketplace gave it, and the batches' numbers as the
+// sender's own number of the hand-over. A marketplace whose documents are not ready yet leaves the hand-over waiting.
 func (rn *run) documents(list []group, numbers []string) error {
 	var docs []fulfilment.Document
 
@@ -305,31 +339,19 @@ func (rn *run) documents(list []group, numbers []string) error {
 			return err
 		}
 
-		code, err := p.document.BatchCode(rn.ctx, p.conn, numbers[i])
+		made, err := p.document.Documents(rn.ctx, p.conn, numbers[i])
+
+		var wait *marketplace.DocumentsWait
+		if errors.As(err, &wait) {
+			return rn.waitsWords(StepDocuments, problemDocumentsWait, wait.Words)
+		}
+
 		if err != nil {
 			return rn.refused(StepDocuments, err)
 		}
 
-		docs = append(docs, fulfilment.Document{
-			Kind: fulfilment.KindHandoverCode, Title: numbers[i], ContentType: code.ContentType, Data: code.Data, ScanCode: numbers[i],
-		})
-
-		state, err := p.confirm.Batch(rn.ctx, p.conn, numbers[i])
-		if err != nil {
-			return rn.refused(StepDocuments, err)
-		}
-
-		if len(state.Boxes) == 0 {
-			continue
-		}
-
-		labels, err := p.document.BoxLabels(rn.ctx, p.conn, numbers[i], state.Boxes)
-		if err != nil {
-			return rn.refused(StepDocuments, err)
-		}
-
-		for j, l := range labels {
-			docs = append(docs, fulfilment.Document{Kind: fulfilment.KindBoxLabel, Title: state.Boxes[min(j, len(state.Boxes)-1)], ContentType: l.ContentType, Data: l.Data})
+		for _, d := range made {
+			docs = append(docs, fulfilment.Document{Kind: d.Kind, Title: d.Title, ContentType: d.ContentType, Data: d.Data, ScanCode: d.Code})
 		}
 	}
 

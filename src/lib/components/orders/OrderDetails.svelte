@@ -105,6 +105,12 @@
         </div>
     {/if}
     {#if details.exchange}
-        <OrderExchangeDetails {lang} orderId={order.id} details={details.exchange} onRetried={onExchangeRetried} />
+        <OrderExchangeDetails
+            {lang}
+            orderId={order.id}
+            orderNumber={order.number}
+            details={details.exchange}
+            onRetried={onExchangeRetried}
+        />
     {/if}
 </Stack>

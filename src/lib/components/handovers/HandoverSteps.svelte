@@ -6,8 +6,10 @@
     import type { THandoverStepState } from './types';
 
     /**
-     * The six steps of a hand-over (a new batch, moving the orders, adding boxes, the shipping point, closing, the documents) as
-     * a `StepStrip`, with «Сейчас: …» naming the step that is running, waits for the owner or failed. A step that waits or failed
+     * The steps of a hand-over, exactly the ones it is given — the steps the marketplace's adapter declares, in the order they
+     * run (a new batch, moving the orders, adding boxes, the shipping point, closing, the documents: six for one marketplace,
+     * four for another) — as a `StepStrip`, with «Сейчас: …» naming the step, out of how many, that is running, waits for the
+     * owner or failed. A step that waits or failed
      * says so in its own words too, so its state is never only a colour.
      */
     interface IProps {

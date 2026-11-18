@@ -12,3 +12,5 @@ export type TProblem = components['schemas']['Problem'];
 export type THeldReason = components['schemas']['HeldReason'];
 export type TCodeVerdict = components['schemas']['CodeVerdict'];
 export type TExchangeEvent = components['schemas']['ExchangeEvent'];
+/** One parcel of an order at the fulfilment centre, with the marketplace's number of the part it became and its label's state. */
+export type TOrderParcel = components['schemas']['OrderParcel'];

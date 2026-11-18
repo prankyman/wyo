@@ -29,19 +29,24 @@ type HeldReason struct {
 
 // ExchangeOrder is the exchange's own state of an order sent to the fulfilment centre.
 type ExchangeOrder struct {
-	OrderID      int64
-	FcID         string
-	FcNumber     string
-	FcHeldID     string
-	State        string
-	HeldReasons  []HeldReason
-	Attention    string
-	Problem      Problem
-	FailedStep   string
-	SupplyID     int64
-	ConfirmedAt  time.Time
-	LabelPrint   string
-	LabelSentAt  time.Time
+	OrderID        int64
+	FcID           string
+	FcNumber       string
+	FcHeldID       string
+	State          string
+	HeldReasons    []HeldReason
+	Attention      string
+	Problem        Problem
+	FailedStep     string
+	SupplyID       int64
+	ConfirmedAt    time.Time
+	PackReportedAt time.Time
+	PackTries      int64
+	PackNextAt     time.Time
+	CodesResends   int64
+	PackedAt       time.Time
+	// ShipBySent is the deadline last sent to the fulfilment centre; zero before the order was sent.
+	ShipBySent   time.Time
 	CodesState   string
 	CodesSentAt  time.Time
 	NextCheckAt  time.Time
@@ -73,8 +78,10 @@ type ExchangeHistory struct {
 	Code  string
 }
 
-// OrderCode is one unit's identifier of an order, as scanned, with the marketplace's verdict.
+// OrderCode is one unit's identifier of an order, as scanned, with the marketplace's verdict. Line is the number of the order
+// line the unit belongs to (0 for a code kept before lines were known).
 type OrderCode struct {
+	Line       int64
 	Unit       int64
 	Identifier string
 	Code       string
@@ -113,8 +120,10 @@ func exchangeOrder(r db.ExchangeOrder) ExchangeOrder {
 			Code: r.ProblemCode, Params: paramsOf(r.ProblemParams), MpCode: r.ProblemMpCode, Words: r.ProblemWords,
 			At: optionalMoment(r.ProblemAt), Sent: r.ProblemSent == 1,
 		},
-		FailedStep: r.FailedStep, SupplyID: r.SupplyID.Int64, ConfirmedAt: optionalMoment(r.ConfirmedAt), LabelPrint: r.LabelPrint,
-		LabelSentAt: optionalMoment(r.LabelSentAt), CodesState: r.CodesState, CodesSentAt: optionalMoment(r.CodesSentAt),
+		FailedStep: r.FailedStep, SupplyID: r.SupplyID.Int64, ConfirmedAt: optionalMoment(r.ConfirmedAt),
+		PackReportedAt: optionalMoment(r.PackReportedAt), PackTries: r.PackTries, PackNextAt: optionalMoment(r.PackNextAt),
+		CodesResends: r.CodesResends, PackedAt: optionalMoment(r.PackedAt), ShipBySent: optionalMoment(r.ShipBySent),
+		CodesState: r.CodesState, CodesSentAt: optionalMoment(r.CodesSentAt),
 		NextCheckAt: optionalMoment(r.NextCheckAt), CancelAnswer: r.CancelAnswer, HandedOverAt: optionalMoment(r.HandedOverAt),
 		SentAt: moment(r.SentAt), UpdatedAt: moment(r.UpdatedAt),
 	}
@@ -132,7 +141,9 @@ func (q *Queries) SaveExchangeOrder(ctx context.Context, x ExchangeOrder) error 
 		Attention: x.Attention, ProblemCode: x.Problem.Code, ProblemParams: paramsText(x.Problem.Params),
 		ProblemMpCode: x.Problem.MpCode, ProblemWords: cut(x.Problem.Words, maxWords), ProblemAt: optionalSeconds(x.Problem.At),
 		ProblemSent: boolInt(x.Problem.Sent), FailedStep: x.FailedStep, SupplyID: optionalNumber(x.SupplyID),
-		ConfirmedAt: optionalSeconds(x.ConfirmedAt), LabelPrint: x.LabelPrint, LabelSentAt: optionalSeconds(x.LabelSentAt),
+		ConfirmedAt:    optionalSeconds(x.ConfirmedAt),
+		PackReportedAt: optionalSeconds(x.PackReportedAt), PackTries: x.PackTries, PackNextAt: optionalSeconds(x.PackNextAt),
+		CodesResends: x.CodesResends, PackedAt: optionalSeconds(x.PackedAt), ShipBySent: optionalSeconds(x.ShipBySent),
 		CodesState: x.CodesState, CodesSentAt: optionalSeconds(x.CodesSentAt), NextCheckAt: optionalSeconds(x.NextCheckAt),
 		CancelAnswer: x.CancelAnswer, HandedOverAt: optionalSeconds(x.HandedOverAt), SentAt: seconds(x.SentAt),
 		UpdatedAt: seconds(x.UpdatedAt),
@@ -222,6 +233,12 @@ func (q *Queries) OpenExchangeOrders(ctx context.Context, orderState string) ([]
 	return exchangeOrders(q.q.ListOpenExchangeOrders(ctx, nullable(orderState)))
 }
 
+// DeadlineChangedExchangeOrders lists the open orders sent to the fulfilment centre whose deadline is no longer the one last
+// sent.
+func (q *Queries) DeadlineChangedExchangeOrders(ctx context.Context) ([]ExchangeOrder, error) {
+	return exchangeOrders(q.q.ListDeadlineChangedExchangeOrders(ctx))
+}
+
 // FailedExchangeOrders lists the orders whose step failed and may be repeated.
 func (q *Queries) FailedExchangeOrders(ctx context.Context) ([]ExchangeOrder, error) {
 	return exchangeOrders(q.q.ListExchangeOrdersByStep(ctx))
@@ -267,7 +284,7 @@ func (q *Queries) OrdersToSend(ctx context.Context, limit int, marketplaces []st
 		return nil, nil
 	}
 
-	rows, err := q.q.OrdersToSend(ctx, db.OrdersToSendParams{Marketplaces: marketplaces, Batch: int64(limit)})
+	rows, err := q.q.OrdersToSend(ctx, db.OrdersToSendParams{Marketplaces: marketplaces, Limit: int64(limit)})
 	if err != nil {
 		return nil, kind(err)
 	}
@@ -324,7 +341,7 @@ func (q *Queries) ReplaceOrderCodes(ctx context.Context, orderID int64, codes []
 
 	for _, c := range codes {
 		if err := q.q.InsertOrderCode(ctx, db.InsertOrderCodeParams{
-			OrderID: orderID, Unit: c.Unit, Identifier: c.Identifier, Code: c.Code,
+			OrderID: orderID, Unit: c.Unit, Line: c.Line, Identifier: c.Identifier, Code: c.Code,
 		}); err != nil {
 			return kind(err)
 		}
@@ -343,7 +360,7 @@ func (q *Queries) OrderCodes(ctx context.Context, orderID int64) ([]OrderCode, e
 	list := make([]OrderCode, 0, len(rows))
 	for _, r := range rows {
 		list = append(list, OrderCode{
-			Unit: r.Unit, Identifier: r.Identifier, Code: r.Code, SentAt: optionalMoment(r.SentAt), Verdict: r.Verdict, Words: r.Words,
+			Unit: r.Unit, Line: r.Line, Identifier: r.Identifier, Code: r.Code, SentAt: optionalMoment(r.SentAt), Verdict: r.Verdict, Words: r.Words,
 		})
 	}
 

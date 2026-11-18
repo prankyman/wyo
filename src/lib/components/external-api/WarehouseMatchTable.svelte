@@ -10,7 +10,8 @@
     /**
      * Each warehouse of the seller on a marketplace beside a choice of the fulfilment centre's warehouses: the one that stands for
      * it. Only the orders of a matched warehouse are sent to the fulfilment centre, so a row that matches none says so and says why,
-     * in the row itself. A fulfilment centre that named no warehouse is told once above the rows. The chosen warehouses are the
+     * in the row itself. A warehouse with the marketplace's automatic assembly (`autoAssembly`: the marketplace itself assembles and packs
+     * its orders) warns in its row, and may still be matched. A fulfilment centre that named no warehouse is told once above the rows. The chosen warehouses are the
      * parent form's (`selected`, one for each row, in the rows' order; a choice is told to `onSelect`); a refusal is laid on its
      * row (`errors`, already worded).
      */
@@ -66,6 +67,11 @@
                     <p class="text-sm text-warn-800" data-test="{idPrefix}-{index}-unmatched">
                         {t('externalApi.warehouses.unmatched', lang)}
                     </p>
+                {/if}
+                {#if row.autoAssembly}
+                    <NoteBox tone="warning" dataTest="{idPrefix}-{index}-auto-assembly">
+                        {t('externalApi.warehouses.autoAssembly', lang)}
+                    </NoteBox>
                 {/if}
             </Stack>
         </div>

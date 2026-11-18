@@ -24,13 +24,16 @@ type rig struct {
 	srv   *httptest.Server
 }
 
-func newRig(t *testing.T) *rig {
+func newRig(t *testing.T) *rig { return newRigWith(t, nil) }
+
+// newRigWith is newRig with the kit's options changed by tune (nil leaves them as they are).
+func newRigWith(t *testing.T, tune func(*fakekit.Options[counter])) *rig {
 	t.Helper()
 
 	moscow := time.FixedZone("MSK", 3*60*60)
 	fixed := clock.NewFixed(time.Date(2026, 10, 1, 12, 0, 0, 0, moscow))
 
-	kit := fakekit.New(fakekit.Options[counter]{
+	opts := fakekit.Options[counter]{
 		Clock:    fixed,
 		Delay:    fakekit.ClockDelayer{Clock: fixed},
 		NewState: func() *counter { return &counter{} },
@@ -42,7 +45,13 @@ func newRig(t *testing.T) *rig {
 			},
 			ServerError: func(w http.ResponseWriter) { http.Error(w, "broken", http.StatusInternalServerError) },
 		},
-	})
+	}
+
+	if tune != nil {
+		tune(&opts)
+	}
+
+	kit := fakekit.New(opts)
 
 	api := http.NewServeMux()
 	api.HandleFunc("/api/count", func(w http.ResponseWriter, r *http.Request) {
@@ -327,6 +336,27 @@ func TestAFaultHitsOnlyTheCallsItNames(t *testing.T) {
 	}
 }
 
+func TestAFaultThatNamesTheEndOfAPathHitsOnlyThePathsThatEndSo(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(t)
+
+	// A path with a number in the middle (a supply's, an order's) cannot be named by its beginning.
+	queue(t, r, "k", `{"kind":"server_error","path_suffix":"/echo"}`)
+
+	if got := r.call(http.MethodGet, "/api/echo/extra", "k", ""); got.status == http.StatusInternalServerError {
+		t.Fatalf("a path that does not end so met the fault: %d", got.status)
+	}
+
+	if got := r.call(http.MethodGet, "/api/count", "k", ""); got.status != http.StatusOK {
+		t.Fatalf("a path that does not end so answered %d", got.status)
+	}
+
+	if got := r.call(http.MethodGet, "/api/echo", "k", ""); got.status != http.StatusInternalServerError {
+		t.Fatalf("the path that ends so answered %d", got.status)
+	}
+}
+
 func TestAFaultOfOneKeyDoesNotHitAnother(t *testing.T) {
 	t.Parallel()
 
@@ -550,5 +580,38 @@ func TestControlClientDrivesTheKit(t *testing.T) {
 
 	if err := ctl.Do(t.Context(), http.MethodGet, "/__control/nothing", nil, nil); err == nil {
 		t.Fatal("Do reported success for a 404")
+	}
+}
+
+func TestAFakesOwnRedactionHidesWhatItNamesInARecordedBody(t *testing.T) {
+	t.Parallel()
+
+	const secret = "marking-code-7f3a91" //nolint:gosec // G101: a made-up value the test searches for, not a credential.
+
+	r := newRigWith(t, func(o *fakekit.Options[counter]) {
+		o.RedactBody = func(path, body string) string {
+			if path == "/api/echo" {
+				return strings.ReplaceAll(body, secret, "[hidden]")
+			}
+
+			return body
+		}
+	})
+
+	_ = r.call(http.MethodPost, "/api/echo", "key-of-the-redaction-test", `{"code":"`+secret+`"}`)
+	_ = r.call(http.MethodPost, "/api/other", "key-of-the-redaction-test", `{"code":"`+secret+`"}`)
+
+	var calls struct {
+		Calls []fakekit.Call `json:"calls"`
+	}
+
+	mustDecode(t, r.call(http.MethodGet, "/__control/calls", "key-of-the-redaction-test", "").body, &calls)
+
+	if len(calls.Calls) != 2 || calls.Calls[0].Body != `{"code":"[hidden]"}` {
+		t.Fatalf("the redacted call is recorded as %+v", calls.Calls)
+	}
+
+	if calls.Calls[1].Body != `{"code":"`+secret+`"}` {
+		t.Fatalf("a call the fake does not redact is recorded as %q", calls.Calls[1].Body)
 	}
 }

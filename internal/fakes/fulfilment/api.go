@@ -521,7 +521,7 @@ func (a *api) LabelPut(w http.ResponseWriter, r *http.Request, id string, number
 
 		st.dropLabel(o, p)
 
-		p.label = &labelRecord{contentType: string(in.ContentType), scanCode: in.ScanCode}
+		p.label = &labelRecord{contentType: string(in.ContentType), scanCode: in.ScanCode, data: in.Data}
 		if in.ScanCode != nil {
 			st.scanCodes[*in.ScanCode] = owner
 		}

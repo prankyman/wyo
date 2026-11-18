@@ -413,6 +413,123 @@ type AvailabilityReason struct {
 	Id *int64 `json:"id,omitempty"`
 }
 
+// CarriageDeliveryListV2RequestFilter Фильтр для поиска методов доставки и отгрузок.
+type CarriageDeliveryListV2RequestFilter struct {
+	// DeliveryMethodId Идентификатор метода доставки. Для realFBS-складов получите его с помощью метода [/v2/delivery-method/list](#operation/WarehouseAPI_DeliveryMethodListV2). Для FBS-складов используйте значение параметра `warehouse_id`. Его можно получить с помощью метода [/v2/warehouse/list](#operation/WarehouseListV2).
+	DeliveryMethodId *int64 `json:"delivery_method_id,omitempty"`
+
+	// DepartureDate Дата отгрузки. По умолчанию — текущая дата.
+	DepartureDate *string `json:"departure_date,omitempty"`
+}
+
+// CarriageDeliveryListV2ResponseDeliveryMethod defines model for CarriageDeliveryListV2ResponseDeliveryMethod.
+type CarriageDeliveryListV2ResponseDeliveryMethod struct {
+	// CarriagePostingsCount Количество отправлений во всех отгрузках.
+	CarriagePostingsCount *int32 `json:"carriage_postings_count,omitempty"`
+
+	// Carriages Список отгрузок.
+	Carriages *[]DeliveryMethodCarriage `json:"carriages,omitempty"`
+
+	// CutIn Время начала сборки и часовой пояс времени склада.
+	CutIn *string `json:"cut_in,omitempty"`
+
+	// CutoffAt Дата и время, до которых нужно собрать отправление.
+	CutoffAt *string `json:"cutoff_at,omitempty"`
+
+	// DeliveryMethodId Идентификатор метода доставки.
+	DeliveryMethodId *int64 `json:"delivery_method_id,omitempty"`
+
+	// DeliveryMethodName Название метода доставки.
+	DeliveryMethodName *string `json:"delivery_method_name,omitempty"`
+
+	// DeliveryMethodStatus Статус метода доставки.
+	DeliveryMethodStatus *string `json:"delivery_method_status,omitempty"`
+
+	// DepartureDate Дата отгрузки.
+	DepartureDate *string `json:"departure_date,omitempty"`
+
+	// DropoffAddress Адрес точки отгрузки.
+	DropoffAddress *string `json:"dropoff_address,omitempty"`
+
+	// DropoffChangeAvailability Статус возможности смены точки отгрузки.
+	DropoffChangeAvailability *string `json:"dropoff_change_availability,omitempty"`
+
+	// DropoffPointId Идентификатор точки отгрузки.
+	DropoffPointId *int64 `json:"dropoff_point_id,omitempty"`
+
+	// DropoffPointType Способ отгрузки.
+	DropoffPointType *string `json:"dropoff_point_type,omitempty"`
+
+	// Errors Список ошибок, которые возникли при обработке запроса.
+	Errors *[]DeliveryMethodError `json:"errors,omitempty"`
+
+	// FirstMileChanging `true`, если точка отгрузки изменилась.
+	FirstMileChanging *bool `json:"first_mile_changing,omitempty"`
+
+	// FirstMileType Тип первой мили.
+	FirstMileType *string `json:"first_mile_type,omitempty"`
+
+	// HasEntrustedAcceptance `true`, если на складе включена доверительная приёмка.
+	HasEntrustedAcceptance *bool `json:"has_entrusted_acceptance,omitempty"`
+
+	// IntegrationType Тип интеграции со службой доставки.
+	IntegrationType *string `json:"integration_type,omitempty"`
+
+	// IsOptionalCarriage `true`, если отгрузка не обязательна.
+	IsOptionalCarriage *bool `json:"is_optional_carriage,omitempty"`
+
+	// IsPresort `true`, если отгрузка с предсортировкой.
+	IsPresort *bool `json:"is_presort,omitempty"`
+
+	// IsRfbs `true`, если склад работает по схеме rFBS.
+	IsRfbs *bool `json:"is_rfbs,omitempty"`
+
+	// MandatoryPackagedCount Количество собранных обязательных отправлений.
+	MandatoryPackagedCount *int32 `json:"mandatory_packaged_count,omitempty"`
+
+	// MandatoryPostingsCount Количество отправлений, которые нужно собрать.
+	MandatoryPostingsCount *int32 `json:"mandatory_postings_count,omitempty"`
+
+	// OptionalPackagedCount Количество собранных необязательных отправлений.
+	OptionalPackagedCount *int32 `json:"optional_packaged_count,omitempty"`
+
+	// RecommendedTimeLocal Рекомендуемое местное время отгрузки в пункт приёма заказов.
+	RecommendedTimeLocal *string `json:"recommended_time_local,omitempty"`
+
+	// RecommendedTimeUtcOffsetInMinutes Смещение часового пояса рекомендуемого времени отгрузки от UTC-0 в минутах.
+	RecommendedTimeUtcOffsetInMinutes *int32 `json:"recommended_time_utc_offset_in_minutes,omitempty"`
+
+	// TimeslotFrom Начало таймслота в точке отгрузки.
+	TimeslotFrom *string `json:"timeslot_from,omitempty"`
+
+	// TimeslotTo Окончание таймслота в точке отгрузки.
+	TimeslotTo *string `json:"timeslot_to,omitempty"`
+
+	// TplProviderIconUrl Ссылка на иконку службы доставки.
+	TplProviderIconUrl *string `json:"tpl_provider_icon_url,omitempty"`
+
+	// TplProviderName Название службы доставки.
+	TplProviderName *string `json:"tpl_provider_name,omitempty"`
+
+	// WarehouseCity Город склада.
+	WarehouseCity *string `json:"warehouse_city,omitempty"`
+
+	// WarehouseId Идентификатор склада.
+	WarehouseId *int64 `json:"warehouse_id,omitempty"`
+
+	// WarehouseName Название склада.
+	WarehouseName *string `json:"warehouse_name,omitempty"`
+}
+
+// CarriagePickupFee Стоимость отгрузки pick-up.
+type CarriagePickupFee struct {
+	// CurrencyCode Код валюты.
+	CurrencyCode *string `json:"currency_code,omitempty"`
+
+	// Value Предварительная стоимость отгрузки курьеру Ozon.
+	Value *float32 `json:"value,omitempty"`
+}
+
 // CompanyTaxSystemEnum Система налогообложения:
 // - `UNKNOWN` — неизвестная,
 // - `UNSPECIFIED` — не определена,
@@ -422,6 +539,48 @@ type AvailabilityReason struct {
 // - `AUSN` — АУСН,
 // - `PSN` — ПСН.
 type CompanyTaxSystemEnum string
+
+// DeliveryMethodCarriage defines model for DeliveryMethodCarriage.
+type DeliveryMethodCarriage struct {
+	// AllBlrTraceable `true`, если в отгрузке есть товары, для которых нужны дополнительные документы при отправке в Беларусь.
+	AllBlrTraceable *bool `json:"all_blr_traceable,omitempty"`
+
+	// AvailableActions Доступные действия с отгрузкой:
+	// - `create` — можно создать отгрузку;
+	// - `get_details` — можно получить информацию об отгрузке;
+	// - `get_assembly_list` — можно получить лист подбора.
+	AvailableActions *[]string `json:"available_actions,omitempty"`
+
+	// CarriageVolume Объём отгрузки в литрах.
+	CarriageVolume *float32 `json:"carriage_volume,omitempty"`
+
+	// Id Идентификатор отгрузки. Если `0` — отгрузка, которую можно создать.
+	Id *int64 `json:"id,omitempty"`
+
+	// PickupFee Стоимость отгрузки pick-up.
+	PickupFee *CarriagePickupFee `json:"pickup_fee,omitempty"`
+
+	// PostingsCount Количество отправлений в отгрузке.
+	PostingsCount *int32 `json:"postings_count,omitempty"`
+
+	// QuantumCount Количество квантов в отгрузке.
+	QuantumCount *int32 `json:"quantum_count,omitempty"`
+
+	// Status Статус отгрузки для запрашиваемых метода и даты.
+	Status *string `json:"status,omitempty"`
+}
+
+// DeliveryMethodError defines model for DeliveryMethodError.
+type DeliveryMethodError struct {
+	// Code Код ошибки.
+	Code *string `json:"code,omitempty"`
+
+	// Description Описание ошибки.
+	Description *string `json:"description,omitempty"`
+
+	// Status Статус ошибки.
+	Status *string `json:"status,omitempty"`
+}
 
 // ErrorErrorLevel Описание уровней ошибок:
 //   - `ERROR_LEVEL_UNSPECIFIED` — не определён;
@@ -451,6 +610,32 @@ type ErrorHumanTexts struct {
 
 	// ShortDescription Краткое описание ошибки.
 	ShortDescription *string `json:"short_description,omitempty"`
+}
+
+// ExemplarMark defines model for ExemplarMark.
+type ExemplarMark struct {
+	// Mark Значение кода маркировки.
+	Mark *string `json:"mark,omitempty"`
+
+	// MarkType Тип кода маркировки:
+	// - `mandatory_mark` — обязательная маркировка «Честный ЗНАК»;
+	// - `jw_uin` — уникальный идентификационный номер (УИН) ювелирного изделия;
+	// - `imei` — IMEI мобильного устройства;
+	// - `seal_number` — номер пломбы.
+	MarkType *string `json:"mark_type,omitempty"`
+}
+
+// ExemplarsMarks defines model for ExemplarsMarks.
+type ExemplarsMarks struct {
+	// Mark Значение кода маркировки.
+	Mark *string `json:"mark,omitempty"`
+
+	// MarkType Тип кода маркировки:
+	// - `mandatory_mark` — обязательная маркировка «Честный ЗНАК»;
+	// - `jw_uin` — уникальный идентификационный номер (УИН) ювелирного изделия;
+	// - `imei` — IMEI мобильного устройства;
+	// - `seal_number` — номер пломбы.
+	MarkType *string `json:"mark_type,omitempty"`
 }
 
 // FbsPostingDetailCourier Данные о курьере.
@@ -487,6 +672,113 @@ type FbsPostingDetailPrrOption struct {
 
 	// Price Стоимость услуги, которую Ozon компенсирует продавцу.
 	Price *string `json:"price,omitempty"`
+}
+
+// FbsPostingProductExemplarCreateOrGetV6ResponseProduct defines model for FbsPostingProductExemplarCreateOrGetV6ResponseProduct.
+type FbsPostingProductExemplarCreateOrGetV6ResponseProduct struct {
+	// Exemplars Информация об экземплярах.
+	Exemplars *[]ProductExemplar `json:"exemplars,omitempty"`
+
+	// HasImei Признак наличия IMEI.
+	//
+	// Если IMEI есть — `true`.
+	HasImei *bool `json:"has_imei,omitempty"`
+
+	// IsGtdNeeded Признак того, что необходимо передать номер грузовой таможенной декларации (ГТД) для продукта и отправления.
+	IsGtdNeeded *bool `json:"is_gtd_needed,omitempty"`
+
+	// IsJwUinNeeded Признак того, что необходимо передать уникальный идентификационный номер ювелирного изделия (УИН).
+	IsJwUinNeeded *bool `json:"is_jw_uin_needed,omitempty"`
+
+	// IsMandatoryMarkNeeded Признак того, что необходимо передать маркировку «Честный ЗНАК».
+	IsMandatoryMarkNeeded *bool `json:"is_mandatory_mark_needed,omitempty"`
+
+	// IsMandatoryMarkPossible Признак того, что возможно заполнить маркировку «Честный ЗНАК».
+	IsMandatoryMarkPossible *bool `json:"is_mandatory_mark_possible,omitempty"`
+
+	// IsRnptNeeded Признак того, что необходимо передать номер партии товара (РНПТ).
+	IsRnptNeeded *bool `json:"is_rnpt_needed,omitempty"`
+
+	// IsWeightNeeded `true`, если товар весовой.
+	IsWeightNeeded *bool `json:"is_weight_needed,omitempty"`
+
+	// ProductId Идентификатор товара в системе Ozon — SKU.
+	ProductId *int64 `json:"product_id,omitempty"`
+
+	// Quantity Количество экземпляров.
+	Quantity *int32 `json:"quantity,omitempty"`
+
+	// SealingAllowed `true`, если товар можно опломбировать.
+	SealingAllowed *bool `json:"sealing_allowed,omitempty"`
+
+	// WeightMax Максимальный вес экземпляра.
+	WeightMax *float32 `json:"weight_max,omitempty"`
+
+	// WeightMin Минимальный вес экземпляра.
+	WeightMin *float32 `json:"weight_min,omitempty"`
+}
+
+// FbsPostingProductExemplarSetV6RequestExemplars defines model for FbsPostingProductExemplarSetV6RequestExemplars.
+type FbsPostingProductExemplarSetV6RequestExemplars struct {
+	// ExemplarId Идентификатор экземпляра.
+	ExemplarId int64 `json:"exemplar_id"`
+
+	// Gtd Номер грузовой таможенной декларации (ГТД).
+	Gtd *string `json:"gtd,omitempty"`
+
+	// IsGtdAbsent Признак того, что не указан номер грузовой таможенной декларации (ГТД).
+	IsGtdAbsent *bool `json:"is_gtd_absent,omitempty"`
+
+	// IsRnptAbsent Признак того, что не указан регистрационный номер партии товара (РНПТ).
+	IsRnptAbsent *bool `json:"is_rnpt_absent,omitempty"`
+
+	// Marks Список контрольных идентификационных знаков (КИЗ) и других маркировок в одном экземпляре.
+	Marks *[]ExemplarsMarks `json:"marks,omitempty"`
+
+	// Rnpt Регистрационный номер партии товара (РНПТ).
+	Rnpt *string `json:"rnpt,omitempty"`
+
+	// Weight Фактический вес экземпляра.
+	Weight *float32 `json:"weight,omitempty"`
+}
+
+// FbsPostingProductExemplarSetV6RequestProducts defines model for FbsPostingProductExemplarSetV6RequestProducts.
+type FbsPostingProductExemplarSetV6RequestProducts struct {
+	// Exemplars Информация об экземплярах.
+	Exemplars []FbsPostingProductExemplarSetV6RequestExemplars `json:"exemplars"`
+
+	// ProductId Идентификатор товара в системе Ozon — SKU.
+	ProductId int64 `json:"product_id"`
+}
+
+// FbsPostingShipV4RequestPackage defines model for FbsPostingShipV4RequestPackage.
+type FbsPostingShipV4RequestPackage struct {
+	// Products Список товаров в отправлении.
+	Products []FbsPostingShipV4RequestPackageProduct `json:"products"`
+}
+
+// FbsPostingShipV4RequestPackageProduct defines model for FbsPostingShipV4RequestPackageProduct.
+type FbsPostingShipV4RequestPackageProduct struct {
+	// ProductId Идентификатор товара в системе Ozon — SKU.
+	ProductId int64 `json:"product_id"`
+
+	// Quantity Количество экземпляров.
+	Quantity int32 `json:"quantity"`
+}
+
+// FbsPostingShipV4RequestWith Дополнительная информация.
+type FbsPostingShipV4RequestWith struct {
+	// AdditionalData Чтобы получить дополнительную информацию, передайте `true`.
+	AdditionalData *bool `json:"additional_data,omitempty"`
+}
+
+// FbsPostingShipV4ResponseShipAdditionalData defines model for FbsPostingShipV4ResponseShipAdditionalData.
+type FbsPostingShipV4ResponseShipAdditionalData struct {
+	// PostingNumber Номер отправления.
+	PostingNumber *string `json:"posting_number,omitempty"`
+
+	// Products Список товаров в отправлении.
+	Products interface{} `json:"products,omitempty"`
 }
 
 // FirstMileTypeEnum Тип первой мили — `PICK_UP` или `DROP_OFF`.
@@ -690,6 +982,39 @@ type HumanTextsParam struct {
 	Value *string `json:"value,omitempty"`
 }
 
+// PostingFBSActCheckStatusResponseStatus Результат работы метода.
+type PostingFBSActCheckStatusResponseStatus struct {
+	// ActType Тип документов.
+	ActType *string `json:"act_type,omitempty"`
+
+	// AddedToAct Массив c номерами отправлений, которые добавлены в перевозку. Эти отправления нужно передать сегодня.
+	AddedToAct *[]string `json:"added_to_act,omitempty"`
+
+	// HasPostingsForNextCarriage `true`, если есть отправления, не попавшие в текущую перевозку, но которые нужно отгрузить.
+	//
+	// Если в ответе вернулось `true`, подтвердите отгрузку или создайте новый акт через метод [/v2/posting/fbs/act/create](#operation/PostingAPI_PostingFBSActCreate) и проверьте их статус. Повторяйте действия, пока в ответе не вернётся `false`.
+	HasPostingsForNextCarriage *bool `json:"has_postings_for_next_carriage,omitempty"`
+
+	// IsPartial Признак частичной перевозки. `true`, если перевозка частичная.
+	//
+	// Частичная перевозка значит, что отгрузка была разделена на несколько частей.
+	IsPartial *bool `json:"is_partial,omitempty"`
+
+	// PartialNum Порядковый номер частичной перевозки.
+	PartialNum *int64 `json:"partial_num,omitempty"`
+
+	// RemovedFromAct Массив с номерами отправлений, которые не попали в перевозку. Такие отправления нужно передавать со следующей отгрузкой.
+	RemovedFromAct *[]string `json:"removed_from_act,omitempty"`
+
+	// Status Статус запроса:
+	//  - `in_process` — документы формируются, нужно подождать.
+	//  - `ready` — документы сформированы и готовы для скачивания.
+	//  - `error` — произошла ошибка при формировании документов, запросите документы повторно.
+	//  - `cancelled` — создание документов отменено, запросите их повторно.
+	//  - `The next postings aren't ready` — произошла ошибка, отправления не включены в отгрузку. Подождите некоторое время и проверьте результат запроса. Если ошибка повторяется, обратитесь в службу поддержки.
+	Status *string `json:"status,omitempty"`
+}
+
 // PostingFinancialDataProduct defines model for PostingFinancialDataProduct.
 type PostingFinancialDataProduct struct {
 	// Actions Список акций.
@@ -799,6 +1124,30 @@ type ProductDeclaredPriceMoney struct {
 
 	// Currency Валюта.
 	Currency *string `json:"currency,omitempty"`
+}
+
+// ProductExemplar defines model for ProductExemplar.
+type ProductExemplar struct {
+	// ExemplarId Идентификатор экземпляра.
+	ExemplarId *int64 `json:"exemplar_id,omitempty"`
+
+	// Gtd Номер грузовой таможенной декларации (ГТД).
+	Gtd *string `json:"gtd,omitempty"`
+
+	// IsGtdAbsent Признак того, что не указан номер грузовой таможенной декларации (ГТД).
+	IsGtdAbsent *bool `json:"is_gtd_absent,omitempty"`
+
+	// IsRnptAbsent Признак того, что не указан регистрационный номер партии товара (РНПТ).
+	IsRnptAbsent *bool `json:"is_rnpt_absent,omitempty"`
+
+	// Marks Список контрольных идентификационных знаков (КИЗ) и других маркировок в одном экземпляре.
+	Marks *[]ExemplarMark `json:"marks,omitempty"`
+
+	// Rnpt Регистрационный номер партии товара (РНПТ).
+	Rnpt *string `json:"rnpt,omitempty"`
+
+	// Weight Фактический вес экземпляра.
+	Weight *float32 `json:"weight,omitempty"`
 }
 
 // RatingStatusEnum Статус рейтинга:
@@ -965,6 +1314,18 @@ type SellerInfoResponseSubscription struct {
 // - `PREMIUM_PLUS` — Premium Plus,
 // - `PREMIUM_PRO` — Premium Pro.
 type SellerInfoResponseSubscriptionTypeEnum string
+
+// SetPostingsResponseResult defines model for SetPostingsResponseResult.
+type SetPostingsResponseResult struct {
+	// Error Описание ошибки.
+	Error *string `json:"error,omitempty"`
+
+	// PostingNumber Номер отправления.
+	PostingNumber *string `json:"posting_number,omitempty"`
+
+	// Result Результат обработки запроса. `true`, если запрос был обработан успешно.
+	Result *bool `json:"result,omitempty"`
+}
 
 // SourceShipmentType Тип упаковки:
 // - `SHIPMENT_TYPE_UNSPECIFIED` — не указано;
@@ -1137,6 +1498,157 @@ type WarehouseTimetable struct {
 // WarehouseWorkingDaysEnum defines model for WarehouseWorkingDaysEnum.
 type WarehouseWorkingDaysEnum string
 
+// CarriageCarriageGetRequest defines model for carriageCarriageGetRequest.
+type CarriageCarriageGetRequest struct {
+	// CarriageId Идентификатор перевозки.
+	CarriageId int64 `json:"carriage_id"`
+}
+
+// CarriageCarriageGetResponse defines model for carriageCarriageGetResponse.
+type CarriageCarriageGetResponse struct {
+	// ActType Тип акта приёма-передачи. Актуально для продавцов FBS.
+	ActType *string `json:"act_type,omitempty"`
+
+	// AllBlrTraceable `true`, если отгрузка с прослеживаемыми товарами.
+	AllBlrTraceable *bool `json:"all_blr_traceable,omitempty"`
+
+	// ArrivalPassIds Список идентификаторов пропусков, оформленных на перевозку.
+	ArrivalPassIds *[]string `json:"arrival_pass_ids,omitempty"`
+
+	// AvailableActions Доступные действия с перевозкой:
+	// - `get_shipping_list` — получить лист отгрузки;
+	// - `get_act_of_acceptance` — получить акт приёма-передачи;
+	// - `get_waybill` — получить товарную накладную в формате PDF;
+	// - `set_arrival_passes` — [оформить пропуск](#operation/carriagePassCreate).
+	AvailableActions *[]string `json:"available_actions,omitempty"`
+
+	// CancelAvailability Возможность отмены.
+	CancelAvailability *CarriageCarriageGetResponseCancelAvailability `json:"cancel_availability,omitempty"`
+
+	// CarriageId Идентификатор перевозки.
+	CarriageId *int64 `json:"carriage_id,omitempty"`
+
+	// CompanyId Идентификатор продавца.
+	CompanyId *int64 `json:"company_id,omitempty"`
+
+	// ContainersCount Количество грузовых мест.
+	ContainersCount *int32 `json:"containers_count,omitempty"`
+
+	// CreatedAt Дата создания перевозки.
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+
+	// DeliveryMethodId Идентификатор метода доставки.
+	DeliveryMethodId *int64 `json:"delivery_method_id,omitempty"`
+
+	// DepartureDate Дата выполнения перевозки.
+	DepartureDate *string `json:"departure_date,omitempty"`
+
+	// FirstMileType Тип первой мили.
+	FirstMileType *string `json:"first_mile_type,omitempty"`
+
+	// HasPostingsForNextCarriage `true`, если есть отправления, которые не попали в перевозку, но нужно отгрузить.
+	HasPostingsForNextCarriage *bool `json:"has_postings_for_next_carriage,omitempty"`
+
+	// IntegrationType Тип перевозки.
+	IntegrationType *string `json:"integration_type,omitempty"`
+
+	// IsContainerLabelPrinted `true`, если вы уже напечатали этикетки на грузовые места.
+	IsContainerLabelPrinted *bool `json:"is_container_label_printed,omitempty"`
+
+	// IsEconom `true`, если отгрузка относится к товарам «Суперэконом».
+	IsEconom *bool `json:"is_econom,omitempty"`
+
+	// IsPartial `true`, если перевозка частичная.
+	IsPartial *bool `json:"is_partial,omitempty"`
+
+	// IsWaybillEnabled `true`, если доступна печать транспортной накладной.
+	IsWaybillEnabled *bool `json:"is_waybill_enabled,omitempty"`
+
+	// PartialNum Порядковый номер частичной перевозки.
+	PartialNum *int64 `json:"partial_num,omitempty"`
+
+	// RetryCount Количество повторных попыток создания перевозки.
+	RetryCount *int32 `json:"retry_count,omitempty"`
+
+	// Status Статус перевозки:
+	// - `received` — идёт приёмка,
+	// - `closed` — завершена после приёмки,
+	// - `sended` — отправлена,
+	// - `cancelled` — отменена.
+	Status *string `json:"status,omitempty"`
+
+	// TplProviderId Идентификатор провайдера доставки.
+	TplProviderId *int64 `json:"tpl_provider_id,omitempty"`
+
+	// UpdatedAt Дата последнего обновления информации о перевозке.
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+
+	// WarehouseId Идентификатор склада.
+	WarehouseId *int64 `json:"warehouse_id,omitempty"`
+}
+
+// CarriageCarriageGetResponseCancelAvailability Возможность отмены.
+type CarriageCarriageGetResponseCancelAvailability struct {
+	// IsCancelAvailable `true`, если перевозку можно отменить.
+	IsCancelAvailable *bool `json:"is_cancel_available,omitempty"`
+
+	// Reason Причина, почему перевозку нельзя отменить.
+	Reason *string `json:"reason,omitempty"`
+}
+
+// Fbsv4FbsPostingShipV4Request defines model for fbsv4FbsPostingShipV4Request.
+type Fbsv4FbsPostingShipV4Request struct {
+	// Packages Список упаковок. Каждая упаковка содержит список отправлений, на которые делится заказ.
+	Packages interface{} `json:"packages"`
+
+	// PostingNumber Номер отправления.
+	PostingNumber string `json:"posting_number"`
+
+	// With Дополнительная информация.
+	With *FbsPostingShipV4RequestWith `json:"with,omitempty"`
+}
+
+// Fbsv4FbsPostingShipV4Response defines model for fbsv4FbsPostingShipV4Response.
+type Fbsv4FbsPostingShipV4Response struct {
+	// AdditionalData Дополнительная информация об отправлениях.
+	AdditionalData interface{} `json:"additional_data,omitempty"`
+
+	// Result Результат сборки отправлений.
+	Result interface{} `json:"result,omitempty"`
+}
+
+// Fbsv4PostingProductDetailWithoutDimensions defines model for fbsv4PostingProductDetailWithoutDimensions.
+type Fbsv4PostingProductDetailWithoutDimensions struct {
+	// CurrencyCode Валюта ваших цен. Cовпадает с валютой, которая установлена в настройках личного кабинета.
+	//
+	// Возможные значения:
+	//   - `RUB` — российский рубль,
+	//   - `BYN` — белорусский рубль,
+	//   - `KZT` — тенге,
+	//   - `EUR` — евро,
+	//   - `USD` — доллар США,
+	//   - `CNY` — юань.
+	CurrencyCode *string `json:"currency_code,omitempty"`
+
+	// MandatoryMark Обязательная маркировка «Честный ЗНАК».
+	MandatoryMark interface{} `json:"mandatory_mark,omitempty"`
+
+	// Name Название товара.
+	Name *string `json:"name,omitempty"`
+
+	// OfferId Идентификатор товара в системе продавца — артикул.
+	OfferId *string `json:"offer_id,omitempty"`
+
+	// Price Цена.
+	Price *string `json:"price,omitempty"`
+
+	// Quantity Количество товара в отправлении.
+	Quantity *int32 `json:"quantity,omitempty"`
+
+	// Sku Идентификатор товара в системе Ozon — SKU.
+	Sku *int64 `json:"sku,omitempty"`
+}
+
 // GooglerpcStatus defines model for googlerpcStatus.
 type GooglerpcStatus struct {
 	// Code Код ошибки.
@@ -1192,6 +1704,61 @@ type MoneyPostingMoney struct {
 
 	// Currency Валюта.
 	Currency *string `json:"currency,omitempty"`
+}
+
+// PostingV2PostingFbsPackageLabelGetRequest defines model for posting.v2.PostingFbsPackageLabelGetRequest.
+type PostingV2PostingFbsPackageLabelGetRequest struct {
+	// TaskId Идентификатор задания из ответа метода [/v3/posting/fbs/package-label/create](#operation/PostingFbsPackageLabelCreate).
+	TaskId int64 `json:"task_id"`
+}
+
+// PostingV2PostingFbsPackageLabelGetResponse defines model for posting.v2.PostingFbsPackageLabelGetResponse.
+type PostingV2PostingFbsPackageLabelGetResponse struct {
+	// Error Ошибка, которая возникла при формировании этикеток.
+	Error *PostingV2PostingFbsPackageLabelGetResponseError `json:"error,omitempty"`
+
+	// FileUrl Ссылка на файл с этикетками.
+	FileUrl *string `json:"file_url,omitempty"`
+
+	// Status Статус задания.
+	Status *PostingV2PostingFbsPackageLabelGetResponseStatus `json:"status,omitempty"`
+}
+
+// PostingV2PostingFbsPackageLabelGetResponseError Ошибка, которая возникла при формировании этикеток.
+type PostingV2PostingFbsPackageLabelGetResponseError struct {
+	// Code Код ошибки.
+	Code *string `json:"code,omitempty"`
+
+	// Message Описание ошибки.
+	Message *string `json:"message,omitempty"`
+}
+
+// PostingV2PostingFbsPackageLabelGetResponseStatus Статус задания.
+type PostingV2PostingFbsPackageLabelGetResponseStatus struct {
+	// Code Статус формирования этикеток:
+	// - `pending` — задание в очереди;
+	// - `in_progress` — формируются;
+	// - `completed` — файл с этикетками готов;
+	// - `error` — ошибка при создании файла.
+	Code *string `json:"code,omitempty"`
+
+	// PostingsCount Количество отправлений, по которым запрашивались этикетки.
+	PostingsCount *int32 `json:"postings_count,omitempty"`
+
+	// PrintedPostingsCount Количество отправлений, по которым получилось сгенерировать этикетки.
+	PrintedPostingsCount *int32 `json:"printed_postings_count,omitempty"`
+
+	// UnprintedPostings Информация об ошибках, из-за которых не получилось сгенерировать этикетки.
+	UnprintedPostings *[]PostingV2PostingFbsPackageLabelGetResponseStatusUnprintedPostings `json:"unprinted_postings,omitempty"`
+}
+
+// PostingV2PostingFbsPackageLabelGetResponseStatusUnprintedPostings defines model for posting.v2.PostingFbsPackageLabelGetResponse.Status.UnprintedPostings.
+type PostingV2PostingFbsPackageLabelGetResponseStatusUnprintedPostings struct {
+	// Message Описание ошибки.
+	Message *string `json:"message,omitempty"`
+
+	// PostingNumber Номер отправления.
+	PostingNumber *string `json:"posting_number,omitempty"`
 }
 
 // PostingV3FbsPostingContainerCargoTypeEnum Тип грузоместа:
@@ -1525,6 +2092,29 @@ type PostingV3PostingFboListResponsePostingsProducts struct {
 
 	// Sku Идентификатор товара в системе Ozon — SKU.
 	Sku *int64 `json:"sku,omitempty"`
+}
+
+// PostingV3PostingFbsPackageLabelCreateRequest defines model for posting.v3.PostingFbsPackageLabelCreateRequest.
+type PostingV3PostingFbsPackageLabelCreateRequest struct {
+	// PostingNumbers Номера отправлений, для которых нужны этикетки.
+	PostingNumbers []string `json:"posting_numbers"`
+}
+
+// PostingV3PostingFbsPackageLabelCreateResponse defines model for posting.v3.PostingFbsPackageLabelCreateResponse.
+type PostingV3PostingFbsPackageLabelCreateResponse struct {
+	// Tasks Список заданий.
+	Tasks *[]PostingV3PostingFbsPackageLabelCreateResponseTasks `json:"tasks,omitempty"`
+}
+
+// PostingV3PostingFbsPackageLabelCreateResponseTasks defines model for posting.v3.PostingFbsPackageLabelCreateResponse.Tasks.
+type PostingV3PostingFbsPackageLabelCreateResponseTasks struct {
+	// TaskId Идентификатор задания. Получите файл с этикетками методом [/v2/posting/fbs/package-label/get](#operation/PostingFbsPackageLabelGet).
+	TaskId *int64 `json:"task_id,omitempty"`
+
+	// TaskType Тип задания:
+	// - `big_label` — для обычной этикетки;
+	// - `small_label` — для маленькой этикетки.
+	TaskType *string `json:"task_type,omitempty"`
 }
 
 // PostingV4PostingFbsListResponsePostingsContainer Информация о грузоместе.
@@ -2352,6 +2942,36 @@ type PostingV4PostingFbsUnfulfilledListResponsePostingsTarifficationStep struct 
 	TariffType *string `json:"tariff_type,omitempty"`
 }
 
+// PostingPostingFBSActCheckStatusRequest defines model for postingPostingFBSActCheckStatusRequest.
+type PostingPostingFBSActCheckStatusRequest struct {
+	// Id Номер задания на формирование документов (также идентификатор перевозки) из метода [POST /v2/posting/fbs/act/create](#operation/PostingAPI_PostingFBSActCreate).
+	Id int64 `json:"id"`
+}
+
+// PostingPostingFBSActCheckStatusResponse defines model for postingPostingFBSActCheckStatusResponse.
+type PostingPostingFBSActCheckStatusResponse struct {
+	// Result Результат работы метода.
+	Result *PostingFBSActCheckStatusResponseStatus `json:"result,omitempty"`
+}
+
+// PostingPostingFBSGetActRequest defines model for postingPostingFBSGetActRequest.
+type PostingPostingFBSGetActRequest struct {
+	// Id Номер задания на формирование документов (также идентификатор перевозки) из методов [/v2/posting/fbs/act/create](#operation/PostingAPI_PostingFBSActCreate) или [/v1/carriage/create](#operation/CarriageAPI_CarriageCreate).
+	Id int64 `json:"id"`
+}
+
+// PostingPostingFBSGetActResponse defines model for postingPostingFBSGetActResponse.
+type PostingPostingFBSGetActResponse struct {
+	// ContentType Тип файла.
+	ContentType *string `json:"content_type,omitempty"`
+
+	// FileContent Содержание файла в бинарном виде.
+	FileContent *[]byte `json:"file_content,omitempty"`
+
+	// FileName Название файла.
+	FileName *string `json:"file_name,omitempty"`
+}
+
 // Postingv3FbsPostingWithParamsExamplars Дополнительные поля, которые нужно добавить в ответ.
 type Postingv3FbsPostingWithParamsExamplars struct {
 	// AnalyticsData Добавить в ответ данные аналитики.
@@ -2404,6 +3024,53 @@ type RpcStatus struct {
 
 	// Message Описание ошибки.
 	Message *string `json:"message,omitempty"`
+}
+
+// V1CarriageApproveRequest defines model for v1CarriageApproveRequest.
+type V1CarriageApproveRequest struct {
+	// CarriageId Идентификатор отгрузки.
+	CarriageId int64 `json:"carriage_id"`
+
+	// ContainersCount Количество грузовых мест.
+	//
+	// Используйте параметр, если вы подключены к доверительной приёмке и отгружаете заказы грузовыми местами. Если вы не подключены к доверительной приёмке, пропустите его.
+	ContainersCount *int32 `json:"containers_count,omitempty"`
+}
+
+// V1CarriageApproveResponse defines model for v1CarriageApproveResponse.
+type V1CarriageApproveResponse = map[string]interface{}
+
+// V1CarriageCancelRequest defines model for v1CarriageCancelRequest.
+type V1CarriageCancelRequest struct {
+	// CarriageId Идентификатор отгрузки.
+	CarriageId int64 `json:"carriage_id"`
+}
+
+// V1CarriageCancelResponse defines model for v1CarriageCancelResponse.
+type V1CarriageCancelResponse struct {
+	// CarriageStatus Статус отгрузки.
+	CarriageStatus *string `json:"carriage_status,omitempty"`
+
+	// Error Описание ошибки.
+	Error *string `json:"error,omitempty"`
+}
+
+// V1CarriageCreateRequest defines model for v1CarriageCreateRequest.
+type V1CarriageCreateRequest struct {
+	// AllBlrTraceable `true`, если нужно создать отгрузку с прослеживаемыми товарами.
+	AllBlrTraceable *bool `json:"all_blr_traceable,omitempty"`
+
+	// DeliveryMethodId Идентификатор метода доставки.
+	DeliveryMethodId *int64 `json:"delivery_method_id,omitempty"`
+
+	// DepartureDate Дата отгрузки. По умолчанию — текущая дата.
+	DepartureDate *time.Time `json:"departure_date,omitempty"`
+}
+
+// V1CarriageCreateResponse defines model for v1CarriageCreateResponse.
+type V1CarriageCreateResponse struct {
+	// CarriageId Идентификатор перевозки.
+	CarriageId *int64 `json:"carriage_id,omitempty"`
 }
 
 // V1GetTreeResponseItem defines model for v1GetTreeResponseItem.
@@ -2460,6 +3127,44 @@ type V1SellerInfoResponse struct {
 	Subscription *SellerInfoResponseSubscription `json:"subscription,omitempty"`
 }
 
+// V1SetPostingsRequest defines model for v1SetPostingsRequest.
+type V1SetPostingsRequest struct {
+	// CarriageId Идентификатор отгрузки.
+	CarriageId int64 `json:"carriage_id"`
+
+	// PostingNumbers Актуальный список отправлений.
+	PostingNumbers []string `json:"posting_numbers"`
+}
+
+// V1SetPostingsResponse defines model for v1SetPostingsResponse.
+type V1SetPostingsResponse struct {
+	Result interface{} `json:"result,omitempty"`
+}
+
+// V2CarriageDeliveryListV2Request defines model for v2CarriageDeliveryListV2Request.
+type V2CarriageDeliveryListV2Request struct {
+	// Cursor Указатель для выборки следующих данных.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Filter Фильтр для поиска методов доставки и отгрузок.
+	Filter *CarriageDeliveryListV2RequestFilter `json:"filter,omitempty"`
+
+	// Limit Количество значений на странице.
+	Limit int64 `json:"limit"`
+}
+
+// V2CarriageDeliveryListV2Response defines model for v2CarriageDeliveryListV2Response.
+type V2CarriageDeliveryListV2Response struct {
+	// Cursor Указатель для выборки следующих данных.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// HasNext `true`, если в ответе вернулись не все методы доставки.
+	HasNext *bool `json:"has_next,omitempty"`
+
+	// Methods Список методов доставки.
+	Methods *[]CarriageDeliveryListV2ResponseDeliveryMethod `json:"methods,omitempty"`
+}
+
 // V2FboSinglePostingLegalInfo Юридическая информация о покупателе.
 type V2FboSinglePostingLegalInfo struct {
 	// CompanyName Название компании.
@@ -2470,6 +3175,93 @@ type V2FboSinglePostingLegalInfo struct {
 
 	// Kpp КПП.
 	Kpp *string `json:"kpp,omitempty"`
+}
+
+// V2PostingFBSActGetPostingsRequest defines model for v2PostingFBSActGetPostingsRequest.
+type V2PostingFBSActGetPostingsRequest struct {
+	// Id Идентификатор акта. Получите значение параметра методом [/v2/posting/fbs/act/list](#operation/PostingAPI_FbsActList) или [/v1/carriage/create](#operation/CarriageAPI_CarriageCreate).
+	Id int64 `json:"id"`
+}
+
+// V2PostingFBSActGetPostingsResponse defines model for v2PostingFBSActGetPostingsResponse.
+type V2PostingFBSActGetPostingsResponse struct {
+	// Result Информация об отправлениях.
+	Result *[]V2PostingFBSActGetPostingsResult `json:"result,omitempty"`
+}
+
+// V2PostingFBSActGetPostingsResult defines model for v2PostingFBSActGetPostingsResult.
+type V2PostingFBSActGetPostingsResult struct {
+	// CreatedAt Дата и время создания записи об отправлении.
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+
+	// Id Идентификатор акта.
+	Id *int64 `json:"id,omitempty"`
+
+	// IsBlrTraceable `true`, если товар прослеживаемый.
+	IsBlrTraceable *bool `json:"is_blr_traceable,omitempty"`
+
+	// MultiBoxQty Количество коробок, в которые упакован товар.
+	MultiBoxQty *int32 `json:"multi_box_qty,omitempty"`
+
+	// PostingNumber Номер отправления.
+	PostingNumber *string `json:"posting_number,omitempty"`
+
+	// Products Список товаров в отправлении.
+	Products *[]V2PostingFBSActGetProducts `json:"products,omitempty"`
+
+	// Scanit Штрихкод ScanIt с этикетки.
+	Scanit *string `json:"scanit,omitempty"`
+
+	// SellerError Расшифровка кода ошибки.
+	SellerError *string `json:"seller_error,omitempty"`
+
+	// Status Статус отправления.
+	Status *string `json:"status,omitempty"`
+
+	// UpdatedAt Дата и время обновления записи об отправлении.
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+}
+
+// V2PostingFBSActGetProducts defines model for v2PostingFBSActGetProducts.
+type V2PostingFBSActGetProducts struct {
+	// Name Название товара.
+	Name *string `json:"name,omitempty"`
+
+	// OfferId Идентификатор товара в системе продавца — артикул.
+	OfferId *string `json:"offer_id,omitempty"`
+
+	// Price Цена товара.
+	Price *string `json:"price,omitempty"`
+
+	// Quantity Количество товара в отправлении.
+	Quantity *int32 `json:"quantity,omitempty"`
+
+	// Sku Идентификатор товара в системе Ozon — SKU.
+	Sku *int64 `json:"sku,omitempty"`
+}
+
+// V2PostingFBSGetBarcodeRequest defines model for v2PostingFBSGetBarcodeRequest.
+type V2PostingFBSGetBarcodeRequest struct {
+	// Id Идентификатор перевозки.
+	Id int64 `json:"id"`
+}
+
+// V2PostingFBSGetBarcodeResponse defines model for v2PostingFBSGetBarcodeResponse.
+type V2PostingFBSGetBarcodeResponse struct {
+	// ContentType Тип файла.
+	ContentType *string `json:"content_type,omitempty"`
+
+	// FileContent Изображение со штрихкодом в бинарном виде.
+	FileContent *string `json:"file_content,omitempty"`
+
+	// FileName Название файла.
+	FileName *string `json:"file_name,omitempty"`
+}
+
+// V2PostingFBSGetBarcodeTextResponse defines model for v2PostingFBSGetBarcodeTextResponse.
+type V2PostingFBSGetBarcodeTextResponse struct {
+	// Result Штрихкод в текстовом виде.
+	Result *string `json:"result,omitempty"`
 }
 
 // V2WarehouseListV2Request defines model for v2WarehouseListV2Request.
@@ -3333,11 +4125,176 @@ type V3PostingProductDetail struct {
 	WeightMin *float32 `json:"weight_min,omitempty"`
 }
 
+// V5FbsPostingProductExemplarStatusV5Request defines model for v5FbsPostingProductExemplarStatusV5Request.
+type V5FbsPostingProductExemplarStatusV5Request struct {
+	// PostingNumber Номер отправления.
+	PostingNumber string `json:"posting_number"`
+}
+
+// V5FbsPostingProductExemplarStatusV5Response defines model for v5FbsPostingProductExemplarStatusV5Response.
+type V5FbsPostingProductExemplarStatusV5Response struct {
+	// PostingNumber Номер отправления.
+	PostingNumber *string `json:"posting_number,omitempty"`
+
+	// Products Список товаров.
+	Products *[]V5FbsPostingProductExemplarStatusV5ResponseProduct `json:"products,omitempty"`
+
+	// Status Статус проверки всех экземпляров и доступности сборки:
+	//  - `ship_available` — сборка доступна;
+	//  - `ship_not_available` — сборка недоступна;
+	//  - `validation_in_process` — экземпляры на проверке;
+	//  - `update_available` — редактирование информации об экземплярах доступно;
+	//  - `update_not_available` — редактирование информации об экземплярах недоступно.
+	Status *string `json:"status,omitempty"`
+}
+
+// V5FbsPostingProductExemplarStatusV5ResponseProduct defines model for v5FbsPostingProductExemplarStatusV5ResponseProduct.
+type V5FbsPostingProductExemplarStatusV5ResponseProduct struct {
+	// Exemplars Информация об экземплярах.
+	Exemplars *[]V5FbsPostingProductExemplarStatusV5ResponseProductExemplar `json:"exemplars,omitempty"`
+
+	// ProductId Идентификатор товара в системе Ozon — SKU.
+	ProductId *int64 `json:"product_id,omitempty"`
+
+	// SealingAllowed `true`, если товар можно опломбировать.
+	SealingAllowed *bool `json:"sealing_allowed,omitempty"`
+}
+
+// V5FbsPostingProductExemplarStatusV5ResponseProductExemplar defines model for v5FbsPostingProductExemplarStatusV5ResponseProductExemplar.
+type V5FbsPostingProductExemplarStatusV5ResponseProductExemplar struct {
+	// ExemplarId Идентификатор экземпляра.
+	ExemplarId *int64 `json:"exemplar_id,omitempty"`
+
+	// Gtd Номер грузовой таможенной декларации (ГТД).
+	Gtd *string `json:"gtd,omitempty"`
+
+	// GtdCheckStatus Статус проверки грузовой таможенной декларации.
+	GtdCheckStatus *string `json:"gtd_check_status,omitempty"`
+
+	// GtdErrorCodes Коды ошибок при проверке грузовой таможенной декларации.
+	GtdErrorCodes *[]string `json:"gtd_error_codes,omitempty"`
+
+	// IsGtdAbsent Признак того, что не указан номер таможенной декларации (ГТД).
+	IsGtdAbsent *bool `json:"is_gtd_absent,omitempty"`
+
+	// IsRnptAbsent Признак того, что не указан регистрационный номер партии товара (РНПТ).
+	IsRnptAbsent *bool `json:"is_rnpt_absent,omitempty"`
+
+	// Marks Список контрольных идентификационных знаков (КИЗ) и других маркировок в одном экземпляре.
+	Marks *[]V5FbsPostingProductExemplarStatusV5ResponseProductExemplarMark `json:"marks,omitempty"`
+
+	// Rnpt Регистрационный номер партии товара (РНПТ).
+	Rnpt *string `json:"rnpt,omitempty"`
+
+	// RnptCheckStatus Статус проверки регистрационного номера партии товара.
+	RnptCheckStatus *string `json:"rnpt_check_status,omitempty"`
+
+	// RnptErrorCodes Коды ошибок при проверке регистрационного номера партии товара.
+	RnptErrorCodes *[]string `json:"rnpt_error_codes,omitempty"`
+
+	// Weight Фактический вес экземпляра.
+	Weight *float32 `json:"weight,omitempty"`
+
+	// WeightCheckStatus Статус проверки фактического веса.
+	WeightCheckStatus *string `json:"weight_check_status,omitempty"`
+
+	// WeightErrorCodes Коды ошибок при проверке фактического веса.
+	WeightErrorCodes *[]string `json:"weight_error_codes,omitempty"`
+}
+
+// V5FbsPostingProductExemplarStatusV5ResponseProductExemplarMark defines model for v5FbsPostingProductExemplarStatusV5ResponseProductExemplarMark.
+type V5FbsPostingProductExemplarStatusV5ResponseProductExemplarMark struct {
+	// CheckStatus Статус проверки:
+	//   - `processing` — на проверке;
+	//   - `failed` — система не успела обработать запрос;
+	//   - `passed` — заказ готов к сборке.
+	CheckStatus *string `json:"check_status,omitempty"`
+
+	// ErrorCodes Ошибки при проверке контрольных идентификационных знаков (КИЗ) и других маркировок.
+	ErrorCodes *[]string `json:"error_codes,omitempty"`
+
+	// Mark Значение кода маркировки.
+	Mark *string `json:"mark,omitempty"`
+
+	// MarkType Тип кода маркировки:
+	// - `mandatory_mark` — обязательная маркировка «Честный ЗНАК»;
+	// - `jw_uin` — уникальный идентификационный номер (УИН) ювелирного изделия;
+	// - `imei` — IMEI мобильного устройства;
+	// - `seal_number` — номер пломбы.
+	MarkType *string `json:"mark_type,omitempty"`
+}
+
+// V6FbsPostingProductExemplarCreateOrGetV6Request defines model for v6FbsPostingProductExemplarCreateOrGetV6Request.
+type V6FbsPostingProductExemplarCreateOrGetV6Request struct {
+	// PostingNumber Номер отправления.
+	PostingNumber string `json:"posting_number"`
+}
+
+// V6FbsPostingProductExemplarCreateOrGetV6Response defines model for v6FbsPostingProductExemplarCreateOrGetV6Response.
+type V6FbsPostingProductExemplarCreateOrGetV6Response struct {
+	// MultiBoxQty Количество коробок, в которые упакован товар.
+	MultiBoxQty *int32 `json:"multi_box_qty,omitempty"`
+
+	// PostingNumber Номер отправления.
+	PostingNumber *string `json:"posting_number,omitempty"`
+
+	// Products Список товаров.
+	Products *[]FbsPostingProductExemplarCreateOrGetV6ResponseProduct `json:"products,omitempty"`
+}
+
+// V6FbsPostingProductExemplarSetV6Request defines model for v6FbsPostingProductExemplarSetV6Request.
+type V6FbsPostingProductExemplarSetV6Request struct {
+	// MultiBoxQty Количество коробок, в которые упакован товар.
+	MultiBoxQty *int32 `json:"multi_box_qty,omitempty"`
+
+	// PostingNumber Номер отправления.
+	PostingNumber string `json:"posting_number"`
+
+	// Products Список товаров.
+	Products []FbsPostingProductExemplarSetV6RequestProducts `json:"products"`
+}
+
 // ApiKey defines model for Api-Key.
 type ApiKey = string
 
 // ClientId defines model for Client-Id.
 type ClientId = string
+
+// CarriageAPICarriageApproveParams defines parameters for CarriageAPICarriageApprove.
+type CarriageAPICarriageApproveParams struct {
+	// ClientId Идентификатор клиента.
+	ClientId ClientId `json:"Client-Id"`
+
+	// ApiKey API-ключ.
+	ApiKey ApiKey `json:"Api-Key"`
+}
+
+// CarriageAPICarriageCancelParams defines parameters for CarriageAPICarriageCancel.
+type CarriageAPICarriageCancelParams struct {
+	// ClientId Идентификатор клиента.
+	ClientId ClientId `json:"Client-Id"`
+
+	// ApiKey API-ключ.
+	ApiKey ApiKey `json:"Api-Key"`
+}
+
+// CarriageAPICarriageCreateParams defines parameters for CarriageAPICarriageCreate.
+type CarriageAPICarriageCreateParams struct {
+	// ClientId Идентификатор клиента.
+	ClientId ClientId `json:"Client-Id"`
+
+	// ApiKey API-ключ.
+	ApiKey ApiKey `json:"Api-Key"`
+}
+
+// CarriageAPISetPostingsParams defines parameters for CarriageAPISetPostings.
+type CarriageAPISetPostingsParams struct {
+	// ClientId Идентификатор клиента.
+	ClientId ClientId `json:"Client-Id"`
+
+	// ApiKey API-ключ.
+	ApiKey ApiKey `json:"Api-Key"`
+}
 
 // AccessAPIRolesByTokenParams defines parameters for AccessAPIRolesByToken.
 type AccessAPIRolesByTokenParams struct {
@@ -3350,6 +4307,69 @@ type AccessAPIRolesByTokenParams struct {
 
 // SellerAPISellerInfoParams defines parameters for SellerAPISellerInfo.
 type SellerAPISellerInfoParams struct {
+	// ClientId Идентификатор клиента.
+	ClientId ClientId `json:"Client-Id"`
+
+	// ApiKey API-ключ.
+	ApiKey ApiKey `json:"Api-Key"`
+}
+
+// CarriageAPICarriageDeliveryListV2Params defines parameters for CarriageAPICarriageDeliveryListV2.
+type CarriageAPICarriageDeliveryListV2Params struct {
+	// ClientId Идентификатор клиента.
+	ClientId ClientId `json:"Client-Id"`
+
+	// ApiKey API-ключ.
+	ApiKey ApiKey `json:"Api-Key"`
+}
+
+// PostingAPIPostingFBSActCheckStatusParams defines parameters for PostingAPIPostingFBSActCheckStatus.
+type PostingAPIPostingFBSActCheckStatusParams struct {
+	// ClientId Идентификатор клиента.
+	ClientId ClientId `json:"Client-Id"`
+
+	// ApiKey API-ключ.
+	ApiKey ApiKey `json:"Api-Key"`
+}
+
+// PostingAPIPostingFBSGetBarcodeParams defines parameters for PostingAPIPostingFBSGetBarcode.
+type PostingAPIPostingFBSGetBarcodeParams struct {
+	// ClientId Идентификатор клиента.
+	ClientId ClientId `json:"Client-Id"`
+
+	// ApiKey API-ключ.
+	ApiKey ApiKey `json:"Api-Key"`
+}
+
+// PostingAPIPostingFBSGetBarcodeTextParams defines parameters for PostingAPIPostingFBSGetBarcodeText.
+type PostingAPIPostingFBSGetBarcodeTextParams struct {
+	// ClientId Идентификатор клиента.
+	ClientId ClientId `json:"Client-Id"`
+
+	// ApiKey API-ключ.
+	ApiKey ApiKey `json:"Api-Key"`
+}
+
+// PostingAPIPostingFBSGetActParams defines parameters for PostingAPIPostingFBSGetAct.
+type PostingAPIPostingFBSGetActParams struct {
+	// ClientId Идентификатор клиента.
+	ClientId ClientId `json:"Client-Id"`
+
+	// ApiKey API-ключ.
+	ApiKey ApiKey `json:"Api-Key"`
+}
+
+// PostingAPIActPostingListParams defines parameters for PostingAPIActPostingList.
+type PostingAPIActPostingListParams struct {
+	// ClientId Идентификатор клиента.
+	ClientId ClientId `json:"Client-Id"`
+
+	// ApiKey API-ключ.
+	ApiKey ApiKey `json:"Api-Key"`
+}
+
+// PostingFbsPackageLabelGetParams defines parameters for PostingFbsPackageLabelGet.
+type PostingFbsPackageLabelGetParams struct {
 	// ClientId Идентификатор клиента.
 	ClientId ClientId `json:"Client-Id"`
 
@@ -3384,8 +4404,26 @@ type PostingAPIGetFbsPostingV3Params struct {
 	ApiKey ApiKey `json:"Api-Key"`
 }
 
+// PostingFbsPackageLabelCreateParams defines parameters for PostingFbsPackageLabelCreate.
+type PostingFbsPackageLabelCreateParams struct {
+	// ClientId Идентификатор клиента.
+	ClientId ClientId `json:"Client-Id"`
+
+	// ApiKey API-ключ.
+	ApiKey ApiKey `json:"Api-Key"`
+}
+
 // ProductAPIGetProductInfoListParams defines parameters for ProductAPIGetProductInfoList.
 type ProductAPIGetProductInfoListParams struct {
+	// ClientId Идентификатор клиента.
+	ClientId ClientId `json:"Client-Id"`
+
+	// ApiKey API-ключ.
+	ApiKey ApiKey `json:"Api-Key"`
+}
+
+// PostingAPIShipFbsPostingV4Params defines parameters for PostingAPIShipFbsPostingV4.
+type PostingAPIShipFbsPostingV4Params struct {
 	// ClientId Идентификатор клиента.
 	ClientId ClientId `json:"Client-Id"`
 
@@ -3402,6 +4440,69 @@ type PostingFbsUnfulfilledListParams struct {
 	ApiKey ApiKey `json:"Api-Key"`
 }
 
+// PostingAPIFbsPostingProductExemplarStatusV5Params defines parameters for PostingAPIFbsPostingProductExemplarStatusV5.
+type PostingAPIFbsPostingProductExemplarStatusV5Params struct {
+	// ClientId Идентификатор клиента.
+	ClientId ClientId `json:"Client-Id"`
+
+	// ApiKey API-ключ.
+	ApiKey ApiKey `json:"Api-Key"`
+}
+
+// PostingAPIFbsPostingProductExemplarCreateOrGetV6Params defines parameters for PostingAPIFbsPostingProductExemplarCreateOrGetV6.
+type PostingAPIFbsPostingProductExemplarCreateOrGetV6Params struct {
+	// ClientId Идентификатор клиента.
+	ClientId ClientId `json:"Client-Id"`
+
+	// ApiKey API-ключ.
+	ApiKey ApiKey `json:"Api-Key"`
+}
+
+// PostingAPIFbsPostingProductExemplarSetV6Params defines parameters for PostingAPIFbsPostingProductExemplarSetV6.
+type PostingAPIFbsPostingProductExemplarSetV6Params struct {
+	// ClientId Идентификатор клиента.
+	ClientId ClientId `json:"Client-Id"`
+
+	// ApiKey API-ключ.
+	ApiKey ApiKey `json:"Api-Key"`
+}
+
+// CarriageAPICarriageApproveJSONRequestBody defines body for CarriageAPICarriageApprove for application/json ContentType.
+type CarriageAPICarriageApproveJSONRequestBody = V1CarriageApproveRequest
+
+// CarriageAPICarriageCancelJSONRequestBody defines body for CarriageAPICarriageCancel for application/json ContentType.
+type CarriageAPICarriageCancelJSONRequestBody = V1CarriageCancelRequest
+
+// CarriageAPICarriageCreateJSONRequestBody defines body for CarriageAPICarriageCreate for application/json ContentType.
+type CarriageAPICarriageCreateJSONRequestBody = V1CarriageCreateRequest
+
+// CarriageGetJSONRequestBody defines body for CarriageGet for application/json ContentType.
+type CarriageGetJSONRequestBody = CarriageCarriageGetRequest
+
+// CarriageAPISetPostingsJSONRequestBody defines body for CarriageAPISetPostings for application/json ContentType.
+type CarriageAPISetPostingsJSONRequestBody = V1SetPostingsRequest
+
+// CarriageAPICarriageDeliveryListV2JSONRequestBody defines body for CarriageAPICarriageDeliveryListV2 for application/json ContentType.
+type CarriageAPICarriageDeliveryListV2JSONRequestBody = V2CarriageDeliveryListV2Request
+
+// PostingAPIPostingFBSActCheckStatusJSONRequestBody defines body for PostingAPIPostingFBSActCheckStatus for application/json ContentType.
+type PostingAPIPostingFBSActCheckStatusJSONRequestBody = PostingPostingFBSActCheckStatusRequest
+
+// PostingAPIPostingFBSGetBarcodeJSONRequestBody defines body for PostingAPIPostingFBSGetBarcode for application/json ContentType.
+type PostingAPIPostingFBSGetBarcodeJSONRequestBody = V2PostingFBSGetBarcodeRequest
+
+// PostingAPIPostingFBSGetBarcodeTextJSONRequestBody defines body for PostingAPIPostingFBSGetBarcodeText for application/json ContentType.
+type PostingAPIPostingFBSGetBarcodeTextJSONRequestBody = V2PostingFBSGetBarcodeRequest
+
+// PostingAPIPostingFBSGetActJSONRequestBody defines body for PostingAPIPostingFBSGetAct for application/json ContentType.
+type PostingAPIPostingFBSGetActJSONRequestBody = PostingPostingFBSGetActRequest
+
+// PostingAPIActPostingListJSONRequestBody defines body for PostingAPIActPostingList for application/json ContentType.
+type PostingAPIActPostingListJSONRequestBody = V2PostingFBSActGetPostingsRequest
+
+// PostingFbsPackageLabelGetJSONRequestBody defines body for PostingFbsPackageLabelGet for application/json ContentType.
+type PostingFbsPackageLabelGetJSONRequestBody = PostingV2PostingFbsPackageLabelGetRequest
+
 // WarehouseListV2JSONRequestBody defines body for WarehouseListV2 for application/json ContentType.
 type WarehouseListV2JSONRequestBody = V2WarehouseListV2Request
 
@@ -3411,11 +4512,26 @@ type PostingFboListJSONRequestBody = PostingV3PostingFboListRequest
 // PostingAPIGetFbsPostingV3JSONRequestBody defines body for PostingAPIGetFbsPostingV3 for application/json ContentType.
 type PostingAPIGetFbsPostingV3JSONRequestBody = Postingv3GetFbsPostingRequest
 
+// PostingFbsPackageLabelCreateJSONRequestBody defines body for PostingFbsPackageLabelCreate for application/json ContentType.
+type PostingFbsPackageLabelCreateJSONRequestBody = PostingV3PostingFbsPackageLabelCreateRequest
+
 // ProductAPIGetProductInfoListJSONRequestBody defines body for ProductAPIGetProductInfoList for application/json ContentType.
 type ProductAPIGetProductInfoListJSONRequestBody = V3GetProductInfoListRequest
 
+// PostingAPIShipFbsPostingV4JSONRequestBody defines body for PostingAPIShipFbsPostingV4 for application/json ContentType.
+type PostingAPIShipFbsPostingV4JSONRequestBody = Fbsv4FbsPostingShipV4Request
+
 // PostingFbsUnfulfilledListJSONRequestBody defines body for PostingFbsUnfulfilledList for application/json ContentType.
 type PostingFbsUnfulfilledListJSONRequestBody = PostingV4PostingFbsUnfulfilledListRequest
+
+// PostingAPIFbsPostingProductExemplarStatusV5JSONRequestBody defines body for PostingAPIFbsPostingProductExemplarStatusV5 for application/json ContentType.
+type PostingAPIFbsPostingProductExemplarStatusV5JSONRequestBody = V5FbsPostingProductExemplarStatusV5Request
+
+// PostingAPIFbsPostingProductExemplarCreateOrGetV6JSONRequestBody defines body for PostingAPIFbsPostingProductExemplarCreateOrGetV6 for application/json ContentType.
+type PostingAPIFbsPostingProductExemplarCreateOrGetV6JSONRequestBody = V6FbsPostingProductExemplarCreateOrGetV6Request
+
+// PostingAPIFbsPostingProductExemplarSetV6JSONRequestBody defines body for PostingAPIFbsPostingProductExemplarSetV6 for application/json ContentType.
+type PostingAPIFbsPostingProductExemplarSetV6JSONRequestBody = V6FbsPostingProductExemplarSetV6Request
 
 // RequestEditorFn is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -3491,6 +4607,142 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 // The interface specification for the client above.
 type ClientInterface interface {
 
+	// CarriageAPICarriageApproveWithBody Подтверждение отгрузки
+	//
+	//
+	// Используйте метод, чтобы подтвердить отгрузку после её создания.
+	// После подтверждения отгрузка перейдёт в статус «Сформирована».
+	//
+	// После подтверждения отгрузки вы можете получить лист отгрузки методом [/v2/posting/fbs/act/get-pdf](#operation/PostingAPI_PostingFBSGetAct) и штрихкод отгрузки методом [/v2/posting/fbs/act/get-barcode](#operation/PostingAPI_PostingFBSGetBarcode).
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /v1/carriage/approve (the `CarriageAPICarriageApprove` operationId).
+	CarriageAPICarriageApproveWithBody(ctx context.Context, params *CarriageAPICarriageApproveParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CarriageAPICarriageApprove Подтверждение отгрузки
+	//
+	//
+	// Используйте метод, чтобы подтвердить отгрузку после её создания.
+	// После подтверждения отгрузка перейдёт в статус «Сформирована».
+	//
+	// После подтверждения отгрузки вы можете получить лист отгрузки методом [/v2/posting/fbs/act/get-pdf](#operation/PostingAPI_PostingFBSGetAct) и штрихкод отгрузки методом [/v2/posting/fbs/act/get-barcode](#operation/PostingAPI_PostingFBSGetBarcode).
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /v1/carriage/approve (the `CarriageAPICarriageApprove` operationId).
+	CarriageAPICarriageApprove(ctx context.Context, params *CarriageAPICarriageApproveParams, body CarriageAPICarriageApproveJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CarriageAPICarriageCancelWithBody Удаление отгрузки
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /v1/carriage/cancel (the `CarriageAPICarriageCancel` operationId).
+	CarriageAPICarriageCancelWithBody(ctx context.Context, params *CarriageAPICarriageCancelParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CarriageAPICarriageCancel Удаление отгрузки
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /v1/carriage/cancel (the `CarriageAPICarriageCancel` operationId).
+	CarriageAPICarriageCancel(ctx context.Context, params *CarriageAPICarriageCancelParams, body CarriageAPICarriageCancelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CarriageAPICarriageCreateWithBody Создание отгрузки
+	//
+	// <aside class="warning">
+	// Перед началом работы проверьте возможность создания отгрузки методом <a href="#operation/CarriageAPI_CarriageDeliveryListV2">/v2/carriage/delivery/list</a>. <br> Если <code>methods.carriages.available_actions = create</code>, вы можете создать отгрузку.
+	//
+	// Если вы продавец не из России, обратите внимание на доступность <a href="https://seller-edu.ozon.ru/fbs/ozon-logistika/sobrat-zakazy#шаг-2-сформируите-отгрузку">рекомендованного времени</a> в личном кабинете.
+	// </aside>
+	//
+	// Используйте метод для создания первой FBS отгрузки. В неё попадут все отправления со статусом «Готов к отгрузке». Созданная отгрузка получит статус `new`.
+	//
+	// Для отгрузки в статусе `new` можно перезаписать состав отправлений методом [/v1/carriage/set-postings](#operation/CarriageAPI_SetPostings). Если из отгрузки исключить часть отправлений, они могут попасть в следующую отгрузку.
+	//
+	// Чтобы получить список отправлений в отгрузке, используйте метод [/v2/posting/fbs/act/get-postings](#operation/PostingAPI_ActPostingList).
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /v1/carriage/create (the `CarriageAPICarriageCreate` operationId).
+	CarriageAPICarriageCreateWithBody(ctx context.Context, params *CarriageAPICarriageCreateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CarriageAPICarriageCreate Создание отгрузки
+	//
+	// <aside class="warning">
+	// Перед началом работы проверьте возможность создания отгрузки методом <a href="#operation/CarriageAPI_CarriageDeliveryListV2">/v2/carriage/delivery/list</a>. <br> Если <code>methods.carriages.available_actions = create</code>, вы можете создать отгрузку.
+	//
+	// Если вы продавец не из России, обратите внимание на доступность <a href="https://seller-edu.ozon.ru/fbs/ozon-logistika/sobrat-zakazy#шаг-2-сформируите-отгрузку">рекомендованного времени</a> в личном кабинете.
+	// </aside>
+	//
+	// Используйте метод для создания первой FBS отгрузки. В неё попадут все отправления со статусом «Готов к отгрузке». Созданная отгрузка получит статус `new`.
+	//
+	// Для отгрузки в статусе `new` можно перезаписать состав отправлений методом [/v1/carriage/set-postings](#operation/CarriageAPI_SetPostings). Если из отгрузки исключить часть отправлений, они могут попасть в следующую отгрузку.
+	//
+	// Чтобы получить список отправлений в отгрузке, используйте метод [/v2/posting/fbs/act/get-postings](#operation/PostingAPI_ActPostingList).
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /v1/carriage/create (the `CarriageAPICarriageCreate` operationId).
+	CarriageAPICarriageCreate(ctx context.Context, params *CarriageAPICarriageCreateParams, body CarriageAPICarriageCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CarriageGetWithBody Информация о перевозке
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /v1/carriage/get (the `CarriageGet` operationId).
+	CarriageGetWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CarriageGet Информация о перевозке
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /v1/carriage/get (the `CarriageGet` operationId).
+	CarriageGet(ctx context.Context, body CarriageGetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CarriageAPISetPostingsWithBody Изменение состава отгрузки
+	//
+	//
+	// <aside class="warning">
+	// Метод недоступен для продавцов из СНГ. <br>
+	//
+	// Полностью перезаписывает список заказов в отгрузке. Передавайте только те заказы, которые находятся в статусе <code>Ожидает отгрузки</code>, и вы готовы их отгрузить.
+	//
+	// Менять состав можно только у отгрузок со статусом `new`.
+	// </aside>
+	//
+	// <br>
+	//
+	// <aside class="notice">
+	// Чтобы вернуться к списку заказов, удалите отгрузку с помощью метода <a href="#operation/CarriageAPI_CarriageCancel">/v1/carriage/cancel</a>, и создайте новую.
+	// </aside>
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /v1/carriage/set-postings (the `CarriageAPISetPostings` operationId).
+	CarriageAPISetPostingsWithBody(ctx context.Context, params *CarriageAPISetPostingsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CarriageAPISetPostings Изменение состава отгрузки
+	//
+	//
+	// <aside class="warning">
+	// Метод недоступен для продавцов из СНГ. <br>
+	//
+	// Полностью перезаписывает список заказов в отгрузке. Передавайте только те заказы, которые находятся в статусе <code>Ожидает отгрузки</code>, и вы готовы их отгрузить.
+	//
+	// Менять состав можно только у отгрузок со статусом `new`.
+	// </aside>
+	//
+	// <br>
+	//
+	// <aside class="notice">
+	// Чтобы вернуться к списку заказов, удалите отгрузку с помощью метода <a href="#operation/CarriageAPI_CarriageCancel">/v1/carriage/cancel</a>, и создайте новую.
+	// </aside>
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /v1/carriage/set-postings (the `CarriageAPISetPostings` operationId).
+	CarriageAPISetPostings(ctx context.Context, params *CarriageAPISetPostingsParams, body CarriageAPISetPostingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// AccessAPIRolesByToken Получить список ролей и методов по API-ключу
 	//
 	// Метод для получения информации и ролях и методах, привязанных к API-ключу.
@@ -3502,6 +4754,146 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /v1/seller/info (the `SellerAPISellerInfo` operationId).
 	SellerAPISellerInfo(ctx context.Context, params *SellerAPISellerInfoParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CarriageAPICarriageDeliveryListV2WithBody Список методов доставки и отгрузок
+	//
+	// <aside class="warning">
+	//   Метод не возвращает информацию по методам доставки, у которых нет отправлений.
+	// </aside>
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /v2/carriage/delivery/list (the `CarriageAPICarriageDeliveryListV2` operationId).
+	CarriageAPICarriageDeliveryListV2WithBody(ctx context.Context, params *CarriageAPICarriageDeliveryListV2Params, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CarriageAPICarriageDeliveryListV2 Список методов доставки и отгрузок
+	//
+	// <aside class="warning">
+	//   Метод не возвращает информацию по методам доставки, у которых нет отправлений.
+	// </aside>
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /v2/carriage/delivery/list (the `CarriageAPICarriageDeliveryListV2` operationId).
+	CarriageAPICarriageDeliveryListV2(ctx context.Context, params *CarriageAPICarriageDeliveryListV2Params, body CarriageAPICarriageDeliveryListV2JSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostingAPIPostingFBSActCheckStatusWithBody Статус отгрузки и документов
+	//
+	// Возвращает статус формирования штрихкода для отгрузки и документов:
+	// - для продавцов из России — транспортной накладной и листа отгрузки;
+	// - для продавцов из СНГ — транспортной накладной и акта приёма-передачи.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /v2/posting/fbs/act/check-status (the `PostingAPIPostingFBSActCheckStatus` operationId).
+	PostingAPIPostingFBSActCheckStatusWithBody(ctx context.Context, params *PostingAPIPostingFBSActCheckStatusParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostingAPIPostingFBSActCheckStatus Статус отгрузки и документов
+	//
+	// Возвращает статус формирования штрихкода для отгрузки и документов:
+	// - для продавцов из России — транспортной накладной и листа отгрузки;
+	// - для продавцов из СНГ — транспортной накладной и акта приёма-передачи.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /v2/posting/fbs/act/check-status (the `PostingAPIPostingFBSActCheckStatus` operationId).
+	PostingAPIPostingFBSActCheckStatus(ctx context.Context, params *PostingAPIPostingFBSActCheckStatusParams, body PostingAPIPostingFBSActCheckStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostingAPIPostingFBSGetBarcodeWithBody Штрихкод для отгрузки отправления
+	//
+	// Метод для получения штрихкода, который нужно показать в пункте выдачи или сортировочном центре при отгрузке отправления.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /v2/posting/fbs/act/get-barcode (the `PostingAPIPostingFBSGetBarcode` operationId).
+	PostingAPIPostingFBSGetBarcodeWithBody(ctx context.Context, params *PostingAPIPostingFBSGetBarcodeParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostingAPIPostingFBSGetBarcode Штрихкод для отгрузки отправления
+	//
+	// Метод для получения штрихкода, который нужно показать в пункте выдачи или сортировочном центре при отгрузке отправления.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /v2/posting/fbs/act/get-barcode (the `PostingAPIPostingFBSGetBarcode` operationId).
+	PostingAPIPostingFBSGetBarcode(ctx context.Context, params *PostingAPIPostingFBSGetBarcodeParams, body PostingAPIPostingFBSGetBarcodeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostingAPIPostingFBSGetBarcodeTextWithBody Значение штрихкода для отгрузки отправления
+	//
+	// Используйте этот метод, чтобы получить штрихкод из ответа
+	// [/v2/posting/fbs/act/get-barcode](#operation/PostingAPI_PostingFBSGetBarcode) в текстовом виде.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /v2/posting/fbs/act/get-barcode/text (the `PostingAPIPostingFBSGetBarcodeText` operationId).
+	PostingAPIPostingFBSGetBarcodeTextWithBody(ctx context.Context, params *PostingAPIPostingFBSGetBarcodeTextParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostingAPIPostingFBSGetBarcodeText Значение штрихкода для отгрузки отправления
+	//
+	// Используйте этот метод, чтобы получить штрихкод из ответа
+	// [/v2/posting/fbs/act/get-barcode](#operation/PostingAPI_PostingFBSGetBarcode) в текстовом виде.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /v2/posting/fbs/act/get-barcode/text (the `PostingAPIPostingFBSGetBarcodeText` operationId).
+	PostingAPIPostingFBSGetBarcodeText(ctx context.Context, params *PostingAPIPostingFBSGetBarcodeTextParams, body PostingAPIPostingFBSGetBarcodeTextJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostingAPIPostingFBSGetActWithBody Получить PDF c документами
+	//
+	// С помощью метода можно получить:
+	// - продацам из России — лист отгрузки и транспортную накладную;
+	// - продавцам из СНГ — акт и транспортную накладную.
+	//
+	// Получите список доступных документов для отгрузки в параметре `available_actions` метода [/v1/carriage/get](#operation/CarriageGet).
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /v2/posting/fbs/act/get-pdf (the `PostingAPIPostingFBSGetAct` operationId).
+	PostingAPIPostingFBSGetActWithBody(ctx context.Context, params *PostingAPIPostingFBSGetActParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostingAPIPostingFBSGetAct Получить PDF c документами
+	//
+	// С помощью метода можно получить:
+	// - продацам из России — лист отгрузки и транспортную накладную;
+	// - продавцам из СНГ — акт и транспортную накладную.
+	//
+	// Получите список доступных документов для отгрузки в параметре `available_actions` метода [/v1/carriage/get](#operation/CarriageGet).
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /v2/posting/fbs/act/get-pdf (the `PostingAPIPostingFBSGetAct` operationId).
+	PostingAPIPostingFBSGetAct(ctx context.Context, params *PostingAPIPostingFBSGetActParams, body PostingAPIPostingFBSGetActJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostingAPIActPostingListWithBody Список отправлений в акте
+	//
+	// Возвращает список отправлений в акте по его идентификатору.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /v2/posting/fbs/act/get-postings (the `PostingAPIActPostingList` operationId).
+	PostingAPIActPostingListWithBody(ctx context.Context, params *PostingAPIActPostingListParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostingAPIActPostingList Список отправлений в акте
+	//
+	// Возвращает список отправлений в акте по его идентификатору.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /v2/posting/fbs/act/get-postings (the `PostingAPIActPostingList` operationId).
+	PostingAPIActPostingList(ctx context.Context, params *PostingAPIActPostingListParams, body PostingAPIActPostingListJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostingFbsPackageLabelGetWithBody Получить файл с этикетками
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /v2/posting/fbs/package-label/get (the `PostingFbsPackageLabelGet` operationId).
+	PostingFbsPackageLabelGetWithBody(ctx context.Context, params *PostingFbsPackageLabelGetParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostingFbsPackageLabelGet Получить файл с этикетками
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /v2/posting/fbs/package-label/get (the `PostingFbsPackageLabelGet` operationId).
+	PostingFbsPackageLabelGet(ctx context.Context, params *PostingFbsPackageLabelGetParams, body PostingFbsPackageLabelGetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// WarehouseListV2WithBody Список складов
 	//
@@ -3563,6 +4955,38 @@ type ClientInterface interface {
 	// Corresponds with POST /v3/posting/fbs/get (the `PostingAPIGetFbsPostingV3` operationId).
 	PostingAPIGetFbsPostingV3(ctx context.Context, params *PostingAPIGetFbsPostingV3Params, body PostingAPIGetFbsPostingV3JSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// PostingFbsPackageLabelCreateWithBody Создать задание на формирование этикеток
+	//
+	// <aside class="warning">
+	// Если вы работаете по схеме rFBS или rFBS Express, изучите процесс печати этикетки в <a href="https://seller-edu.ozon.ru/rfbs/scheme-of-work">Базе знаний продавца</a>.
+	// </aside>
+	//
+	// Создаёт задания на асинхронное формирование этикеток для отправлений в статусе «Ожидает отгрузки» — `awaiting_deliver`.
+	// Рекомендуем запрашивать этикетки через 45–60 секунд после сборки заказа.
+	//
+	// Чтобы получить созданные этикетки, используйте [/v2/posting/fbs/package-label/get](#operation/PostingFbsPackageLabelGet).
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /v3/posting/fbs/package-label/create (the `PostingFbsPackageLabelCreate` operationId).
+	PostingFbsPackageLabelCreateWithBody(ctx context.Context, params *PostingFbsPackageLabelCreateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostingFbsPackageLabelCreate Создать задание на формирование этикеток
+	//
+	// <aside class="warning">
+	// Если вы работаете по схеме rFBS или rFBS Express, изучите процесс печати этикетки в <a href="https://seller-edu.ozon.ru/rfbs/scheme-of-work">Базе знаний продавца</a>.
+	// </aside>
+	//
+	// Создаёт задания на асинхронное формирование этикеток для отправлений в статусе «Ожидает отгрузки» — `awaiting_deliver`.
+	// Рекомендуем запрашивать этикетки через 45–60 секунд после сборки заказа.
+	//
+	// Чтобы получить созданные этикетки, используйте [/v2/posting/fbs/package-label/get](#operation/PostingFbsPackageLabelGet).
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /v3/posting/fbs/package-label/create (the `PostingFbsPackageLabelCreate` operationId).
+	PostingFbsPackageLabelCreate(ctx context.Context, params *PostingFbsPackageLabelCreateParams, body PostingFbsPackageLabelCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ProductAPIGetProductInfoListWithBody Получить информацию о товарах по идентификаторам
 	//
 	//
@@ -3590,6 +5014,140 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /v3/product/info/list (the `ProductAPIGetProductInfoList` operationId).
 	ProductAPIGetProductInfoList(ctx context.Context, params *ProductAPIGetProductInfoListParams, body ProductAPIGetProductInfoListJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostingAPIShipFbsPostingV4WithBody Собрать заказ (версия 4)
+	//
+	// <aside class="warning">
+	// Ответ с кодом <tt>200</tt> не гарантирует успешную сборку заказа. Используйте метод <a href="#operation/PostingAPI_GetFbsPostingV3">/v3/posting/fbs/get</a>, чтобы проверить, что заказ собран. Если в ответе указан <tt>result.substatus = ship_failed</tt>, повторите сборку заказа.
+	// </aside>
+	//
+	// Делит заказ на отправления и переводит его в статус `awaiting_deliver`.
+	//
+	// Каждый элемент в `packages` может содержать несколько элементов `products` или отправлений.
+	// Каждый элемент в `products` — это товар, включённый в данное отправление.
+	//
+	// Разделить заказ нужно, если:
+	//   - товары не помещаются в одну упаковку,
+	//   - товары нельзя сложить в одну упаковку.
+	//
+	// Чтобы разделить заказ, передайте в массиве `packages` несколько объектов.
+	//
+	// Пример запроса, когда заказ разделять не нужно: 2 товара будут в одном отправлении.
+	// ```
+	// {
+	//   "packages": [
+	//     {
+	//       "products": [
+	//         {
+	//           "product_id": 185479045,
+	//           "quantity": 2
+	//         }
+	//       ]
+	//     }
+	//   ],
+	//   "posting_number": "89491381-0072-1"
+	// }
+	// ```
+	//
+	// Пример запроса, когда заказ нужно разделить: каждый товар будет в отдельном отправлении.
+	//
+	// ```
+	// {
+	//   "packages": [
+	//     {
+	//       "products": [
+	//         {
+	//           "product_id": 185479045,
+	//           "quantity": 1
+	//         }
+	//       ]
+	//     },
+	//     {
+	//       "products": [
+	//         {
+	//           "product_id": 185479045,
+	//           "quantity": 1
+	//         }
+	//       ]
+	//     }
+	//   ],
+	//   "posting_number": "89491381-0072-1"
+	// }
+	// ```
+	//
+	// Чтобы внести информацию по экземплярам, используйте метод [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6).
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /v4/posting/fbs/ship (the `PostingAPIShipFbsPostingV4` operationId).
+	PostingAPIShipFbsPostingV4WithBody(ctx context.Context, params *PostingAPIShipFbsPostingV4Params, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostingAPIShipFbsPostingV4 Собрать заказ (версия 4)
+	//
+	// <aside class="warning">
+	// Ответ с кодом <tt>200</tt> не гарантирует успешную сборку заказа. Используйте метод <a href="#operation/PostingAPI_GetFbsPostingV3">/v3/posting/fbs/get</a>, чтобы проверить, что заказ собран. Если в ответе указан <tt>result.substatus = ship_failed</tt>, повторите сборку заказа.
+	// </aside>
+	//
+	// Делит заказ на отправления и переводит его в статус `awaiting_deliver`.
+	//
+	// Каждый элемент в `packages` может содержать несколько элементов `products` или отправлений.
+	// Каждый элемент в `products` — это товар, включённый в данное отправление.
+	//
+	// Разделить заказ нужно, если:
+	//   - товары не помещаются в одну упаковку,
+	//   - товары нельзя сложить в одну упаковку.
+	//
+	// Чтобы разделить заказ, передайте в массиве `packages` несколько объектов.
+	//
+	// Пример запроса, когда заказ разделять не нужно: 2 товара будут в одном отправлении.
+	// ```
+	// {
+	//   "packages": [
+	//     {
+	//       "products": [
+	//         {
+	//           "product_id": 185479045,
+	//           "quantity": 2
+	//         }
+	//       ]
+	//     }
+	//   ],
+	//   "posting_number": "89491381-0072-1"
+	// }
+	// ```
+	//
+	// Пример запроса, когда заказ нужно разделить: каждый товар будет в отдельном отправлении.
+	//
+	// ```
+	// {
+	//   "packages": [
+	//     {
+	//       "products": [
+	//         {
+	//           "product_id": 185479045,
+	//           "quantity": 1
+	//         }
+	//       ]
+	//     },
+	//     {
+	//       "products": [
+	//         {
+	//           "product_id": 185479045,
+	//           "quantity": 1
+	//         }
+	//       ]
+	//     }
+	//   ],
+	//   "posting_number": "89491381-0072-1"
+	// }
+	// ```
+	//
+	// Чтобы внести информацию по экземплярам, используйте метод [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6).
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /v4/posting/fbs/ship (the `PostingAPIShipFbsPostingV4` operationId).
+	PostingAPIShipFbsPostingV4(ctx context.Context, params *PostingAPIShipFbsPostingV4Params, body PostingAPIShipFbsPostingV4JSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PostingFbsUnfulfilledListWithBody Получить список необработанных отправлений
 	//
@@ -3638,6 +5196,332 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /v4/posting/fbs/unfulfilled/list (the `PostingFbsUnfulfilledList` operationId).
 	PostingFbsUnfulfilledList(ctx context.Context, params *PostingFbsUnfulfilledListParams, body PostingFbsUnfulfilledListJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostingAPIFbsPostingProductExemplarStatusV5WithBody Получить статус добавления экземпляров
+	//
+	// Метод для получения статусов добавления экземпляров, переданных в методе [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6). Также возвращает данные по этим экземплярам.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /v5/fbs/posting/product/exemplar/status (the `PostingAPIFbsPostingProductExemplarStatusV5` operationId).
+	PostingAPIFbsPostingProductExemplarStatusV5WithBody(ctx context.Context, params *PostingAPIFbsPostingProductExemplarStatusV5Params, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostingAPIFbsPostingProductExemplarStatusV5 Получить статус добавления экземпляров
+	//
+	// Метод для получения статусов добавления экземпляров, переданных в методе [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6). Также возвращает данные по этим экземплярам.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /v5/fbs/posting/product/exemplar/status (the `PostingAPIFbsPostingProductExemplarStatusV5` operationId).
+	PostingAPIFbsPostingProductExemplarStatusV5(ctx context.Context, params *PostingAPIFbsPostingProductExemplarStatusV5Params, body PostingAPIFbsPostingProductExemplarStatusV5JSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostingAPIFbsPostingProductExemplarCreateOrGetV6WithBody Получить данные созданных экземпляров
+	//
+	// Метод для получения информации по экземплярам товаров из отправления, переданных в методе [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6).
+	//
+	// Используйте метод для получения `exemplar_id`.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /v6/fbs/posting/product/exemplar/create-or-get (the `PostingAPIFbsPostingProductExemplarCreateOrGetV6` operationId).
+	PostingAPIFbsPostingProductExemplarCreateOrGetV6WithBody(ctx context.Context, params *PostingAPIFbsPostingProductExemplarCreateOrGetV6Params, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostingAPIFbsPostingProductExemplarCreateOrGetV6 Получить данные созданных экземпляров
+	//
+	// Метод для получения информации по экземплярам товаров из отправления, переданных в методе [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6).
+	//
+	// Используйте метод для получения `exemplar_id`.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /v6/fbs/posting/product/exemplar/create-or-get (the `PostingAPIFbsPostingProductExemplarCreateOrGetV6` operationId).
+	PostingAPIFbsPostingProductExemplarCreateOrGetV6(ctx context.Context, params *PostingAPIFbsPostingProductExemplarCreateOrGetV6Params, body PostingAPIFbsPostingProductExemplarCreateOrGetV6JSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostingAPIFbsPostingProductExemplarSetV6WithBody Проверить и сохранить данные экземпляров
+	//
+	// Асинхронный метод:
+	// - для проверки наличия экземпляров в обороте в системе «Честный ЗНАК»;
+	// - для сохранения данных экземпляров.
+	//
+	// Чтобы получить результаты проверок, используйте метод [/v5/fbs/posting/product/exemplar/status](#operation/PostingAPI_FbsPostingProductExemplarStatusV5).
+	// Для получения данных о созданных экземплярах, используйте метод [/v6/fbs/posting/product/exemplar/create-or-get](#operation/PostingAPI_FbsPostingProductExemplarCreateOrGetV6).
+	//
+	// Если у вас несколько одинаковых товаров в отправлении, укажите один `product_id` и массив `exemplars` для каждого товара из отправления.
+	//
+	// Всегда передавайте полный набор данных по экземплярам и продуктам.
+	//
+	// Например, в вашей системе 10 экземпляров.
+	// Вы передали их для проверки и сохранения.
+	// Потом добавили в своей системе ещё 60 экземпляров.
+	// При повторной передаче экземпляров для проверки и сохранения укажите все экземпляры: и старые, и только что добавленные.
+	//
+	// Код ответа 200 не гарантирует, что данные об экземплярах приняты.
+	// Он указывает, что создана задача для добавления информации.
+	// Чтобы проверить статус задачи, используйте метод [/v5/fbs/posting/product/exemplar/status](#operation/PostingAPI_FbsPostingProductExemplarStatusV5).
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /v6/fbs/posting/product/exemplar/set (the `PostingAPIFbsPostingProductExemplarSetV6` operationId).
+	PostingAPIFbsPostingProductExemplarSetV6WithBody(ctx context.Context, params *PostingAPIFbsPostingProductExemplarSetV6Params, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostingAPIFbsPostingProductExemplarSetV6 Проверить и сохранить данные экземпляров
+	//
+	// Асинхронный метод:
+	// - для проверки наличия экземпляров в обороте в системе «Честный ЗНАК»;
+	// - для сохранения данных экземпляров.
+	//
+	// Чтобы получить результаты проверок, используйте метод [/v5/fbs/posting/product/exemplar/status](#operation/PostingAPI_FbsPostingProductExemplarStatusV5).
+	// Для получения данных о созданных экземплярах, используйте метод [/v6/fbs/posting/product/exemplar/create-or-get](#operation/PostingAPI_FbsPostingProductExemplarCreateOrGetV6).
+	//
+	// Если у вас несколько одинаковых товаров в отправлении, укажите один `product_id` и массив `exemplars` для каждого товара из отправления.
+	//
+	// Всегда передавайте полный набор данных по экземплярам и продуктам.
+	//
+	// Например, в вашей системе 10 экземпляров.
+	// Вы передали их для проверки и сохранения.
+	// Потом добавили в своей системе ещё 60 экземпляров.
+	// При повторной передаче экземпляров для проверки и сохранения укажите все экземпляры: и старые, и только что добавленные.
+	//
+	// Код ответа 200 не гарантирует, что данные об экземплярах приняты.
+	// Он указывает, что создана задача для добавления информации.
+	// Чтобы проверить статус задачи, используйте метод [/v5/fbs/posting/product/exemplar/status](#operation/PostingAPI_FbsPostingProductExemplarStatusV5).
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /v6/fbs/posting/product/exemplar/set (the `PostingAPIFbsPostingProductExemplarSetV6` operationId).
+	PostingAPIFbsPostingProductExemplarSetV6(ctx context.Context, params *PostingAPIFbsPostingProductExemplarSetV6Params, body PostingAPIFbsPostingProductExemplarSetV6JSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+// CarriageAPICarriageApproveWithBody Подтверждение отгрузки
+//
+// Используйте метод, чтобы подтвердить отгрузку после её создания.
+// После подтверждения отгрузка перейдёт в статус «Сформирована».
+//
+// После подтверждения отгрузки вы можете получить лист отгрузки методом [/v2/posting/fbs/act/get-pdf](#operation/PostingAPI_PostingFBSGetAct) и штрихкод отгрузки методом [/v2/posting/fbs/act/get-barcode](#operation/PostingAPI_PostingFBSGetBarcode).
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /v1/carriage/approve (the `CarriageAPICarriageApprove` operationId).
+func (c *Client) CarriageAPICarriageApproveWithBody(ctx context.Context, params *CarriageAPICarriageApproveParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCarriageAPICarriageApproveRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CarriageAPICarriageApprove Подтверждение отгрузки
+//
+// Используйте метод, чтобы подтвердить отгрузку после её создания.
+// После подтверждения отгрузка перейдёт в статус «Сформирована».
+//
+// После подтверждения отгрузки вы можете получить лист отгрузки методом [/v2/posting/fbs/act/get-pdf](#operation/PostingAPI_PostingFBSGetAct) и штрихкод отгрузки методом [/v2/posting/fbs/act/get-barcode](#operation/PostingAPI_PostingFBSGetBarcode).
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /v1/carriage/approve (the `CarriageAPICarriageApprove` operationId).
+func (c *Client) CarriageAPICarriageApprove(ctx context.Context, params *CarriageAPICarriageApproveParams, body CarriageAPICarriageApproveJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCarriageAPICarriageApproveRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CarriageAPICarriageCancelWithBody Удаление отгрузки
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /v1/carriage/cancel (the `CarriageAPICarriageCancel` operationId).
+func (c *Client) CarriageAPICarriageCancelWithBody(ctx context.Context, params *CarriageAPICarriageCancelParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCarriageAPICarriageCancelRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CarriageAPICarriageCancel Удаление отгрузки
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /v1/carriage/cancel (the `CarriageAPICarriageCancel` operationId).
+func (c *Client) CarriageAPICarriageCancel(ctx context.Context, params *CarriageAPICarriageCancelParams, body CarriageAPICarriageCancelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCarriageAPICarriageCancelRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CarriageAPICarriageCreateWithBody Создание отгрузки
+//
+// <aside class="warning">
+// Перед началом работы проверьте возможность создания отгрузки методом <a href="#operation/CarriageAPI_CarriageDeliveryListV2">/v2/carriage/delivery/list</a>. <br> Если <code>methods.carriages.available_actions = create</code>, вы можете создать отгрузку.
+//
+// Если вы продавец не из России, обратите внимание на доступность <a href="https://seller-edu.ozon.ru/fbs/ozon-logistika/sobrat-zakazy#шаг-2-сформируите-отгрузку">рекомендованного времени</a> в личном кабинете.
+// </aside>
+//
+// Используйте метод для создания первой FBS отгрузки. В неё попадут все отправления со статусом «Готов к отгрузке». Созданная отгрузка получит статус `new`.
+//
+// Для отгрузки в статусе `new` можно перезаписать состав отправлений методом [/v1/carriage/set-postings](#operation/CarriageAPI_SetPostings). Если из отгрузки исключить часть отправлений, они могут попасть в следующую отгрузку.
+//
+// Чтобы получить список отправлений в отгрузке, используйте метод [/v2/posting/fbs/act/get-postings](#operation/PostingAPI_ActPostingList).
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /v1/carriage/create (the `CarriageAPICarriageCreate` operationId).
+func (c *Client) CarriageAPICarriageCreateWithBody(ctx context.Context, params *CarriageAPICarriageCreateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCarriageAPICarriageCreateRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CarriageAPICarriageCreate Создание отгрузки
+//
+// <aside class="warning">
+// Перед началом работы проверьте возможность создания отгрузки методом <a href="#operation/CarriageAPI_CarriageDeliveryListV2">/v2/carriage/delivery/list</a>. <br> Если <code>methods.carriages.available_actions = create</code>, вы можете создать отгрузку.
+//
+// Если вы продавец не из России, обратите внимание на доступность <a href="https://seller-edu.ozon.ru/fbs/ozon-logistika/sobrat-zakazy#шаг-2-сформируите-отгрузку">рекомендованного времени</a> в личном кабинете.
+// </aside>
+//
+// Используйте метод для создания первой FBS отгрузки. В неё попадут все отправления со статусом «Готов к отгрузке». Созданная отгрузка получит статус `new`.
+//
+// Для отгрузки в статусе `new` можно перезаписать состав отправлений методом [/v1/carriage/set-postings](#operation/CarriageAPI_SetPostings). Если из отгрузки исключить часть отправлений, они могут попасть в следующую отгрузку.
+//
+// Чтобы получить список отправлений в отгрузке, используйте метод [/v2/posting/fbs/act/get-postings](#operation/PostingAPI_ActPostingList).
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /v1/carriage/create (the `CarriageAPICarriageCreate` operationId).
+func (c *Client) CarriageAPICarriageCreate(ctx context.Context, params *CarriageAPICarriageCreateParams, body CarriageAPICarriageCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCarriageAPICarriageCreateRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CarriageGetWithBody Информация о перевозке
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /v1/carriage/get (the `CarriageGet` operationId).
+func (c *Client) CarriageGetWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCarriageGetRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CarriageGet Информация о перевозке
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /v1/carriage/get (the `CarriageGet` operationId).
+func (c *Client) CarriageGet(ctx context.Context, body CarriageGetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCarriageGetRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CarriageAPISetPostingsWithBody Изменение состава отгрузки
+//
+// <aside class="warning">
+// Метод недоступен для продавцов из СНГ. <br>
+//
+// Полностью перезаписывает список заказов в отгрузке. Передавайте только те заказы, которые находятся в статусе <code>Ожидает отгрузки</code>, и вы готовы их отгрузить.
+//
+// Менять состав можно только у отгрузок со статусом `new`.
+// </aside>
+//
+// <br>
+//
+// <aside class="notice">
+// Чтобы вернуться к списку заказов, удалите отгрузку с помощью метода <a href="#operation/CarriageAPI_CarriageCancel">/v1/carriage/cancel</a>, и создайте новую.
+// </aside>
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /v1/carriage/set-postings (the `CarriageAPISetPostings` operationId).
+func (c *Client) CarriageAPISetPostingsWithBody(ctx context.Context, params *CarriageAPISetPostingsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCarriageAPISetPostingsRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CarriageAPISetPostings Изменение состава отгрузки
+//
+// <aside class="warning">
+// Метод недоступен для продавцов из СНГ. <br>
+//
+// Полностью перезаписывает список заказов в отгрузке. Передавайте только те заказы, которые находятся в статусе <code>Ожидает отгрузки</code>, и вы готовы их отгрузить.
+//
+// Менять состав можно только у отгрузок со статусом `new`.
+// </aside>
+//
+// <br>
+//
+// <aside class="notice">
+// Чтобы вернуться к списку заказов, удалите отгрузку с помощью метода <a href="#operation/CarriageAPI_CarriageCancel">/v1/carriage/cancel</a>, и создайте новую.
+// </aside>
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /v1/carriage/set-postings (the `CarriageAPISetPostings` operationId).
+func (c *Client) CarriageAPISetPostings(ctx context.Context, params *CarriageAPISetPostingsParams, body CarriageAPISetPostingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCarriageAPISetPostingsRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 // AccessAPIRolesByToken Получить список ролей и методов по API-ключу
@@ -3662,6 +5546,290 @@ func (c *Client) AccessAPIRolesByToken(ctx context.Context, params *AccessAPIRol
 // Corresponds with POST /v1/seller/info (the `SellerAPISellerInfo` operationId).
 func (c *Client) SellerAPISellerInfo(ctx context.Context, params *SellerAPISellerInfoParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewSellerAPISellerInfoRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CarriageAPICarriageDeliveryListV2WithBody Список методов доставки и отгрузок
+//
+// <aside class="warning">
+//
+//	Метод не возвращает информацию по методам доставки, у которых нет отправлений.
+//
+// </aside>
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /v2/carriage/delivery/list (the `CarriageAPICarriageDeliveryListV2` operationId).
+func (c *Client) CarriageAPICarriageDeliveryListV2WithBody(ctx context.Context, params *CarriageAPICarriageDeliveryListV2Params, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCarriageAPICarriageDeliveryListV2RequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CarriageAPICarriageDeliveryListV2 Список методов доставки и отгрузок
+//
+// <aside class="warning">
+//
+//	Метод не возвращает информацию по методам доставки, у которых нет отправлений.
+//
+// </aside>
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /v2/carriage/delivery/list (the `CarriageAPICarriageDeliveryListV2` operationId).
+func (c *Client) CarriageAPICarriageDeliveryListV2(ctx context.Context, params *CarriageAPICarriageDeliveryListV2Params, body CarriageAPICarriageDeliveryListV2JSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCarriageAPICarriageDeliveryListV2Request(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PostingAPIPostingFBSActCheckStatusWithBody Статус отгрузки и документов
+//
+// Возвращает статус формирования штрихкода для отгрузки и документов:
+// - для продавцов из России — транспортной накладной и листа отгрузки;
+// - для продавцов из СНГ — транспортной накладной и акта приёма-передачи.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /v2/posting/fbs/act/check-status (the `PostingAPIPostingFBSActCheckStatus` operationId).
+func (c *Client) PostingAPIPostingFBSActCheckStatusWithBody(ctx context.Context, params *PostingAPIPostingFBSActCheckStatusParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingAPIPostingFBSActCheckStatusRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PostingAPIPostingFBSActCheckStatus Статус отгрузки и документов
+//
+// Возвращает статус формирования штрихкода для отгрузки и документов:
+// - для продавцов из России — транспортной накладной и листа отгрузки;
+// - для продавцов из СНГ — транспортной накладной и акта приёма-передачи.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /v2/posting/fbs/act/check-status (the `PostingAPIPostingFBSActCheckStatus` operationId).
+func (c *Client) PostingAPIPostingFBSActCheckStatus(ctx context.Context, params *PostingAPIPostingFBSActCheckStatusParams, body PostingAPIPostingFBSActCheckStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingAPIPostingFBSActCheckStatusRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PostingAPIPostingFBSGetBarcodeWithBody Штрихкод для отгрузки отправления
+//
+// Метод для получения штрихкода, который нужно показать в пункте выдачи или сортировочном центре при отгрузке отправления.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /v2/posting/fbs/act/get-barcode (the `PostingAPIPostingFBSGetBarcode` operationId).
+func (c *Client) PostingAPIPostingFBSGetBarcodeWithBody(ctx context.Context, params *PostingAPIPostingFBSGetBarcodeParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingAPIPostingFBSGetBarcodeRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PostingAPIPostingFBSGetBarcode Штрихкод для отгрузки отправления
+//
+// Метод для получения штрихкода, который нужно показать в пункте выдачи или сортировочном центре при отгрузке отправления.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /v2/posting/fbs/act/get-barcode (the `PostingAPIPostingFBSGetBarcode` operationId).
+func (c *Client) PostingAPIPostingFBSGetBarcode(ctx context.Context, params *PostingAPIPostingFBSGetBarcodeParams, body PostingAPIPostingFBSGetBarcodeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingAPIPostingFBSGetBarcodeRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PostingAPIPostingFBSGetBarcodeTextWithBody Значение штрихкода для отгрузки отправления
+//
+// Используйте этот метод, чтобы получить штрихкод из ответа
+// [/v2/posting/fbs/act/get-barcode](#operation/PostingAPI_PostingFBSGetBarcode) в текстовом виде.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /v2/posting/fbs/act/get-barcode/text (the `PostingAPIPostingFBSGetBarcodeText` operationId).
+func (c *Client) PostingAPIPostingFBSGetBarcodeTextWithBody(ctx context.Context, params *PostingAPIPostingFBSGetBarcodeTextParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingAPIPostingFBSGetBarcodeTextRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PostingAPIPostingFBSGetBarcodeText Значение штрихкода для отгрузки отправления
+//
+// Используйте этот метод, чтобы получить штрихкод из ответа
+// [/v2/posting/fbs/act/get-barcode](#operation/PostingAPI_PostingFBSGetBarcode) в текстовом виде.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /v2/posting/fbs/act/get-barcode/text (the `PostingAPIPostingFBSGetBarcodeText` operationId).
+func (c *Client) PostingAPIPostingFBSGetBarcodeText(ctx context.Context, params *PostingAPIPostingFBSGetBarcodeTextParams, body PostingAPIPostingFBSGetBarcodeTextJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingAPIPostingFBSGetBarcodeTextRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PostingAPIPostingFBSGetActWithBody Получить PDF c документами
+//
+// С помощью метода можно получить:
+// - продацам из России — лист отгрузки и транспортную накладную;
+// - продавцам из СНГ — акт и транспортную накладную.
+//
+// Получите список доступных документов для отгрузки в параметре `available_actions` метода [/v1/carriage/get](#operation/CarriageGet).
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /v2/posting/fbs/act/get-pdf (the `PostingAPIPostingFBSGetAct` operationId).
+func (c *Client) PostingAPIPostingFBSGetActWithBody(ctx context.Context, params *PostingAPIPostingFBSGetActParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingAPIPostingFBSGetActRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PostingAPIPostingFBSGetAct Получить PDF c документами
+//
+// С помощью метода можно получить:
+// - продацам из России — лист отгрузки и транспортную накладную;
+// - продавцам из СНГ — акт и транспортную накладную.
+//
+// Получите список доступных документов для отгрузки в параметре `available_actions` метода [/v1/carriage/get](#operation/CarriageGet).
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /v2/posting/fbs/act/get-pdf (the `PostingAPIPostingFBSGetAct` operationId).
+func (c *Client) PostingAPIPostingFBSGetAct(ctx context.Context, params *PostingAPIPostingFBSGetActParams, body PostingAPIPostingFBSGetActJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingAPIPostingFBSGetActRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PostingAPIActPostingListWithBody Список отправлений в акте
+//
+// Возвращает список отправлений в акте по его идентификатору.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /v2/posting/fbs/act/get-postings (the `PostingAPIActPostingList` operationId).
+func (c *Client) PostingAPIActPostingListWithBody(ctx context.Context, params *PostingAPIActPostingListParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingAPIActPostingListRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PostingAPIActPostingList Список отправлений в акте
+//
+// Возвращает список отправлений в акте по его идентификатору.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /v2/posting/fbs/act/get-postings (the `PostingAPIActPostingList` operationId).
+func (c *Client) PostingAPIActPostingList(ctx context.Context, params *PostingAPIActPostingListParams, body PostingAPIActPostingListJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingAPIActPostingListRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PostingFbsPackageLabelGetWithBody Получить файл с этикетками
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /v2/posting/fbs/package-label/get (the `PostingFbsPackageLabelGet` operationId).
+func (c *Client) PostingFbsPackageLabelGetWithBody(ctx context.Context, params *PostingFbsPackageLabelGetParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingFbsPackageLabelGetRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PostingFbsPackageLabelGet Получить файл с этикетками
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /v2/posting/fbs/package-label/get (the `PostingFbsPackageLabelGet` operationId).
+func (c *Client) PostingFbsPackageLabelGet(ctx context.Context, params *PostingFbsPackageLabelGetParams, body PostingFbsPackageLabelGetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingFbsPackageLabelGetRequest(c.Server, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -3792,6 +5960,58 @@ func (c *Client) PostingAPIGetFbsPostingV3(ctx context.Context, params *PostingA
 	return c.Client.Do(req)
 }
 
+// PostingFbsPackageLabelCreateWithBody Создать задание на формирование этикеток
+//
+// <aside class="warning">
+// Если вы работаете по схеме rFBS или rFBS Express, изучите процесс печати этикетки в <a href="https://seller-edu.ozon.ru/rfbs/scheme-of-work">Базе знаний продавца</a>.
+// </aside>
+//
+// Создаёт задания на асинхронное формирование этикеток для отправлений в статусе «Ожидает отгрузки» — `awaiting_deliver`.
+// Рекомендуем запрашивать этикетки через 45–60 секунд после сборки заказа.
+//
+// Чтобы получить созданные этикетки, используйте [/v2/posting/fbs/package-label/get](#operation/PostingFbsPackageLabelGet).
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /v3/posting/fbs/package-label/create (the `PostingFbsPackageLabelCreate` operationId).
+func (c *Client) PostingFbsPackageLabelCreateWithBody(ctx context.Context, params *PostingFbsPackageLabelCreateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingFbsPackageLabelCreateRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PostingFbsPackageLabelCreate Создать задание на формирование этикеток
+//
+// <aside class="warning">
+// Если вы работаете по схеме rFBS или rFBS Express, изучите процесс печати этикетки в <a href="https://seller-edu.ozon.ru/rfbs/scheme-of-work">Базе знаний продавца</a>.
+// </aside>
+//
+// Создаёт задания на асинхронное формирование этикеток для отправлений в статусе «Ожидает отгрузки» — `awaiting_deliver`.
+// Рекомендуем запрашивать этикетки через 45–60 секунд после сборки заказа.
+//
+// Чтобы получить созданные этикетки, используйте [/v2/posting/fbs/package-label/get](#operation/PostingFbsPackageLabelGet).
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /v3/posting/fbs/package-label/create (the `PostingFbsPackageLabelCreate` operationId).
+func (c *Client) PostingFbsPackageLabelCreate(ctx context.Context, params *PostingFbsPackageLabelCreateParams, body PostingFbsPackageLabelCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingFbsPackageLabelCreateRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // ProductAPIGetProductInfoListWithBody Получить информацию о товарах по идентификаторам
 //
 // Метод для получения информации о товарах по их идентификаторам.
@@ -3828,6 +6048,168 @@ func (c *Client) ProductAPIGetProductInfoListWithBody(ctx context.Context, param
 // Corresponds with POST /v3/product/info/list (the `ProductAPIGetProductInfoList` operationId).
 func (c *Client) ProductAPIGetProductInfoList(ctx context.Context, params *ProductAPIGetProductInfoListParams, body ProductAPIGetProductInfoListJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewProductAPIGetProductInfoListRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PostingAPIShipFbsPostingV4WithBody Собрать заказ (версия 4)
+//
+// <aside class="warning">
+// Ответ с кодом <tt>200</tt> не гарантирует успешную сборку заказа. Используйте метод <a href="#operation/PostingAPI_GetFbsPostingV3">/v3/posting/fbs/get</a>, чтобы проверить, что заказ собран. Если в ответе указан <tt>result.substatus = ship_failed</tt>, повторите сборку заказа.
+// </aside>
+//
+// Делит заказ на отправления и переводит его в статус `awaiting_deliver`.
+//
+// Каждый элемент в `packages` может содержать несколько элементов `products` или отправлений.
+// Каждый элемент в `products` — это товар, включённый в данное отправление.
+//
+// Разделить заказ нужно, если:
+//   - товары не помещаются в одну упаковку,
+//   - товары нельзя сложить в одну упаковку.
+//
+// Чтобы разделить заказ, передайте в массиве `packages` несколько объектов.
+//
+// Пример запроса, когда заказ разделять не нужно: 2 товара будут в одном отправлении.
+// ```
+//
+//	{
+//	  "packages": [
+//	    {
+//	      "products": [
+//	        {
+//	          "product_id": 185479045,
+//	          "quantity": 2
+//	        }
+//	      ]
+//	    }
+//	  ],
+//	  "posting_number": "89491381-0072-1"
+//	}
+//
+// ```
+//
+// Пример запроса, когда заказ нужно разделить: каждый товар будет в отдельном отправлении.
+//
+// ```
+//
+//	{
+//	  "packages": [
+//	    {
+//	      "products": [
+//	        {
+//	          "product_id": 185479045,
+//	          "quantity": 1
+//	        }
+//	      ]
+//	    },
+//	    {
+//	      "products": [
+//	        {
+//	          "product_id": 185479045,
+//	          "quantity": 1
+//	        }
+//	      ]
+//	    }
+//	  ],
+//	  "posting_number": "89491381-0072-1"
+//	}
+//
+// ```
+//
+// Чтобы внести информацию по экземплярам, используйте метод [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6).
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /v4/posting/fbs/ship (the `PostingAPIShipFbsPostingV4` operationId).
+func (c *Client) PostingAPIShipFbsPostingV4WithBody(ctx context.Context, params *PostingAPIShipFbsPostingV4Params, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingAPIShipFbsPostingV4RequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PostingAPIShipFbsPostingV4 Собрать заказ (версия 4)
+//
+// <aside class="warning">
+// Ответ с кодом <tt>200</tt> не гарантирует успешную сборку заказа. Используйте метод <a href="#operation/PostingAPI_GetFbsPostingV3">/v3/posting/fbs/get</a>, чтобы проверить, что заказ собран. Если в ответе указан <tt>result.substatus = ship_failed</tt>, повторите сборку заказа.
+// </aside>
+//
+// Делит заказ на отправления и переводит его в статус `awaiting_deliver`.
+//
+// Каждый элемент в `packages` может содержать несколько элементов `products` или отправлений.
+// Каждый элемент в `products` — это товар, включённый в данное отправление.
+//
+// Разделить заказ нужно, если:
+//   - товары не помещаются в одну упаковку,
+//   - товары нельзя сложить в одну упаковку.
+//
+// Чтобы разделить заказ, передайте в массиве `packages` несколько объектов.
+//
+// Пример запроса, когда заказ разделять не нужно: 2 товара будут в одном отправлении.
+// ```
+//
+//	{
+//	  "packages": [
+//	    {
+//	      "products": [
+//	        {
+//	          "product_id": 185479045,
+//	          "quantity": 2
+//	        }
+//	      ]
+//	    }
+//	  ],
+//	  "posting_number": "89491381-0072-1"
+//	}
+//
+// ```
+//
+// Пример запроса, когда заказ нужно разделить: каждый товар будет в отдельном отправлении.
+//
+// ```
+//
+//	{
+//	  "packages": [
+//	    {
+//	      "products": [
+//	        {
+//	          "product_id": 185479045,
+//	          "quantity": 1
+//	        }
+//	      ]
+//	    },
+//	    {
+//	      "products": [
+//	        {
+//	          "product_id": 185479045,
+//	          "quantity": 1
+//	        }
+//	      ]
+//	    }
+//	  ],
+//	  "posting_number": "89491381-0072-1"
+//	}
+//
+// ```
+//
+// Чтобы внести информацию по экземплярам, используйте метод [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6).
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /v4/posting/fbs/ship (the `PostingAPIShipFbsPostingV4` operationId).
+func (c *Client) PostingAPIShipFbsPostingV4(ctx context.Context, params *PostingAPIShipFbsPostingV4Params, body PostingAPIShipFbsPostingV4JSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingAPIShipFbsPostingV4Request(c.Server, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -3906,6 +6288,448 @@ func (c *Client) PostingFbsUnfulfilledList(ctx context.Context, params *PostingF
 	return c.Client.Do(req)
 }
 
+// PostingAPIFbsPostingProductExemplarStatusV5WithBody Получить статус добавления экземпляров
+//
+// Метод для получения статусов добавления экземпляров, переданных в методе [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6). Также возвращает данные по этим экземплярам.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /v5/fbs/posting/product/exemplar/status (the `PostingAPIFbsPostingProductExemplarStatusV5` operationId).
+func (c *Client) PostingAPIFbsPostingProductExemplarStatusV5WithBody(ctx context.Context, params *PostingAPIFbsPostingProductExemplarStatusV5Params, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingAPIFbsPostingProductExemplarStatusV5RequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PostingAPIFbsPostingProductExemplarStatusV5 Получить статус добавления экземпляров
+//
+// Метод для получения статусов добавления экземпляров, переданных в методе [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6). Также возвращает данные по этим экземплярам.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /v5/fbs/posting/product/exemplar/status (the `PostingAPIFbsPostingProductExemplarStatusV5` operationId).
+func (c *Client) PostingAPIFbsPostingProductExemplarStatusV5(ctx context.Context, params *PostingAPIFbsPostingProductExemplarStatusV5Params, body PostingAPIFbsPostingProductExemplarStatusV5JSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingAPIFbsPostingProductExemplarStatusV5Request(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PostingAPIFbsPostingProductExemplarCreateOrGetV6WithBody Получить данные созданных экземпляров
+//
+// Метод для получения информации по экземплярам товаров из отправления, переданных в методе [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6).
+//
+// Используйте метод для получения `exemplar_id`.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /v6/fbs/posting/product/exemplar/create-or-get (the `PostingAPIFbsPostingProductExemplarCreateOrGetV6` operationId).
+func (c *Client) PostingAPIFbsPostingProductExemplarCreateOrGetV6WithBody(ctx context.Context, params *PostingAPIFbsPostingProductExemplarCreateOrGetV6Params, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingAPIFbsPostingProductExemplarCreateOrGetV6RequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PostingAPIFbsPostingProductExemplarCreateOrGetV6 Получить данные созданных экземпляров
+//
+// Метод для получения информации по экземплярам товаров из отправления, переданных в методе [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6).
+//
+// Используйте метод для получения `exemplar_id`.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /v6/fbs/posting/product/exemplar/create-or-get (the `PostingAPIFbsPostingProductExemplarCreateOrGetV6` operationId).
+func (c *Client) PostingAPIFbsPostingProductExemplarCreateOrGetV6(ctx context.Context, params *PostingAPIFbsPostingProductExemplarCreateOrGetV6Params, body PostingAPIFbsPostingProductExemplarCreateOrGetV6JSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingAPIFbsPostingProductExemplarCreateOrGetV6Request(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PostingAPIFbsPostingProductExemplarSetV6WithBody Проверить и сохранить данные экземпляров
+//
+// Асинхронный метод:
+// - для проверки наличия экземпляров в обороте в системе «Честный ЗНАК»;
+// - для сохранения данных экземпляров.
+//
+// Чтобы получить результаты проверок, используйте метод [/v5/fbs/posting/product/exemplar/status](#operation/PostingAPI_FbsPostingProductExemplarStatusV5).
+// Для получения данных о созданных экземплярах, используйте метод [/v6/fbs/posting/product/exemplar/create-or-get](#operation/PostingAPI_FbsPostingProductExemplarCreateOrGetV6).
+//
+// Если у вас несколько одинаковых товаров в отправлении, укажите один `product_id` и массив `exemplars` для каждого товара из отправления.
+//
+// Всегда передавайте полный набор данных по экземплярам и продуктам.
+//
+// Например, в вашей системе 10 экземпляров.
+// Вы передали их для проверки и сохранения.
+// Потом добавили в своей системе ещё 60 экземпляров.
+// При повторной передаче экземпляров для проверки и сохранения укажите все экземпляры: и старые, и только что добавленные.
+//
+// Код ответа 200 не гарантирует, что данные об экземплярах приняты.
+// Он указывает, что создана задача для добавления информации.
+// Чтобы проверить статус задачи, используйте метод [/v5/fbs/posting/product/exemplar/status](#operation/PostingAPI_FbsPostingProductExemplarStatusV5).
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /v6/fbs/posting/product/exemplar/set (the `PostingAPIFbsPostingProductExemplarSetV6` operationId).
+func (c *Client) PostingAPIFbsPostingProductExemplarSetV6WithBody(ctx context.Context, params *PostingAPIFbsPostingProductExemplarSetV6Params, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingAPIFbsPostingProductExemplarSetV6RequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PostingAPIFbsPostingProductExemplarSetV6 Проверить и сохранить данные экземпляров
+//
+// Асинхронный метод:
+// - для проверки наличия экземпляров в обороте в системе «Честный ЗНАК»;
+// - для сохранения данных экземпляров.
+//
+// Чтобы получить результаты проверок, используйте метод [/v5/fbs/posting/product/exemplar/status](#operation/PostingAPI_FbsPostingProductExemplarStatusV5).
+// Для получения данных о созданных экземплярах, используйте метод [/v6/fbs/posting/product/exemplar/create-or-get](#operation/PostingAPI_FbsPostingProductExemplarCreateOrGetV6).
+//
+// Если у вас несколько одинаковых товаров в отправлении, укажите один `product_id` и массив `exemplars` для каждого товара из отправления.
+//
+// Всегда передавайте полный набор данных по экземплярам и продуктам.
+//
+// Например, в вашей системе 10 экземпляров.
+// Вы передали их для проверки и сохранения.
+// Потом добавили в своей системе ещё 60 экземпляров.
+// При повторной передаче экземпляров для проверки и сохранения укажите все экземпляры: и старые, и только что добавленные.
+//
+// Код ответа 200 не гарантирует, что данные об экземплярах приняты.
+// Он указывает, что создана задача для добавления информации.
+// Чтобы проверить статус задачи, используйте метод [/v5/fbs/posting/product/exemplar/status](#operation/PostingAPI_FbsPostingProductExemplarStatusV5).
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /v6/fbs/posting/product/exemplar/set (the `PostingAPIFbsPostingProductExemplarSetV6` operationId).
+func (c *Client) PostingAPIFbsPostingProductExemplarSetV6(ctx context.Context, params *PostingAPIFbsPostingProductExemplarSetV6Params, body PostingAPIFbsPostingProductExemplarSetV6JSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostingAPIFbsPostingProductExemplarSetV6Request(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NewCarriageAPICarriageApproveRequest calls the generic CarriageAPICarriageApprove builder with application/json body
+func NewCarriageAPICarriageApproveRequest(server string, params *CarriageAPICarriageApproveParams, body CarriageAPICarriageApproveJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCarriageAPICarriageApproveRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewCarriageAPICarriageApproveRequestWithBody constructs an http.Request for the CarriageAPICarriageApprove method, with any body, and a specified content type
+func NewCarriageAPICarriageApproveRequestWithBody(server string, params *CarriageAPICarriageApproveParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/carriage/approve")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Client-Id", params.ClientId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Client-Id", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "Api-Key", params.ApiKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Api-Key", headerParam1)
+
+	}
+
+	return req, nil
+}
+
+// NewCarriageAPICarriageCancelRequest calls the generic CarriageAPICarriageCancel builder with application/json body
+func NewCarriageAPICarriageCancelRequest(server string, params *CarriageAPICarriageCancelParams, body CarriageAPICarriageCancelJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCarriageAPICarriageCancelRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewCarriageAPICarriageCancelRequestWithBody constructs an http.Request for the CarriageAPICarriageCancel method, with any body, and a specified content type
+func NewCarriageAPICarriageCancelRequestWithBody(server string, params *CarriageAPICarriageCancelParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/carriage/cancel")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Client-Id", params.ClientId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Client-Id", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "Api-Key", params.ApiKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Api-Key", headerParam1)
+
+	}
+
+	return req, nil
+}
+
+// NewCarriageAPICarriageCreateRequest calls the generic CarriageAPICarriageCreate builder with application/json body
+func NewCarriageAPICarriageCreateRequest(server string, params *CarriageAPICarriageCreateParams, body CarriageAPICarriageCreateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCarriageAPICarriageCreateRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewCarriageAPICarriageCreateRequestWithBody constructs an http.Request for the CarriageAPICarriageCreate method, with any body, and a specified content type
+func NewCarriageAPICarriageCreateRequestWithBody(server string, params *CarriageAPICarriageCreateParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/carriage/create")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Client-Id", params.ClientId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Client-Id", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "Api-Key", params.ApiKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Api-Key", headerParam1)
+
+	}
+
+	return req, nil
+}
+
+// NewCarriageGetRequest calls the generic CarriageGet builder with application/json body
+func NewCarriageGetRequest(server string, body CarriageGetJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCarriageGetRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCarriageGetRequestWithBody constructs an http.Request for the CarriageGet method, with any body, and a specified content type
+func NewCarriageGetRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/carriage/get")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewCarriageAPISetPostingsRequest calls the generic CarriageAPISetPostings builder with application/json body
+func NewCarriageAPISetPostingsRequest(server string, params *CarriageAPISetPostingsParams, body CarriageAPISetPostingsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCarriageAPISetPostingsRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewCarriageAPISetPostingsRequestWithBody constructs an http.Request for the CarriageAPISetPostings method, with any body, and a specified content type
+func NewCarriageAPISetPostingsRequestWithBody(server string, params *CarriageAPISetPostingsParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/carriage/set-postings")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Client-Id", params.ClientId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Client-Id", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "Api-Key", params.ApiKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Api-Key", headerParam1)
+
+	}
+
+	return req, nil
+}
+
 // NewAccessAPIRolesByTokenRequest constructs an http.Request for the AccessAPIRolesByToken method
 func NewAccessAPIRolesByTokenRequest(server string, params *AccessAPIRolesByTokenParams) (*http.Request, error) {
 	var err error
@@ -3978,6 +6802,440 @@ func NewSellerAPISellerInfoRequest(server string, params *SellerAPISellerInfoPar
 	if err != nil {
 		return nil, err
 	}
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Client-Id", params.ClientId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Client-Id", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "Api-Key", params.ApiKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Api-Key", headerParam1)
+
+	}
+
+	return req, nil
+}
+
+// NewCarriageAPICarriageDeliveryListV2Request calls the generic CarriageAPICarriageDeliveryListV2 builder with application/json body
+func NewCarriageAPICarriageDeliveryListV2Request(server string, params *CarriageAPICarriageDeliveryListV2Params, body CarriageAPICarriageDeliveryListV2JSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCarriageAPICarriageDeliveryListV2RequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewCarriageAPICarriageDeliveryListV2RequestWithBody constructs an http.Request for the CarriageAPICarriageDeliveryListV2 method, with any body, and a specified content type
+func NewCarriageAPICarriageDeliveryListV2RequestWithBody(server string, params *CarriageAPICarriageDeliveryListV2Params, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/carriage/delivery/list")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Client-Id", params.ClientId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Client-Id", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "Api-Key", params.ApiKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Api-Key", headerParam1)
+
+	}
+
+	return req, nil
+}
+
+// NewPostingAPIPostingFBSActCheckStatusRequest calls the generic PostingAPIPostingFBSActCheckStatus builder with application/json body
+func NewPostingAPIPostingFBSActCheckStatusRequest(server string, params *PostingAPIPostingFBSActCheckStatusParams, body PostingAPIPostingFBSActCheckStatusJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostingAPIPostingFBSActCheckStatusRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewPostingAPIPostingFBSActCheckStatusRequestWithBody constructs an http.Request for the PostingAPIPostingFBSActCheckStatus method, with any body, and a specified content type
+func NewPostingAPIPostingFBSActCheckStatusRequestWithBody(server string, params *PostingAPIPostingFBSActCheckStatusParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/posting/fbs/act/check-status")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Client-Id", params.ClientId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Client-Id", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "Api-Key", params.ApiKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Api-Key", headerParam1)
+
+	}
+
+	return req, nil
+}
+
+// NewPostingAPIPostingFBSGetBarcodeRequest calls the generic PostingAPIPostingFBSGetBarcode builder with application/json body
+func NewPostingAPIPostingFBSGetBarcodeRequest(server string, params *PostingAPIPostingFBSGetBarcodeParams, body PostingAPIPostingFBSGetBarcodeJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostingAPIPostingFBSGetBarcodeRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewPostingAPIPostingFBSGetBarcodeRequestWithBody constructs an http.Request for the PostingAPIPostingFBSGetBarcode method, with any body, and a specified content type
+func NewPostingAPIPostingFBSGetBarcodeRequestWithBody(server string, params *PostingAPIPostingFBSGetBarcodeParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/posting/fbs/act/get-barcode")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Client-Id", params.ClientId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Client-Id", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "Api-Key", params.ApiKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Api-Key", headerParam1)
+
+	}
+
+	return req, nil
+}
+
+// NewPostingAPIPostingFBSGetBarcodeTextRequest calls the generic PostingAPIPostingFBSGetBarcodeText builder with application/json body
+func NewPostingAPIPostingFBSGetBarcodeTextRequest(server string, params *PostingAPIPostingFBSGetBarcodeTextParams, body PostingAPIPostingFBSGetBarcodeTextJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostingAPIPostingFBSGetBarcodeTextRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewPostingAPIPostingFBSGetBarcodeTextRequestWithBody constructs an http.Request for the PostingAPIPostingFBSGetBarcodeText method, with any body, and a specified content type
+func NewPostingAPIPostingFBSGetBarcodeTextRequestWithBody(server string, params *PostingAPIPostingFBSGetBarcodeTextParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/posting/fbs/act/get-barcode/text")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Client-Id", params.ClientId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Client-Id", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "Api-Key", params.ApiKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Api-Key", headerParam1)
+
+	}
+
+	return req, nil
+}
+
+// NewPostingAPIPostingFBSGetActRequest calls the generic PostingAPIPostingFBSGetAct builder with application/json body
+func NewPostingAPIPostingFBSGetActRequest(server string, params *PostingAPIPostingFBSGetActParams, body PostingAPIPostingFBSGetActJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostingAPIPostingFBSGetActRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewPostingAPIPostingFBSGetActRequestWithBody constructs an http.Request for the PostingAPIPostingFBSGetAct method, with any body, and a specified content type
+func NewPostingAPIPostingFBSGetActRequestWithBody(server string, params *PostingAPIPostingFBSGetActParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/posting/fbs/act/get-pdf")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Client-Id", params.ClientId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Client-Id", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "Api-Key", params.ApiKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Api-Key", headerParam1)
+
+	}
+
+	return req, nil
+}
+
+// NewPostingAPIActPostingListRequest calls the generic PostingAPIActPostingList builder with application/json body
+func NewPostingAPIActPostingListRequest(server string, params *PostingAPIActPostingListParams, body PostingAPIActPostingListJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostingAPIActPostingListRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewPostingAPIActPostingListRequestWithBody constructs an http.Request for the PostingAPIActPostingList method, with any body, and a specified content type
+func NewPostingAPIActPostingListRequestWithBody(server string, params *PostingAPIActPostingListParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/posting/fbs/act/get-postings")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Client-Id", params.ClientId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Client-Id", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "Api-Key", params.ApiKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Api-Key", headerParam1)
+
+	}
+
+	return req, nil
+}
+
+// NewPostingFbsPackageLabelGetRequest calls the generic PostingFbsPackageLabelGet builder with application/json body
+func NewPostingFbsPackageLabelGetRequest(server string, params *PostingFbsPackageLabelGetParams, body PostingFbsPackageLabelGetJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostingFbsPackageLabelGetRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewPostingFbsPackageLabelGetRequestWithBody constructs an http.Request for the PostingFbsPackageLabelGet method, with any body, and a specified content type
+func NewPostingFbsPackageLabelGetRequestWithBody(server string, params *PostingFbsPackageLabelGetParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/posting/fbs/package-label/get")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	if params != nil {
 
@@ -4190,6 +7448,68 @@ func NewPostingAPIGetFbsPostingV3RequestWithBody(server string, params *PostingA
 	return req, nil
 }
 
+// NewPostingFbsPackageLabelCreateRequest calls the generic PostingFbsPackageLabelCreate builder with application/json body
+func NewPostingFbsPackageLabelCreateRequest(server string, params *PostingFbsPackageLabelCreateParams, body PostingFbsPackageLabelCreateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostingFbsPackageLabelCreateRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewPostingFbsPackageLabelCreateRequestWithBody constructs an http.Request for the PostingFbsPackageLabelCreate method, with any body, and a specified content type
+func NewPostingFbsPackageLabelCreateRequestWithBody(server string, params *PostingFbsPackageLabelCreateParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v3/posting/fbs/package-label/create")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Client-Id", params.ClientId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Client-Id", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "Api-Key", params.ApiKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Api-Key", headerParam1)
+
+	}
+
+	return req, nil
+}
+
 // NewProductAPIGetProductInfoListRequest calls the generic ProductAPIGetProductInfoList builder with application/json body
 func NewProductAPIGetProductInfoListRequest(server string, params *ProductAPIGetProductInfoListParams, body ProductAPIGetProductInfoListJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -4211,6 +7531,68 @@ func NewProductAPIGetProductInfoListRequestWithBody(server string, params *Produ
 	}
 
 	operationPath := fmt.Sprintf("/v3/product/info/list")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Client-Id", params.ClientId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Client-Id", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "Api-Key", params.ApiKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Api-Key", headerParam1)
+
+	}
+
+	return req, nil
+}
+
+// NewPostingAPIShipFbsPostingV4Request calls the generic PostingAPIShipFbsPostingV4 builder with application/json body
+func NewPostingAPIShipFbsPostingV4Request(server string, params *PostingAPIShipFbsPostingV4Params, body PostingAPIShipFbsPostingV4JSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostingAPIShipFbsPostingV4RequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewPostingAPIShipFbsPostingV4RequestWithBody constructs an http.Request for the PostingAPIShipFbsPostingV4 method, with any body, and a specified content type
+func NewPostingAPIShipFbsPostingV4RequestWithBody(server string, params *PostingAPIShipFbsPostingV4Params, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v4/posting/fbs/ship")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -4314,6 +7696,192 @@ func NewPostingFbsUnfulfilledListRequestWithBody(server string, params *PostingF
 	return req, nil
 }
 
+// NewPostingAPIFbsPostingProductExemplarStatusV5Request calls the generic PostingAPIFbsPostingProductExemplarStatusV5 builder with application/json body
+func NewPostingAPIFbsPostingProductExemplarStatusV5Request(server string, params *PostingAPIFbsPostingProductExemplarStatusV5Params, body PostingAPIFbsPostingProductExemplarStatusV5JSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostingAPIFbsPostingProductExemplarStatusV5RequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewPostingAPIFbsPostingProductExemplarStatusV5RequestWithBody constructs an http.Request for the PostingAPIFbsPostingProductExemplarStatusV5 method, with any body, and a specified content type
+func NewPostingAPIFbsPostingProductExemplarStatusV5RequestWithBody(server string, params *PostingAPIFbsPostingProductExemplarStatusV5Params, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v5/fbs/posting/product/exemplar/status")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Client-Id", params.ClientId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Client-Id", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "Api-Key", params.ApiKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Api-Key", headerParam1)
+
+	}
+
+	return req, nil
+}
+
+// NewPostingAPIFbsPostingProductExemplarCreateOrGetV6Request calls the generic PostingAPIFbsPostingProductExemplarCreateOrGetV6 builder with application/json body
+func NewPostingAPIFbsPostingProductExemplarCreateOrGetV6Request(server string, params *PostingAPIFbsPostingProductExemplarCreateOrGetV6Params, body PostingAPIFbsPostingProductExemplarCreateOrGetV6JSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostingAPIFbsPostingProductExemplarCreateOrGetV6RequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewPostingAPIFbsPostingProductExemplarCreateOrGetV6RequestWithBody constructs an http.Request for the PostingAPIFbsPostingProductExemplarCreateOrGetV6 method, with any body, and a specified content type
+func NewPostingAPIFbsPostingProductExemplarCreateOrGetV6RequestWithBody(server string, params *PostingAPIFbsPostingProductExemplarCreateOrGetV6Params, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v6/fbs/posting/product/exemplar/create-or-get")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Client-Id", params.ClientId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Client-Id", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "Api-Key", params.ApiKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Api-Key", headerParam1)
+
+	}
+
+	return req, nil
+}
+
+// NewPostingAPIFbsPostingProductExemplarSetV6Request calls the generic PostingAPIFbsPostingProductExemplarSetV6 builder with application/json body
+func NewPostingAPIFbsPostingProductExemplarSetV6Request(server string, params *PostingAPIFbsPostingProductExemplarSetV6Params, body PostingAPIFbsPostingProductExemplarSetV6JSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostingAPIFbsPostingProductExemplarSetV6RequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewPostingAPIFbsPostingProductExemplarSetV6RequestWithBody constructs an http.Request for the PostingAPIFbsPostingProductExemplarSetV6 method, with any body, and a specified content type
+func NewPostingAPIFbsPostingProductExemplarSetV6RequestWithBody(server string, params *PostingAPIFbsPostingProductExemplarSetV6Params, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v6/fbs/posting/product/exemplar/set")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Client-Id", params.ClientId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Client-Id", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "Api-Key", params.ApiKey, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("Api-Key", headerParam1)
+
+	}
+
+	return req, nil
+}
+
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -4358,6 +7926,142 @@ func WithBaseURL(baseURL string) ClientOption {
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
 
+	// CarriageAPICarriageApproveWithBodyWithResponse Подтверждение отгрузки
+	//
+	//
+	// Используйте метод, чтобы подтвердить отгрузку после её создания.
+	// После подтверждения отгрузка перейдёт в статус «Сформирована».
+	//
+	// После подтверждения отгрузки вы можете получить лист отгрузки методом [/v2/posting/fbs/act/get-pdf](#operation/PostingAPI_PostingFBSGetAct) и штрихкод отгрузки методом [/v2/posting/fbs/act/get-barcode](#operation/PostingAPI_PostingFBSGetBarcode).
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v1/carriage/approve (the `CarriageAPICarriageApprove` operationId).
+	CarriageAPICarriageApproveWithBodyWithResponse(ctx context.Context, params *CarriageAPICarriageApproveParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CarriageAPICarriageApproveResponse, error)
+
+	// CarriageAPICarriageApproveWithResponse Подтверждение отгрузки
+	//
+	//
+	// Используйте метод, чтобы подтвердить отгрузку после её создания.
+	// После подтверждения отгрузка перейдёт в статус «Сформирована».
+	//
+	// После подтверждения отгрузки вы можете получить лист отгрузки методом [/v2/posting/fbs/act/get-pdf](#operation/PostingAPI_PostingFBSGetAct) и штрихкод отгрузки методом [/v2/posting/fbs/act/get-barcode](#operation/PostingAPI_PostingFBSGetBarcode).
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v1/carriage/approve (the `CarriageAPICarriageApprove` operationId).
+	CarriageAPICarriageApproveWithResponse(ctx context.Context, params *CarriageAPICarriageApproveParams, body CarriageAPICarriageApproveJSONRequestBody, reqEditors ...RequestEditorFn) (*CarriageAPICarriageApproveResponse, error)
+
+	// CarriageAPICarriageCancelWithBodyWithResponse Удаление отгрузки
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v1/carriage/cancel (the `CarriageAPICarriageCancel` operationId).
+	CarriageAPICarriageCancelWithBodyWithResponse(ctx context.Context, params *CarriageAPICarriageCancelParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CarriageAPICarriageCancelResponse, error)
+
+	// CarriageAPICarriageCancelWithResponse Удаление отгрузки
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v1/carriage/cancel (the `CarriageAPICarriageCancel` operationId).
+	CarriageAPICarriageCancelWithResponse(ctx context.Context, params *CarriageAPICarriageCancelParams, body CarriageAPICarriageCancelJSONRequestBody, reqEditors ...RequestEditorFn) (*CarriageAPICarriageCancelResponse, error)
+
+	// CarriageAPICarriageCreateWithBodyWithResponse Создание отгрузки
+	//
+	// <aside class="warning">
+	// Перед началом работы проверьте возможность создания отгрузки методом <a href="#operation/CarriageAPI_CarriageDeliveryListV2">/v2/carriage/delivery/list</a>. <br> Если <code>methods.carriages.available_actions = create</code>, вы можете создать отгрузку.
+	//
+	// Если вы продавец не из России, обратите внимание на доступность <a href="https://seller-edu.ozon.ru/fbs/ozon-logistika/sobrat-zakazy#шаг-2-сформируите-отгрузку">рекомендованного времени</a> в личном кабинете.
+	// </aside>
+	//
+	// Используйте метод для создания первой FBS отгрузки. В неё попадут все отправления со статусом «Готов к отгрузке». Созданная отгрузка получит статус `new`.
+	//
+	// Для отгрузки в статусе `new` можно перезаписать состав отправлений методом [/v1/carriage/set-postings](#operation/CarriageAPI_SetPostings). Если из отгрузки исключить часть отправлений, они могут попасть в следующую отгрузку.
+	//
+	// Чтобы получить список отправлений в отгрузке, используйте метод [/v2/posting/fbs/act/get-postings](#operation/PostingAPI_ActPostingList).
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v1/carriage/create (the `CarriageAPICarriageCreate` operationId).
+	CarriageAPICarriageCreateWithBodyWithResponse(ctx context.Context, params *CarriageAPICarriageCreateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CarriageAPICarriageCreateResponse, error)
+
+	// CarriageAPICarriageCreateWithResponse Создание отгрузки
+	//
+	// <aside class="warning">
+	// Перед началом работы проверьте возможность создания отгрузки методом <a href="#operation/CarriageAPI_CarriageDeliveryListV2">/v2/carriage/delivery/list</a>. <br> Если <code>methods.carriages.available_actions = create</code>, вы можете создать отгрузку.
+	//
+	// Если вы продавец не из России, обратите внимание на доступность <a href="https://seller-edu.ozon.ru/fbs/ozon-logistika/sobrat-zakazy#шаг-2-сформируите-отгрузку">рекомендованного времени</a> в личном кабинете.
+	// </aside>
+	//
+	// Используйте метод для создания первой FBS отгрузки. В неё попадут все отправления со статусом «Готов к отгрузке». Созданная отгрузка получит статус `new`.
+	//
+	// Для отгрузки в статусе `new` можно перезаписать состав отправлений методом [/v1/carriage/set-postings](#operation/CarriageAPI_SetPostings). Если из отгрузки исключить часть отправлений, они могут попасть в следующую отгрузку.
+	//
+	// Чтобы получить список отправлений в отгрузке, используйте метод [/v2/posting/fbs/act/get-postings](#operation/PostingAPI_ActPostingList).
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v1/carriage/create (the `CarriageAPICarriageCreate` operationId).
+	CarriageAPICarriageCreateWithResponse(ctx context.Context, params *CarriageAPICarriageCreateParams, body CarriageAPICarriageCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*CarriageAPICarriageCreateResponse, error)
+
+	// CarriageGetWithBodyWithResponse Информация о перевозке
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v1/carriage/get (the `CarriageGet` operationId).
+	CarriageGetWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CarriageGetResponse, error)
+
+	// CarriageGetWithResponse Информация о перевозке
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v1/carriage/get (the `CarriageGet` operationId).
+	CarriageGetWithResponse(ctx context.Context, body CarriageGetJSONRequestBody, reqEditors ...RequestEditorFn) (*CarriageGetResponse, error)
+
+	// CarriageAPISetPostingsWithBodyWithResponse Изменение состава отгрузки
+	//
+	//
+	// <aside class="warning">
+	// Метод недоступен для продавцов из СНГ. <br>
+	//
+	// Полностью перезаписывает список заказов в отгрузке. Передавайте только те заказы, которые находятся в статусе <code>Ожидает отгрузки</code>, и вы готовы их отгрузить.
+	//
+	// Менять состав можно только у отгрузок со статусом `new`.
+	// </aside>
+	//
+	// <br>
+	//
+	// <aside class="notice">
+	// Чтобы вернуться к списку заказов, удалите отгрузку с помощью метода <a href="#operation/CarriageAPI_CarriageCancel">/v1/carriage/cancel</a>, и создайте новую.
+	// </aside>
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v1/carriage/set-postings (the `CarriageAPISetPostings` operationId).
+	CarriageAPISetPostingsWithBodyWithResponse(ctx context.Context, params *CarriageAPISetPostingsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CarriageAPISetPostingsResponse, error)
+
+	// CarriageAPISetPostingsWithResponse Изменение состава отгрузки
+	//
+	//
+	// <aside class="warning">
+	// Метод недоступен для продавцов из СНГ. <br>
+	//
+	// Полностью перезаписывает список заказов в отгрузке. Передавайте только те заказы, которые находятся в статусе <code>Ожидает отгрузки</code>, и вы готовы их отгрузить.
+	//
+	// Менять состав можно только у отгрузок со статусом `new`.
+	// </aside>
+	//
+	// <br>
+	//
+	// <aside class="notice">
+	// Чтобы вернуться к списку заказов, удалите отгрузку с помощью метода <a href="#operation/CarriageAPI_CarriageCancel">/v1/carriage/cancel</a>, и создайте новую.
+	// </aside>
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v1/carriage/set-postings (the `CarriageAPISetPostings` operationId).
+	CarriageAPISetPostingsWithResponse(ctx context.Context, params *CarriageAPISetPostingsParams, body CarriageAPISetPostingsJSONRequestBody, reqEditors ...RequestEditorFn) (*CarriageAPISetPostingsResponse, error)
+
 	// AccessAPIRolesByTokenWithResponse Получить список ролей и методов по API-ключу
 	//
 	// Метод для получения информации и ролях и методах, привязанных к API-ключу.
@@ -4373,6 +8077,146 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /v1/seller/info (the `SellerAPISellerInfo` operationId).
 	SellerAPISellerInfoWithResponse(ctx context.Context, params *SellerAPISellerInfoParams, reqEditors ...RequestEditorFn) (*SellerAPISellerInfoResponse, error)
+
+	// CarriageAPICarriageDeliveryListV2WithBodyWithResponse Список методов доставки и отгрузок
+	//
+	// <aside class="warning">
+	//   Метод не возвращает информацию по методам доставки, у которых нет отправлений.
+	// </aside>
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v2/carriage/delivery/list (the `CarriageAPICarriageDeliveryListV2` operationId).
+	CarriageAPICarriageDeliveryListV2WithBodyWithResponse(ctx context.Context, params *CarriageAPICarriageDeliveryListV2Params, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CarriageAPICarriageDeliveryListV2Response, error)
+
+	// CarriageAPICarriageDeliveryListV2WithResponse Список методов доставки и отгрузок
+	//
+	// <aside class="warning">
+	//   Метод не возвращает информацию по методам доставки, у которых нет отправлений.
+	// </aside>
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v2/carriage/delivery/list (the `CarriageAPICarriageDeliveryListV2` operationId).
+	CarriageAPICarriageDeliveryListV2WithResponse(ctx context.Context, params *CarriageAPICarriageDeliveryListV2Params, body CarriageAPICarriageDeliveryListV2JSONRequestBody, reqEditors ...RequestEditorFn) (*CarriageAPICarriageDeliveryListV2Response, error)
+
+	// PostingAPIPostingFBSActCheckStatusWithBodyWithResponse Статус отгрузки и документов
+	//
+	// Возвращает статус формирования штрихкода для отгрузки и документов:
+	// - для продавцов из России — транспортной накладной и листа отгрузки;
+	// - для продавцов из СНГ — транспортной накладной и акта приёма-передачи.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v2/posting/fbs/act/check-status (the `PostingAPIPostingFBSActCheckStatus` operationId).
+	PostingAPIPostingFBSActCheckStatusWithBodyWithResponse(ctx context.Context, params *PostingAPIPostingFBSActCheckStatusParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingAPIPostingFBSActCheckStatusResponse, error)
+
+	// PostingAPIPostingFBSActCheckStatusWithResponse Статус отгрузки и документов
+	//
+	// Возвращает статус формирования штрихкода для отгрузки и документов:
+	// - для продавцов из России — транспортной накладной и листа отгрузки;
+	// - для продавцов из СНГ — транспортной накладной и акта приёма-передачи.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v2/posting/fbs/act/check-status (the `PostingAPIPostingFBSActCheckStatus` operationId).
+	PostingAPIPostingFBSActCheckStatusWithResponse(ctx context.Context, params *PostingAPIPostingFBSActCheckStatusParams, body PostingAPIPostingFBSActCheckStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*PostingAPIPostingFBSActCheckStatusResponse, error)
+
+	// PostingAPIPostingFBSGetBarcodeWithBodyWithResponse Штрихкод для отгрузки отправления
+	//
+	// Метод для получения штрихкода, который нужно показать в пункте выдачи или сортировочном центре при отгрузке отправления.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v2/posting/fbs/act/get-barcode (the `PostingAPIPostingFBSGetBarcode` operationId).
+	PostingAPIPostingFBSGetBarcodeWithBodyWithResponse(ctx context.Context, params *PostingAPIPostingFBSGetBarcodeParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingAPIPostingFBSGetBarcodeResponse, error)
+
+	// PostingAPIPostingFBSGetBarcodeWithResponse Штрихкод для отгрузки отправления
+	//
+	// Метод для получения штрихкода, который нужно показать в пункте выдачи или сортировочном центре при отгрузке отправления.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v2/posting/fbs/act/get-barcode (the `PostingAPIPostingFBSGetBarcode` operationId).
+	PostingAPIPostingFBSGetBarcodeWithResponse(ctx context.Context, params *PostingAPIPostingFBSGetBarcodeParams, body PostingAPIPostingFBSGetBarcodeJSONRequestBody, reqEditors ...RequestEditorFn) (*PostingAPIPostingFBSGetBarcodeResponse, error)
+
+	// PostingAPIPostingFBSGetBarcodeTextWithBodyWithResponse Значение штрихкода для отгрузки отправления
+	//
+	// Используйте этот метод, чтобы получить штрихкод из ответа
+	// [/v2/posting/fbs/act/get-barcode](#operation/PostingAPI_PostingFBSGetBarcode) в текстовом виде.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v2/posting/fbs/act/get-barcode/text (the `PostingAPIPostingFBSGetBarcodeText` operationId).
+	PostingAPIPostingFBSGetBarcodeTextWithBodyWithResponse(ctx context.Context, params *PostingAPIPostingFBSGetBarcodeTextParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingAPIPostingFBSGetBarcodeTextResponse, error)
+
+	// PostingAPIPostingFBSGetBarcodeTextWithResponse Значение штрихкода для отгрузки отправления
+	//
+	// Используйте этот метод, чтобы получить штрихкод из ответа
+	// [/v2/posting/fbs/act/get-barcode](#operation/PostingAPI_PostingFBSGetBarcode) в текстовом виде.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v2/posting/fbs/act/get-barcode/text (the `PostingAPIPostingFBSGetBarcodeText` operationId).
+	PostingAPIPostingFBSGetBarcodeTextWithResponse(ctx context.Context, params *PostingAPIPostingFBSGetBarcodeTextParams, body PostingAPIPostingFBSGetBarcodeTextJSONRequestBody, reqEditors ...RequestEditorFn) (*PostingAPIPostingFBSGetBarcodeTextResponse, error)
+
+	// PostingAPIPostingFBSGetActWithBodyWithResponse Получить PDF c документами
+	//
+	// С помощью метода можно получить:
+	// - продацам из России — лист отгрузки и транспортную накладную;
+	// - продавцам из СНГ — акт и транспортную накладную.
+	//
+	// Получите список доступных документов для отгрузки в параметре `available_actions` метода [/v1/carriage/get](#operation/CarriageGet).
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v2/posting/fbs/act/get-pdf (the `PostingAPIPostingFBSGetAct` operationId).
+	PostingAPIPostingFBSGetActWithBodyWithResponse(ctx context.Context, params *PostingAPIPostingFBSGetActParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingAPIPostingFBSGetActResponse, error)
+
+	// PostingAPIPostingFBSGetActWithResponse Получить PDF c документами
+	//
+	// С помощью метода можно получить:
+	// - продацам из России — лист отгрузки и транспортную накладную;
+	// - продавцам из СНГ — акт и транспортную накладную.
+	//
+	// Получите список доступных документов для отгрузки в параметре `available_actions` метода [/v1/carriage/get](#operation/CarriageGet).
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v2/posting/fbs/act/get-pdf (the `PostingAPIPostingFBSGetAct` operationId).
+	PostingAPIPostingFBSGetActWithResponse(ctx context.Context, params *PostingAPIPostingFBSGetActParams, body PostingAPIPostingFBSGetActJSONRequestBody, reqEditors ...RequestEditorFn) (*PostingAPIPostingFBSGetActResponse, error)
+
+	// PostingAPIActPostingListWithBodyWithResponse Список отправлений в акте
+	//
+	// Возвращает список отправлений в акте по его идентификатору.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v2/posting/fbs/act/get-postings (the `PostingAPIActPostingList` operationId).
+	PostingAPIActPostingListWithBodyWithResponse(ctx context.Context, params *PostingAPIActPostingListParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingAPIActPostingListResponse, error)
+
+	// PostingAPIActPostingListWithResponse Список отправлений в акте
+	//
+	// Возвращает список отправлений в акте по его идентификатору.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v2/posting/fbs/act/get-postings (the `PostingAPIActPostingList` operationId).
+	PostingAPIActPostingListWithResponse(ctx context.Context, params *PostingAPIActPostingListParams, body PostingAPIActPostingListJSONRequestBody, reqEditors ...RequestEditorFn) (*PostingAPIActPostingListResponse, error)
+
+	// PostingFbsPackageLabelGetWithBodyWithResponse Получить файл с этикетками
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v2/posting/fbs/package-label/get (the `PostingFbsPackageLabelGet` operationId).
+	PostingFbsPackageLabelGetWithBodyWithResponse(ctx context.Context, params *PostingFbsPackageLabelGetParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingFbsPackageLabelGetResponse, error)
+
+	// PostingFbsPackageLabelGetWithResponse Получить файл с этикетками
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v2/posting/fbs/package-label/get (the `PostingFbsPackageLabelGet` operationId).
+	PostingFbsPackageLabelGetWithResponse(ctx context.Context, params *PostingFbsPackageLabelGetParams, body PostingFbsPackageLabelGetJSONRequestBody, reqEditors ...RequestEditorFn) (*PostingFbsPackageLabelGetResponse, error)
 
 	// WarehouseListV2WithBodyWithResponse Список складов
 	//
@@ -4434,6 +8278,38 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /v3/posting/fbs/get (the `PostingAPIGetFbsPostingV3` operationId).
 	PostingAPIGetFbsPostingV3WithResponse(ctx context.Context, params *PostingAPIGetFbsPostingV3Params, body PostingAPIGetFbsPostingV3JSONRequestBody, reqEditors ...RequestEditorFn) (*PostingAPIGetFbsPostingV3Response, error)
 
+	// PostingFbsPackageLabelCreateWithBodyWithResponse Создать задание на формирование этикеток
+	//
+	// <aside class="warning">
+	// Если вы работаете по схеме rFBS или rFBS Express, изучите процесс печати этикетки в <a href="https://seller-edu.ozon.ru/rfbs/scheme-of-work">Базе знаний продавца</a>.
+	// </aside>
+	//
+	// Создаёт задания на асинхронное формирование этикеток для отправлений в статусе «Ожидает отгрузки» — `awaiting_deliver`.
+	// Рекомендуем запрашивать этикетки через 45–60 секунд после сборки заказа.
+	//
+	// Чтобы получить созданные этикетки, используйте [/v2/posting/fbs/package-label/get](#operation/PostingFbsPackageLabelGet).
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v3/posting/fbs/package-label/create (the `PostingFbsPackageLabelCreate` operationId).
+	PostingFbsPackageLabelCreateWithBodyWithResponse(ctx context.Context, params *PostingFbsPackageLabelCreateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingFbsPackageLabelCreateResponse, error)
+
+	// PostingFbsPackageLabelCreateWithResponse Создать задание на формирование этикеток
+	//
+	// <aside class="warning">
+	// Если вы работаете по схеме rFBS или rFBS Express, изучите процесс печати этикетки в <a href="https://seller-edu.ozon.ru/rfbs/scheme-of-work">Базе знаний продавца</a>.
+	// </aside>
+	//
+	// Создаёт задания на асинхронное формирование этикеток для отправлений в статусе «Ожидает отгрузки» — `awaiting_deliver`.
+	// Рекомендуем запрашивать этикетки через 45–60 секунд после сборки заказа.
+	//
+	// Чтобы получить созданные этикетки, используйте [/v2/posting/fbs/package-label/get](#operation/PostingFbsPackageLabelGet).
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v3/posting/fbs/package-label/create (the `PostingFbsPackageLabelCreate` operationId).
+	PostingFbsPackageLabelCreateWithResponse(ctx context.Context, params *PostingFbsPackageLabelCreateParams, body PostingFbsPackageLabelCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*PostingFbsPackageLabelCreateResponse, error)
+
 	// ProductAPIGetProductInfoListWithBodyWithResponse Получить информацию о товарах по идентификаторам
 	//
 	//
@@ -4461,6 +8337,140 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /v3/product/info/list (the `ProductAPIGetProductInfoList` operationId).
 	ProductAPIGetProductInfoListWithResponse(ctx context.Context, params *ProductAPIGetProductInfoListParams, body ProductAPIGetProductInfoListJSONRequestBody, reqEditors ...RequestEditorFn) (*ProductAPIGetProductInfoListResponse, error)
+
+	// PostingAPIShipFbsPostingV4WithBodyWithResponse Собрать заказ (версия 4)
+	//
+	// <aside class="warning">
+	// Ответ с кодом <tt>200</tt> не гарантирует успешную сборку заказа. Используйте метод <a href="#operation/PostingAPI_GetFbsPostingV3">/v3/posting/fbs/get</a>, чтобы проверить, что заказ собран. Если в ответе указан <tt>result.substatus = ship_failed</tt>, повторите сборку заказа.
+	// </aside>
+	//
+	// Делит заказ на отправления и переводит его в статус `awaiting_deliver`.
+	//
+	// Каждый элемент в `packages` может содержать несколько элементов `products` или отправлений.
+	// Каждый элемент в `products` — это товар, включённый в данное отправление.
+	//
+	// Разделить заказ нужно, если:
+	//   - товары не помещаются в одну упаковку,
+	//   - товары нельзя сложить в одну упаковку.
+	//
+	// Чтобы разделить заказ, передайте в массиве `packages` несколько объектов.
+	//
+	// Пример запроса, когда заказ разделять не нужно: 2 товара будут в одном отправлении.
+	// ```
+	// {
+	//   "packages": [
+	//     {
+	//       "products": [
+	//         {
+	//           "product_id": 185479045,
+	//           "quantity": 2
+	//         }
+	//       ]
+	//     }
+	//   ],
+	//   "posting_number": "89491381-0072-1"
+	// }
+	// ```
+	//
+	// Пример запроса, когда заказ нужно разделить: каждый товар будет в отдельном отправлении.
+	//
+	// ```
+	// {
+	//   "packages": [
+	//     {
+	//       "products": [
+	//         {
+	//           "product_id": 185479045,
+	//           "quantity": 1
+	//         }
+	//       ]
+	//     },
+	//     {
+	//       "products": [
+	//         {
+	//           "product_id": 185479045,
+	//           "quantity": 1
+	//         }
+	//       ]
+	//     }
+	//   ],
+	//   "posting_number": "89491381-0072-1"
+	// }
+	// ```
+	//
+	// Чтобы внести информацию по экземплярам, используйте метод [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6).
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v4/posting/fbs/ship (the `PostingAPIShipFbsPostingV4` operationId).
+	PostingAPIShipFbsPostingV4WithBodyWithResponse(ctx context.Context, params *PostingAPIShipFbsPostingV4Params, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingAPIShipFbsPostingV4Response, error)
+
+	// PostingAPIShipFbsPostingV4WithResponse Собрать заказ (версия 4)
+	//
+	// <aside class="warning">
+	// Ответ с кодом <tt>200</tt> не гарантирует успешную сборку заказа. Используйте метод <a href="#operation/PostingAPI_GetFbsPostingV3">/v3/posting/fbs/get</a>, чтобы проверить, что заказ собран. Если в ответе указан <tt>result.substatus = ship_failed</tt>, повторите сборку заказа.
+	// </aside>
+	//
+	// Делит заказ на отправления и переводит его в статус `awaiting_deliver`.
+	//
+	// Каждый элемент в `packages` может содержать несколько элементов `products` или отправлений.
+	// Каждый элемент в `products` — это товар, включённый в данное отправление.
+	//
+	// Разделить заказ нужно, если:
+	//   - товары не помещаются в одну упаковку,
+	//   - товары нельзя сложить в одну упаковку.
+	//
+	// Чтобы разделить заказ, передайте в массиве `packages` несколько объектов.
+	//
+	// Пример запроса, когда заказ разделять не нужно: 2 товара будут в одном отправлении.
+	// ```
+	// {
+	//   "packages": [
+	//     {
+	//       "products": [
+	//         {
+	//           "product_id": 185479045,
+	//           "quantity": 2
+	//         }
+	//       ]
+	//     }
+	//   ],
+	//   "posting_number": "89491381-0072-1"
+	// }
+	// ```
+	//
+	// Пример запроса, когда заказ нужно разделить: каждый товар будет в отдельном отправлении.
+	//
+	// ```
+	// {
+	//   "packages": [
+	//     {
+	//       "products": [
+	//         {
+	//           "product_id": 185479045,
+	//           "quantity": 1
+	//         }
+	//       ]
+	//     },
+	//     {
+	//       "products": [
+	//         {
+	//           "product_id": 185479045,
+	//           "quantity": 1
+	//         }
+	//       ]
+	//     }
+	//   ],
+	//   "posting_number": "89491381-0072-1"
+	// }
+	// ```
+	//
+	// Чтобы внести информацию по экземплярам, используйте метод [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6).
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v4/posting/fbs/ship (the `PostingAPIShipFbsPostingV4` operationId).
+	PostingAPIShipFbsPostingV4WithResponse(ctx context.Context, params *PostingAPIShipFbsPostingV4Params, body PostingAPIShipFbsPostingV4JSONRequestBody, reqEditors ...RequestEditorFn) (*PostingAPIShipFbsPostingV4Response, error)
 
 	// PostingFbsUnfulfilledListWithBodyWithResponse Получить список необработанных отправлений
 	//
@@ -4509,6 +8519,452 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /v4/posting/fbs/unfulfilled/list (the `PostingFbsUnfulfilledList` operationId).
 	PostingFbsUnfulfilledListWithResponse(ctx context.Context, params *PostingFbsUnfulfilledListParams, body PostingFbsUnfulfilledListJSONRequestBody, reqEditors ...RequestEditorFn) (*PostingFbsUnfulfilledListResponse, error)
+
+	// PostingAPIFbsPostingProductExemplarStatusV5WithBodyWithResponse Получить статус добавления экземпляров
+	//
+	// Метод для получения статусов добавления экземпляров, переданных в методе [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6). Также возвращает данные по этим экземплярам.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v5/fbs/posting/product/exemplar/status (the `PostingAPIFbsPostingProductExemplarStatusV5` operationId).
+	PostingAPIFbsPostingProductExemplarStatusV5WithBodyWithResponse(ctx context.Context, params *PostingAPIFbsPostingProductExemplarStatusV5Params, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingAPIFbsPostingProductExemplarStatusV5Response, error)
+
+	// PostingAPIFbsPostingProductExemplarStatusV5WithResponse Получить статус добавления экземпляров
+	//
+	// Метод для получения статусов добавления экземпляров, переданных в методе [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6). Также возвращает данные по этим экземплярам.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v5/fbs/posting/product/exemplar/status (the `PostingAPIFbsPostingProductExemplarStatusV5` operationId).
+	PostingAPIFbsPostingProductExemplarStatusV5WithResponse(ctx context.Context, params *PostingAPIFbsPostingProductExemplarStatusV5Params, body PostingAPIFbsPostingProductExemplarStatusV5JSONRequestBody, reqEditors ...RequestEditorFn) (*PostingAPIFbsPostingProductExemplarStatusV5Response, error)
+
+	// PostingAPIFbsPostingProductExemplarCreateOrGetV6WithBodyWithResponse Получить данные созданных экземпляров
+	//
+	// Метод для получения информации по экземплярам товаров из отправления, переданных в методе [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6).
+	//
+	// Используйте метод для получения `exemplar_id`.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v6/fbs/posting/product/exemplar/create-or-get (the `PostingAPIFbsPostingProductExemplarCreateOrGetV6` operationId).
+	PostingAPIFbsPostingProductExemplarCreateOrGetV6WithBodyWithResponse(ctx context.Context, params *PostingAPIFbsPostingProductExemplarCreateOrGetV6Params, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingAPIFbsPostingProductExemplarCreateOrGetV6Response, error)
+
+	// PostingAPIFbsPostingProductExemplarCreateOrGetV6WithResponse Получить данные созданных экземпляров
+	//
+	// Метод для получения информации по экземплярам товаров из отправления, переданных в методе [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6).
+	//
+	// Используйте метод для получения `exemplar_id`.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v6/fbs/posting/product/exemplar/create-or-get (the `PostingAPIFbsPostingProductExemplarCreateOrGetV6` operationId).
+	PostingAPIFbsPostingProductExemplarCreateOrGetV6WithResponse(ctx context.Context, params *PostingAPIFbsPostingProductExemplarCreateOrGetV6Params, body PostingAPIFbsPostingProductExemplarCreateOrGetV6JSONRequestBody, reqEditors ...RequestEditorFn) (*PostingAPIFbsPostingProductExemplarCreateOrGetV6Response, error)
+
+	// PostingAPIFbsPostingProductExemplarSetV6WithBodyWithResponse Проверить и сохранить данные экземпляров
+	//
+	// Асинхронный метод:
+	// - для проверки наличия экземпляров в обороте в системе «Честный ЗНАК»;
+	// - для сохранения данных экземпляров.
+	//
+	// Чтобы получить результаты проверок, используйте метод [/v5/fbs/posting/product/exemplar/status](#operation/PostingAPI_FbsPostingProductExemplarStatusV5).
+	// Для получения данных о созданных экземплярах, используйте метод [/v6/fbs/posting/product/exemplar/create-or-get](#operation/PostingAPI_FbsPostingProductExemplarCreateOrGetV6).
+	//
+	// Если у вас несколько одинаковых товаров в отправлении, укажите один `product_id` и массив `exemplars` для каждого товара из отправления.
+	//
+	// Всегда передавайте полный набор данных по экземплярам и продуктам.
+	//
+	// Например, в вашей системе 10 экземпляров.
+	// Вы передали их для проверки и сохранения.
+	// Потом добавили в своей системе ещё 60 экземпляров.
+	// При повторной передаче экземпляров для проверки и сохранения укажите все экземпляры: и старые, и только что добавленные.
+	//
+	// Код ответа 200 не гарантирует, что данные об экземплярах приняты.
+	// Он указывает, что создана задача для добавления информации.
+	// Чтобы проверить статус задачи, используйте метод [/v5/fbs/posting/product/exemplar/status](#operation/PostingAPI_FbsPostingProductExemplarStatusV5).
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v6/fbs/posting/product/exemplar/set (the `PostingAPIFbsPostingProductExemplarSetV6` operationId).
+	PostingAPIFbsPostingProductExemplarSetV6WithBodyWithResponse(ctx context.Context, params *PostingAPIFbsPostingProductExemplarSetV6Params, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingAPIFbsPostingProductExemplarSetV6Response, error)
+
+	// PostingAPIFbsPostingProductExemplarSetV6WithResponse Проверить и сохранить данные экземпляров
+	//
+	// Асинхронный метод:
+	// - для проверки наличия экземпляров в обороте в системе «Честный ЗНАК»;
+	// - для сохранения данных экземпляров.
+	//
+	// Чтобы получить результаты проверок, используйте метод [/v5/fbs/posting/product/exemplar/status](#operation/PostingAPI_FbsPostingProductExemplarStatusV5).
+	// Для получения данных о созданных экземплярах, используйте метод [/v6/fbs/posting/product/exemplar/create-or-get](#operation/PostingAPI_FbsPostingProductExemplarCreateOrGetV6).
+	//
+	// Если у вас несколько одинаковых товаров в отправлении, укажите один `product_id` и массив `exemplars` для каждого товара из отправления.
+	//
+	// Всегда передавайте полный набор данных по экземплярам и продуктам.
+	//
+	// Например, в вашей системе 10 экземпляров.
+	// Вы передали их для проверки и сохранения.
+	// Потом добавили в своей системе ещё 60 экземпляров.
+	// При повторной передаче экземпляров для проверки и сохранения укажите все экземпляры: и старые, и только что добавленные.
+	//
+	// Код ответа 200 не гарантирует, что данные об экземплярах приняты.
+	// Он указывает, что создана задача для добавления информации.
+	// Чтобы проверить статус задачи, используйте метод [/v5/fbs/posting/product/exemplar/status](#operation/PostingAPI_FbsPostingProductExemplarStatusV5).
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v6/fbs/posting/product/exemplar/set (the `PostingAPIFbsPostingProductExemplarSetV6` operationId).
+	PostingAPIFbsPostingProductExemplarSetV6WithResponse(ctx context.Context, params *PostingAPIFbsPostingProductExemplarSetV6Params, body PostingAPIFbsPostingProductExemplarSetV6JSONRequestBody, reqEditors ...RequestEditorFn) (*PostingAPIFbsPostingProductExemplarSetV6Response, error)
+}
+
+type CarriageAPICarriageApproveResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *V1CarriageApproveResponse
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *RpcStatus
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *RpcStatus
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *RpcStatus
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *RpcStatus
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *RpcStatus
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CarriageAPICarriageApproveResponse) GetJSON200() *V1CarriageApproveResponse {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r CarriageAPICarriageApproveResponse) GetJSON400() *RpcStatus {
+	return r.JSON400
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r CarriageAPICarriageApproveResponse) GetJSON403() *RpcStatus {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r CarriageAPICarriageApproveResponse) GetJSON404() *RpcStatus {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r CarriageAPICarriageApproveResponse) GetJSON409() *RpcStatus {
+	return r.JSON409
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r CarriageAPICarriageApproveResponse) GetJSON500() *RpcStatus {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r CarriageAPICarriageApproveResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CarriageAPICarriageApproveResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CarriageAPICarriageApproveResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CarriageAPICarriageApproveResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CarriageAPICarriageCancelResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *V1CarriageCancelResponse
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *RpcStatus
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *RpcStatus
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *RpcStatus
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *RpcStatus
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *RpcStatus
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CarriageAPICarriageCancelResponse) GetJSON200() *V1CarriageCancelResponse {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r CarriageAPICarriageCancelResponse) GetJSON400() *RpcStatus {
+	return r.JSON400
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r CarriageAPICarriageCancelResponse) GetJSON403() *RpcStatus {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r CarriageAPICarriageCancelResponse) GetJSON404() *RpcStatus {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r CarriageAPICarriageCancelResponse) GetJSON409() *RpcStatus {
+	return r.JSON409
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r CarriageAPICarriageCancelResponse) GetJSON500() *RpcStatus {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r CarriageAPICarriageCancelResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CarriageAPICarriageCancelResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CarriageAPICarriageCancelResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CarriageAPICarriageCancelResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CarriageAPICarriageCreateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *V1CarriageCreateResponse
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *RpcStatus
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *RpcStatus
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *RpcStatus
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *RpcStatus
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *RpcStatus
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CarriageAPICarriageCreateResponse) GetJSON200() *V1CarriageCreateResponse {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r CarriageAPICarriageCreateResponse) GetJSON400() *RpcStatus {
+	return r.JSON400
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r CarriageAPICarriageCreateResponse) GetJSON403() *RpcStatus {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r CarriageAPICarriageCreateResponse) GetJSON404() *RpcStatus {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r CarriageAPICarriageCreateResponse) GetJSON409() *RpcStatus {
+	return r.JSON409
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r CarriageAPICarriageCreateResponse) GetJSON500() *RpcStatus {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r CarriageAPICarriageCreateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CarriageAPICarriageCreateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CarriageAPICarriageCreateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CarriageAPICarriageCreateResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CarriageGetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *CarriageCarriageGetResponse
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *RpcStatus
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CarriageGetResponse) GetJSON200() *CarriageCarriageGetResponse {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r CarriageGetResponse) GetJSONDefault() *RpcStatus {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CarriageGetResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CarriageGetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CarriageGetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CarriageGetResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CarriageAPISetPostingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *V1SetPostingsResponse
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *RpcStatus
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *RpcStatus
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *RpcStatus
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *RpcStatus
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *RpcStatus
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CarriageAPISetPostingsResponse) GetJSON200() *V1SetPostingsResponse {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r CarriageAPISetPostingsResponse) GetJSON400() *RpcStatus {
+	return r.JSON400
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r CarriageAPISetPostingsResponse) GetJSON403() *RpcStatus {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r CarriageAPISetPostingsResponse) GetJSON404() *RpcStatus {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r CarriageAPISetPostingsResponse) GetJSON409() *RpcStatus {
+	return r.JSON409
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r CarriageAPISetPostingsResponse) GetJSON500() *RpcStatus {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r CarriageAPISetPostingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CarriageAPISetPostingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CarriageAPISetPostingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CarriageAPISetPostingsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
 }
 
 type AccessAPIRolesByTokenResponse struct {
@@ -4601,6 +9057,496 @@ func (r SellerAPISellerInfoResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r SellerAPISellerInfoResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CarriageAPICarriageDeliveryListV2Response struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *V2CarriageDeliveryListV2Response
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *RpcStatus
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *RpcStatus
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *RpcStatus
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *RpcStatus
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *RpcStatus
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CarriageAPICarriageDeliveryListV2Response) GetJSON200() *V2CarriageDeliveryListV2Response {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r CarriageAPICarriageDeliveryListV2Response) GetJSON400() *RpcStatus {
+	return r.JSON400
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r CarriageAPICarriageDeliveryListV2Response) GetJSON403() *RpcStatus {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r CarriageAPICarriageDeliveryListV2Response) GetJSON404() *RpcStatus {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r CarriageAPICarriageDeliveryListV2Response) GetJSON409() *RpcStatus {
+	return r.JSON409
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r CarriageAPICarriageDeliveryListV2Response) GetJSON500() *RpcStatus {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r CarriageAPICarriageDeliveryListV2Response) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CarriageAPICarriageDeliveryListV2Response) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CarriageAPICarriageDeliveryListV2Response) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CarriageAPICarriageDeliveryListV2Response) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PostingAPIPostingFBSActCheckStatusResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PostingPostingFBSActCheckStatusResponse
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *RpcStatus
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *RpcStatus
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *RpcStatus
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *RpcStatus
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *RpcStatus
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r PostingAPIPostingFBSActCheckStatusResponse) GetJSON200() *PostingPostingFBSActCheckStatusResponse {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r PostingAPIPostingFBSActCheckStatusResponse) GetJSON400() *RpcStatus {
+	return r.JSON400
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r PostingAPIPostingFBSActCheckStatusResponse) GetJSON403() *RpcStatus {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r PostingAPIPostingFBSActCheckStatusResponse) GetJSON404() *RpcStatus {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r PostingAPIPostingFBSActCheckStatusResponse) GetJSON409() *RpcStatus {
+	return r.JSON409
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r PostingAPIPostingFBSActCheckStatusResponse) GetJSON500() *RpcStatus {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r PostingAPIPostingFBSActCheckStatusResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PostingAPIPostingFBSActCheckStatusResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostingAPIPostingFBSActCheckStatusResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PostingAPIPostingFBSActCheckStatusResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PostingAPIPostingFBSGetBarcodeResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *RpcStatus
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *RpcStatus
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *RpcStatus
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *RpcStatus
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *RpcStatus
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r PostingAPIPostingFBSGetBarcodeResponse) GetJSON400() *RpcStatus {
+	return r.JSON400
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r PostingAPIPostingFBSGetBarcodeResponse) GetJSON403() *RpcStatus {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r PostingAPIPostingFBSGetBarcodeResponse) GetJSON404() *RpcStatus {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r PostingAPIPostingFBSGetBarcodeResponse) GetJSON409() *RpcStatus {
+	return r.JSON409
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r PostingAPIPostingFBSGetBarcodeResponse) GetJSON500() *RpcStatus {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r PostingAPIPostingFBSGetBarcodeResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PostingAPIPostingFBSGetBarcodeResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostingAPIPostingFBSGetBarcodeResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PostingAPIPostingFBSGetBarcodeResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PostingAPIPostingFBSGetBarcodeTextResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *V2PostingFBSGetBarcodeTextResponse
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *RpcStatus
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r PostingAPIPostingFBSGetBarcodeTextResponse) GetJSON200() *V2PostingFBSGetBarcodeTextResponse {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r PostingAPIPostingFBSGetBarcodeTextResponse) GetJSONDefault() *RpcStatus {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r PostingAPIPostingFBSGetBarcodeTextResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PostingAPIPostingFBSGetBarcodeTextResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostingAPIPostingFBSGetBarcodeTextResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PostingAPIPostingFBSGetBarcodeTextResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PostingAPIPostingFBSGetActResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *RpcStatus
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *RpcStatus
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *RpcStatus
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *RpcStatus
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *RpcStatus
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r PostingAPIPostingFBSGetActResponse) GetJSON400() *RpcStatus {
+	return r.JSON400
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r PostingAPIPostingFBSGetActResponse) GetJSON403() *RpcStatus {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r PostingAPIPostingFBSGetActResponse) GetJSON404() *RpcStatus {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r PostingAPIPostingFBSGetActResponse) GetJSON409() *RpcStatus {
+	return r.JSON409
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r PostingAPIPostingFBSGetActResponse) GetJSON500() *RpcStatus {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r PostingAPIPostingFBSGetActResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PostingAPIPostingFBSGetActResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostingAPIPostingFBSGetActResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PostingAPIPostingFBSGetActResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PostingAPIActPostingListResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *V2PostingFBSActGetPostingsResponse
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *RpcStatus
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *RpcStatus
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *RpcStatus
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *RpcStatus
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *RpcStatus
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r PostingAPIActPostingListResponse) GetJSON200() *V2PostingFBSActGetPostingsResponse {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r PostingAPIActPostingListResponse) GetJSON400() *RpcStatus {
+	return r.JSON400
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r PostingAPIActPostingListResponse) GetJSON403() *RpcStatus {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r PostingAPIActPostingListResponse) GetJSON404() *RpcStatus {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r PostingAPIActPostingListResponse) GetJSON409() *RpcStatus {
+	return r.JSON409
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r PostingAPIActPostingListResponse) GetJSON500() *RpcStatus {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r PostingAPIActPostingListResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PostingAPIActPostingListResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostingAPIActPostingListResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PostingAPIActPostingListResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PostingFbsPackageLabelGetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PostingV2PostingFbsPackageLabelGetResponse
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *RpcStatus
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *RpcStatus
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *RpcStatus
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *RpcStatus
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *RpcStatus
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r PostingFbsPackageLabelGetResponse) GetJSON200() *PostingV2PostingFbsPackageLabelGetResponse {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r PostingFbsPackageLabelGetResponse) GetJSON400() *RpcStatus {
+	return r.JSON400
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r PostingFbsPackageLabelGetResponse) GetJSON403() *RpcStatus {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r PostingFbsPackageLabelGetResponse) GetJSON404() *RpcStatus {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r PostingFbsPackageLabelGetResponse) GetJSON409() *RpcStatus {
+	return r.JSON409
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r PostingFbsPackageLabelGetResponse) GetJSON500() *RpcStatus {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r PostingFbsPackageLabelGetResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PostingFbsPackageLabelGetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostingFbsPackageLabelGetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PostingFbsPackageLabelGetResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -4807,6 +9753,82 @@ func (r PostingAPIGetFbsPostingV3Response) ContentType() string {
 	return ""
 }
 
+type PostingFbsPackageLabelCreateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PostingV3PostingFbsPackageLabelCreateResponse
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *RpcStatus
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *RpcStatus
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *RpcStatus
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *RpcStatus
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *RpcStatus
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r PostingFbsPackageLabelCreateResponse) GetJSON200() *PostingV3PostingFbsPackageLabelCreateResponse {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r PostingFbsPackageLabelCreateResponse) GetJSON400() *RpcStatus {
+	return r.JSON400
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r PostingFbsPackageLabelCreateResponse) GetJSON403() *RpcStatus {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r PostingFbsPackageLabelCreateResponse) GetJSON404() *RpcStatus {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r PostingFbsPackageLabelCreateResponse) GetJSON409() *RpcStatus {
+	return r.JSON409
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r PostingFbsPackageLabelCreateResponse) GetJSON500() *RpcStatus {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r PostingFbsPackageLabelCreateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PostingFbsPackageLabelCreateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostingFbsPackageLabelCreateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PostingFbsPackageLabelCreateResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type ProductAPIGetProductInfoListResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -4877,6 +9899,54 @@ func (r ProductAPIGetProductInfoListResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ProductAPIGetProductInfoListResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PostingAPIShipFbsPostingV4Response struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Fbsv4FbsPostingShipV4Response
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *RpcStatus
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r PostingAPIShipFbsPostingV4Response) GetJSON200() *Fbsv4FbsPostingShipV4Response {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r PostingAPIShipFbsPostingV4Response) GetJSONDefault() *RpcStatus {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r PostingAPIShipFbsPostingV4Response) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PostingAPIShipFbsPostingV4Response) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostingAPIShipFbsPostingV4Response) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PostingAPIShipFbsPostingV4Response) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -4959,6 +10029,363 @@ func (r PostingFbsUnfulfilledListResponse) ContentType() string {
 	return ""
 }
 
+type PostingAPIFbsPostingProductExemplarStatusV5Response struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *V5FbsPostingProductExemplarStatusV5Response
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *RpcStatus
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r PostingAPIFbsPostingProductExemplarStatusV5Response) GetJSON200() *V5FbsPostingProductExemplarStatusV5Response {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r PostingAPIFbsPostingProductExemplarStatusV5Response) GetJSONDefault() *RpcStatus {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r PostingAPIFbsPostingProductExemplarStatusV5Response) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PostingAPIFbsPostingProductExemplarStatusV5Response) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostingAPIFbsPostingProductExemplarStatusV5Response) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PostingAPIFbsPostingProductExemplarStatusV5Response) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PostingAPIFbsPostingProductExemplarCreateOrGetV6Response struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *V6FbsPostingProductExemplarCreateOrGetV6Response
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *RpcStatus
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r PostingAPIFbsPostingProductExemplarCreateOrGetV6Response) GetJSON200() *V6FbsPostingProductExemplarCreateOrGetV6Response {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r PostingAPIFbsPostingProductExemplarCreateOrGetV6Response) GetJSONDefault() *RpcStatus {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r PostingAPIFbsPostingProductExemplarCreateOrGetV6Response) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PostingAPIFbsPostingProductExemplarCreateOrGetV6Response) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostingAPIFbsPostingProductExemplarCreateOrGetV6Response) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PostingAPIFbsPostingProductExemplarCreateOrGetV6Response) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PostingAPIFbsPostingProductExemplarSetV6Response struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *RpcStatus
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *RpcStatus
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *RpcStatus
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *RpcStatus
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *RpcStatus
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r PostingAPIFbsPostingProductExemplarSetV6Response) GetJSON400() *RpcStatus {
+	return r.JSON400
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r PostingAPIFbsPostingProductExemplarSetV6Response) GetJSON403() *RpcStatus {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r PostingAPIFbsPostingProductExemplarSetV6Response) GetJSON404() *RpcStatus {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r PostingAPIFbsPostingProductExemplarSetV6Response) GetJSON409() *RpcStatus {
+	return r.JSON409
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r PostingAPIFbsPostingProductExemplarSetV6Response) GetJSON500() *RpcStatus {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r PostingAPIFbsPostingProductExemplarSetV6Response) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PostingAPIFbsPostingProductExemplarSetV6Response) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostingAPIFbsPostingProductExemplarSetV6Response) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PostingAPIFbsPostingProductExemplarSetV6Response) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// CarriageAPICarriageApproveWithBodyWithResponse Подтверждение отгрузки
+//
+// Используйте метод, чтобы подтвердить отгрузку после её создания.
+// После подтверждения отгрузка перейдёт в статус «Сформирована».
+//
+// После подтверждения отгрузки вы можете получить лист отгрузки методом [/v2/posting/fbs/act/get-pdf](#operation/PostingAPI_PostingFBSGetAct) и штрихкод отгрузки методом [/v2/posting/fbs/act/get-barcode](#operation/PostingAPI_PostingFBSGetBarcode).
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v1/carriage/approve (the `CarriageAPICarriageApprove` operationId).
+func (c *ClientWithResponses) CarriageAPICarriageApproveWithBodyWithResponse(ctx context.Context, params *CarriageAPICarriageApproveParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CarriageAPICarriageApproveResponse, error) {
+	rsp, err := c.CarriageAPICarriageApproveWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCarriageAPICarriageApproveResponse(rsp)
+}
+
+// CarriageAPICarriageApproveWithResponse Подтверждение отгрузки
+//
+// Используйте метод, чтобы подтвердить отгрузку после её создания.
+// После подтверждения отгрузка перейдёт в статус «Сформирована».
+//
+// После подтверждения отгрузки вы можете получить лист отгрузки методом [/v2/posting/fbs/act/get-pdf](#operation/PostingAPI_PostingFBSGetAct) и штрихкод отгрузки методом [/v2/posting/fbs/act/get-barcode](#operation/PostingAPI_PostingFBSGetBarcode).
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v1/carriage/approve (the `CarriageAPICarriageApprove` operationId).
+func (c *ClientWithResponses) CarriageAPICarriageApproveWithResponse(ctx context.Context, params *CarriageAPICarriageApproveParams, body CarriageAPICarriageApproveJSONRequestBody, reqEditors ...RequestEditorFn) (*CarriageAPICarriageApproveResponse, error) {
+	rsp, err := c.CarriageAPICarriageApprove(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCarriageAPICarriageApproveResponse(rsp)
+}
+
+// CarriageAPICarriageCancelWithBodyWithResponse Удаление отгрузки
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v1/carriage/cancel (the `CarriageAPICarriageCancel` operationId).
+func (c *ClientWithResponses) CarriageAPICarriageCancelWithBodyWithResponse(ctx context.Context, params *CarriageAPICarriageCancelParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CarriageAPICarriageCancelResponse, error) {
+	rsp, err := c.CarriageAPICarriageCancelWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCarriageAPICarriageCancelResponse(rsp)
+}
+
+// CarriageAPICarriageCancelWithResponse Удаление отгрузки
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v1/carriage/cancel (the `CarriageAPICarriageCancel` operationId).
+func (c *ClientWithResponses) CarriageAPICarriageCancelWithResponse(ctx context.Context, params *CarriageAPICarriageCancelParams, body CarriageAPICarriageCancelJSONRequestBody, reqEditors ...RequestEditorFn) (*CarriageAPICarriageCancelResponse, error) {
+	rsp, err := c.CarriageAPICarriageCancel(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCarriageAPICarriageCancelResponse(rsp)
+}
+
+// CarriageAPICarriageCreateWithBodyWithResponse Создание отгрузки
+//
+// <aside class="warning">
+// Перед началом работы проверьте возможность создания отгрузки методом <a href="#operation/CarriageAPI_CarriageDeliveryListV2">/v2/carriage/delivery/list</a>. <br> Если <code>methods.carriages.available_actions = create</code>, вы можете создать отгрузку.
+//
+// Если вы продавец не из России, обратите внимание на доступность <a href="https://seller-edu.ozon.ru/fbs/ozon-logistika/sobrat-zakazy#шаг-2-сформируите-отгрузку">рекомендованного времени</a> в личном кабинете.
+// </aside>
+//
+// Используйте метод для создания первой FBS отгрузки. В неё попадут все отправления со статусом «Готов к отгрузке». Созданная отгрузка получит статус `new`.
+//
+// Для отгрузки в статусе `new` можно перезаписать состав отправлений методом [/v1/carriage/set-postings](#operation/CarriageAPI_SetPostings). Если из отгрузки исключить часть отправлений, они могут попасть в следующую отгрузку.
+//
+// Чтобы получить список отправлений в отгрузке, используйте метод [/v2/posting/fbs/act/get-postings](#operation/PostingAPI_ActPostingList).
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v1/carriage/create (the `CarriageAPICarriageCreate` operationId).
+func (c *ClientWithResponses) CarriageAPICarriageCreateWithBodyWithResponse(ctx context.Context, params *CarriageAPICarriageCreateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CarriageAPICarriageCreateResponse, error) {
+	rsp, err := c.CarriageAPICarriageCreateWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCarriageAPICarriageCreateResponse(rsp)
+}
+
+// CarriageAPICarriageCreateWithResponse Создание отгрузки
+//
+// <aside class="warning">
+// Перед началом работы проверьте возможность создания отгрузки методом <a href="#operation/CarriageAPI_CarriageDeliveryListV2">/v2/carriage/delivery/list</a>. <br> Если <code>methods.carriages.available_actions = create</code>, вы можете создать отгрузку.
+//
+// Если вы продавец не из России, обратите внимание на доступность <a href="https://seller-edu.ozon.ru/fbs/ozon-logistika/sobrat-zakazy#шаг-2-сформируите-отгрузку">рекомендованного времени</a> в личном кабинете.
+// </aside>
+//
+// Используйте метод для создания первой FBS отгрузки. В неё попадут все отправления со статусом «Готов к отгрузке». Созданная отгрузка получит статус `new`.
+//
+// Для отгрузки в статусе `new` можно перезаписать состав отправлений методом [/v1/carriage/set-postings](#operation/CarriageAPI_SetPostings). Если из отгрузки исключить часть отправлений, они могут попасть в следующую отгрузку.
+//
+// Чтобы получить список отправлений в отгрузке, используйте метод [/v2/posting/fbs/act/get-postings](#operation/PostingAPI_ActPostingList).
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v1/carriage/create (the `CarriageAPICarriageCreate` operationId).
+func (c *ClientWithResponses) CarriageAPICarriageCreateWithResponse(ctx context.Context, params *CarriageAPICarriageCreateParams, body CarriageAPICarriageCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*CarriageAPICarriageCreateResponse, error) {
+	rsp, err := c.CarriageAPICarriageCreate(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCarriageAPICarriageCreateResponse(rsp)
+}
+
+// CarriageGetWithBodyWithResponse Информация о перевозке
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v1/carriage/get (the `CarriageGet` operationId).
+func (c *ClientWithResponses) CarriageGetWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CarriageGetResponse, error) {
+	rsp, err := c.CarriageGetWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCarriageGetResponse(rsp)
+}
+
+// CarriageGetWithResponse Информация о перевозке
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v1/carriage/get (the `CarriageGet` operationId).
+func (c *ClientWithResponses) CarriageGetWithResponse(ctx context.Context, body CarriageGetJSONRequestBody, reqEditors ...RequestEditorFn) (*CarriageGetResponse, error) {
+	rsp, err := c.CarriageGet(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCarriageGetResponse(rsp)
+}
+
+// CarriageAPISetPostingsWithBodyWithResponse Изменение состава отгрузки
+//
+// <aside class="warning">
+// Метод недоступен для продавцов из СНГ. <br>
+//
+// Полностью перезаписывает список заказов в отгрузке. Передавайте только те заказы, которые находятся в статусе <code>Ожидает отгрузки</code>, и вы готовы их отгрузить.
+//
+// Менять состав можно только у отгрузок со статусом `new`.
+// </aside>
+//
+// <br>
+//
+// <aside class="notice">
+// Чтобы вернуться к списку заказов, удалите отгрузку с помощью метода <a href="#operation/CarriageAPI_CarriageCancel">/v1/carriage/cancel</a>, и создайте новую.
+// </aside>
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v1/carriage/set-postings (the `CarriageAPISetPostings` operationId).
+func (c *ClientWithResponses) CarriageAPISetPostingsWithBodyWithResponse(ctx context.Context, params *CarriageAPISetPostingsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CarriageAPISetPostingsResponse, error) {
+	rsp, err := c.CarriageAPISetPostingsWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCarriageAPISetPostingsResponse(rsp)
+}
+
+// CarriageAPISetPostingsWithResponse Изменение состава отгрузки
+//
+// <aside class="warning">
+// Метод недоступен для продавцов из СНГ. <br>
+//
+// Полностью перезаписывает список заказов в отгрузке. Передавайте только те заказы, которые находятся в статусе <code>Ожидает отгрузки</code>, и вы готовы их отгрузить.
+//
+// Менять состав можно только у отгрузок со статусом `new`.
+// </aside>
+//
+// <br>
+//
+// <aside class="notice">
+// Чтобы вернуться к списку заказов, удалите отгрузку с помощью метода <a href="#operation/CarriageAPI_CarriageCancel">/v1/carriage/cancel</a>, и создайте новую.
+// </aside>
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v1/carriage/set-postings (the `CarriageAPISetPostings` operationId).
+func (c *ClientWithResponses) CarriageAPISetPostingsWithResponse(ctx context.Context, params *CarriageAPISetPostingsParams, body CarriageAPISetPostingsJSONRequestBody, reqEditors ...RequestEditorFn) (*CarriageAPISetPostingsResponse, error) {
+	rsp, err := c.CarriageAPISetPostings(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCarriageAPISetPostingsResponse(rsp)
+}
+
 // AccessAPIRolesByTokenWithResponse Получить список ролей и методов по API-ключу
 //
 // Метод для получения информации и ролях и методах, привязанных к API-ключу.
@@ -4985,6 +10412,234 @@ func (c *ClientWithResponses) SellerAPISellerInfoWithResponse(ctx context.Contex
 		return nil, err
 	}
 	return ParseSellerAPISellerInfoResponse(rsp)
+}
+
+// CarriageAPICarriageDeliveryListV2WithBodyWithResponse Список методов доставки и отгрузок
+//
+// <aside class="warning">
+//
+//	Метод не возвращает информацию по методам доставки, у которых нет отправлений.
+//
+// </aside>
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v2/carriage/delivery/list (the `CarriageAPICarriageDeliveryListV2` operationId).
+func (c *ClientWithResponses) CarriageAPICarriageDeliveryListV2WithBodyWithResponse(ctx context.Context, params *CarriageAPICarriageDeliveryListV2Params, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CarriageAPICarriageDeliveryListV2Response, error) {
+	rsp, err := c.CarriageAPICarriageDeliveryListV2WithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCarriageAPICarriageDeliveryListV2Response(rsp)
+}
+
+// CarriageAPICarriageDeliveryListV2WithResponse Список методов доставки и отгрузок
+//
+// <aside class="warning">
+//
+//	Метод не возвращает информацию по методам доставки, у которых нет отправлений.
+//
+// </aside>
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v2/carriage/delivery/list (the `CarriageAPICarriageDeliveryListV2` operationId).
+func (c *ClientWithResponses) CarriageAPICarriageDeliveryListV2WithResponse(ctx context.Context, params *CarriageAPICarriageDeliveryListV2Params, body CarriageAPICarriageDeliveryListV2JSONRequestBody, reqEditors ...RequestEditorFn) (*CarriageAPICarriageDeliveryListV2Response, error) {
+	rsp, err := c.CarriageAPICarriageDeliveryListV2(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCarriageAPICarriageDeliveryListV2Response(rsp)
+}
+
+// PostingAPIPostingFBSActCheckStatusWithBodyWithResponse Статус отгрузки и документов
+//
+// Возвращает статус формирования штрихкода для отгрузки и документов:
+// - для продавцов из России — транспортной накладной и листа отгрузки;
+// - для продавцов из СНГ — транспортной накладной и акта приёма-передачи.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v2/posting/fbs/act/check-status (the `PostingAPIPostingFBSActCheckStatus` operationId).
+func (c *ClientWithResponses) PostingAPIPostingFBSActCheckStatusWithBodyWithResponse(ctx context.Context, params *PostingAPIPostingFBSActCheckStatusParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingAPIPostingFBSActCheckStatusResponse, error) {
+	rsp, err := c.PostingAPIPostingFBSActCheckStatusWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingAPIPostingFBSActCheckStatusResponse(rsp)
+}
+
+// PostingAPIPostingFBSActCheckStatusWithResponse Статус отгрузки и документов
+//
+// Возвращает статус формирования штрихкода для отгрузки и документов:
+// - для продавцов из России — транспортной накладной и листа отгрузки;
+// - для продавцов из СНГ — транспортной накладной и акта приёма-передачи.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v2/posting/fbs/act/check-status (the `PostingAPIPostingFBSActCheckStatus` operationId).
+func (c *ClientWithResponses) PostingAPIPostingFBSActCheckStatusWithResponse(ctx context.Context, params *PostingAPIPostingFBSActCheckStatusParams, body PostingAPIPostingFBSActCheckStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*PostingAPIPostingFBSActCheckStatusResponse, error) {
+	rsp, err := c.PostingAPIPostingFBSActCheckStatus(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingAPIPostingFBSActCheckStatusResponse(rsp)
+}
+
+// PostingAPIPostingFBSGetBarcodeWithBodyWithResponse Штрихкод для отгрузки отправления
+//
+// Метод для получения штрихкода, который нужно показать в пункте выдачи или сортировочном центре при отгрузке отправления.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v2/posting/fbs/act/get-barcode (the `PostingAPIPostingFBSGetBarcode` operationId).
+func (c *ClientWithResponses) PostingAPIPostingFBSGetBarcodeWithBodyWithResponse(ctx context.Context, params *PostingAPIPostingFBSGetBarcodeParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingAPIPostingFBSGetBarcodeResponse, error) {
+	rsp, err := c.PostingAPIPostingFBSGetBarcodeWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingAPIPostingFBSGetBarcodeResponse(rsp)
+}
+
+// PostingAPIPostingFBSGetBarcodeWithResponse Штрихкод для отгрузки отправления
+//
+// Метод для получения штрихкода, который нужно показать в пункте выдачи или сортировочном центре при отгрузке отправления.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v2/posting/fbs/act/get-barcode (the `PostingAPIPostingFBSGetBarcode` operationId).
+func (c *ClientWithResponses) PostingAPIPostingFBSGetBarcodeWithResponse(ctx context.Context, params *PostingAPIPostingFBSGetBarcodeParams, body PostingAPIPostingFBSGetBarcodeJSONRequestBody, reqEditors ...RequestEditorFn) (*PostingAPIPostingFBSGetBarcodeResponse, error) {
+	rsp, err := c.PostingAPIPostingFBSGetBarcode(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingAPIPostingFBSGetBarcodeResponse(rsp)
+}
+
+// PostingAPIPostingFBSGetBarcodeTextWithBodyWithResponse Значение штрихкода для отгрузки отправления
+//
+// Используйте этот метод, чтобы получить штрихкод из ответа
+// [/v2/posting/fbs/act/get-barcode](#operation/PostingAPI_PostingFBSGetBarcode) в текстовом виде.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v2/posting/fbs/act/get-barcode/text (the `PostingAPIPostingFBSGetBarcodeText` operationId).
+func (c *ClientWithResponses) PostingAPIPostingFBSGetBarcodeTextWithBodyWithResponse(ctx context.Context, params *PostingAPIPostingFBSGetBarcodeTextParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingAPIPostingFBSGetBarcodeTextResponse, error) {
+	rsp, err := c.PostingAPIPostingFBSGetBarcodeTextWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingAPIPostingFBSGetBarcodeTextResponse(rsp)
+}
+
+// PostingAPIPostingFBSGetBarcodeTextWithResponse Значение штрихкода для отгрузки отправления
+//
+// Используйте этот метод, чтобы получить штрихкод из ответа
+// [/v2/posting/fbs/act/get-barcode](#operation/PostingAPI_PostingFBSGetBarcode) в текстовом виде.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v2/posting/fbs/act/get-barcode/text (the `PostingAPIPostingFBSGetBarcodeText` operationId).
+func (c *ClientWithResponses) PostingAPIPostingFBSGetBarcodeTextWithResponse(ctx context.Context, params *PostingAPIPostingFBSGetBarcodeTextParams, body PostingAPIPostingFBSGetBarcodeTextJSONRequestBody, reqEditors ...RequestEditorFn) (*PostingAPIPostingFBSGetBarcodeTextResponse, error) {
+	rsp, err := c.PostingAPIPostingFBSGetBarcodeText(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingAPIPostingFBSGetBarcodeTextResponse(rsp)
+}
+
+// PostingAPIPostingFBSGetActWithBodyWithResponse Получить PDF c документами
+//
+// С помощью метода можно получить:
+// - продацам из России — лист отгрузки и транспортную накладную;
+// - продавцам из СНГ — акт и транспортную накладную.
+//
+// Получите список доступных документов для отгрузки в параметре `available_actions` метода [/v1/carriage/get](#operation/CarriageGet).
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v2/posting/fbs/act/get-pdf (the `PostingAPIPostingFBSGetAct` operationId).
+func (c *ClientWithResponses) PostingAPIPostingFBSGetActWithBodyWithResponse(ctx context.Context, params *PostingAPIPostingFBSGetActParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingAPIPostingFBSGetActResponse, error) {
+	rsp, err := c.PostingAPIPostingFBSGetActWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingAPIPostingFBSGetActResponse(rsp)
+}
+
+// PostingAPIPostingFBSGetActWithResponse Получить PDF c документами
+//
+// С помощью метода можно получить:
+// - продацам из России — лист отгрузки и транспортную накладную;
+// - продавцам из СНГ — акт и транспортную накладную.
+//
+// Получите список доступных документов для отгрузки в параметре `available_actions` метода [/v1/carriage/get](#operation/CarriageGet).
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v2/posting/fbs/act/get-pdf (the `PostingAPIPostingFBSGetAct` operationId).
+func (c *ClientWithResponses) PostingAPIPostingFBSGetActWithResponse(ctx context.Context, params *PostingAPIPostingFBSGetActParams, body PostingAPIPostingFBSGetActJSONRequestBody, reqEditors ...RequestEditorFn) (*PostingAPIPostingFBSGetActResponse, error) {
+	rsp, err := c.PostingAPIPostingFBSGetAct(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingAPIPostingFBSGetActResponse(rsp)
+}
+
+// PostingAPIActPostingListWithBodyWithResponse Список отправлений в акте
+//
+// Возвращает список отправлений в акте по его идентификатору.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v2/posting/fbs/act/get-postings (the `PostingAPIActPostingList` operationId).
+func (c *ClientWithResponses) PostingAPIActPostingListWithBodyWithResponse(ctx context.Context, params *PostingAPIActPostingListParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingAPIActPostingListResponse, error) {
+	rsp, err := c.PostingAPIActPostingListWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingAPIActPostingListResponse(rsp)
+}
+
+// PostingAPIActPostingListWithResponse Список отправлений в акте
+//
+// Возвращает список отправлений в акте по его идентификатору.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v2/posting/fbs/act/get-postings (the `PostingAPIActPostingList` operationId).
+func (c *ClientWithResponses) PostingAPIActPostingListWithResponse(ctx context.Context, params *PostingAPIActPostingListParams, body PostingAPIActPostingListJSONRequestBody, reqEditors ...RequestEditorFn) (*PostingAPIActPostingListResponse, error) {
+	rsp, err := c.PostingAPIActPostingList(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingAPIActPostingListResponse(rsp)
+}
+
+// PostingFbsPackageLabelGetWithBodyWithResponse Получить файл с этикетками
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v2/posting/fbs/package-label/get (the `PostingFbsPackageLabelGet` operationId).
+func (c *ClientWithResponses) PostingFbsPackageLabelGetWithBodyWithResponse(ctx context.Context, params *PostingFbsPackageLabelGetParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingFbsPackageLabelGetResponse, error) {
+	rsp, err := c.PostingFbsPackageLabelGetWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingFbsPackageLabelGetResponse(rsp)
+}
+
+// PostingFbsPackageLabelGetWithResponse Получить файл с этикетками
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v2/posting/fbs/package-label/get (the `PostingFbsPackageLabelGet` operationId).
+func (c *ClientWithResponses) PostingFbsPackageLabelGetWithResponse(ctx context.Context, params *PostingFbsPackageLabelGetParams, body PostingFbsPackageLabelGetJSONRequestBody, reqEditors ...RequestEditorFn) (*PostingFbsPackageLabelGetResponse, error) {
+	rsp, err := c.PostingFbsPackageLabelGet(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingFbsPackageLabelGetResponse(rsp)
 }
 
 // WarehouseListV2WithBodyWithResponse Список складов
@@ -5083,6 +10738,50 @@ func (c *ClientWithResponses) PostingAPIGetFbsPostingV3WithResponse(ctx context.
 	return ParsePostingAPIGetFbsPostingV3Response(rsp)
 }
 
+// PostingFbsPackageLabelCreateWithBodyWithResponse Создать задание на формирование этикеток
+//
+// <aside class="warning">
+// Если вы работаете по схеме rFBS или rFBS Express, изучите процесс печати этикетки в <a href="https://seller-edu.ozon.ru/rfbs/scheme-of-work">Базе знаний продавца</a>.
+// </aside>
+//
+// Создаёт задания на асинхронное формирование этикеток для отправлений в статусе «Ожидает отгрузки» — `awaiting_deliver`.
+// Рекомендуем запрашивать этикетки через 45–60 секунд после сборки заказа.
+//
+// Чтобы получить созданные этикетки, используйте [/v2/posting/fbs/package-label/get](#operation/PostingFbsPackageLabelGet).
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v3/posting/fbs/package-label/create (the `PostingFbsPackageLabelCreate` operationId).
+func (c *ClientWithResponses) PostingFbsPackageLabelCreateWithBodyWithResponse(ctx context.Context, params *PostingFbsPackageLabelCreateParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingFbsPackageLabelCreateResponse, error) {
+	rsp, err := c.PostingFbsPackageLabelCreateWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingFbsPackageLabelCreateResponse(rsp)
+}
+
+// PostingFbsPackageLabelCreateWithResponse Создать задание на формирование этикеток
+//
+// <aside class="warning">
+// Если вы работаете по схеме rFBS или rFBS Express, изучите процесс печати этикетки в <a href="https://seller-edu.ozon.ru/rfbs/scheme-of-work">Базе знаний продавца</a>.
+// </aside>
+//
+// Создаёт задания на асинхронное формирование этикеток для отправлений в статусе «Ожидает отгрузки» — `awaiting_deliver`.
+// Рекомендуем запрашивать этикетки через 45–60 секунд после сборки заказа.
+//
+// Чтобы получить созданные этикетки, используйте [/v2/posting/fbs/package-label/get](#operation/PostingFbsPackageLabelGet).
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v3/posting/fbs/package-label/create (the `PostingFbsPackageLabelCreate` operationId).
+func (c *ClientWithResponses) PostingFbsPackageLabelCreateWithResponse(ctx context.Context, params *PostingFbsPackageLabelCreateParams, body PostingFbsPackageLabelCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*PostingFbsPackageLabelCreateResponse, error) {
+	rsp, err := c.PostingFbsPackageLabelCreate(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingFbsPackageLabelCreateResponse(rsp)
+}
+
 // ProductAPIGetProductInfoListWithBodyWithResponse Получить информацию о товарах по идентификаторам
 //
 // Метод для получения информации о товарах по их идентификаторам.
@@ -5119,6 +10818,160 @@ func (c *ClientWithResponses) ProductAPIGetProductInfoListWithResponse(ctx conte
 		return nil, err
 	}
 	return ParseProductAPIGetProductInfoListResponse(rsp)
+}
+
+// PostingAPIShipFbsPostingV4WithBodyWithResponse Собрать заказ (версия 4)
+//
+// <aside class="warning">
+// Ответ с кодом <tt>200</tt> не гарантирует успешную сборку заказа. Используйте метод <a href="#operation/PostingAPI_GetFbsPostingV3">/v3/posting/fbs/get</a>, чтобы проверить, что заказ собран. Если в ответе указан <tt>result.substatus = ship_failed</tt>, повторите сборку заказа.
+// </aside>
+//
+// Делит заказ на отправления и переводит его в статус `awaiting_deliver`.
+//
+// Каждый элемент в `packages` может содержать несколько элементов `products` или отправлений.
+// Каждый элемент в `products` — это товар, включённый в данное отправление.
+//
+// Разделить заказ нужно, если:
+//   - товары не помещаются в одну упаковку,
+//   - товары нельзя сложить в одну упаковку.
+//
+// Чтобы разделить заказ, передайте в массиве `packages` несколько объектов.
+//
+// Пример запроса, когда заказ разделять не нужно: 2 товара будут в одном отправлении.
+// ```
+//
+//	{
+//	  "packages": [
+//	    {
+//	      "products": [
+//	        {
+//	          "product_id": 185479045,
+//	          "quantity": 2
+//	        }
+//	      ]
+//	    }
+//	  ],
+//	  "posting_number": "89491381-0072-1"
+//	}
+//
+// ```
+//
+// Пример запроса, когда заказ нужно разделить: каждый товар будет в отдельном отправлении.
+//
+// ```
+//
+//	{
+//	  "packages": [
+//	    {
+//	      "products": [
+//	        {
+//	          "product_id": 185479045,
+//	          "quantity": 1
+//	        }
+//	      ]
+//	    },
+//	    {
+//	      "products": [
+//	        {
+//	          "product_id": 185479045,
+//	          "quantity": 1
+//	        }
+//	      ]
+//	    }
+//	  ],
+//	  "posting_number": "89491381-0072-1"
+//	}
+//
+// ```
+//
+// Чтобы внести информацию по экземплярам, используйте метод [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6).
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v4/posting/fbs/ship (the `PostingAPIShipFbsPostingV4` operationId).
+func (c *ClientWithResponses) PostingAPIShipFbsPostingV4WithBodyWithResponse(ctx context.Context, params *PostingAPIShipFbsPostingV4Params, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingAPIShipFbsPostingV4Response, error) {
+	rsp, err := c.PostingAPIShipFbsPostingV4WithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingAPIShipFbsPostingV4Response(rsp)
+}
+
+// PostingAPIShipFbsPostingV4WithResponse Собрать заказ (версия 4)
+//
+// <aside class="warning">
+// Ответ с кодом <tt>200</tt> не гарантирует успешную сборку заказа. Используйте метод <a href="#operation/PostingAPI_GetFbsPostingV3">/v3/posting/fbs/get</a>, чтобы проверить, что заказ собран. Если в ответе указан <tt>result.substatus = ship_failed</tt>, повторите сборку заказа.
+// </aside>
+//
+// Делит заказ на отправления и переводит его в статус `awaiting_deliver`.
+//
+// Каждый элемент в `packages` может содержать несколько элементов `products` или отправлений.
+// Каждый элемент в `products` — это товар, включённый в данное отправление.
+//
+// Разделить заказ нужно, если:
+//   - товары не помещаются в одну упаковку,
+//   - товары нельзя сложить в одну упаковку.
+//
+// Чтобы разделить заказ, передайте в массиве `packages` несколько объектов.
+//
+// Пример запроса, когда заказ разделять не нужно: 2 товара будут в одном отправлении.
+// ```
+//
+//	{
+//	  "packages": [
+//	    {
+//	      "products": [
+//	        {
+//	          "product_id": 185479045,
+//	          "quantity": 2
+//	        }
+//	      ]
+//	    }
+//	  ],
+//	  "posting_number": "89491381-0072-1"
+//	}
+//
+// ```
+//
+// Пример запроса, когда заказ нужно разделить: каждый товар будет в отдельном отправлении.
+//
+// ```
+//
+//	{
+//	  "packages": [
+//	    {
+//	      "products": [
+//	        {
+//	          "product_id": 185479045,
+//	          "quantity": 1
+//	        }
+//	      ]
+//	    },
+//	    {
+//	      "products": [
+//	        {
+//	          "product_id": 185479045,
+//	          "quantity": 1
+//	        }
+//	      ]
+//	    }
+//	  ],
+//	  "posting_number": "89491381-0072-1"
+//	}
+//
+// ```
+//
+// Чтобы внести информацию по экземплярам, используйте метод [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6).
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v4/posting/fbs/ship (the `PostingAPIShipFbsPostingV4` operationId).
+func (c *ClientWithResponses) PostingAPIShipFbsPostingV4WithResponse(ctx context.Context, params *PostingAPIShipFbsPostingV4Params, body PostingAPIShipFbsPostingV4JSONRequestBody, reqEditors ...RequestEditorFn) (*PostingAPIShipFbsPostingV4Response, error) {
+	rsp, err := c.PostingAPIShipFbsPostingV4(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingAPIShipFbsPostingV4Response(rsp)
 }
 
 // PostingFbsUnfulfilledListWithBodyWithResponse Получить список необработанных отправлений
@@ -5181,6 +11034,413 @@ func (c *ClientWithResponses) PostingFbsUnfulfilledListWithResponse(ctx context.
 	return ParsePostingFbsUnfulfilledListResponse(rsp)
 }
 
+// PostingAPIFbsPostingProductExemplarStatusV5WithBodyWithResponse Получить статус добавления экземпляров
+//
+// Метод для получения статусов добавления экземпляров, переданных в методе [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6). Также возвращает данные по этим экземплярам.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v5/fbs/posting/product/exemplar/status (the `PostingAPIFbsPostingProductExemplarStatusV5` operationId).
+func (c *ClientWithResponses) PostingAPIFbsPostingProductExemplarStatusV5WithBodyWithResponse(ctx context.Context, params *PostingAPIFbsPostingProductExemplarStatusV5Params, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingAPIFbsPostingProductExemplarStatusV5Response, error) {
+	rsp, err := c.PostingAPIFbsPostingProductExemplarStatusV5WithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingAPIFbsPostingProductExemplarStatusV5Response(rsp)
+}
+
+// PostingAPIFbsPostingProductExemplarStatusV5WithResponse Получить статус добавления экземпляров
+//
+// Метод для получения статусов добавления экземпляров, переданных в методе [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6). Также возвращает данные по этим экземплярам.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v5/fbs/posting/product/exemplar/status (the `PostingAPIFbsPostingProductExemplarStatusV5` operationId).
+func (c *ClientWithResponses) PostingAPIFbsPostingProductExemplarStatusV5WithResponse(ctx context.Context, params *PostingAPIFbsPostingProductExemplarStatusV5Params, body PostingAPIFbsPostingProductExemplarStatusV5JSONRequestBody, reqEditors ...RequestEditorFn) (*PostingAPIFbsPostingProductExemplarStatusV5Response, error) {
+	rsp, err := c.PostingAPIFbsPostingProductExemplarStatusV5(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingAPIFbsPostingProductExemplarStatusV5Response(rsp)
+}
+
+// PostingAPIFbsPostingProductExemplarCreateOrGetV6WithBodyWithResponse Получить данные созданных экземпляров
+//
+// Метод для получения информации по экземплярам товаров из отправления, переданных в методе [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6).
+//
+// Используйте метод для получения `exemplar_id`.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v6/fbs/posting/product/exemplar/create-or-get (the `PostingAPIFbsPostingProductExemplarCreateOrGetV6` operationId).
+func (c *ClientWithResponses) PostingAPIFbsPostingProductExemplarCreateOrGetV6WithBodyWithResponse(ctx context.Context, params *PostingAPIFbsPostingProductExemplarCreateOrGetV6Params, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingAPIFbsPostingProductExemplarCreateOrGetV6Response, error) {
+	rsp, err := c.PostingAPIFbsPostingProductExemplarCreateOrGetV6WithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingAPIFbsPostingProductExemplarCreateOrGetV6Response(rsp)
+}
+
+// PostingAPIFbsPostingProductExemplarCreateOrGetV6WithResponse Получить данные созданных экземпляров
+//
+// Метод для получения информации по экземплярам товаров из отправления, переданных в методе [/v6/fbs/posting/product/exemplar/set](#operation/PostingAPI_FbsPostingProductExemplarSetV6).
+//
+// Используйте метод для получения `exemplar_id`.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v6/fbs/posting/product/exemplar/create-or-get (the `PostingAPIFbsPostingProductExemplarCreateOrGetV6` operationId).
+func (c *ClientWithResponses) PostingAPIFbsPostingProductExemplarCreateOrGetV6WithResponse(ctx context.Context, params *PostingAPIFbsPostingProductExemplarCreateOrGetV6Params, body PostingAPIFbsPostingProductExemplarCreateOrGetV6JSONRequestBody, reqEditors ...RequestEditorFn) (*PostingAPIFbsPostingProductExemplarCreateOrGetV6Response, error) {
+	rsp, err := c.PostingAPIFbsPostingProductExemplarCreateOrGetV6(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingAPIFbsPostingProductExemplarCreateOrGetV6Response(rsp)
+}
+
+// PostingAPIFbsPostingProductExemplarSetV6WithBodyWithResponse Проверить и сохранить данные экземпляров
+//
+// Асинхронный метод:
+// - для проверки наличия экземпляров в обороте в системе «Честный ЗНАК»;
+// - для сохранения данных экземпляров.
+//
+// Чтобы получить результаты проверок, используйте метод [/v5/fbs/posting/product/exemplar/status](#operation/PostingAPI_FbsPostingProductExemplarStatusV5).
+// Для получения данных о созданных экземплярах, используйте метод [/v6/fbs/posting/product/exemplar/create-or-get](#operation/PostingAPI_FbsPostingProductExemplarCreateOrGetV6).
+//
+// Если у вас несколько одинаковых товаров в отправлении, укажите один `product_id` и массив `exemplars` для каждого товара из отправления.
+//
+// Всегда передавайте полный набор данных по экземплярам и продуктам.
+//
+// Например, в вашей системе 10 экземпляров.
+// Вы передали их для проверки и сохранения.
+// Потом добавили в своей системе ещё 60 экземпляров.
+// При повторной передаче экземпляров для проверки и сохранения укажите все экземпляры: и старые, и только что добавленные.
+//
+// Код ответа 200 не гарантирует, что данные об экземплярах приняты.
+// Он указывает, что создана задача для добавления информации.
+// Чтобы проверить статус задачи, используйте метод [/v5/fbs/posting/product/exemplar/status](#operation/PostingAPI_FbsPostingProductExemplarStatusV5).
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v6/fbs/posting/product/exemplar/set (the `PostingAPIFbsPostingProductExemplarSetV6` operationId).
+func (c *ClientWithResponses) PostingAPIFbsPostingProductExemplarSetV6WithBodyWithResponse(ctx context.Context, params *PostingAPIFbsPostingProductExemplarSetV6Params, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostingAPIFbsPostingProductExemplarSetV6Response, error) {
+	rsp, err := c.PostingAPIFbsPostingProductExemplarSetV6WithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingAPIFbsPostingProductExemplarSetV6Response(rsp)
+}
+
+// PostingAPIFbsPostingProductExemplarSetV6WithResponse Проверить и сохранить данные экземпляров
+//
+// Асинхронный метод:
+// - для проверки наличия экземпляров в обороте в системе «Честный ЗНАК»;
+// - для сохранения данных экземпляров.
+//
+// Чтобы получить результаты проверок, используйте метод [/v5/fbs/posting/product/exemplar/status](#operation/PostingAPI_FbsPostingProductExemplarStatusV5).
+// Для получения данных о созданных экземплярах, используйте метод [/v6/fbs/posting/product/exemplar/create-or-get](#operation/PostingAPI_FbsPostingProductExemplarCreateOrGetV6).
+//
+// Если у вас несколько одинаковых товаров в отправлении, укажите один `product_id` и массив `exemplars` для каждого товара из отправления.
+//
+// Всегда передавайте полный набор данных по экземплярам и продуктам.
+//
+// Например, в вашей системе 10 экземпляров.
+// Вы передали их для проверки и сохранения.
+// Потом добавили в своей системе ещё 60 экземпляров.
+// При повторной передаче экземпляров для проверки и сохранения укажите все экземпляры: и старые, и только что добавленные.
+//
+// Код ответа 200 не гарантирует, что данные об экземплярах приняты.
+// Он указывает, что создана задача для добавления информации.
+// Чтобы проверить статус задачи, используйте метод [/v5/fbs/posting/product/exemplar/status](#operation/PostingAPI_FbsPostingProductExemplarStatusV5).
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v6/fbs/posting/product/exemplar/set (the `PostingAPIFbsPostingProductExemplarSetV6` operationId).
+func (c *ClientWithResponses) PostingAPIFbsPostingProductExemplarSetV6WithResponse(ctx context.Context, params *PostingAPIFbsPostingProductExemplarSetV6Params, body PostingAPIFbsPostingProductExemplarSetV6JSONRequestBody, reqEditors ...RequestEditorFn) (*PostingAPIFbsPostingProductExemplarSetV6Response, error) {
+	rsp, err := c.PostingAPIFbsPostingProductExemplarSetV6(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostingAPIFbsPostingProductExemplarSetV6Response(rsp)
+}
+
+// ParseCarriageAPICarriageApproveResponse parses an HTTP response from a CarriageAPICarriageApproveWithResponse call
+func ParseCarriageAPICarriageApproveResponse(rsp *http.Response) (*CarriageAPICarriageApproveResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CarriageAPICarriageApproveResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest V1CarriageApproveResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCarriageAPICarriageCancelResponse parses an HTTP response from a CarriageAPICarriageCancelWithResponse call
+func ParseCarriageAPICarriageCancelResponse(rsp *http.Response) (*CarriageAPICarriageCancelResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CarriageAPICarriageCancelResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest V1CarriageCancelResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCarriageAPICarriageCreateResponse parses an HTTP response from a CarriageAPICarriageCreateWithResponse call
+func ParseCarriageAPICarriageCreateResponse(rsp *http.Response) (*CarriageAPICarriageCreateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CarriageAPICarriageCreateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest V1CarriageCreateResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCarriageGetResponse parses an HTTP response from a CarriageGetWithResponse call
+func ParseCarriageGetResponse(rsp *http.Response) (*CarriageGetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CarriageGetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CarriageCarriageGetResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCarriageAPISetPostingsResponse parses an HTTP response from a CarriageAPISetPostingsWithResponse call
+func ParseCarriageAPISetPostingsResponse(rsp *http.Response) (*CarriageAPISetPostingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CarriageAPISetPostingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest V1SetPostingsResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseAccessAPIRolesByTokenResponse parses an HTTP response from a AccessAPIRolesByTokenWithResponse call
 func ParseAccessAPIRolesByTokenResponse(rsp *http.Response) (*AccessAPIRolesByTokenResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -5241,6 +11501,391 @@ func ParseSellerAPISellerInfoResponse(rsp *http.Response) (*SellerAPISellerInfoR
 			return nil, err
 		}
 		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCarriageAPICarriageDeliveryListV2Response parses an HTTP response from a CarriageAPICarriageDeliveryListV2WithResponse call
+func ParseCarriageAPICarriageDeliveryListV2Response(rsp *http.Response) (*CarriageAPICarriageDeliveryListV2Response, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CarriageAPICarriageDeliveryListV2Response{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest V2CarriageDeliveryListV2Response
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostingAPIPostingFBSActCheckStatusResponse parses an HTTP response from a PostingAPIPostingFBSActCheckStatusWithResponse call
+func ParsePostingAPIPostingFBSActCheckStatusResponse(rsp *http.Response) (*PostingAPIPostingFBSActCheckStatusResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostingAPIPostingFBSActCheckStatusResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PostingPostingFBSActCheckStatusResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostingAPIPostingFBSGetBarcodeResponse parses an HTTP response from a PostingAPIPostingFBSGetBarcodeWithResponse call
+func ParsePostingAPIPostingFBSGetBarcodeResponse(rsp *http.Response) (*PostingAPIPostingFBSGetBarcodeResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostingAPIPostingFBSGetBarcodeResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostingAPIPostingFBSGetBarcodeTextResponse parses an HTTP response from a PostingAPIPostingFBSGetBarcodeTextWithResponse call
+func ParsePostingAPIPostingFBSGetBarcodeTextResponse(rsp *http.Response) (*PostingAPIPostingFBSGetBarcodeTextResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostingAPIPostingFBSGetBarcodeTextResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest V2PostingFBSGetBarcodeTextResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostingAPIPostingFBSGetActResponse parses an HTTP response from a PostingAPIPostingFBSGetActWithResponse call
+func ParsePostingAPIPostingFBSGetActResponse(rsp *http.Response) (*PostingAPIPostingFBSGetActResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostingAPIPostingFBSGetActResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostingAPIActPostingListResponse parses an HTTP response from a PostingAPIActPostingListWithResponse call
+func ParsePostingAPIActPostingListResponse(rsp *http.Response) (*PostingAPIActPostingListResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostingAPIActPostingListResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest V2PostingFBSActGetPostingsResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostingFbsPackageLabelGetResponse parses an HTTP response from a PostingFbsPackageLabelGetWithResponse call
+func ParsePostingFbsPackageLabelGetResponse(rsp *http.Response) (*PostingFbsPackageLabelGetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostingFbsPackageLabelGetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PostingV2PostingFbsPackageLabelGetResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
 
 	}
 
@@ -5402,6 +12047,67 @@ func ParsePostingAPIGetFbsPostingV3Response(rsp *http.Response) (*PostingAPIGetF
 	return response, nil
 }
 
+// ParsePostingFbsPackageLabelCreateResponse parses an HTTP response from a PostingFbsPackageLabelCreateWithResponse call
+func ParsePostingFbsPackageLabelCreateResponse(rsp *http.Response) (*PostingFbsPackageLabelCreateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostingFbsPackageLabelCreateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PostingV3PostingFbsPackageLabelCreateResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseProductAPIGetProductInfoListResponse parses an HTTP response from a ProductAPIGetProductInfoListWithResponse call
 func ParseProductAPIGetProductInfoListResponse(rsp *http.Response) (*ProductAPIGetProductInfoListResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -5463,6 +12169,39 @@ func ParseProductAPIGetProductInfoListResponse(rsp *http.Response) (*ProductAPIG
 	return response, nil
 }
 
+// ParsePostingAPIShipFbsPostingV4Response parses an HTTP response from a PostingAPIShipFbsPostingV4WithResponse call
+func ParsePostingAPIShipFbsPostingV4Response(rsp *http.Response) (*PostingAPIShipFbsPostingV4Response, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostingAPIShipFbsPostingV4Response{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Fbsv4FbsPostingShipV4Response
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParsePostingFbsUnfulfilledListResponse parses an HTTP response from a PostingFbsUnfulfilledListWithResponse call
 func ParsePostingFbsUnfulfilledListResponse(rsp *http.Response) (*PostingFbsUnfulfilledListResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -5483,6 +12222,129 @@ func ParsePostingFbsUnfulfilledListResponse(rsp *http.Response) (*PostingFbsUnfu
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostingAPIFbsPostingProductExemplarStatusV5Response parses an HTTP response from a PostingAPIFbsPostingProductExemplarStatusV5WithResponse call
+func ParsePostingAPIFbsPostingProductExemplarStatusV5Response(rsp *http.Response) (*PostingAPIFbsPostingProductExemplarStatusV5Response, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostingAPIFbsPostingProductExemplarStatusV5Response{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest V5FbsPostingProductExemplarStatusV5Response
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostingAPIFbsPostingProductExemplarCreateOrGetV6Response parses an HTTP response from a PostingAPIFbsPostingProductExemplarCreateOrGetV6WithResponse call
+func ParsePostingAPIFbsPostingProductExemplarCreateOrGetV6Response(rsp *http.Response) (*PostingAPIFbsPostingProductExemplarCreateOrGetV6Response, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostingAPIFbsPostingProductExemplarCreateOrGetV6Response{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest V6FbsPostingProductExemplarCreateOrGetV6Response
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest RpcStatus
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostingAPIFbsPostingProductExemplarSetV6Response parses an HTTP response from a PostingAPIFbsPostingProductExemplarSetV6WithResponse call
+func ParsePostingAPIFbsPostingProductExemplarSetV6Response(rsp *http.Response) (*PostingAPIFbsPostingProductExemplarSetV6Response, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostingAPIFbsPostingProductExemplarSetV6Response{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		break // No content-type
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
 		var dest RpcStatus

@@ -68,6 +68,11 @@ func (k *Kit[S]) serveAPI(w http.ResponseWriter, r *http.Request, api http.Handl
 
 	e := k.entry(key)
 
+	recorded := redact(string(body), key)
+	if k.opts.RedactBody != nil {
+		recorded = k.opts.RedactBody(r.URL.Path, recorded)
+	}
+
 	e.mu.Lock()
 	e.seq++
 	call := Call{
@@ -77,7 +82,7 @@ func (k *Kit[S]) serveAPI(w http.ResponseWriter, r *http.Request, api http.Handl
 		Path:     redact(r.URL.Path, key),
 		Query:    sortedQuery(redact(r.URL.RawQuery, key)),
 		Header:   headersWithoutKey(r.Header, key),
-		Body:     recordedBody(body, key),
+		Body:     cutRecorded(recorded),
 	}
 	e.mu.Unlock()
 
@@ -137,8 +142,7 @@ func headersWithoutKey(h http.Header, key string) map[string][]string {
 	return out
 }
 
-func recordedBody(body []byte, key string) string {
-	text := redact(string(body), key)
+func cutRecorded(text string) string {
 	if len(text) > maxRecordedBody {
 		return text[:maxRecordedBody] + "...[cut]"
 	}

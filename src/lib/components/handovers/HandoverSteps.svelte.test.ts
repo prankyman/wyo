@@ -6,7 +6,7 @@ import type { THandoverStepState } from './types';
 
 const ORDER = ['batch', 'move', 'boxes', 'shipping', 'close', 'documents'] as const;
 
-/** The six steps of a hand-over with their state, and «Сейчас: …» for the one that is running, waiting or failed. */
+/** The steps of a hand-over it is given with their state (six for one marketplace, four for another), and «Сейчас: …» for the one that is running, waiting or failed. */
 function draw(states: THandoverStepState['state'][]): void {
     const steps = ORDER.map((step, index) => ({ step, state: states[index] }));
     render(HandoverSteps, { props: { lang: 'ru', steps, dataTest: 'handover-steps' } });
@@ -61,5 +61,27 @@ describe('HandoverSteps', () => {
         draw([...states]);
 
         expect(screen.getByTestId('handover-steps-now')).toHaveTextContent(now);
+    });
+
+    it('draws exactly the four steps of a marketplace that declares four, numbers them out of four, and draws none of the others', () => {
+        const steps: THandoverStepState[] = [
+            { step: 'batch', state: 'done' },
+            { step: 'move', state: 'failed' },
+            { step: 'close', state: 'todo' },
+            { step: 'documents', state: 'todo' }
+        ];
+        render(HandoverSteps, { props: { lang: 'ru', steps, dataTest: 'handover-steps' } });
+
+        expect(screen.getAllByRole('listitem').map((item) => item.getAttribute('data-test'))).toEqual([
+            'handover-steps-batch',
+            'handover-steps-move',
+            'handover-steps-close',
+            'handover-steps-documents'
+        ]);
+        expect(screen.queryByTestId('handover-steps-boxes')).toBeNull();
+        expect(screen.queryByTestId('handover-steps-shipping')).toBeNull();
+        expect(screen.getByTestId('handover-steps-now')).toHaveTextContent(
+            'Сейчас: шаг 2 из 4 — перенос заказов в партию; он не удался.'
+        );
     });
 });

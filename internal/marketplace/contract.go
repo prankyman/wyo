@@ -29,6 +29,10 @@ const (
 	HandoverClose     Capability = "handover.close"
 	HandoverDocuments Capability = "handover.documents"
 
+	// Plan 6: the marketplace whose order is not confirmed but packed (the packing is reported with the parcels' contents,
+	// and its labels exist only after that).
+	OrdersPack Capability = "orders.pack"
+
 	// Stages 2 to 5 of the high-level plan: named, not supported by any adapter yet.
 	StockPush        Capability = "stock.push"
 	StockRead        Capability = "stock.read"
@@ -42,7 +46,7 @@ const (
 // supportedNow are the parts the engine can drive today. An adapter that claims another part fails the contract suite.
 var supportedNow = []Capability{
 	KeyCheck, WarehousesRead, OrdersNew, OrdersStates, OrdersFeed,
-	OrdersConfirm, LabelsFetch, CodesReport, CodesVerdict, HandoverGroup, HandoverClose, HandoverDocuments,
+	OrdersConfirm, LabelsFetch, CodesReport, CodesVerdict, HandoverGroup, HandoverClose, HandoverDocuments, OrdersPack,
 }
 
 // AllCapabilities lists every part of the contract, the supported ones first.
@@ -54,6 +58,26 @@ func AllCapabilities() []Capability {
 
 // Supported says whether the engine drives a part today.
 func Supported(c Capability) bool { return slices.Contains(supportedNow, c) }
+
+// The steps of a hand-over, in their order. An adapter declares in Description.HandoverSteps the ones it needs; the other
+// packages (the hand-over's runner, the wyo server's API) take the names from here and never write them again.
+const (
+	// StepBatch finds or makes the marketplace's group of orders that leave together.
+	StepBatch = "batch"
+	// StepMove puts exactly the hand-over's orders into that group.
+	StepMove = "move"
+	// StepBoxes adds the transport boxes the fulfilment centre named.
+	StepBoxes = "boxes"
+	// StepShipping sets how, when and where the group is shipped.
+	StepShipping = "shipping"
+	// StepClose hands the group to delivery.
+	StepClose = "close"
+	// StepDocuments fetches the group's documents.
+	StepDocuments = "documents"
+)
+
+// HandoverStepsAll lists the six steps of a hand-over in the order they run.
+var HandoverStepsAll = []string{StepBatch, StepMove, StepBoxes, StepShipping, StepClose, StepDocuments}
 
 // KeyField is one field of an adapter's key form; its texts are marketplace.<code>.key.<name>.label and .help.
 type KeyField struct {
@@ -82,6 +106,14 @@ type Description struct {
 	// GivesDeadline says the marketplace gives each order the moment it must be handed over by (Order.ShipBy); when it
 	// does not, the deadline is the order's creation plus the account's hours, which the owner sets.
 	GivesDeadline bool
+	// CodesReplace says a second sending of an order's codes replaces the first one, so the engine sends the full set again
+	// and never removes the codes first; false for a marketplace that adds to what it holds.
+	CodesReplace bool
+	// HandoverSteps are the hand-over steps the adapter needs, in the order of HandoverStepsAll; an empty list means all six.
+	HandoverSteps []string
+	// OrdersPeriod and StatesPeriod are how often the exchange reads the new orders and the states of the open orders of
+	// the adapter's accounts; zero means the defaults, one minute and five minutes.
+	OrdersPeriod, StatesPeriod time.Duration
 }
 
 // MessageKey is the family of the adapter's texts in messages/: <family>.name, <family>.help, <family>.key.<field>.*.
@@ -89,6 +121,16 @@ func (d Description) MessageKey() string { return "marketplace." + d.Code }
 
 // Supports says whether the adapter claims a part of the contract.
 func (d Description) Supports(c Capability) bool { return slices.Contains(d.Capabilities, c) }
+
+// NeedsStep says whether a hand-over of the adapter's orders runs a step: it is listed, or the adapter lists none and so
+// needs all six.
+func (d Description) NeedsStep(step string) bool {
+	if len(d.HandoverSteps) == 0 {
+		return slices.Contains(HandoverStepsAll, step)
+	}
+
+	return slices.Contains(d.HandoverSteps, step)
+}
 
 // LimitGroup is one of a marketplace's request limits: a burst of calls that refills one call every Interval. A call
 // answered with a client error costs ErrorCost calls. RemainingHeader names the header by which the marketplace tells how
@@ -106,12 +148,20 @@ type LimitGroup struct {
 // Route is one request an adapter may send: its method, its path with a {placeholder} for every value, the limit
 // group it counts in, the category of the key it needs and whether it changes anything at the marketplace. The engine
 // refuses, before it leaves, a request that matches no route, and never repeats a writing one.
+//
+// A template's last segment may be {name...}, which takes the rest of the path, one segment or more (a link to a file
+// whose path has no fixed shape). Host is the host the route is sent to: empty for the adapter's own API hosts, a host
+// name for one host, or *.domain for any host under that domain (never the bare domain, never another domain that merely
+// ends with the same letters). NoKey says the caller sends no key and no key header on this route: the request goes to a
+// file link that carries its own token, and the journal names its path as a link to a file, never the link.
 type Route struct {
 	Method   string
 	Template string
 	Group    string
 	Category string
 	Write    bool
+	Host     string
+	NoKey    bool
 }
 
 // Doer sends one request; the engine's caller is the only Doer an adapter is ever given.

@@ -3,6 +3,7 @@ package fulfilment
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"net/http"
 	"time"
 
@@ -132,9 +133,10 @@ func (c *Client) Cancel(ctx context.Context, id, reason string) (string, error) 
 	return "", refused
 }
 
-// PutLabel is PUT /orders/{id}/parcels/1/label: the label picture, without a scan text.
-func (c *Client) PutLabel(ctx context.Context, id, contentType string, data []byte) error {
-	res, err := c.api.LabelPutWithResponse(ctx, id, 1, fcapi.Label{
+// PutLabel is PUT /orders/{id}/parcels/{number}/label: the label file of a parcel (a PDF, a PNG or a JPEG), without a scan
+// text.
+func (c *Client) PutLabel(ctx context.Context, id string, number int, contentType string, data []byte) error {
+	res, err := c.api.LabelPutWithResponse(ctx, id, number, fcapi.Label{
 		ContentType: fcapi.LabelContentType(contentType), Data: base64.StdEncoding.EncodeToString(data),
 	})
 	if err != nil {
@@ -142,6 +144,24 @@ func (c *Client) PutLabel(ctx context.Context, id, contentType string, data []by
 	}
 
 	return c.done(res.StatusCode(), res.Body)
+}
+
+// PatchShipBy is PATCH /orders/{id} with the new deadline. An order already handed over (409 handed_over) keeps its deadline:
+// that is not a failure of the wyo server's, so it is answered as done.
+func (c *Client) PatchShipBy(ctx context.Context, id string, shipBy time.Time) error {
+	res, err := c.api.OrderPatchWithResponse(ctx, id, fcapi.OrderPatch{ShipBy: &shipBy})
+	if err != nil {
+		return err
+	}
+
+	err = c.done(res.StatusCode(), res.Body)
+
+	var refused *Refused
+	if errors.As(err, &refused) && refused.Code == CancelHandedOver {
+		return nil
+	}
+
+	return err
 }
 
 // done is nil for a success and the refusal otherwise.
@@ -254,6 +274,7 @@ type Document struct {
 const (
 	KindHandoverCode = string(fcapi.HandoverDocumentsDocumentsKindHandoverCode)
 	KindBoxLabel     = string(fcapi.HandoverDocumentsDocumentsKindBoxLabel)
+	KindAct          = string(fcapi.HandoverDocumentsDocumentsKindAct)
 )
 
 // PutDocuments is PUT /handovers/{id}/documents: the sender's own number of the hand-over and its files.

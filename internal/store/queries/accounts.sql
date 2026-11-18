@@ -59,7 +59,8 @@ SELECT count(*) FROM orders WHERE account_id = ?;
 DELETE FROM marketplace_warehouses WHERE account_id = ?;
 
 -- name: InsertWarehouse :exec
-INSERT INTO marketplace_warehouses (account_id, number, name, seller_delivers, updated_at) VALUES (?, ?, ?, ?, ?);
+INSERT INTO marketplace_warehouses (account_id, number, name, seller_delivers, label_type, auto_assembly, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?);
 
 -- name: ListWarehouses :many
 SELECT * FROM marketplace_warehouses WHERE account_id = ? ORDER BY name, number;

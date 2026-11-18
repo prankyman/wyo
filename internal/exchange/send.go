@@ -31,14 +31,15 @@ func (s *Service) sendOrders(ctx context.Context, sess *session) error {
 	return nil
 }
 
-// HandingOver lists the codes of the marketplaces whose adapters hand orders over (the contract part orders.confirm):
+// HandingOver lists the codes of the marketplaces whose adapters hand orders over (the contract part orders.confirm or
+// orders.pack):
 // only their orders are sent to a fulfilment centre. An adapter that claims none of the exchange's parts keeps its
 // orders in the order list alone.
 func HandingOver(registry *marketplace.Registry) []string {
 	var codes []string
 
 	for _, adapter := range registry.All() {
-		if adapter.Describe().Supports(marketplace.OrdersConfirm) {
+		if flowOf(adapter) != flowNone {
 			codes = append(codes, adapter.Describe().Code)
 		}
 	}
@@ -59,7 +60,14 @@ func orderIn(o store.OrderToSend) fulfilment.OrderIn {
 			line.Barcode = text(l.Barcodes[0])
 		}
 
-		line.Article, line.MarketplaceItemId = text(l.Article), text(o.ItemID)
+		// A marketplace that numbers the goods' size on the order (ItemID) gives one number for the order; another gives each
+		// line its own product number.
+		item := o.ItemID
+		if item == "" {
+			item = l.ProductID
+		}
+
+		line.Article, line.MarketplaceItemId = text(l.Article), text(item)
 		lines = append(lines, line)
 	}
 
@@ -90,7 +98,10 @@ func (s *Service) sendOne(ctx context.Context, sess *session, out store.OrderToS
 	now := s.opts.Clock.Now()
 	o := &order{x: store.ExchangeOrder{OrderID: out.OrderID, SentAt: now}}
 
-	sent, err := sess.fc.SendOrder(ctx, orderIn(out))
+	in := orderIn(out)
+	o.x.ShipBySent = in.ShipBy
+
+	sent, err := sess.fc.SendOrder(ctx, in)
 	if err != nil {
 		if s.failed(ctx, err) {
 			return true

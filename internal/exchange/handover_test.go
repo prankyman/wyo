@@ -51,26 +51,26 @@ func TestARefusalOfTheMarketplaceAtEachStepOfAHandoverStopsItInItsOwnWordsUntilI
 		{
 			name: "making the supply", step: "batch", code: "IncorrectRequestBody", message: "Некорректное тело запроса",
 			arrange: func(t *testing.T, r *rig, _ string) {
-				r.refuse(http.MethodPost, `/api/v3/supplies$`, http.StatusBadRequest, "IncorrectRequestBody", "Некорректное тело запроса")
+				r.refuse(t, http.MethodPost, "/api/v3/supplies", http.StatusBadRequest, "IncorrectRequestBody", "Некорректное тело запроса")
 			},
 		},
 		{
 			name: "moving the orders", step: "move", code: "FailedToAddSupplyOrder", message: "Не удалось закрепить сборочное задание",
 			arrange: func(t *testing.T, r *rig, _ string) {
-				r.refuse(http.MethodPatch, `/supplies/[^/]+/orders$`, http.StatusConflict, "FailedToAddSupplyOrder", "Не удалось закрепить сборочное задание")
+				r.refuse(t, http.MethodPatch, "/orders", http.StatusConflict, "FailedToAddSupplyOrder", "Не удалось закрепить сборочное задание")
 			},
 		},
 		{
 			name: "setting the shipping", step: "shipping", code: "InvalidShippingDt", message: "Дата отгрузки в прошлом",
 			arrange: func(t *testing.T, r *rig, _ string) {
-				r.refuse(http.MethodPatch, `/shipping-method$`, http.StatusConflict, "InvalidShippingDt", "Дата отгрузки в прошлом")
+				r.refuse(t, http.MethodPatch, "/shipping-method", http.StatusConflict, "InvalidShippingDt", "Дата отгрузки в прошлом")
 			},
 		},
 		{
 			name: "closing without a shipping set", step: "close", code: "SupplyShippingRequired",
 			message: "Specify shipping point, type and date to close the supply",
 			arrange: func(t *testing.T, r *rig, _ string) {
-				r.refuse(http.MethodPatch, `/deliver$`, http.StatusConflict, "SupplyShippingRequired", "Specify shipping point, type and date to close the supply")
+				r.refuse(t, http.MethodPatch, "/deliver", http.StatusConflict, "SupplyShippingRequired", "Specify shipping point, type and date to close the supply")
 			},
 		},
 		{
@@ -98,7 +98,7 @@ func TestARefusalOfTheMarketplaceAtEachStepOfAHandoverStopsItInItsOwnWordsUntilI
 		{
 			name: "getting the documents", step: "documents", code: "SupplyNotClosed", message: "Поставка не передана в доставку",
 			arrange: func(t *testing.T, r *rig, _ string) {
-				r.refuse(http.MethodGet, `/barcode$`, http.StatusConflict, "SupplyNotClosed", "Поставка не передана в доставку")
+				r.refuse(t, http.MethodGet, "/barcode", http.StatusConflict, "SupplyNotClosed", "Поставка не передана в доставку")
 			},
 		},
 	}
@@ -311,7 +311,7 @@ func TestARequestWithdrawnAfterTheClosingUndoesNothing(t *testing.T) {
 
 	number := r.packedOrder(t, false)
 	// The documents are refused after the supply is closed, so the request is still open at the fulfilment centre.
-	r.refuse(http.MethodGet, `/barcode$`, http.StatusConflict, "SupplyNotClosed", "Поставка не передана в доставку")
+	r.refuse(t, http.MethodGet, "/barcode", http.StatusConflict, "SupplyNotClosed", "Поставка не передана в доставку")
 
 	h := r.ask(t, number)
 	if h.State != handover.StateProblem || !h.Closed {

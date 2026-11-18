@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/v2.8.2/configuration-schema.json
 # Ozon's description file api/ozon/seller-api.json, limited to the methods the connector uses (listed in
 # .agents/research/ozon-official-seller-api-check-2026-11-18.md, section 5): the types and a client. The two methods that cancel
-# a posting are never listed here (a test reads this file).
+# a posting are never listed here, and every method that is listed is named by a test (internal/archtest/rules_test.go).
 package: ozonapi
 output: internal/marketplace/ozon/ozonapi/ozonapi.gen.go
 generate:
@@ -17,3 +17,23 @@ output-options:
         - PostingAPI_GetFbsPostingV3
         - PostingFboList
         - ProductAPI_GetProductInfoList
+        # The writing methods of Plan 6 (the research's section 5, the rows marked 6): the marking codes, the packing report,
+        # the labels, the shipment and its documents. The carriage's own cancel is listed (a withdrawn hand-over, before
+        # approval); the two methods that cancel a posting are not.
+        - PostingAPI_FbsPostingProductExemplarCreateOrGetV6
+        - PostingAPI_FbsPostingProductExemplarSetV6
+        - PostingAPI_FbsPostingProductExemplarStatusV5
+        - PostingAPI_ShipFbsPostingV4
+        - PostingFbsPackageLabelCreate
+        - PostingFbsPackageLabelGet
+        - CarriageAPI_CarriageDeliveryListV2
+        - CarriageAPI_CarriageCreate
+        - CarriageAPI_SetPostings
+        - CarriageAPI_CarriageApprove
+        - CarriageGet
+        - CarriageAPI_CarriageCancel
+        - PostingAPI_PostingFBSActCheckStatus
+        - PostingAPI_ActPostingList
+        - PostingAPI_PostingFBSGetAct
+        - PostingAPI_PostingFBSGetBarcode
+        - PostingAPI_PostingFBSGetBarcodeText

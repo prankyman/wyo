@@ -13,12 +13,13 @@
     import CodeVerdictList from './CodeVerdictList.svelte';
     import ExchangeStateBadge from './ExchangeStateBadge.svelte';
     import HeldReasons from './HeldReasons.svelte';
+    import ParcelList from './ParcelList.svelte';
     import ProblemLine from './ProblemLine.svelte';
     import type { TOrderExchangeDetails } from './types';
 
     /**
      * The part of an order's details about its exchange with the fulfilment centre (`OrderDetails.exchange`): the exchange's
-     * state, why the order is not sent or what it needs from the owner, the fulfilment centre's number of the order, the reasons
+     * state, why the order is not sent or what it needs from the owner, the fulfilment centre's number of the order, the order's parcels with the marketplace's number of each (`ParcelList`), the reasons
      * the fulfilment centre holds it for, the problem in wyo's words and the other party's, the marketplace's verdicts on the
      * order's codes, the fulfilment centre's answer to a cancellation passed on, and the history of the exchange, oldest first.
      * «Передать заново» repeats the step that failed (`POST /api/v1/orders/{id}/exchange/retry`) when the wyo server says it
@@ -27,11 +28,13 @@
     interface IProps {
         lang: TLocale;
         orderId: number;
+        /** The marketplace's own number of the order, for `ParcelList` to tell a parcel that kept it from one the marketplace numbered. */
+        orderNumber: string;
         details: TOrderExchangeDetails;
         onRetried?: () => void;
     }
 
-    let { lang, orderId, details, onRetried }: IProps = $props();
+    let { lang, orderId, orderNumber, details, onRetried }: IProps = $props();
 
     const retry = new ApiAction();
 
@@ -84,6 +87,7 @@
     {#if facts.length > 0}
         <FactList items={facts} dataTest="exchange-facts" />
     {/if}
+    <ParcelList {lang} parcels={details.parcels} {orderNumber} />
     {#if details.heldReasons.length > 0}
         <div>
             <HeadingWithHelp

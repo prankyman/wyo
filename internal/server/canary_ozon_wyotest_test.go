@@ -263,7 +263,11 @@ func onlyInTheApiKeyHeader(t *testing.T, control *fakekit.Control, canary string
 			t.Fatalf("a call without the Api-Key header: %+v", c)
 		}
 
-		whole := c.Path + "?" + c.Query + "\n" + headers.String() + c.Body
+		// The call list also hides the marking codes of a set of exemplars, in the same words (they are the seller's secrets too,
+		// rule R4): a code's hiding is no sign of the key. Any other [redacted] is.
+		body := strings.ReplaceAll(c.Body, `"mark":"[redacted]"`, `"mark":""`)
+
+		whole := c.Path + "?" + c.Query + "\n" + headers.String() + body
 		if strings.Contains(whole, "[redacted]") || strings.Contains(whole, canary) {
 			t.Fatalf("the API key reached the fake outside the Api-Key header: %+v", c)
 		}

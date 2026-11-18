@@ -308,3 +308,55 @@ func TestTheCancelMethodsOfOzonAreNeverGeneratedInThisRepository(t *testing.T) {
 		}
 	}
 }
+
+// ozonMethods are the operations of Ozon's description file the generator's list must name, each the research's section 5 (OZC)
+// gives a plan: the reading ones of Plan 5, then the writing ones of Plan 6 (the marking codes, the packing report, the
+// labels, the shipment and its documents; the shipment's own cancel is among them, the two methods that cancel a posting are not).
+var ozonMethods = []string{
+	"AccessAPI_RolesByToken", "SellerAPI_SellerInfo", "WarehouseListV2", "PostingFbsUnfulfilledList", "PostingAPI_GetFbsPostingV3",
+	"PostingFboList", "ProductAPI_GetProductInfoList",
+	"PostingAPI_FbsPostingProductExemplarCreateOrGetV6", "PostingAPI_FbsPostingProductExemplarSetV6",
+	"PostingAPI_FbsPostingProductExemplarStatusV5", "PostingAPI_ShipFbsPostingV4", "PostingFbsPackageLabelCreate",
+	"PostingFbsPackageLabelGet", "CarriageAPI_CarriageDeliveryListV2", "CarriageAPI_CarriageCreate", "CarriageAPI_SetPostings",
+	"CarriageAPI_CarriageApprove", "CarriageGet", "CarriageAPI_CarriageCancel", "PostingAPI_PostingFBSActCheckStatus",
+	"PostingAPI_ActPostingList", "PostingAPI_PostingFBSGetAct", "PostingAPI_PostingFBSGetBarcode", "PostingAPI_PostingFBSGetBarcodeText",
+}
+
+func TestTheGeneratorsListOfOzonMethodsNamesExactlyTheMethodsThePlansNeed(t *testing.T) {
+	t.Parallel()
+
+	config, err := os.ReadFile(moduleRoot + "/api/codegen/ozon.cfg.yaml")
+	if err != nil {
+		t.Fatalf("read the generator's list: %v", err)
+	}
+
+	generated, err := os.ReadFile(moduleRoot + "/internal/marketplace/ozon/ozonapi/ozonapi.gen.go")
+	if err != nil {
+		t.Fatalf("read the generated client: %v", err)
+	}
+
+	var listed []string
+
+	for line := range strings.Lines(string(config)) {
+		if name, found := strings.CutPrefix(strings.TrimSpace(line), "- "); found {
+			listed = append(listed, name)
+		}
+	}
+
+	slices.Sort(listed)
+
+	want := append([]string{}, ozonMethods...)
+	slices.Sort(want)
+
+	if strings.Join(listed, "\n") != strings.Join(want, "\n") {
+		t.Errorf("the generator's list names\n%s\nwant\n%s", strings.Join(listed, "\n"), strings.Join(want, "\n"))
+	}
+
+	// A method that is listed has its call in the generated client: the client's call is the operation's name without its
+	// underscores, followed by WithResponse.
+	for _, op := range ozonMethods {
+		if goName := strings.ReplaceAll(op, "_", "") + "WithResponse"; !strings.Contains(string(generated), goName) {
+			t.Errorf("the generated client has no %s for %s: run pnpm generate", goName, op)
+		}
+	}
+}

@@ -1,6 +1,7 @@
 package ozon
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -49,6 +50,15 @@ var (
 	refusalInternal         = refusal{http.StatusInternalServerError, codeInternal, "Internal error"}
 	refusalRateLimited      = refusal{http.StatusTooManyRequests, codeResourceExhausted, "You have reached request rate limit per second"}
 )
+
+// RefusalBody is the body of a refusal of Ozon's own words, in the shape the fake answers its own errors in (code 3, the words,
+// no details), for a test that queues a refusal of its own with the kit's fault «refuse with this answer». Ozon's error words
+// are the ones of OZC section 7 («HAS_INCORRECT_PRODUCT_QUANTITY», «POSTING_ALREADY_SHIPPED», ...).
+func RefusalBody(words string) string {
+	raw, _ := json.Marshal(refusalBody{Code: codeInvalidArgument, Message: words, Details: []any{}})
+
+	return string(raw)
+}
 
 func writeRefusal(w http.ResponseWriter, r refusal) {
 	fakekit.JSON(w, r.status, refusalBody{Code: r.code, Message: r.message, Details: []any{}})

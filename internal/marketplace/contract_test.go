@@ -33,7 +33,7 @@ func TestEveryPartOfTheContractIsNamedAndOnlyThisStagesPartsAreSupported(t *test
 
 	want := map[marketplace.Capability]bool{
 		marketplace.KeyCheck: true, marketplace.WarehousesRead: true, marketplace.OrdersNew: true, marketplace.OrdersStates: true,
-		marketplace.OrdersFeed: true, marketplace.OrdersConfirm: true, marketplace.LabelsFetch: true, marketplace.CodesReport: true,
+		marketplace.OrdersFeed: true, marketplace.OrdersConfirm: true, marketplace.OrdersPack: true, marketplace.LabelsFetch: true, marketplace.CodesReport: true,
 		marketplace.CodesVerdict: true, marketplace.HandoverGroup: true, marketplace.HandoverClose: true,
 		marketplace.HandoverDocuments: true,
 	}

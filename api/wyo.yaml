@@ -659,7 +659,7 @@ components:
         Marketplace:
             type: object
             additionalProperties: false
-            required: [code, mark, keyFields, capabilities, handoverSettings, givesDeadline]
+            required: [code, mark, keyFields, capabilities, handoverSettings, givesDeadline, exchangeFlow, handoverSteps]
             properties:
                 code:
                     type: string
@@ -684,6 +684,20 @@ components:
                     description: >-
                         The marketplace gives each order the moment it must be handed over by; when it does not, the deadline
                         is the order's creation plus the account's `deadlineHours`, which the owner sets.
+                exchangeFlow:
+                    type: string
+                    enum: [confirm, pack]
+                    description: >-
+                        How the exchange with a fulfilment centre treats the marketplace's orders: `confirm` - the order is
+                        confirmed at the marketplace when the fulfilment centre reserves it, and its label follows at once;
+                        `pack` - nothing is written at the reservation, the marking codes and the packing report follow the end
+                        of packing, and the labels are made afterwards.
+                handoverSteps:
+                    type: array
+                    description: >-
+                        The steps of a hand-over the adapter needs, in the order they run; the strip of a hand-over draws these
+                        and no others.
+                    items: { $ref: '#/components/schemas/HandoverStep' }
         SettingField:
             type: object
             additionalProperties: false
@@ -1042,13 +1056,16 @@ components:
         WarehouseMatch:
             type: object
             additionalProperties: false
-            required: [accountId, accountName, marketplace, warehouseNumber, warehouseName]
+            required: [accountId, accountName, marketplace, warehouseNumber, warehouseName, autoAssembly]
             properties:
                 accountId: { type: integer, format: int64 }
                 accountName: { type: string }
                 marketplace: { type: string }
                 warehouseNumber: { type: string, description: "The marketplace's own number of the seller's warehouse." }
                 warehouseName: { type: string }
+                autoAssembly:
+                    type: boolean
+                    description: The marketplace assembles and packs the orders of this warehouse itself (automatic assembly).
                 fcWarehouse: { type: string, description: "The fulfilment centre's warehouse code; absent - not matched." }
         WarehouseMatches:
             type: object
@@ -1239,7 +1256,7 @@ components:
         OrderExchangeDetails:
             type: object
             additionalProperties: false
-            required: [state, heldReasons, verdicts, history, retryable]
+            required: [state, heldReasons, verdicts, history, retryable, parcels]
             properties:
                 state: { $ref: '#/components/schemas/ExchangeState' }
                 reason: { $ref: '#/components/schemas/ExchangeReason' }
@@ -1260,6 +1277,23 @@ components:
                     type: array
                     items: { $ref: '#/components/schemas/ExchangeEvent' }
                 retryable: { type: boolean, description: «Передать заново» may be pressed. }
+                parcels:
+                    type: array
+                    description: The order's parcels in the order of their numbers; none before the packing is known.
+                    items: { $ref: '#/components/schemas/OrderParcel' }
+        OrderParcel:
+            type: object
+            additionalProperties: false
+            required: [number, marketplaceNumber, labelSent]
+            properties:
+                number: { type: integer, minimum: 1, description: The parcel's number in its order, from 1. }
+                marketplaceNumber:
+                    type: string
+                    description: >-
+                        The marketplace's own number of the part the parcel became: the order's own number when the marketplace
+                        does not split an order.
+                labelSent: { type: boolean, description: The parcel's label was attached to the order at the fulfilment centre. }
+                labelSentAt: { type: string, format: date-time }
         HandoverState:
             type: string
             enum: [working, waiting, problem, documents_sent, withdrawn, completed]
@@ -1298,6 +1332,7 @@ components:
                     items: { $ref: '#/components/schemas/Handover' }
         HandoverStepState:
             type: object
+            description: One of the hand-over's declared steps - the ones the marketplace's adapter needs, in the order they run.
             additionalProperties: false
             required: [step, state]
             properties:

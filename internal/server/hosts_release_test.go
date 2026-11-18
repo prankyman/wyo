@@ -7,6 +7,7 @@ package server
 
 import (
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/prankyman/wyo/internal/clock"
@@ -34,7 +35,8 @@ func TestEveryHostOfEveryAdapterIsOnTheGatesListInARelease(t *testing.T) {
 		}
 
 		for _, host := range hosts {
-			u, _ := url.Parse(marketplace.Origin("", host) + "/")
+			// A host an adapter lists as *.domain is checked with one concrete host under that domain.
+			u, _ := url.Parse(marketplace.Origin("", strings.Replace(host, "*", "sample", 1)) + "/")
 			if err := gate.Check(outbound.PurposeMarketplace, u); err != nil {
 				t.Errorf("%s, %s: %v", adapter.Describe().Code, host, err)
 			}

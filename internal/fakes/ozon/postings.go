@@ -53,6 +53,8 @@ type wirePosting struct {
 	ParentPostingNumber string             `json:"parent_posting_number"`
 	Cancellation        wireCancellation   `json:"cancellation"`
 	Products            []lineItem         `json:"products"`
+	IsMultibox          bool               `json:"is_multibox"`
+	Requirements        wireRequirements   `json:"requirements"`
 	Customer            wireCustomer       `json:"customer"`
 	Addressee           wireAddressee      `json:"addressee"`
 }
@@ -87,7 +89,8 @@ func (st *state) wire(p *posting, listing bool) wirePosting {
 		PostingNumber: p.number, OrderNumber: p.orderNumber, Status: p.status, Substatus: p.substatus,
 		DeliveryMethod: wireDeliveryMethod{WarehouseID: p.warehouseID, Warehouse: warehouse.Name},
 		InProcessAt:    p.inProcessAt, ShipmentDate: p.shipmentDate, ParentPostingNumber: p.parent,
-		Cancellation: cancelled, Products: slices.Clone(p.items), Customer: customer, Addressee: addressee,
+		Cancellation: cancelled, Products: slices.Clone(p.items), IsMultibox: p.multibox,
+		Requirements: st.requirementsOf(p.items), Customer: customer, Addressee: addressee,
 	}
 }
 
@@ -238,6 +241,9 @@ func (c *call) onePosting() {
 
 		return
 	}
+
+	// A report of the packing that was answered and has not taken effect takes effect with the reading its readings run out on.
+	c.st.readPosting(p)
 
 	c.json(http.StatusOK, map[string]wirePosting{"result": c.st.wire(p, false)})
 }
