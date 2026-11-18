@@ -331,6 +331,10 @@ jobs:
     released-installer:
         runs-on: ubuntu-24.04
         needs: release
+        # GitHub skips a job when any job before it in the chain was skipped, unless its condition says otherwise
+        # (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idneeds): after a merge
+        # whose gate and installer job were skipped as already tested, the release ran but this check did not.
+        if: always() && needs.release.result == 'success'
         timeout-minutes: 15
         steps:
             - name: Install the released wyo from the real release address
