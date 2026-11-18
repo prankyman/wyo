@@ -12,6 +12,13 @@ This file exists because a request the maintainer makes while testing one plan m
 
 ## Open
 
+### 17. A help «?» button carries the same name as the button it explains (2026-11-18)
+
+Found by the smoke test of Plan 2: `ButtonWithHelp` gives its «?» button the accessible name of the button beside it (for example both
+are «Сделать копию сейчас»), so a screen reader hears two buttons with one name, and a browser test that looks a button up by its name
+finds two. It is the library's convention as copied from the maintainer's other repository, so Plan 2 did not change it. To decide: a
+name of its own for every «?» (for example «Что делает «Сделать копию сейчас»»), changed in `ButtonWithHelp` once, with its test.
+
 ### 16. The maintainer's checks of Plan 2 on a real server (2026-11-18)
 
 Plan 2 (`.agents/plans/wyo-program-go-server-embedded-interface-database-owner-sign-in-installer-https-updates-signed-release.md`, «After
