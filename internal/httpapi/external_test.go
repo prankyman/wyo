@@ -163,6 +163,38 @@ func TestTheWarehousesAndMarketplacesAreMatchedAndTheHandOverSettingsKept(t *tes
 	}
 }
 
+func TestTheWarehousesToMatchSayWhichHaveAutomaticAssemblyAndNeverOfferOneTheSellerDeliversFrom(t *testing.T) {
+	t.Parallel()
+
+	o, _ := withFulfilment(t)
+	account := o.added(t, "Склад", "mem-seller")
+
+	err := o.f.Store.Do(t.Context(), func(q *store.Queries) error {
+		return q.ReplaceWarehouses(t.Context(), account.Id, []store.Warehouse{
+			{Number: "7", Name: "Север"},
+			{Number: "8", Name: "Юг", AutoAssembly: true},
+			{Number: "9", Name: "Доставка продавцом", SellerDelivers: true},
+		}, apikit.Noon())
+	})
+	if err != nil {
+		t.Fatalf("ReplaceWarehouses: %v", err)
+	}
+
+	got := o.call(t, http.MethodGet, "/api/v1/external-api/warehouses", "")
+	rows := decodeAs[gen.WarehouseMatches](t, got.Body).Rows
+
+	if got.Status != http.StatusOK || len(rows) != 2 {
+		t.Fatalf("the warehouses to match: %d %s, want the two the exchange can take orders of", got.Status, got.Body)
+	}
+
+	for _, row := range rows {
+		want := row.WarehouseNumber == "8"
+		if row.AutoAssembly != want {
+			t.Fatalf("warehouse %s: autoAssembly %v, want %v: %s", row.WarehouseNumber, row.AutoAssembly, want, got.Body)
+		}
+	}
+}
+
 func TestNotificationsGiveTheAddressToCopyAndAcceptOnlyASignedEvent(t *testing.T) {
 	t.Parallel()
 

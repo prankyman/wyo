@@ -41,7 +41,9 @@ export const MARKETPLACE: TMarketplace = {
         { name: 'city', choices: [] },
         { name: 'office_type', choices: ['sc', 'sw', 'pp', 'pfc', 'gpp'] }
     ],
-    givesDeadline: false
+    givesDeadline: false,
+    exchangeFlow: 'confirm',
+    handoverSteps: ['batch', 'move', 'boxes', 'shipping', 'close', 'documents']
 };
 
 /**
@@ -57,7 +59,33 @@ export const SECOND_MARKETPLACE: TMarketplace = {
     ],
     capabilities: ['key.check', 'warehouses.read', 'orders.new', 'orders.states', 'orders.feed'],
     handoverSettings: [],
-    givesDeadline: true
+    givesDeadline: true,
+    exchangeFlow: 'confirm',
+    handoverSteps: ['batch', 'move', 'boxes', 'shipping', 'close', 'documents']
+};
+
+/**
+ * The second adapter once it takes part in the exchange: it reports the packing instead of confirming an order, fetches the
+ * labels after it, and its hand-over has four steps (no transport boxes, no shipping settings, so it declares no setting).
+ */
+export const PACKING_MARKETPLACE: TMarketplace = {
+    ...SECOND_MARKETPLACE,
+    capabilities: [
+        'key.check',
+        'warehouses.read',
+        'orders.new',
+        'orders.states',
+        'orders.feed',
+        'orders.pack',
+        'labels.fetch',
+        'codes.report',
+        'codes.verdict',
+        'handover.group',
+        'handover.close',
+        'handover.documents'
+    ],
+    exchangeFlow: 'pack',
+    handoverSteps: ['batch', 'move', 'close', 'documents']
 };
 
 /** A working account with a Personal key that ends in 180 days; `overrides` change what a test needs. */

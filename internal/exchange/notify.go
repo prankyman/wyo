@@ -121,7 +121,23 @@ func (s *Service) repeat(ctx context.Context, sess *session, o *order, step stri
 		// Forgetting the refused sending makes the next run send the order again.
 		return s.opts.Store.Do(ctx, func(q *store.Queries) error { return q.DeleteExchangeOrder(ctx, o.x.OrderID) })
 	case stepConfirm, stepLabels:
+		if adapter, _, err := s.conn(ctx, o, jobOwner); err == nil && flowOf(adapter) == flowPack {
+			// The labels are asked for again, for the parcels that have none.
+			if err := s.resetLabels(ctx, o); err != nil {
+				return err
+			}
+
+			s.labelStep(ctx, sess, o, s.opts.Clock.Now())
+
+			return nil
+		}
+
 		return s.reserved(ctx, sess, o)
+	case stepPack:
+		// The reports are made again, as many times as before.
+		o.x.PackTries = 0
+		s.save(ctx, o)
+		s.packStep(ctx, sess, o)
 	case stepCodes:
 		if o.x.CodesState == codesRemoving {
 			return s.reopened(ctx, sess, o)

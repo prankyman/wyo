@@ -33,7 +33,7 @@ func TestAnOrderTheSellerConfirmedInTheCabinetIsNotConfirmedAgainButGetsItsLabel
 	r.events(t)
 
 	got := r.exchanged(t, number)
-	if got.State != "label_sent" || got.ConfirmedAt.IsZero() || got.SupplyID != 0 || got.LabelPrint == "" {
+	if got.State != "label_sent" || got.ConfirmedAt.IsZero() || got.SupplyID != 0 || r.labelPrint(t, got) == "" {
 		t.Fatalf("the order: %+v", got)
 	}
 

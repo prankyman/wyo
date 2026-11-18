@@ -186,13 +186,13 @@ func TestTheHandoversAreListedNewestFirstAndCountedByWhatTheyWaitFor(t *testing.
 	}
 }
 
-func TestTheOrdersOfAHandoverAreListedByAccountAndGroupWithTheirSupplyAndLabel(t *testing.T) {
+func TestTheOrdersOfAHandoverAreListedByAccountAndGroupWithTheirSupplyWarehouseAndParcels(t *testing.T) {
 	t.Parallel()
 
 	f := newExchangeFixture(t)
 	ctx := t.Context()
 
-	b := f.order(t, "101", func(o *store.Order) { o.Group = "gb" })
+	b := f.order(t, "101", func(o *store.Order) { o.Group, o.WarehouseNumber = "gb", "2002" })
 	a2 := f.order(t, "102", func(o *store.Order) { o.Group = "ga" })
 	a1 := f.order(t, "100", func(o *store.Order) { o.Group = "ga" })
 	notSent := f.order(t, "103", func(o *store.Order) { o.Group = "ga" })
@@ -207,7 +207,15 @@ func TestTheOrdersOfAHandoverAreListedByAccountAndGroupWithTheirSupplyAndLabel(t
 		}
 
 		for _, id := range []int64{a1, a2, b} {
-			if err := q.SaveExchangeOrder(ctx, store.ExchangeOrder{OrderID: id, State: "label_sent", SupplyID: supply, LabelPrint: "print", SentAt: noon(), UpdatedAt: noon()}); err != nil {
+			if err := q.SaveExchangeOrder(ctx, store.ExchangeOrder{OrderID: id, State: "label_sent", SupplyID: supply, SentAt: noon(), UpdatedAt: noon()}); err != nil {
+				return err
+			}
+		}
+
+		for _, p := range []store.Parcel{
+			{OrderID: a1, Number: 2, MpNumber: "100-2", LabelPrint: "print-2"}, {OrderID: a1, Number: 1, MpNumber: "100-1", LabelPrint: "print-1"},
+		} {
+			if err := q.SaveParcel(ctx, p); err != nil {
 				return err
 			}
 		}
@@ -234,8 +242,18 @@ func TestTheOrdersOfAHandoverAreListedByAccountAndGroupWithTheirSupplyAndLabel(t
 		t.Fatalf("the orders: %v, want %v", numbers, want)
 	}
 
-	if list[1].SupplyID != supply || list[1].LabelPrint != "print" || list[2].SupplyID != 0 || list[2].LabelPrint != "" {
-		t.Fatalf("the supply and the label of an order sent and of one not sent: %+v, %+v", list[1], list[2])
+	if list[1].SupplyID != supply || list[2].SupplyID != 0 {
+		t.Fatalf("the supply of an order sent and of one not sent: %+v, %+v", list[1], list[2])
+	}
+
+	// The marketplace's warehouse of each order, and each order's parcels in the order of their numbers.
+	if list[0].Warehouse != "1001" || list[3].Warehouse != "2002" {
+		t.Fatalf("the warehouses of the orders: %q and %q, want 1001 and 2002", list[0].Warehouse, list[3].Warehouse)
+	}
+
+	if len(list[1].Parcels) != 2 || list[1].Parcels[0].MpNumber != "100-1" || list[1].Parcels[1].LabelPrint != "print-2" ||
+		len(list[0].Parcels) != 0 || len(list[2].Parcels) != 0 {
+		t.Fatalf("the parcels of the orders: %+v, %+v, %+v", list[0].Parcels, list[1].Parcels, list[2].Parcels)
 	}
 
 	// A second recording replaces the first.

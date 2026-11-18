@@ -28,9 +28,11 @@ type Fault struct {
 	Kind FaultKind `json:"kind"`
 	// Count is how many calls the fault meets; 0 means 1.
 	Count int `json:"count,omitempty"`
-	// Method and PathPrefix narrow the calls it meets; empty means any.
+	// Method, PathPrefix and PathSuffix narrow the calls it meets; empty means any. A suffix names a path with a number in
+	// the middle (a supply's, an order's) by its end.
 	Method     string `json:"method,omitempty"`
 	PathPrefix string `json:"path_prefix,omitempty"`
+	PathSuffix string `json:"path_suffix,omitempty"`
 	// RetryAfterSeconds is told to the caller by FaultRateLimited; 0 means 1.
 	RetryAfterSeconds int `json:"retry_after_seconds,omitempty"`
 	// DelayMS is how long FaultSlow waits.
@@ -68,7 +70,7 @@ func (f Fault) validate() error {
 }
 
 func (f Fault) matches(method, path string) bool {
-	return (f.Method == "" || strings.EqualFold(f.Method, method)) && strings.HasPrefix(path, f.PathPrefix)
+	return (f.Method == "" || strings.EqualFold(f.Method, method)) && strings.HasPrefix(path, f.PathPrefix) && strings.HasSuffix(path, f.PathSuffix)
 }
 
 // takeFault removes one use of the first fault that matches the call and returns it.

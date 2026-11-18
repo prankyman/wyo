@@ -37,11 +37,24 @@ func (l orderLine) wanted() int { return l.quantity - l.cancelled }
 type labelRecord struct {
 	contentType string
 	scanCode    *string
+	// data is the file as it was sent (base64); a control call shows it to a test, the API never does.
+	data string
 }
 
 type unit struct {
 	line int
 	code string
+	// parcel is the number of the parcel the unit lies in; 0 means the first.
+	parcel int
+}
+
+// parcelNumber is the number of the parcel a unit lies in.
+func (u unit) parcelNumber() int {
+	if u.parcel == 0 {
+		return 1
+	}
+
+	return u.parcel
 }
 
 type parcel struct {
@@ -112,6 +125,10 @@ type handoverParcel struct {
 type handoverDocument struct {
 	kind  fcapi.HandoverDocumentsKind
 	title string
+	// contentType, scanCode and data are what the sender sent; a control call shows them to a test, the API never does.
+	contentType string
+	scanCode    *string
+	data        string
 }
 
 type handover struct {
@@ -125,6 +142,9 @@ type handover struct {
 	documents   []handoverDocument
 	externalID  *string
 	problem     *fcapi.Problem
+	// transportBoxes is how many transport boxes the fulfilment centre named when it asked for the documents; nil when it
+	// did not say.
+	transportBoxes *int
 }
 
 type event struct {

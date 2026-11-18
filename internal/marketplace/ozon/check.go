@@ -21,8 +21,9 @@ const warehousesPage = 100
 // lacks one is refused, with the missing access level named.
 var required = []string{categoryPostingFBS, categoryWarehouse}
 
-// optional are the categories whose lack leaves the account working: the card says what will not be shown.
-var optional = []string{categoryPostingFBO, categoryProduct, categorySellerInfo}
+// optional are the categories whose lack leaves the account working: the card says what will not be shown. The writing half's
+// is one of them: a key without its level is accepted, marked as one that only reads, and the card names the level to add.
+var optional = []string{categoryPostingFBO, categoryProduct, categorySellerInfo, categoryPostingFBSWrite}
 
 // methodsOf are the paths each category needs (the routes of that category).
 func (a *Adapter) methodsOf(category string) []string {
@@ -65,7 +66,9 @@ func (a *Adapter) ReadKey(fields marketplace.Key, _ time.Time) (marketplace.KeyF
 //  1. /v1/roles — the key's end («Получите дату истечения срока действия ключа в параметре expires_at метода /v1/roles»,
 //     OZC §2) and its methods. A key without the methods of the FBS postings or of the warehouses is refused with the
 //     missing access level named; without those of the FBO postings, the products or the seller's information, the
-//     account is accepted and the categories it lacks are noted.
+//     account is accepted and the categories it lacks are noted. A key without the methods of the writing half (the marking
+//     codes, the packing report, the labels, the shipment) is accepted too and is marked as one that only reads, with the
+//     level «Posting FBS» to add, the same mark any marketplace's key that only reads gets.
 //  2. /v1/seller/info when the key allows it: the seller's name («company.name»).
 //  3. /v2/warehouse/list, every page.
 //
@@ -81,7 +84,7 @@ func (a *Adapter) CheckKey(ctx context.Context, conn marketplace.Conn, facts mar
 	}
 
 	allowed := rolesAllow(adapterkit.Value(roles.Roles))
-	facts.Categories, facts.MissingCategories = nil, nil
+	facts.Categories, facts.MissingCategories, facts.ReadOnly = nil, nil, false
 
 	for _, category := range append(slices.Clone(required), optional...) {
 		has := !slices.ContainsFunc(a.methodsOf(category), func(path string) bool { return !allowed(path) })
@@ -96,6 +99,7 @@ func (a *Adapter) CheckKey(ctx context.Context, conn marketplace.Conn, facts mar
 			}
 		default:
 			facts.MissingCategories = append(facts.MissingCategories, category)
+			facts.ReadOnly = facts.ReadOnly || category == categoryPostingFBSWrite
 		}
 	}
 
@@ -208,8 +212,12 @@ func (a *Adapter) Warehouses(ctx context.Context, conn marketplace.Conn) ([]mark
 				continue
 			}
 
+			// The label type and the automatic assembly are Ozon's «carriage_label_type» and «is_auto_assembly» as received: the
+			// exchange asks for the kind of label the warehouse makes (BIG, SMALL or UNSPECIFIED), and a warehouse that Ozon
+			// assembles by itself is shown to the owner with a warning (OZC §6).
 			list = append(list, marketplace.Warehouse{
 				Number: number(*w.WarehouseId), Name: adapterkit.Value(w.Name), SellerDelivers: adapterkit.Value(w.IsRfbs),
+				LabelType: string(adapterkit.Value(w.CarriageLabelType)), AutoAssembly: adapterkit.Value(w.IsAutoAssembly),
 			})
 		}
 

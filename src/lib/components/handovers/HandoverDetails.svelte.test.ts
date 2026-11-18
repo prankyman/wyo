@@ -35,7 +35,13 @@ describe('HandoverDetails', () => {
         expect(screen.getByTestId('handover-facts-batches')).toHaveTextContent('GI-1001');
         expect(screen.getByTestId('handover-facts-orders')).toHaveTextContent('4455667788, 4455667799');
         expect(screen.getByTestId('handover-facts-boxes')).toHaveTextContent('2');
-        for (const absent of ['handover-problem', 'handover-retry', 'shipping-point', 'handover-closed']) {
+        for (const absent of [
+            'handover-problem',
+            'handover-retry',
+            'shipping-point',
+            'handover-closed',
+            'handover-note'
+        ]) {
             expect(screen.queryByTestId(absent)).toBeNull();
         }
     });
@@ -90,5 +96,25 @@ describe('HandoverDetails', () => {
         draw(handoverDetailsOf({ closed: true }));
 
         expect(screen.getByTestId('handover-closed')).toHaveTextContent('закрыта на маркетплейсе');
+    });
+
+    it('draws four steps and says that boxes are not sent and that a withdrawn request undoes nothing after the approval, for a marketplace with no step of boxes', () => {
+        draw(
+            handoverDetailsOf({
+                handover: handoverOf({ boxes: 2 }),
+                steps: [
+                    { step: 'batch', state: 'done' },
+                    { step: 'move', state: 'now' },
+                    { step: 'close', state: 'todo' },
+                    { step: 'documents', state: 'todo' }
+                ]
+            })
+        );
+
+        expect(screen.getByTestId('handover-steps-now')).toHaveTextContent('Сейчас: шаг 2 из 4');
+        expect(screen.getByTestId('handover-note')).toHaveTextContent(
+            'транспортные короба, которые назвал фулфилмент-центр, ему не передаются'
+        );
+        expect(screen.getByTestId('handover-note')).toHaveTextContent('утверждённую партию изменить нельзя');
     });
 });

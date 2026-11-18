@@ -656,6 +656,13 @@ export interface components {
             handoverSettings: components["schemas"]["SettingField"][];
             /** @description The marketplace gives each order the moment it must be handed over by; when it does not, the deadline is the order's creation plus the account's `deadlineHours`, which the owner sets. */
             givesDeadline: boolean;
+            /**
+             * @description How the exchange with a fulfilment centre treats the marketplace's orders: `confirm` - the order is confirmed at the marketplace when the fulfilment centre reserves it, and its label follows at once; `pack` - nothing is written at the reservation, the marking codes and the packing report follow the end of packing, and the labels are made afterwards.
+             * @enum {string}
+             */
+            exchangeFlow: "confirm" | "pack";
+            /** @description The steps of a hand-over the adapter needs, in the order they run; the strip of a hand-over draws these and no others. */
+            handoverSteps: components["schemas"]["HandoverStep"][];
         };
         SettingField: {
             name: string;
@@ -938,6 +945,8 @@ export interface components {
             /** @description The marketplace's own number of the seller's warehouse. */
             warehouseNumber: string;
             warehouseName: string;
+            /** @description The marketplace assembles and packs the orders of this warehouse itself (automatic assembly). */
+            autoAssembly: boolean;
             /** @description The fulfilment centre's warehouse code; absent - not matched. */
             fcWarehouse?: string;
         };
@@ -1088,6 +1097,18 @@ export interface components {
             history: components["schemas"]["ExchangeEvent"][];
             /** @description «Передать заново» may be pressed. */
             retryable: boolean;
+            /** @description The order's parcels in the order of their numbers; none before the packing is known. */
+            parcels: components["schemas"]["OrderParcel"][];
+        };
+        OrderParcel: {
+            /** @description The parcel's number in its order */
+            number: number;
+            /** @description The marketplace's own number of the part the parcel became: the order's own number when the marketplace does not split an order. */
+            marketplaceNumber: string;
+            /** @description The parcel's label was attached to the order at the fulfilment centre. */
+            labelSent: boolean;
+            /** Format: date-time */
+            labelSentAt?: string;
         };
         /**
          * @description The text is `handovers.state.<state>`.
@@ -1124,6 +1145,7 @@ export interface components {
         HandoverList: {
             handovers: components["schemas"]["Handover"][];
         };
+        /** @description One of the hand-over's declared steps - the ones the marketplace's adapter needs, in the order they run. */
         HandoverStepState: {
             step: components["schemas"]["HandoverStep"];
             /** @enum {string} */

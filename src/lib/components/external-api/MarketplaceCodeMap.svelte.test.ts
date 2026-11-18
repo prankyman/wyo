@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { marketplaceMatchesOf } from '$test/support/external-api';
+import { SECOND_MARKETPLACE_CODE } from '$test/support/marketplaces';
 import MarketplaceMapHarness from '$test/harnesses/external-api/MarketplaceMapHarness.svelte';
 import MarketplaceCodeMap from './MarketplaceCodeMap.svelte';
 
@@ -28,7 +29,7 @@ describe('MarketplaceCodeMap', () => {
             within(box)
                 .getAllByRole('option')
                 .map((option) => option.textContent)
-        ).toEqual(['Не передавать заказы этого аккаунта', 'Маркетплейс А', 'Маркетплейс Б']);
+        ).toEqual(['Не передавать заказы', 'Маркетплейс А', 'Маркетплейс Б']);
         expect(box).toHaveValue('mp-a');
         expect(screen.getByTestId('codes-1-box')).toHaveValue('mp-b');
     });
@@ -61,6 +62,27 @@ describe('MarketplaceCodeMap', () => {
             'Ключ аккаунта «Второй магазин» только читает'
         );
         expect(screen.getByTestId('codes-1-read-only')).toHaveTextContent('замените его в разделе «Маркетплейсы»');
+    });
+
+    it('names the level of access to add in the marketplace’s own words when its family has them, and the general remedy when it has not', () => {
+        const matches = marketplaceMatchesOf();
+        render(MarketplaceCodeMap, {
+            props: {
+                lang: 'ru',
+                rows: [
+                    { ...matches.rows[1], marketplace: SECOND_MARKETPLACE_CODE },
+                    { ...matches.rows[1], accountId: 9 }
+                ],
+                fcMarketplaces: matches.fcMarketplaces,
+                selected: ['mp-b', 'mp-b'],
+                onSelect: () => {},
+                idPrefix: 'codes'
+            }
+        });
+
+        expect(screen.getByTestId('codes-0-read-only')).toHaveTextContent('нужен уровень доступа «Posting FBS»');
+        expect(screen.getByTestId('codes-1-read-only')).not.toHaveTextContent('Posting FBS');
+        expect(screen.getByTestId('codes-1-read-only')).toHaveTextContent('нужна запись');
     });
 
     it('lays a refusal onto the row it is about', () => {

@@ -138,7 +138,9 @@ func (a *api) HandoverDocuments(w http.ResponseWriter, r *http.Request, id strin
 
 		h.documents = make([]handoverDocument, len(in.Documents))
 		for i, d := range in.Documents {
-			h.documents[i] = handoverDocument{kind: fcapi.HandoverDocumentsKind(d.Kind), title: d.Title}
+			h.documents[i] = handoverDocument{
+				kind: fcapi.HandoverDocumentsKind(d.Kind), title: d.Title, contentType: string(d.ContentType), scanCode: d.ScanCode, data: d.Data,
+			}
 		}
 
 		external := in.ExternalId

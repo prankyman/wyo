@@ -1,7 +1,6 @@
 package exchange_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -17,6 +16,7 @@ import (
 	"github.com/prankyman/wyo/internal/exchange"
 	"github.com/prankyman/wyo/internal/fakes/fakekit"
 	fakefc "github.com/prankyman/wyo/internal/fakes/fulfilment"
+	fakeozon "github.com/prankyman/wyo/internal/fakes/ozon"
 	fakewb "github.com/prankyman/wyo/internal/fakes/wildberries"
 	"github.com/prankyman/wyo/internal/fulfilment"
 	"github.com/prankyman/wyo/internal/marketplace"
@@ -66,8 +66,9 @@ type rig struct {
 	wb      *fakekit.Control
 	account store.Account
 	dialer  fulfilment.Dialer
-	script  *refusals
 	brk     *breaker
+	// opts are the options the exchange was made with, so that a test can make the same exchange again over the same database.
+	opts exchange.Options
 	// extraSecrets are further secrets a test made (the signing secret of notifications) that must reach nothing.
 	extraSecrets []string
 }
@@ -78,24 +79,38 @@ func newRig(t *testing.T) *rig { return newRigWith(t, false) }
 func newRigWith(t *testing.T, inProcess bool) *rig {
 	t.Helper()
 
-	script, brk := &refusals{}, &breaker{}
+	r := newRigOn(t, inProcess, &breaker{}, func(clk *clock.Fixed, brk *breaker) http.Handler {
+		return brk.wrap(fakewb.New(fakewb.Options{Clock: clk, Delay: fakekit.ClockDelayer{Clock: clk}}).Handler())
+	}, func(kit *synckit.Kit) marketplace.Adapter {
+		return wildberries.New(wildberries.Options{TestBase: kit.URL})
+	})
+	r.addAccount(t)
 
-	build := func(clk *clock.Fixed) http.Handler {
-		return script.wrap(brk.wrap(fakewb.New(fakewb.Options{Clock: clk, Delay: fakekit.ClockDelayer{Clock: clk}}).Handler()))
-	}
+	return r
+}
 
-	kit := synckit.NewFor(t, build)
+// newRigOn is the exchange between a fake marketplace and a fake fulfilment centre, with no account yet: build makes the fake
+// marketplace's handler on the kit's clock (behind the breaker), adapter the marketplace's adapter pointed at it.
+func newRigOn(
+	t *testing.T, inProcess bool, brk *breaker, build func(clk *clock.Fixed, brk *breaker) http.Handler,
+	adapter func(kit *synckit.Kit) marketplace.Adapter,
+) *rig {
+	t.Helper()
+
+	handler := func(clk *clock.Fixed) http.Handler { return build(clk, brk) }
+
+	kit := synckit.NewFor(t, handler)
 	if inProcess {
-		kit = synckit.NewInProcess(t, build)
+		kit = synckit.NewInProcess(t, handler)
 	}
 
-	engine, registry := kit.Engine(t, wildberries.New(wildberries.Options{TestBase: kit.URL}))
+	engine, registry := kit.Engine(t, adapter(kit))
 
 	fake := fakefc.New(fakefc.Options{Clock: kit.Clock, Delay: fakekit.ClockDelayer{Clock: kit.Clock}})
 	t.Cleanup(fake.Close)
 
-	fcURL, fcClient := "http://fulfilment-centre.test", marketplace.Doer(synckit.HandlerDoer{Handler: brk.wrap(fake.Handler())})
-	controlClient := &http.Client{Transport: synckit.HandlerDoer{Handler: brk.wrap(fake.Handler())}}
+	fcURL, fcClient, controlClient := "http://fulfilment-centre.test", marketplace.Doer(synckit.HandlerDoer{Handler: brk.wrap(fake.Handler())}),
+		&http.Client{Transport: synckit.HandlerDoer{Handler: brk.wrap(fake.Handler())}}
 
 	if !inProcess {
 		srv := httptest.NewServer(brk.wrap(fake.Handler()))
@@ -106,17 +121,17 @@ func newRigWith(t *testing.T, inProcess bool) *rig {
 
 	g := &gate{}
 	dialer := fulfilment.Dialer{Caller: kit.Caller, HTTP: fcClient, AllowHTTP: true}
-	svc := exchange.New(exchange.Options{
+	opts := exchange.Options{
 		Store: kit.Store, Keys: kit.Vault, Engine: engine, Registry: registry, Gate: g, Clock: kit.Clock, Log: kit.Logger(),
 		Location: moscow, Dialer: dialer,
-	})
+	}
+	svc := exchange.New(opts)
 
 	r := &rig{
 		kit: kit, engine: engine, svc: svc, gate: g, fcURL: fcURL, fcKey: "fc-key-" + strings.ReplaceAll(t.Name(), "/", "-"),
-		dialer: dialer, script: script, brk: brk,
+		dialer: dialer, brk: brk, opts: opts,
 	}
 	r.fc = fakekit.NewControl(fcURL, r.fcKey, controlClient)
-	r.addAccount(t)
 
 	return r
 }
@@ -270,12 +285,6 @@ func (r *rig) fcCalls(t *testing.T) []fakekit.Call {
 	}
 
 	return calls
-}
-
-func asJSON(v any) string {
-	data, _ := json.Marshal(v)
-
-	return string(data)
 }
 
 // The jobs of the exchange, run the way the scheduler runs them, each failing the test on an error.
@@ -432,59 +441,18 @@ func (r *rig) client(t *testing.T) *fulfilment.Client {
 	return fc
 }
 
-// refusals scripts the refusals of Wildberries that the fake cannot give on command (an order cancelled between the moment
-// it was read and the moment it was put into a supply, a supply that wants a shipping point the fake has just given): the
-// next call that matches is answered in Wildberries' own shape and does not reach the fake.
-type refusals struct {
-	mu   gosync.Mutex
-	list []scripted
-}
+// refuse makes the fake Wildberries refuse the next call of a method whose path ends with the text, with the code and the words
+// of Wildberries' own error shape (the kit's fault «refuse with this answer»): the call is answered as the marketplace would
+// answer it, and the write it would have made is not made.
+func (r *rig) refuse(t *testing.T, method, pathSuffix string, status int, code, message string) {
+	t.Helper()
 
-type scripted struct {
-	method  string
-	path    *regexp.Regexp
-	status  int
-	code    string
-	message string
-}
-
-func (rs *refusals) take(method, path string) *scripted {
-	rs.mu.Lock()
-	defer rs.mu.Unlock()
-
-	for i, s := range rs.list {
-		if s.method == method && s.path.MatchString(path) {
-			rs.list = slices.Delete(rs.list, i, i+1)
-
-			return &s
-		}
+	err := r.wb.QueueFault(t.Context(), fakekit.Fault{
+		Kind: fakekit.FaultRefuse, Method: method, PathSuffix: pathSuffix, Status: status, Body: fakewb.RefusalBody(code, message),
+	})
+	if err != nil {
+		t.Fatalf("QueueFault: %v", err)
 	}
-
-	return nil
-}
-
-func (rs *refusals) wrap(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if s := rs.take(req.Method, req.URL.Path); s != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(s.status)
-			_, _ = w.Write([]byte(asJSON(map[string]string{"code": s.code, "message": s.message})))
-
-			return
-		}
-
-		next.ServeHTTP(w, req)
-	})
-}
-
-// refuse makes Wildberries refuse the next call of a method whose path matches the expression, with its code and its words.
-func (r *rig) refuse(method, pathExpr string, status int, code, message string) {
-	r.script.mu.Lock()
-	defer r.script.mu.Unlock()
-
-	r.script.list = append(r.script.list, scripted{
-		method: method, path: regexp.MustCompile(pathExpr), status: status, code: code, message: message,
-	})
 }
 
 // wbCalls are the calls the fake Wildberries received with a method whose path ends with the text.
@@ -606,28 +574,49 @@ func (r *rig) setHandover(t *testing.T, settings map[string]string, point string
 }
 
 // breaker counts the writes both fakes receive and fails one of them as a lost call: the write that is number failAt (1 for the
-// first) is answered 500 without reaching the fake, so it was never made. A failAt of 0 fails none. A read that a marketplace
-// takes as a POST (states, codes' verdicts, stickers) is not a write.
+// first) is answered 500 without reaching the fake, so it was never made. A failAt of 0 fails none. What a write is, is the
+// marketplace's: a read that Wildberries takes as a POST (states, codes' verdicts, stickers) is not a write, and nor is a read
+// Ozon takes as a POST; isWrite says it, and nil is Wildberries' and the fulfilment centre's.
 type breaker struct {
 	mu     gosync.Mutex
 	writes int
 	failAt int
+	failed bool
+	// attempts are the writes asked for, in order, as "METHOD path": the one that is lost is among them.
+	attempts []string
+	// after makes the failed write reach the fake and be made there: only its answer is lost.
+	after   bool
+	isWrite func(req *http.Request) bool
 }
 
 var readPosts = []string{"/orders/status", "/orders/meta", "/orders/stickers", "/trbx/stickers"}
 
+func wildberriesWrite(req *http.Request) bool {
+	return req.Method != http.MethodGet && !strings.HasPrefix(req.URL.Path, "/__control/") &&
+		!slices.ContainsFunc(readPosts, func(s string) bool { return strings.HasSuffix(req.URL.Path, s) })
+}
+
 func (b *breaker) wrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		isWrite := req.Method != http.MethodGet && !strings.HasPrefix(req.URL.Path, "/__control/") &&
-			!slices.ContainsFunc(readPosts, func(s string) bool { return strings.HasSuffix(req.URL.Path, s) })
+		write := b.isWrite
+		if write == nil {
+			write = wildberriesWrite
+		}
 
-		if isWrite {
+		if write(req) {
 			b.mu.Lock()
 			b.writes++
+			b.attempts = append(b.attempts, req.Method+" "+strings.TrimPrefix(req.URL.Path, "/"+fakeozon.Host))
 			fail := b.writes == b.failAt
+			b.failed = b.failed || fail
 			b.mu.Unlock()
 
 			if fail {
+				if b.after {
+					// The fake makes the write; the answer never comes back.
+					next.ServeHTTP(httptest.NewRecorder(), req)
+				}
+
 				http.Error(w, "the call was lost", http.StatusInternalServerError)
 
 				return
@@ -636,6 +625,14 @@ func (b *breaker) wrap(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, req)
 	})
+}
+
+// failWriteAnswer makes the n-th write from now on be made and its answer be lost.
+func (r *rig) failWriteAnswer(n int) {
+	r.brk.mu.Lock()
+	defer r.brk.mu.Unlock()
+
+	r.brk.failAt, r.brk.after = n, true
 }
 
 // failWrite makes the n-th write from now on fail.
@@ -652,4 +649,40 @@ func (r *rig) writeCount() int {
 	defer r.brk.mu.Unlock()
 
 	return r.brk.writes
+}
+
+// labelPrint is the fingerprint of the label attached to the first parcel of an order: empty while none is attached.
+func (r *rig) labelPrint(t *testing.T, x store.ExchangeOrder) string {
+	t.Helper()
+
+	rows, err := r.kit.Store.Read().ParcelsOf(t.Context(), x.OrderID)
+	if err != nil {
+		t.Fatalf("ParcelsOf %d: %v", x.OrderID, err)
+	}
+
+	if len(rows) == 0 {
+		return ""
+	}
+
+	return rows[0].LabelPrint
+}
+
+// restart stops the exchange and starts a new one over the same database, the way a restart of the wyo server does: everything the
+// exchange knew is what the database holds.
+func (r *rig) restart() { r.svc = exchange.New(r.opts) }
+
+// lostACall says whether the breaker has failed the write it was set to fail.
+func (r *rig) lostACall() bool {
+	r.brk.mu.Lock()
+	defer r.brk.mu.Unlock()
+
+	return r.brk.failed
+}
+
+// attemptedWrites are the writes asked for so far, in order, as "METHOD path".
+func (r *rig) attemptedWrites() []string {
+	r.brk.mu.Lock()
+	defer r.brk.mu.Unlock()
+
+	return slices.Clone(r.brk.attempts)
 }

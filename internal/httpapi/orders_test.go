@@ -130,7 +130,7 @@ func TestAnOrderIsShownWithEveryFieldAndItsHistory(t *testing.T) {
 	want := fmt.Sprintf(`{"events":[`+
 		`{"at":%q,"marketplaceStatus":{"marketplace":"waiting","seller":"new"},"source":"orders.new","state":"new"},`+
 		`{"at":%q,"marketplaceStatus":{"seller":"new"},"source":"orders.states","state":"new"}],`+
-		`"exchange":{"heldReasons":[],"history":[],"reason":"external_api_empty","retryable":false,"state":"not_sent","verdicts":[]},`+
+		`"exchange":{"heldReasons":[],"history":[],"parcels":[],"reason":"external_api_empty","retryable":false,"state":"not_sent","verdicts":[]},`+
 		`"order":{"accountId":%d,"accountName":"Склад","basket":"B-1","createdAt":%q,"deadlineAt":%q,`+
 		`"exchange":{"reason":"external_api_empty","state":"not_sent"},"id":%d,`+
 		`"lines":[{"article":"ART-7","barcodes":["4600000000017","4600000000024"],"brand":"Север","kind":"Футболки","productId":"777",`+

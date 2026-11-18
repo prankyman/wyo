@@ -133,9 +133,14 @@ func (a *api) writeWarehouses(w http.ResponseWriter, r *http.Request) {
 		}
 
 		for _, wh := range list {
+			// A warehouse the seller delivers from has no order the exchange takes, so there is nothing to match.
+			if wh.SellerDelivers {
+				continue
+			}
+
 			body.Rows = append(body.Rows, gen.WarehouseMatch{
 				AccountId: acc.ID, AccountName: acc.Name, Marketplace: acc.Marketplace, WarehouseNumber: wh.Number,
-				WarehouseName: wh.Name, FcWarehouse: text(matched[[2]any{acc.ID, wh.Number}]),
+				WarehouseName: wh.Name, FcWarehouse: text(matched[[2]any{acc.ID, wh.Number}]), AutoAssembly: wh.AutoAssembly,
 			})
 		}
 	}

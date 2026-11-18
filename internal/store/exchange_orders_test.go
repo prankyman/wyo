@@ -124,8 +124,9 @@ func TestAnExchangeOrderKeepsEveryFieldAndIsFoundByEachOfItsNames(t *testing.T) 
 			Code: "marketplace_refused", Params: map[string]any{"step": "confirm"}, MpCode: "FailedToAddSupplyOrder", Words: "words",
 			At: noon().UTC(), Sent: true,
 		},
-		FailedStep: "confirm", SupplyID: 0, ConfirmedAt: noon().Add(time.Minute).UTC(), LabelPrint: "print", LabelSentAt: noon().Add(2 * time.Minute).UTC(),
-		CodesState: "checking", CodesSentAt: noon().Add(3 * time.Minute).UTC(), NextCheckAt: noon().Add(4 * time.Minute).UTC(),
+		FailedStep: "confirm", SupplyID: 0, ConfirmedAt: noon().Add(time.Minute).UTC(),
+		PackReportedAt: noon().Add(7 * time.Minute).UTC(), PackTries: 2, PackNextAt: noon().Add(8 * time.Minute).UTC(), CodesResends: 1,
+		PackedAt: noon().Add(9 * time.Minute).UTC(), CodesState: "checking", CodesSentAt: noon().Add(3 * time.Minute).UTC(), NextCheckAt: noon().Add(4 * time.Minute).UTC(),
 		CancelAnswer: "waiting", HandedOverAt: noon().Add(5 * time.Minute).UTC(), SentAt: noon().UTC(), UpdatedAt: noon().Add(6 * time.Minute).UTC(),
 	}
 
@@ -304,7 +305,7 @@ func TestTheHistoryAndTheCodesOfAnOrderAreKeptAndTheCodesAreDeletedNinetyDaysAft
 		}
 
 		for _, o := range []int64{id, old} {
-			if err := q.ReplaceOrderCodes(ctx, o, []store.OrderCode{{Unit: 2, Identifier: "marking", Code: "b\x1dc"}, {Unit: 1, Identifier: "marking", Code: "a\x1dc"}}); err != nil {
+			if err := q.ReplaceOrderCodes(ctx, o, []store.OrderCode{{Unit: 2, Line: 2, Identifier: "marking", Code: "b\x1dc"}, {Unit: 1, Line: 1, Identifier: "marking", Code: "a\x1dc"}}); err != nil {
 				return err
 			}
 		}
@@ -319,7 +320,8 @@ func TestTheHistoryAndTheCodesOfAnOrderAreKeptAndTheCodesAreDeletedNinetyDaysAft
 
 	// The codes are kept exactly as scanned, in the order of their units; a second keeping replaces the first.
 	codes, err := f.s.Read().OrderCodes(ctx, id)
-	if err != nil || len(codes) != 2 || codes[0].Code != "a\x1dc" || codes[1].Code != "b\x1dc" || !codes[0].SentAt.IsZero() {
+	if err != nil || len(codes) != 2 || codes[0].Code != "a\x1dc" || codes[1].Code != "b\x1dc" || codes[0].Line != 1 || codes[1].Line != 2 ||
+		!codes[0].SentAt.IsZero() {
 		t.Fatalf("OrderCodes: %+v, %v", codes, err)
 	}
 

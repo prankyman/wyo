@@ -183,6 +183,9 @@ func fbsOrder(p ozonapi.PostingV4PostingFbsUnfulfilledListResponsePostings) mark
 		o.WarehouseNumber, o.WarehouseName = adapterkit.Number(p.DeliveryMethod.WarehouseId), adapterkit.Value(p.DeliveryMethod.Warehouse)
 	}
 
+	// Ozon makes one shipment for each warehouse and day (OZC §9): the warehouse's number is the group the hand-over splits by.
+	o.Group = o.WarehouseNumber
+
 	cancellation := ""
 	if p.Cancellation != nil {
 		cancellation = adapterkit.Value(p.Cancellation.CancellationType)

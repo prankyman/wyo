@@ -16,7 +16,12 @@
 //   - the error body {code, message, details} and Ozon's words for its key errors (OZC section 4);
 //   - postings (Ozon's «отправления») of the FBS scheme and the FBO scheme with their statuses, several products and
 //     quantities, the deadline of assembly, the split of a posting made in the seller's cabinet, and the buyer's name, phone,
-//     address and comment in every answer, which the wyo server must drop (OZC section 6).
+//     address and comment in every answer, which the wyo server must drop (OZC section 6);
+//   - the writing half (OZC sections 7 to 9): the marking codes on the exemplars of a posting and the check of them
+//     (exemplars.go), the report of the packing that splits a posting into parts and may take effect late or end in ship_failed
+//     (ship.go), the label tasks and the label files, served on the host ir.ozone.ru without a key (labels.go), the shipment of a
+//     day and its documents (carriage.go, acts.go). Each is driven by the control calls listed in control_writing.go, and a test
+//     counts what the wyo server wrote in the call list (a marking code is never in it: redact.go).
 //
 // Ozon's documents do not say which HTTP status goes with each of its key errors, nor the numbers of the error codes (OZC
 // section 4, section 10 point 2). The fake chooses them, and says so in a comment at each place: «the fake's choice, not
@@ -35,6 +40,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/prankyman/wyo/internal/clock"
 	"github.com/prankyman/wyo/internal/fakes/fakekit"
@@ -57,17 +63,24 @@ type Server struct {
 	kit     *fakekit.Kit[state]
 	routes  map[string]func(*call)
 	handler http.Handler
+
+	// The label files (labels.go) belong to the server, not to a key's state: they are asked for without a key.
+	filesMu sync.Mutex
+	files   map[string]labelFileEntry
+	fileSeq int
 }
 
 // New returns a fake Ozon.
 func New(o Options) *Server {
-	s := &Server{opts: o}
+	s := &Server{opts: o, files: map[string]labelFileEntry{}}
 
 	s.kit = fakekit.New(fakekit.Options[state]{
 		Clock:    o.Clock,
 		Delay:    o.Delay,
 		NewState: func() *state { return newState(o.Clock) },
 		Key:      keyOf,
+		// The call list keeps every request's body, and a set of marking codes would put the codes in it.
+		RedactBody: redactBody,
 		Dialect: fakekit.Dialect{
 			Unauthorized:    func(w http.ResponseWriter) { writeRefusal(w, refusalInvalidKey) },
 			TooManyRequests: tooManyRequests,
@@ -83,12 +96,32 @@ func New(o Options) *Server {
 		"/v3/posting/fbs/get":              (*call).onePosting,
 		"/v3/posting/fbo/list":             (*call).fboPostings,
 		"/v3/product/info/list":            (*call).productInfo,
+
+		"/v6/fbs/posting/product/exemplar/create-or-get": (*call).exemplarGet,
+		pathExemplarSet:        (*call).exemplarSet,
+		"/v4/posting/fbs/ship": (*call).ship,
+
+		"/v3/posting/fbs/package-label/create":    (*call).labelCreate,
+		"/v2/posting/fbs/package-label/get":       (*call).labelGet,
+		"/v5/fbs/posting/product/exemplar/status": (*call).exemplarStatus,
+
+		"/v2/carriage/delivery/list":           (*call).carriageList,
+		"/v1/carriage/create":                  (*call).carriageCreate,
+		"/v1/carriage/set-postings":            (*call).carriageSetPostings,
+		"/v1/carriage/approve":                 (*call).carriageApprove,
+		"/v1/carriage/get":                     (*call).carriageGet,
+		"/v1/carriage/cancel":                  (*call).carriageCancel,
+		"/v2/posting/fbs/act/check-status":     (*call).actCheckStatus,
+		"/v2/posting/fbs/act/get-postings":     (*call).actPostings,
+		"/v2/posting/fbs/act/get-pdf":          (*call).actPDF,
+		"/v2/posting/fbs/act/get-barcode":      (*call).actBarcode,
+		"/v2/posting/fbs/act/get-barcode/text": (*call).actBarcodeText,
 	}
 
 	control := http.NewServeMux()
 	s.controlRoutes(control)
 
-	s.handler = withoutHost(s.kit.Wrap(control, http.HandlerFunc(s.serveAPI)))
+	s.handler = s.withFiles(withoutHost(s.kit.Wrap(control, http.HandlerFunc(s.serveAPI))))
 
 	return s
 }
@@ -96,8 +129,9 @@ func New(o Options) *Server {
 // Handler is the whole fake: Ozon's methods and the control calls under /__control/.
 func (s *Server) Handler() http.Handler { return s.handler }
 
-// Hosts lists the hosts the fake stands for: the first part of a path that sends a call to it.
-func (*Server) Hosts() []string { return []string{Host} }
+// Hosts lists the hosts the fake stands for: the first part of a path that sends a call to it. The second is the host of the label
+// files.
+func (*Server) Hosts() []string { return []string{Host, FileHost} }
 
 // keyOf is the key of a request: the Api-Key header, which is how Ozon has it. A control call carries the key in the
 // Authorization header, which is how fakekit.Control sends it.
@@ -130,9 +164,10 @@ func withoutHost(next http.Handler) http.Handler {
 
 // call is one call being answered, with the state of its key locked.
 type call struct {
-	w  http.ResponseWriter
-	r  *http.Request
-	st *state
+	w   http.ResponseWriter
+	r   *http.Request
+	st  *state
+	srv *Server
 }
 
 func (c *call) json(status int, v any) { fakekit.JSON(c.w, status, v) }
@@ -190,5 +225,5 @@ func (s *Server) guarded(st *state, w http.ResponseWriter, r *http.Request, hand
 		return
 	}
 
-	handle(&call{w: w, r: r, st: st})
+	handle(&call{w: w, r: r, st: st, srv: s})
 }

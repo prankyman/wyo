@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 
 	"github.com/prankyman/wyo/internal/fakes/fakekit"
 	"github.com/prankyman/wyo/internal/fulfilment/fcapi"
@@ -17,8 +18,13 @@ import (
 //	                                              forbidden, marketplaces, warehouses (only the fields sent change)
 //	POST   /__control/products                    unknown, known (articles, barcodes, marketplace ids) and catalog
 //	POST   /__control/orders                      an order that did not come through the API (via: cabinet, file, ...)
-//	POST   /__control/orders/{id}/{action}        reserve, wait-stock, start-picking, pick, pack, reopen, cancel, hand-over
-//	POST   /__control/handovers/{id}/{action}     request-documents, withdraw-request
+//	POST   /__control/orders/{id}/{action}        reserve, wait-stock, start-picking, pick, pack, reopen, cancel, hand-over; pack takes
+//	                                              the units {line, marking_code, parcel}: a unit names the parcel it lies in (1 when
+//	                                              left out), and the parcels numbered 1 to the largest named are all closed
+//	POST   /__control/handovers/{id}/{action}     request-documents (an optional body {"transport_boxes": N} names the boxes in the
+//	                                              handover.requested event), withdraw-request
+//	GET    /__control/orders/{id}/parcels/{number}/label   the label file of a parcel as the sender sent it: content_type, scan_code, data
+//	GET    /__control/handovers/{id}/documents            the hand-over's documents as the sender sent them: kind, title, content_type, scan_code, data
 //	POST   /__control/ping                        a ping event
 //	POST   /__control/webhook, DELETE ...         the address (and secret) the events are sent to
 //	GET    /__control/deliveries                  every attempt to send a notification
@@ -30,6 +36,8 @@ func (s *Server) controlRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /__control/orders", s.controlOutsideOrder)
 	mux.HandleFunc("POST /__control/orders/{id}/{action}", s.controlOrderStep)
 	mux.HandleFunc("POST /__control/handovers/{id}/{action}", s.controlHandoverStep)
+	mux.HandleFunc("GET /__control/orders/{id}/parcels/{number}/label", s.controlLabelFile)
+	mux.HandleFunc("GET /__control/handovers/{id}/documents", s.controlDocumentFiles)
 	mux.HandleFunc("POST /__control/ping", s.controlPing)
 	mux.HandleFunc("POST /__control/webhook", s.controlWebhook)
 	mux.HandleFunc("DELETE /__control/webhook", s.controlWebhookRemove)
@@ -216,6 +224,7 @@ func (s *Server) controlOrderStep(w http.ResponseWriter, r *http.Request) {
 		Units []struct {
 			Line        int    `json:"line"`
 			MarkingCode string `json:"marking_code"`
+			Parcel      int    `json:"parcel"`
 		} `json:"units"`
 	}
 
@@ -225,7 +234,7 @@ func (s *Server) controlOrderStep(w http.ResponseWriter, r *http.Request) {
 
 	units := make([]unit, len(in.Units))
 	for i, u := range in.Units {
-		units[i] = unit{line: u.Line, code: u.MarkingCode}
+		units[i] = unit{line: u.Line, code: u.MarkingCode, parcel: u.Parcel}
 	}
 
 	var (
@@ -282,7 +291,23 @@ func (s *Server) controlHandoverStep(w http.ResponseWriter, r *http.Request) {
 	var (
 		status = http.StatusOK
 		out    any
+		in     struct {
+			TransportBoxes *int `json:"transport_boxes"`
+		}
 	)
+
+	// Only the request for the documents takes a body: the number of transport boxes the fulfilment centre names in it.
+	if r.PathValue("action") == "request-documents" {
+		if !controlBody(w, r, &in, true) {
+			return
+		}
+
+		if in.TransportBoxes != nil && *in.TransportBoxes < 1 {
+			fakekit.ControlError(w, http.StatusBadRequest, "transport_boxes is a number of at least 1")
+
+			return
+		}
+	}
 
 	s.with(s.kit.KeyOf(r), func(st *state) {
 		h, found := st.handovers[r.PathValue("id")]
@@ -296,7 +321,7 @@ func (s *Server) controlHandoverStep(w http.ResponseWriter, r *http.Request) {
 
 		switch r.PathValue("action") {
 		case "request-documents":
-			err = st.requestDocuments(h)
+			err = st.requestDocuments(h, in.TransportBoxes)
 		case "withdraw-request":
 			err = st.withdrawRequest(h)
 		default:
@@ -416,4 +441,61 @@ func (s *Server) controlResend(w http.ResponseWriter, r *http.Request) {
 		s.deliverer(key).enqueue(job{sequence: sequence})
 		done(w)
 	}
+}
+
+// controlLabelFile shows a test the label file of a parcel as the sender sent it: the API never gives a file back.
+func (s *Server) controlLabelFile(w http.ResponseWriter, r *http.Request) {
+	var (
+		status = http.StatusOK
+		out    any
+	)
+
+	s.with(s.kit.KeyOf(r), func(st *state) {
+		o, found := st.orders[r.PathValue("id")]
+
+		var p *parcel
+
+		if found {
+			number, err := strconv.Atoi(r.PathValue("number"))
+			if err == nil {
+				p = st.parcelOf(o, number)
+			}
+		}
+
+		if p == nil || p.label == nil {
+			status, out = http.StatusNotFound, map[string]string{"error": "no such parcel, or it has no label"}
+
+			return
+		}
+
+		out = map[string]any{"content_type": p.label.contentType, "scan_code": p.label.scanCode, "data": p.label.data}
+	})
+
+	fakekit.JSON(w, status, out)
+}
+
+// controlDocumentFiles shows a test the documents of a hand-over as the sender sent them.
+func (s *Server) controlDocumentFiles(w http.ResponseWriter, r *http.Request) {
+	var (
+		status = http.StatusOK
+		out    any
+	)
+
+	s.with(s.kit.KeyOf(r), func(st *state) {
+		h, found := st.handovers[r.PathValue("id")]
+		if !found {
+			status, out = http.StatusNotFound, map[string]string{"error": "no such hand-over"}
+
+			return
+		}
+
+		list := make([]map[string]any, len(h.documents))
+		for i, d := range h.documents {
+			list[i] = map[string]any{"kind": d.kind, "title": d.title, "content_type": d.contentType, "scan_code": d.scanCode, "data": d.data}
+		}
+
+		out = map[string]any{"documents": list}
+	})
+
+	fakekit.JSON(w, status, out)
 }

@@ -182,8 +182,15 @@ func (a *api) writeOrder(w http.ResponseWriter, r *http.Request, id int64, statu
 
 	body := gen.OrderDetails{Order: orderBody(v), Events: make([]gen.OrderEvent, 0, len(events)), Parts: words(parts)}
 	if has {
+		parcels, err := q.ParcelsOf(r.Context(), id)
+		if err != nil {
+			a.fail(w, r, err)
+
+			return
+		}
+
 		body.Order.Exchange = exchangeBody(details.View)
-		body.Exchange = exchangeDetailsBody(details)
+		body.Exchange = exchangeDetailsBody(details, parcels)
 	}
 	for _, e := range events {
 		body.Events = append(body.Events, gen.OrderEvent{

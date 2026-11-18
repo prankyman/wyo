@@ -6,6 +6,7 @@ package memadapter
 import (
 	"context"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	gosync "sync"
@@ -34,6 +35,9 @@ type Adapter struct {
 	feedCalls  int
 	keyEnd     time.Time
 	shipBy     map[string]time.Time
+	// groups says the orders carry the group and the item number the confirm flow needs (NewConfirming).
+	groups bool
+	w      writing
 }
 
 // New returns an adapter that answers at most maxStates numbers a call.
@@ -41,6 +45,7 @@ func New(maxStates int) *Adapter {
 	return &Adapter{
 		maxStates: maxStates, states: map[string]marketplace.Status{}, shipBy: map[string]time.Time{},
 		warehouses: []marketplace.Warehouse{{Number: "1", Name: "Memory warehouse"}},
+		w:          newWriting(),
 	}
 }
 
@@ -87,17 +92,38 @@ func (a *Adapter) AddOrder(created time.Time) string {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	a.next++
-	number := strconv.Itoa(a.next)
-	status := marketplace.Status{State: marketplace.StateNew, Seller: "new"}
-
-	a.orders = append(a.orders, marketplace.Order{
-		Number: number, Scheme: marketplace.SchemeFBS, JoinKey: "join-" + number, CreatedAt: created, Status: status,
-		Lines: []marketplace.Line{{ProductID: "mem-product", Article: "MEM-ARTICLE", Quantity: 1}},
+	return a.add(marketplace.Order{
+		CreatedAt: created, Lines: []marketplace.Line{{ProductID: "mem-product", Article: "MEM-ARTICLE", Quantity: 1}},
 	})
-	a.states[number] = status
+}
 
-	return number
+// AddMarkedOrder makes a new order of the seller-warehouse scheme for which the marketplace requires a marking code, and
+// returns its number.
+func (a *Adapter) AddMarkedOrder(created time.Time) string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	return a.add(marketplace.Order{
+		CreatedAt: created, Lines: []marketplace.Line{{ProductID: "mem-product", Article: "MEM-ARTICLE", Quantity: 1}},
+		Required: []string{marketplace.IdentifierMarking},
+	})
+}
+
+// add numbers an order, makes it new and adds it; the caller holds the lock.
+func (a *Adapter) add(o marketplace.Order) string {
+	a.next++
+	o.Number, o.Scheme, o.Status = strconv.Itoa(a.next), marketplace.SchemeFBS, marketplace.Status{State: marketplace.StateNew, Seller: "new"}
+	o.JoinKey = "join-" + o.Number
+
+	if a.groups && o.Group == "" {
+		o.Group, o.ItemID = "mem-group", "mem-item"
+	}
+
+	a.orders = append(a.orders, o)
+	a.states[o.Number] = o.Status
+	a.shipBy[o.Number] = o.ShipBy
+
+	return o.Number
 }
 
 // AddOrderOf adds a new order of the seller-warehouse scheme as given (its products, the deadline the marketplace gives,
@@ -106,15 +132,7 @@ func (a *Adapter) AddOrderOf(o marketplace.Order) string {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	a.next++
-	o.Number, o.Scheme, o.Status = strconv.Itoa(a.next), marketplace.SchemeFBS, marketplace.Status{State: marketplace.StateNew, Seller: "new"}
-	o.JoinKey = "join-" + o.Number
-
-	a.orders = append(a.orders, o)
-	a.states[o.Number] = o.Status
-	a.shipBy[o.Number] = o.ShipBy
-
-	return o.Number
+	return a.add(o)
 }
 
 // SetShipBy makes the marketplace give an order a new deadline, in its list of new orders and in its states.
@@ -215,6 +233,14 @@ func (a *Adapter) failure() error {
 	defer a.mu.Unlock()
 
 	return a.fail
+}
+
+// SetWarehouses replaces the warehouses the marketplace lists.
+func (a *Adapter) SetWarehouses(list []marketplace.Warehouse) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	a.warehouses = slices.Clone(list)
 }
 
 // Warehouses implements marketplace.WarehouseReader.

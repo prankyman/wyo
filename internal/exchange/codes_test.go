@@ -333,7 +333,7 @@ func TestAReopeningWhoseRemovalWasRefusedIsRepeatedByRetryAndTheVoidCodesAreNotS
 
 	number, x := r.markedOrder(t)
 
-	r.refuse(http.MethodDelete, `/meta$`, http.StatusConflict, "FailedToUpdateMeta", "Failed to update the label identifiers")
+	r.refuse(t, http.MethodDelete, "/meta", http.StatusConflict, "FailedToUpdateMeta", "Failed to update the label identifiers")
 	r.step(t, x.FcID, "reopen")
 	r.events(t)
 

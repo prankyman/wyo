@@ -69,6 +69,17 @@ type Engine struct {
 	refreshMu   stdsync.Mutex
 	lastRefresh time.Time
 	runs        stdsync.WaitGroup
+
+	// lastDue is when each account was last read by a job that reads at its adapter's own period (RunNewOrdersDue,
+	// RunStatesDue), by the job's name and the account.
+	dueMu   stdsync.Mutex
+	lastDue map[dueKey]time.Time
+}
+
+// dueKey names one account's reading by one job.
+type dueKey struct {
+	job     string
+	account int64
 }
 
 // NewEngine returns the engine.
@@ -77,7 +88,7 @@ func NewEngine(o EngineOptions) *Engine {
 		o.Location = time.UTC
 	}
 
-	return &Engine{opts: o, locks: map[int64]*stdsync.Mutex{}}
+	return &Engine{opts: o, locks: map[int64]*stdsync.Mutex{}, lastDue: map[dueKey]time.Time{}}
 }
 
 // lockOf is the lock of an account's readings of orders: one at a time for each account, so an account that waits for
@@ -261,19 +272,68 @@ func (e *Engine) RunOrders(ctx context.Context) error {
 		{capability: marketplace.OrdersNew, run: e.takeNewOrders},
 		{capability: marketplace.OrdersStates, run: e.takeStates},
 		{capability: marketplace.OrdersFeed, run: e.takeFeed},
-	})
+	}, nil)
 }
 
 // RunNewOrders reads only the new orders of every running account: the exchange with a fulfilment centre asks it every
 // minute while «Внешний API» is filled.
 func (e *Engine) RunNewOrders(ctx context.Context) error {
-	return e.forEachLocked(ctx, []part{{capability: marketplace.OrdersNew, run: e.takeNewOrders}})
+	return e.forEachLocked(ctx, []part{{capability: marketplace.OrdersNew, run: e.takeNewOrders}}, nil)
 }
 
 // RunStates reads only the states of the open orders of every running account: the exchange asks it every 5 minutes
 // while «Внешний API» is filled, so that a cancellation is passed on.
 func (e *Engine) RunStates(ctx context.Context) error {
-	return e.forEachLocked(ctx, []part{{capability: marketplace.OrdersStates, run: e.takeStates}})
+	return e.forEachLocked(ctx, []part{{capability: marketplace.OrdersStates, run: e.takeStates}}, nil)
+}
+
+// The periods a marketplace's new orders and states are read at while «Внешний API» is filled, when its adapter names none
+// (the high-level plan, «How often it asks»).
+const (
+	defaultOrdersPeriod = time.Minute
+	defaultStatesPeriod = 5 * time.Minute
+)
+
+// RunNewOrdersDue is RunNewOrders for the accounts whose adapter's own period (Description.OrdersPeriod, a minute when it names
+// none) has passed since their last reading by this call. The job wakes every minute; an account that is asked less often is
+// left for a later wake-up.
+func (e *Engine) RunNewOrdersDue(ctx context.Context) error {
+	due := e.due("new", defaultOrdersPeriod, func(d marketplace.Description) time.Duration { return d.OrdersPeriod })
+
+	return e.forEachLocked(ctx, []part{{capability: marketplace.OrdersNew, run: e.takeNewOrders}}, due)
+}
+
+// RunStatesDue is RunStates for the accounts whose adapter's own period (Description.StatesPeriod, 5 minutes when it names
+// none) has passed since their last reading by this call.
+func (e *Engine) RunStatesDue(ctx context.Context) error {
+	due := e.due("states", defaultStatesPeriod, func(d marketplace.Description) time.Duration { return d.StatesPeriod })
+
+	return e.forEachLocked(ctx, []part{{capability: marketplace.OrdersStates, run: e.takeStates}}, due)
+}
+
+// due is the filter of a job that reads each account at its adapter's period. The moment of a wake-up is shifted by up to
+// Spread, so an account is read when its period less Spread has passed.
+func (e *Engine) due(job string, fallback time.Duration, periodOf func(marketplace.Description) time.Duration) func(account) bool {
+	return func(a account) bool {
+		period := periodOf(a.adapter.Describe())
+		if period <= 0 {
+			period = fallback
+		}
+
+		now := e.opts.Clock.Now()
+		key := dueKey{job: job, account: a.row.ID}
+
+		e.dueMu.Lock()
+		defer e.dueMu.Unlock()
+
+		if last, read := e.lastDue[key]; read && now.Sub(last) < period-Spread {
+			return false
+		}
+
+		e.lastDue[key] = now
+
+		return true
+	}
 }
 
 // RunWarehouses reads the warehouses of every running account.
@@ -295,8 +355,9 @@ func (e *Engine) RunWarehouses(ctx context.Context) error {
 }
 
 // forEachLocked reads the parts of every running account, each account at the same time as the others and under its own
-// lock (lockOf): a reading of an account waits only for another reading of the same account.
-func (e *Engine) forEachLocked(ctx context.Context, parts []part) error {
+// lock (lockOf): a reading of an account waits only for another reading of the same account. When due is given, an account
+// it refuses is left out.
+func (e *Engine) forEachLocked(ctx context.Context, parts []part, due func(account) bool) error {
 	accounts, err := e.runningAccounts(ctx)
 	if err != nil {
 		return err
@@ -305,6 +366,10 @@ func (e *Engine) forEachLocked(ctx context.Context, parts []part) error {
 	var wg stdsync.WaitGroup
 
 	for _, a := range accounts {
+		if due != nil && !due(a) {
+			continue
+		}
+
 		wg.Go(func() {
 			lock := e.lockOf(a.row.ID)
 

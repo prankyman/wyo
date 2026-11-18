@@ -12,6 +12,56 @@ This file exists because a request the maintainer makes while testing one plan m
 
 ## Open
 
+### 37. What the smoke test of Plan 6 found and Plan 6 left (2026-11-18)
+
+Found by the smoke test of Plan 6 on the built wyo server with the fakes; none of them is Plan 6's own work, so they wait for a decision:
+
+- **Every page has an empty `document.title`**, and SvelteKit's page announcer reads «untitled page». To decide: a title for every page (a key
+  of `messages/ru.json` each).
+- **The exchange history in an order's details lays its rows out unevenly** at 390 px and at a computer's width: the date and the text sit
+  on one line in some rows and on two in others, and there is no gap between the heading and the first row.
+- **The overview's card of step 2 says «Этой возможности в программе пока нет»** although keys and accounts exist.
+- **The phone's menu strip cuts long labels** — item 21.
+- **The order of an Ozon order's exchange states with the fake fulfilment centre** is «упакован» before «этикетка передана»
+  (the plan, section D point 7, lists the label first): the fake closes the parcels at the same moment it finishes the packing, so its
+  event `order.packed` comes before the labels; a real fulfilment centre is expected to close the parcels after the labels are attached.
+  To be checked in the first real run (item 34).
+
+### 36. Splitting a posting before packing at Ozon (2026-11-18)
+
+Left out of Plan 6 (`.agents/plans/wyo-ozon-fbs-exchange-with-a-fulfilment-centre-codes-packing-labels-shipment.md`, «Not in this
+plan»): `/v1/posting/fbs/split` and `/v4/posting/fbs/ship/package`. The packing report splits the posting by the fulfilment centre's
+parcels; the other two methods are taken up only if the check on a real account (item 34) shows the report cannot split.
+
+### 35. Where Plan 6's code does less than its plan says (2026-11-18)
+
+Found while implementing Plan 6; each is built in the cautious way and waits for a decision or a check on a real account:
+
+- **A shipment Ozon already had, found and reused by the wyo server, is cancelled at Ozon when the fulfilment centre withdraws its
+  hand-over request before the approval** (`internal/handover/control.go`, `empty`). The plan says only a shipment the wyo server made
+  is cancelled. The fix is for the adapter contract's `MakeBatch` to say «found» or «made» and for the hand-over to keep it
+  (`marketplace_supplies`).
+- **The country of origin is not asked for before packing** (the research, §6, §7): a need that never empties would block an order for
+  good. Ozon's own refusal of the packing report names it, and it is shown as a problem in Ozon's words.
+- **The hand-over's documents are asked again every 20 seconds during the first 10 minutes after the request, then every 5 minutes**
+  (the plan: every 10 seconds for 5 minutes); labels and the packing are read at the beat of the exchange's 20-second job (the plan:
+  labels every 10 seconds). Nothing in Ozon's documents fixes either number.
+- **When the answer of the packing report is lost after the report was made, the parts' numbers are unknown** and the order gets the
+  problem `pack_parts_unknown`: the owner reads them in the Ozon cabinet.
+- **The deadline of an Ozon posting is passed on only while the order is open**; the fulfilment centre refusing a new deadline is logged
+  and not shown.
+
+### 34. The checks of Plan 6 on the first real Ozon account and the first real fulfilment centre (2026-11-18)
+
+Plan 6 is built against the fake Ozon and the fake fulfilment centre only (Ozon has no sandbox). The plan's «After the release»: a real
+posting packed in one parcel and in two (the numbers of the parts and how the original posting shows); the words of
+`exemplar/status`' `error_codes`; whether codes can be changed after packing; a label printed from the file the wyo server attached (its
+size, the host of its link, whether the link works without the key, which barcode the fulfilment centre's scanner reads — then the scan
+text can be sent with the label); when Ozon lets a shipment be made, and a second shipment on the same day; the body of
+`act/get-pdf` and `act/get-barcode`; which role opens the shipment methods (the key check asks for all 17 writing methods and calls
+`Posting FBS` the level to add); what automatic assembly does to a posting the fulfilment centre still packs
+(`.agents/research/ozon-official-seller-api-check-2026-11-18.md`, §10, points 5 to 9). What they find becomes the next plan's premises.
+
 ### 33. The fulfilment-centre client ignores the neutral API's `Retry-After` (2026-11-18)
 
 Found by Plan 5 (`.agents/plans/wyo-ozon-key-reading-adapter-orders-with-several-products-fake-ozon.md`) when every adapter came to
@@ -58,11 +108,19 @@ Left out of Plan 4: printing the marketplace's stickers from wyo itself for a se
 
 ### 25. What the owner still does in the Wildberries cabinet (2026-11-18)
 
+Widened by Plan 6 (2026-11-18) to Ozon: cancelling a posting, removing products from it, the identifiers of item 24, a multi-box
+product's boxes, automatic assembly, entrusted acceptance with cargo places, the warehouse's drop-off settings, passes. The README
+(section 11) names each.
+
 Left out of Plan 4: cancelling an order at Wildberries from wyo (the wyo server never cancels: a cancellation by the seller is fined —
 an architecture test forbids the call), moving an order back from a closed supply, orders Wildberries wants shipped again, passes to
 Wildberries' warehouses, days off. The README (section 11) names each; to be taken up only on the maintainer's request.
 
 ### 24. Identifiers other than marking codes (2026-11-18)
+
+Widened by Plan 6 (2026-11-18): Ozon may also require a customs declaration number, a batch registration number, a jewellery number, an IMEI,
+a weight, and the number of boxes of a product sent in several. The order gets a problem that names the identifier; the owner enters it
+in the Ozon cabinet.
 
 Left out of Plan 4: a jewellery item's number (УИН), a phone's IMEI, the goods' GTIN, an expiry date and a customs declaration, which
 Wildberries may require for an order. The order gets a problem that names the identifier and says it must be entered in the
@@ -78,19 +136,6 @@ verdict stays unfinished; which supplies Wildberries refuses without a transport
 supply on a real account (the sandbox has neither, so a test token is not capable of the hand-over's parts); the time between a
 hand-over's request and its documents; notifications received at a real address behind a real certificate. Register item 5's points 1
 to 6 and 8 are the same checks. What they find becomes the next plan's premises.
-
-### 22. A fulfilment centre that names transport boxes (2026-11-18)
-
-Found while implementing Plan 4: the fake fulfilment centre never names a number of transport boxes in a hand-over (`transport_boxes`
-is empty), so the step «Добавление коробов» is proven through the hand-over's runner with a recorded hand-over, not through the fake's
-own `handover.requested`. Likewise the fake Wildberries cannot refuse putting an order into a supply, or closing a supply for missing
-shipping, on command: the exchange's tests wrap it with scripted refusals in Wildberries' own error shape
-(`internal/exchange/rig_test.go`, `refuse`). To decide: a control that names boxes and a fault kind «refuse with this code», in the
-plan that next touches the fakes.
-
-Half done by Plan 5 (2026-11-18): the fake kit has the fault kind `refuse` (a given status and body, a given number of times,
-`internal/fakes/fakekit/faults.go`), used by the fake Ozon's and the Ozon adapter's tests; the boxes named by the fake fulfilment centre
-and the end of the exchange tests' own scripted refusals are Plan 6's.
 
 ### 21. The phone's menu strip cuts long labels (2026-11-18)
 
@@ -257,6 +302,23 @@ offer. Needs the stock part of the neutral fulfilment-centre API, which Plan 1 d
 
 ## Closed
 
+### 22. A fulfilment centre that names transport boxes (2026-11-18)
+
+Found while implementing Plan 4: the fake fulfilment centre never names a number of transport boxes in a hand-over (`transport_boxes`
+is empty), so the step «Добавление коробов» is proven through the hand-over's runner with a recorded hand-over, not through the fake's
+own `handover.requested`. Likewise the fake Wildberries cannot refuse putting an order into a supply, or closing a supply for missing
+shipping, on command: the exchange's tests wrap it with scripted refusals in Wildberries' own error shape
+(`internal/exchange/rig_test.go`, `refuse`). To decide: a control that names boxes and a fault kind «refuse with this code», in the
+plan that next touches the fakes.
+
+Half done by Plan 5 (2026-11-18): the fake kit has the fault kind `refuse` (a given status and body, a given number of times,
+`internal/fakes/fakekit/faults.go`), used by the fake Ozon's and the Ozon adapter's tests; the boxes named by the fake fulfilment centre
+and the end of the exchange tests' own scripted refusals are Plan 6's.
+
+Closed by Plan 6 (`.agents/plans/wyo-ozon-fbs-exchange-with-a-fulfilment-centre-codes-packing-labels-shipment.md`, section F), 2026-11-18, at its
+merge: the fake fulfilment centre names transport boxes in `handover.requested` on command, and the exchange's tests use the kit's fault
+«refuse with this answer» in place of their scripted refusals.
+
 ### 28. The new orders are rewritten every minute while «Внешний API» is filled (2026-11-18)
 
 Found by Plan 4's budget test: with the exchange on, the engine reads the new orders every minute and writes every order that is still
@@ -267,4 +329,3 @@ six busiest minutes. To decide: write an order only when something of it changed
 Closed by Plan 5 (`.agents/plans/wyo-ozon-key-reading-adapter-orders-with-several-products-fake-ozon.md`, section C), 2026-11-18: a
 reading compares what it read with the stored order (its state, its deadline, its lines) and writes nothing when they are equal
 (`TestAReadingThatChangedNothingWritesNothingButItsRecordOfTheReading`, `internal/sync`).
-

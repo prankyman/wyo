@@ -4,6 +4,7 @@ import {
     accountOf,
     MARKETPLACE,
     MARKETPLACE_NAME,
+    PACKING_MARKETPLACE,
     SECOND_MARKETPLACE,
     SECOND_MARKETPLACE_CODE,
     SECOND_MARKETPLACE_NAME
@@ -170,6 +171,21 @@ describe('AccountCard', () => {
         render(AccountCard, { props: secondProps() });
 
         expect(screen.queryByTestId('account-facts-access')).toBeNull();
+    });
+
+    it('says that the key of a marketplace that takes part in the exchange only reads, and names the level to add in the marketplace’s own words', () => {
+        render(AccountCard, {
+            props: {
+                ...secondProps({ readOnly: true, missingCategories: ['posting_fbs_write'] }),
+                marketplace: PACKING_MARKETPLACE
+            }
+        });
+
+        expect(screen.getByTestId('account-facts-access')).toHaveTextContent('только чтение');
+        expect(screen.getByTestId('account-note-missing-posting_fbs_write')).toHaveTextContent(
+            'нет уровня доступа «Posting FBS»'
+        );
+        expect(screen.getByTestId('account-note-missing-posting_fbs_write')).toHaveTextContent('Заменить ключ');
     });
 
     it('draws no fact of a key field for an account whose key has none that is not secret', () => {

@@ -45,7 +45,7 @@ func TestTheWholeWalkFromANewOrderToTheHandOversDocuments(t *testing.T) {
 	}
 
 	x = r.exchanged(t, number)
-	if x.State != "label_sent" || x.SupplyID == 0 || x.LabelPrint == "" {
+	if x.State != "label_sent" || x.SupplyID == 0 || r.labelPrint(t, x) == "" {
 		t.Fatalf("after the reservation: %+v", x)
 	}
 

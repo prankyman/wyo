@@ -12,7 +12,10 @@ import (
 )
 
 // busiestMinute is the most calls the log holds in any 60 seconds.
-func busiestMinute(calls []fakekit.Call) int {
+func busiestMinute(calls []fakekit.Call) int { return busiestWindow(calls, time.Minute) }
+
+// busiestWindow is the most calls the log holds in any stretch of the given length.
+func busiestWindow(calls []fakekit.Call, window time.Duration) int {
 	times := make([]time.Time, 0, len(calls))
 	for _, c := range calls {
 		times = append(times, c.At)
@@ -23,7 +26,7 @@ func busiestMinute(calls []fakekit.Call) int {
 	most, from := 0, 0
 
 	for to := range times {
-		for times[to].Sub(times[from]) >= time.Minute {
+		for times[to].Sub(times[from]) >= window {
 			from++
 		}
 

@@ -89,6 +89,7 @@ var calls = []struct {
 	{http.MethodGet, "/warehouses", false},
 	{http.MethodPost, "/orders", true},
 	{http.MethodGet, "/orders/{id}", false},
+	{http.MethodPatch, "/orders/{id}", true},
 	{http.MethodPost, "/orders/{id}/cancel", true},
 	{http.MethodPut, "/orders/{id}/parcels/{number}/label", true},
 	{http.MethodPut, "/orders/{id}/problem", true},

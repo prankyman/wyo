@@ -24,6 +24,8 @@ regexes = [
     # internal/sync/caller_test.go: made-up keys a test proves travel only in the Authorization header.
     '''^a-distinctive-key-of-the-seller-0123456789$''',
     '''^the-replaced-key-of-the-seller-987$''',
+    # internal/sync/caller_nokey_test.go: a made-up token a label file's link carries, which a test proves never reaches the journal.
+    '''^tok-0123456789abcdef$''',
     # internal/httpapi/marketplaces_test.go: made-up keys of the in-memory marketplace a test proves are answered only by
     # their last four characters.
     '''^mem-CANARY0123456789$''',

@@ -182,7 +182,8 @@ func (q *Queries) InsertAccount(ctx context.Context, arg InsertAccountParams) (M
 }
 
 const insertWarehouse = `-- name: InsertWarehouse :exec
-INSERT INTO marketplace_warehouses (account_id, number, name, seller_delivers, updated_at) VALUES (?, ?, ?, ?, ?)
+INSERT INTO marketplace_warehouses (account_id, number, name, seller_delivers, label_type, auto_assembly, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?)
 `
 
 type InsertWarehouseParams struct {
@@ -190,6 +191,8 @@ type InsertWarehouseParams struct {
 	Number         string
 	Name           string
 	SellerDelivers int64
+	LabelType      string
+	AutoAssembly   int64
 	UpdatedAt      int64
 }
 
@@ -199,6 +202,8 @@ func (q *Queries) InsertWarehouse(ctx context.Context, arg InsertWarehouseParams
 		arg.Number,
 		arg.Name,
 		arg.SellerDelivers,
+		arg.LabelType,
+		arg.AutoAssembly,
 		arg.UpdatedAt,
 	)
 	return err
@@ -259,7 +264,7 @@ func (q *Queries) ListAccounts(ctx context.Context) ([]MarketplaceAccount, error
 }
 
 const listWarehouses = `-- name: ListWarehouses :many
-SELECT account_id, number, name, updated_at, seller_delivers FROM marketplace_warehouses WHERE account_id = ? ORDER BY name, number
+SELECT account_id, number, name, updated_at, seller_delivers, label_type, auto_assembly FROM marketplace_warehouses WHERE account_id = ? ORDER BY name, number
 `
 
 func (q *Queries) ListWarehouses(ctx context.Context, accountID int64) ([]MarketplaceWarehouse, error) {
@@ -277,6 +282,8 @@ func (q *Queries) ListWarehouses(ctx context.Context, accountID int64) ([]Market
 			&i.Name,
 			&i.UpdatedAt,
 			&i.SellerDelivers,
+			&i.LabelType,
+			&i.AutoAssembly,
 		); err != nil {
 			return nil, err
 		}

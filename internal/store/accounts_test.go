@@ -279,7 +279,9 @@ func TestAnAccountKeepsTheShownFieldsOfItsKeyAndTheWarehousesTheSellerDeliversFr
 		}
 
 		return q.ReplaceWarehouses(ctx, added.ID, []store.Warehouse{
-			{Number: "1", Name: "Склад продавца"}, {Number: "2", Name: "Доставка продавцом", SellerDelivers: true},
+			{Number: "1", Name: "Склад продавца"},
+			{Number: "2", Name: "Доставка продавцом", SellerDelivers: true},
+			{Number: "3", Name: "Склад с автосборкой", LabelType: "BIG", AutoAssembly: true},
 		}, noon())
 	})
 	if err != nil {
@@ -296,7 +298,18 @@ func TestAnAccountKeepsTheShownFieldsOfItsKeyAndTheWarehousesTheSellerDeliversFr
 		delivers[w.Number] = w.SellerDelivers
 	}
 
-	if err != nil || len(warehouses) != 2 || delivers["1"] || !delivers["2"] {
+	if err != nil || len(warehouses) != 3 || delivers["1"] || !delivers["2"] {
 		t.Fatalf("Warehouses = %+v, %v", warehouses, err)
+	}
+
+	for _, w := range warehouses {
+		wantLabel, wantAuto := "", false
+		if w.Number == "3" {
+			wantLabel, wantAuto = "BIG", true
+		}
+
+		if w.LabelType != wantLabel || w.AutoAssembly != wantAuto {
+			t.Fatalf("warehouse %s: label type %q, automatic assembly %v; want %q and %v", w.Number, w.LabelType, w.AutoAssembly, wantLabel, wantAuto)
+		}
 	}
 }

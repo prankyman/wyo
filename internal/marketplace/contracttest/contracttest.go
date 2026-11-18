@@ -43,10 +43,34 @@ type Fixture struct {
 	SetVerdict func(t *testing.T, key map[string]string, number string, kind marketplace.VerdictKind)
 	// HandoverSettings are the account's hand-over settings that make the fake offer a shipping point.
 	HandoverSettings map[string]string
+
+	// The fields below are optional; a case that needs one the fixture lacks is left out, and says so in its test's name.
+
+	// LabelType is the kind of label asked of a marketplace that makes labels later (marketplace.Warehouse.LabelType).
+	LabelType string
+	// NewSplittableOrder makes a new order of at least two units, which the packing report can split into parcels.
+	NewSplittableOrder func(t *testing.T, key map[string]string) string
+	// ExtraVerdicts are the verdicts beyond the four every adapter can be told that the fake can be told (VerdictAgain).
+	ExtraVerdicts []marketplace.VerdictKind
+	// NoVerdicts are the verdicts of the four the marketplace has no word for, so that no fake can be told to give them (a
+	// marketplace that never stops waiting for its check has no «unfinished»).
+	NoVerdicts []marketplace.VerdictKind
+	// ClosingKeepsOrders says closing a batch does not move its orders to delivery: the marketplace's own carrier does that
+	// later, when it takes them (a shipment that is approved first and taken after).
+	ClosingKeepsOrders bool
+	// NeedsOtherIdentifier makes an order for which the marketplace needs an identifier other than a marking code, and
+	// returns its number and the identifier it needs.
+	NeedsOtherIdentifier func(t *testing.T, key map[string]string) (number, identifier string)
+	// BatchNotReady makes the marketplace unable to make a batch yet (it answers with a *marketplace.BatchWait).
+	BatchNotReady func(t *testing.T, key map[string]string)
 }
 
 // maxFeedReadings bounds the readings of a feed in one case: a feed that never ends is a defect.
 const maxFeedReadings = 10
+
+// maxReadings bounds the readings of a state that the marketplace takes a few readings to settle (a packing, a labels
+// task): a state that never settles is a defect.
+const maxReadings = 12
 
 var (
 	codePattern = regexp.MustCompile(`^[a-z]+$`)
@@ -114,8 +138,11 @@ func checkDescription(t *testing.T, a marketplace.Adapter, desc marketplace.Desc
 		names[setting.Name] = true
 	}
 
-	expect(t, !desc.Supports(marketplace.HandoverGroup) || desc.Supports(marketplace.OrdersConfirm),
-		"the adapter claims handover.group and not orders.confirm: a hand-over's batch is made and filled by orders.confirm")
+	checkFlow(t, a, desc)
+	checkSteps(t, a, desc)
+
+	expect(t, desc.OrdersPeriod >= 0 && desc.StatesPeriod >= 0, "the periods %v and %v of the exchange are not negative", desc.OrdersPeriod, desc.StatesPeriod)
+	expect(t, !desc.CodesReplace || desc.Supports(marketplace.CodesReport), "the adapter says its codes replace and claims no codes.report")
 
 	writes := false
 
@@ -124,7 +151,7 @@ func checkDescription(t *testing.T, a marketplace.Adapter, desc marketplace.Desc
 		expect(t, a.Capable(c, false), "the adapter claims %s but says a real key cannot do it", c)
 
 		writes = writes || slices.Contains([]marketplace.Capability{
-			marketplace.OrdersConfirm, marketplace.CodesReport, marketplace.HandoverGroup, marketplace.HandoverClose,
+			marketplace.OrdersConfirm, marketplace.OrdersPack, marketplace.CodesReport, marketplace.HandoverGroup, marketplace.HandoverClose,
 		}, c)
 	}
 
@@ -136,7 +163,89 @@ func checkDescription(t *testing.T, a marketplace.Adapter, desc marketplace.Desc
 
 		expect(t, strings.HasPrefix(route.Template, "/"), "the route %q does not begin with /", route.Template)
 		expect(t, !route.Write || writes, "%s %s writes, and the adapter claims no part that writes", route.Method, route.Template)
+		checkRouteHost(t, a, route)
 	}
+}
+
+// checkRouteHost checks the host a route is pinned to and that no key is promised away from it.
+func checkRouteHost(t *testing.T, a marketplace.Adapter, route marketplace.Route) {
+	t.Helper()
+
+	if route.Host != "" {
+		_, wildcard := marketplace.WildcardDomain(route.Host)
+		expect(t, !strings.Contains(route.Host, "*") || wildcard, "%s %s is pinned to %q, which is neither a host nor *.domain of two labels", route.Method, route.Template, route.Host)
+		expect(t, slices.ContainsFunc(a.Hosts(), func(h string) bool { return strings.EqualFold(h, route.Host) }),
+			"%s %s is pinned to %q, which the adapter's hosts do not list, so the outbound gate would refuse it", route.Method, route.Template, route.Host)
+	}
+
+	expect(t, !route.NoKey || (route.Host != "" && !route.Write), "%s %s goes without a key: it must name its host and must not write", route.Method, route.Template)
+}
+
+// claimsConfirm and claimsPack say which flow of the exchange the adapter takes: confirming an order into a batch, or
+// reporting its packing.
+func claimsConfirm(a marketplace.Adapter) bool {
+	return a.Describe().Supports(marketplace.OrdersConfirm)
+}
+
+func claimsPack(a marketplace.Adapter) bool { return a.Describe().Supports(marketplace.OrdersPack) }
+
+// checkFlow checks that the adapter takes one flow, and that every part the flow needs is claimed together with its
+// interface.
+func checkFlow(t *testing.T, a marketplace.Adapter, desc marketplace.Description) {
+	t.Helper()
+
+	expect(t, !claimsConfirm(a) || !claimsPack(a), "the adapter claims orders.confirm and orders.pack: the exchange takes one flow, chosen by the part")
+
+	_, labelsNow := a.(marketplace.LabelFetcher)
+	_, labelsLater := a.(marketplace.LabelMaker)
+	expect(t, !desc.Supports(marketplace.LabelsFetch) || labelsNow != labelsLater, "the adapter claims labels.fetch and implements %d of the two forms of it, want exactly one", btoi(labelsNow)+btoi(labelsLater))
+
+	_, plain := a.(marketplace.CodeReporter)
+	_, withProduct := a.(marketplace.ProductCodeReporter)
+	expect(t, !desc.Supports(marketplace.CodesReport) || plain != withProduct, "the adapter claims codes.report and implements %d of the two forms of it, want exactly one", btoi(plain)+btoi(withProduct))
+
+	expect(t, !desc.Supports(marketplace.HandoverGroup) || claimsConfirm(a) || claimsPack(a),
+		"the adapter claims handover.group and neither orders.confirm nor orders.pack: it has no way to make an order ready for a batch")
+}
+
+func btoi(b bool) int {
+	if b {
+		return 1
+	}
+
+	return 0
+}
+
+// checkSteps checks the steps the adapter declares: they are the six steps' names in their order, each has the part that
+// does it, and an adapter that claims handover.group needs the two steps that group.
+func checkSteps(t *testing.T, a marketplace.Adapter, desc marketplace.Description) {
+	t.Helper()
+
+	last := -1
+
+	for _, step := range desc.HandoverSteps {
+		at := slices.Index(marketplace.HandoverStepsAll, step)
+		expect(t, at > last, "the hand-over step %q is not one of the six, is there twice or is out of their order", step)
+
+		last = at
+	}
+
+	if desc.NeedsStep(marketplace.StepBoxes) && desc.Supports(marketplace.HandoverGroup) {
+		_, ok := a.(marketplace.BoxAdder)
+		expect(t, ok, "the adapter needs the step boxes and does not implement BoxAdder")
+	}
+
+	if desc.NeedsStep(marketplace.StepShipping) && desc.Supports(marketplace.HandoverGroup) {
+		_, ok := a.(marketplace.ShippingSetter)
+		expect(t, ok, "the adapter needs the step shipping and does not implement ShippingSetter")
+	}
+
+	expect(t, !desc.NeedsStep(marketplace.StepClose) || !desc.Supports(marketplace.HandoverGroup) || desc.Supports(marketplace.HandoverClose),
+		"the adapter needs the step close and does not claim handover.close")
+	expect(t, !desc.NeedsStep(marketplace.StepDocuments) || !desc.Supports(marketplace.HandoverGroup) || desc.Supports(marketplace.HandoverDocuments),
+		"the adapter needs the step documents and does not claim handover.documents")
+	expect(t, !desc.Supports(marketplace.HandoverGroup) || (desc.NeedsStep(marketplace.StepBatch) && desc.NeedsStep(marketplace.StepMove)),
+		"the adapter claims handover.group and does not need the steps batch and move that it does")
 }
 
 // implements says the adapter implements the interface of a part it claims.

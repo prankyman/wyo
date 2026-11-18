@@ -82,6 +82,11 @@ func (a *Adapter) Describe() marketplace.Description {
 			marketplace.HandoverGroup, marketplace.HandoverClose, marketplace.HandoverDocuments,
 		},
 		HandoverSettings: handoverSettings(),
+		// A supply takes the orders put into it, is given its boxes and its shipping, is closed and then has its documents:
+		// all six steps. A new order is read every minute and the states of the open ones every five (as before Plan 6).
+		HandoverSteps: slices.Clone(marketplace.HandoverStepsAll),
+		OrdersPeriod:  time.Minute,
+		StatesPeriod:  5 * time.Minute,
 	}
 }
 

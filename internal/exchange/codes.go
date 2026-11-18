@@ -41,7 +41,7 @@ func unitsOf(fc fulfilment.Order) []store.OrderCode {
 				continue
 			}
 
-			out = append(out, store.OrderCode{Unit: int64(len(out) + 1), Identifier: marketplace.IdentifierMarking, Code: u.MarkingCode})
+			out = append(out, store.OrderCode{Unit: int64(len(out) + 1), Line: int64(u.Line), Identifier: marketplace.IdentifierMarking, Code: u.MarkingCode})
 		}
 	}
 
@@ -58,6 +58,12 @@ func (s *Service) packed(ctx context.Context, sess *session, o *order, fc fulfil
 
 	units := unitsOf(fc)
 	s.write(ctx, func(q *store.Queries) error { return q.ReplaceOrderCodes(ctx, o.x.OrderID, units) })
+
+	if adapter, _, err := s.conn(ctx, o, jobEvents); err != nil {
+		return errors.Join(errStopped, err)
+	} else if flowOf(adapter) == flowPack {
+		return keepStopped(s.packedForPacking(ctx, sess, o, fc, units))
+	}
 
 	if o.x.State != statePacked {
 		s.note(o, statePacked, "packed")
@@ -92,12 +98,16 @@ func (s *Service) packed(ctx context.Context, sess *session, o *order, fc fulfil
 	return nil
 }
 
-// sendCodes reports an order's codes to its marketplace exactly as scanned, after removing the ones sent earlier: whether a
-// second sending replaces the first is not sourced.
+// sendCodes reports an order's codes to its marketplace exactly as scanned. A marketplace that does not say a second sending
+// replaces the first has the ones sent earlier removed first: whether it replaces them is not sourced.
 func (s *Service) sendCodes(ctx context.Context, sess *session, o *order, units []store.OrderCode) error {
 	adapter, conn, err := s.conn(ctx, o, jobEvents)
 	if err != nil {
 		return errors.Join(errStopped, err)
+	}
+
+	if products, ok := part[marketplace.ProductCodeReporter](adapter, marketplace.CodesReport, conn.Test); ok {
+		return s.sendProductCodes(ctx, sess, o, products, conn, units)
 	}
 
 	reporter, ok := part[marketplace.CodeReporter](adapter, marketplace.CodesReport, conn.Test)
@@ -105,7 +115,7 @@ func (s *Service) sendCodes(ctx context.Context, sess *session, o *order, units 
 		return errSkipped
 	}
 
-	if !o.x.CodesSentAt.IsZero() {
+	if !o.x.CodesSentAt.IsZero() && !adapter.Describe().CodesReplace {
 		if err := reporter.RemoveCodes(ctx, conn, o.row.Number, marketplace.IdentifierMarking); err != nil {
 			return s.refusedOrStopped(ctx, sess, o, stepCodes, err)
 		}
@@ -135,6 +145,12 @@ func (s *Service) sendCodes(ctx context.Context, sess *session, o *order, units 
 
 // reopened voids the codes sent: they are removed at the marketplace, and the next order.packing_finished brings new ones.
 func (s *Service) reopened(ctx context.Context, sess *session, o *order) error {
+	if adapter, _, err := s.conn(ctx, o, jobEvents); err != nil {
+		return errors.Join(errStopped, err)
+	} else if flowOf(adapter) == flowPack {
+		return s.reopenedForPacking(ctx, sess, o)
+	}
+
 	if o.x.CodesSentAt.IsZero() {
 		o.x.CodesState = ""
 		s.note(o, stateLabelSent, "reopened")
@@ -166,8 +182,8 @@ func (s *Service) reopened(ctx context.Context, sess *session, o *order) error {
 
 // checkVerdicts asks the marketplaces for the verdicts due: every 20 seconds for the first 10 minutes after the codes were
 // sent, then every 5 minutes, until the verdict is final.
-func (s *Service) checkVerdicts(ctx context.Context, sess *session) error {
-	due, err := s.opts.Store.Read().DueVerdictChecks(ctx, s.opts.Clock.Now(), batch)
+func (s *Service) checkVerdicts(ctx context.Context, sess *session, at time.Time) error {
+	due, err := s.opts.Store.Read().DueVerdictChecks(ctx, at, batch)
 	if err != nil {
 		return err
 	}
@@ -176,6 +192,14 @@ func (s *Service) checkVerdicts(ctx context.Context, sess *session) error {
 		o, err := s.load(ctx, x)
 		if err != nil {
 			return err
+		}
+
+		// An order cancelled meanwhile has no verdict to wait for.
+		if o.x.State == stateCancelled {
+			o.x.NextCheckAt = time.Time{}
+			s.save(ctx, o)
+
+			continue
 		}
 
 		s.checkVerdict(ctx, sess, o)
@@ -198,6 +222,12 @@ func (s *Service) checkVerdict(ctx context.Context, sess *session, o *order) {
 
 	list, err := reader.Verdicts(ctx, conn, []string{o.row.Number})
 	if err != nil {
+		// A marketplace refuses to check the codes of a posting that no longer awaits packing: it may have been packed (or cancelled)
+		// since the codes were sent, and then there is no verdict to wait for.
+		if flowOf(adapter) == flowPack && s.settledAtMarketplace(ctx, sess, o) {
+			return
+		}
+
 		s.later(ctx, o)
 
 		return
@@ -224,11 +254,17 @@ func (s *Service) checkVerdict(ctx context.Context, sess *session, o *order) {
 	case marking.Kind == marketplace.VerdictUnfinished:
 		o.x.CodesState = codesUnfinished
 		s.later(ctx, o)
+	case marking.Kind == marketplace.VerdictAgain:
+		s.checkedAgain(ctx, sess, o, marking.Words)
 	case marking.Kind.Passes():
 		o.x.CodesState, o.x.NextCheckAt = codesAccepted, time.Time{}
 		s.clearProblem(ctx, sess, o)
 		s.note(o, stateCodesAccepted, "codes_accepted")
 		s.save(ctx, o)
+
+		if adapter, _, err := s.conn(ctx, o, jobVerdicts); err == nil && flowOf(adapter) == flowPack {
+			s.packStep(ctx, sess, o)
+		}
 	default:
 		o.x.CodesState, o.x.NextCheckAt = codesRefused, time.Time{}
 		o.added = append(o.added, store.ExchangeHistory{At: s.opts.Clock.Now(), State: o.x.State, Code: "codes_refused"})
@@ -247,4 +283,126 @@ func (s *Service) later(ctx context.Context, o *order) {
 
 	o.x.NextCheckAt = now.Add(wait)
 	s.save(ctx, o)
+}
+
+// packedForPacking is step 2 of the flow of an adapter that reports the packing: the fulfilment centre's parcels are kept as
+// rows, and the codes are sent to the marketplace even when none was scanned, because only the marketplace knows whether a
+// product needs one (it also tells whether another identifier is needed).
+func (s *Service) packedForPacking(ctx context.Context, sess *session, o *order, fc fulfilment.Order, units []store.OrderCode) error {
+	rows, err := s.parcelRows(ctx, o, max(1, len(fc.Parcels)))
+	if err != nil {
+		return err
+	}
+
+	s.write(ctx, func(q *store.Queries) error { return q.ReplaceParcels(ctx, o.x.OrderID, rows) })
+
+	// What this step changes is saved with the step's outcome, never before it: a step that meets a failure the next run mends is
+	// done again when the event is applied again, and must leave no trace of the first try.
+	o.x.CodesResends, o.x.PackNextAt = 0, time.Time{}
+	o.added = append(o.added, store.ExchangeHistory{At: s.opts.Clock.Now(), State: o.x.State, Code: "packing_finished"})
+
+	// A posting the marketplace shows packed already (the owner packed it in the cabinet, or the warehouse's automatic assembly
+	// did) takes no codes and is never reported (the marketplace refuses codes for a posting that no longer awaits packaging).
+	if s.settledAtMarketplace(ctx, sess, o) {
+		return nil
+	}
+
+	return s.sendCodes(ctx, sess, o, units)
+}
+
+// sendProductCodes reports the codes with the product each is on, the full set every time (the marketplace replaces what it
+// holds). The marketplace says whether it takes a code for this order at all: when it takes none the packing is reported at
+// once; when it needs a code or another identifier the connector cannot give, the order gets a problem that names it.
+func (s *Service) sendProductCodes(ctx context.Context, sess *session, o *order, r marketplace.ProductCodeReporter, conn marketplace.Conn, units []store.OrderCode) error {
+	list := make([]marketplace.UnitCode, 0, len(units))
+	for _, u := range units {
+		list = append(list, marketplace.UnitCode{ItemID: itemOf(o, u.Line), Code: u.Code})
+	}
+
+	sent, err := r.ReportProductCodes(ctx, conn, o.row.Number, marketplace.IdentifierMarking, list)
+
+	var needs *marketplace.NeedsIdentifier
+
+	switch {
+	case errors.As(err, &needs):
+		p := store.Problem{Code: problemUnsupportedID, Params: map[string]any{"identifier": needs.Identifier}}
+		if needs.Identifier == marketplace.IdentifierMarking {
+			p = store.Problem{Code: problemCodesMissing}
+		}
+
+		s.problem(ctx, sess, o, p, stepCodes)
+
+		return errSkipped
+	case err != nil:
+		return s.refusedOrStopped(ctx, sess, o, stepCodes, err)
+	}
+
+	now := s.opts.Clock.Now()
+
+	if !sent {
+		// The fulfilment centre scanned codes the marketplace takes none of, or it scanned none and none was needed.
+		note := "codes_not_needed"
+		if len(units) > 0 {
+			note = "codes_not_taken"
+		}
+
+		o.x.CodesState = codesNotTaken
+		o.added = append(o.added, store.ExchangeHistory{At: now, State: o.x.State, Code: note})
+		s.clearProblem(ctx, sess, o)
+		s.save(ctx, o)
+		s.packStep(ctx, sess, o)
+
+		return nil
+	}
+
+	s.write(ctx, func(q *store.Queries) error {
+		return q.MarkOrderCodesSent(ctx, o.x.OrderID, marketplace.IdentifierMarking, now)
+	})
+
+	o.x.CodesState, o.x.CodesSentAt, o.x.NextCheckAt = codesChecking, now, now.Add(verdictFast)
+	o.added = append(o.added, store.ExchangeHistory{At: now, State: o.x.State, Code: "codes_sent"})
+	s.clearProblem(ctx, sess, o)
+	s.note(o, stateCodesChecking, "codes_checking")
+	s.save(ctx, o)
+
+	return nil
+}
+
+// checkedAgain is the marketplace's «did not manage to check»: the full set is sent once more; a second time is a problem.
+func (s *Service) checkedAgain(ctx context.Context, sess *session, o *order, words string) {
+	if o.x.CodesResends >= codesResendsMax {
+		o.x.CodesState, o.x.NextCheckAt = codesRefused, time.Time{}
+		s.problem(ctx, sess, o, store.Problem{Code: problemCodesNotChecked, MpCode: "check_not_finished", Words: strings.TrimSpace(words)}, stepCodes)
+
+		return
+	}
+
+	o.x.CodesResends++
+	s.save(ctx, o)
+
+	units, err := s.opts.Store.Read().OrderCodes(ctx, o.x.OrderID)
+	if err != nil {
+		s.opts.Log.Error("the codes could not be read", "order", o.x.OrderID, "err", err)
+
+		return
+	}
+
+	_ = keepStopped(s.sendCodes(ctx, sess, o, units))
+}
+
+// reopenedForPacking is order.reopened for an adapter that reports the packing. Before the report nothing was written to the
+// marketplace: the next order.packing_finished sends the full set again. After it, changing codes at the marketplace is not
+// sourced, so the order gets a problem that says so, for the owner and the fulfilment centre.
+func (s *Service) reopenedForPacking(ctx context.Context, sess *session, o *order) error {
+	if !o.x.PackReportedAt.IsZero() {
+		s.problem(ctx, sess, o, store.Problem{Code: problemPackReopened}, "")
+
+		return nil
+	}
+
+	o.x.CodesState, o.x.CodesSentAt, o.x.NextCheckAt, o.x.PackNextAt = "", time.Time{}, time.Time{}, time.Time{}
+	s.note(o, stateReserved, "reopened")
+	s.save(ctx, o)
+
+	return nil
 }

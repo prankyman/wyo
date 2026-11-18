@@ -221,7 +221,10 @@ func (st *state) attachToHandover(o *order) {
 		st.hoList = append(st.hoList, target)
 	}
 
-	target.parcels = append(target.parcels, handoverParcel{orderID: o.id, number: 1})
+	for _, p := range o.parcels {
+		target.parcels = append(target.parcels, handoverParcel{orderID: o.id, number: p.number})
+	}
+
 	o.handoverID = &target.id
 }
 
@@ -331,12 +334,25 @@ func (st *state) pick(o *order) error {
 func (st *state) checkUnits(o *order, units []unit) error {
 	count := map[int]int{}
 
+	parcels := map[int]bool{}
+
 	for _, u := range units {
 		if u.line < 1 || u.line > len(o.lines) {
 			return stepError("a unit names line %d, which the order does not have", u.line)
 		}
 
+		if u.parcelNumber() < 1 {
+			return stepError("a unit names parcel %d, and parcels are numbered from 1", u.parcelNumber())
+		}
+
+		parcels[u.parcelNumber()] = true
 		count[u.line]++
+	}
+
+	for n := 1; n <= len(parcels); n++ {
+		if !parcels[n] {
+			return stepError("the units name %d parcels but none lies in parcel %d: parcels are numbered 1, 2, 3 without a gap", len(parcels), n)
+		}
 	}
 
 	for _, l := range o.lines {
@@ -376,19 +392,40 @@ func (st *state) pack(o *order, units []unit) error {
 		}
 	}
 
-	p := o.parcels[0]
 	now := st.now()
 
 	for _, l := range o.lines {
 		l.packed = l.wanted()
 	}
 
-	p.units = units
-	p.closedAt = &now
+	// The units name the parcels they lie in; an order with no unit named is one closed parcel with none.
+	o.parcels = o.parcels[:1]
+	for _, u := range units {
+		for len(o.parcels) < u.parcelNumber() {
+			o.parcels = append(o.parcels, &parcel{number: len(o.parcels) + 1})
+		}
+	}
+
+	for _, p := range o.parcels {
+		p.units = nil
+
+		for _, u := range units {
+			if u.parcelNumber() == p.number {
+				p.units = append(p.units, u)
+			}
+		}
+
+		p.closedAt = &now
+	}
+
 	o.status, o.whStatus = fcapi.OrderStatusPacked, fcapi.OrderWarehouseStatusPacked
 
 	st.emit("order.packing_finished", o, nil, nil, nil)
-	st.emit("order.parcel_closed", o, nil, nil, map[string]any{"parcel": 1})
+
+	for _, p := range o.parcels {
+		st.emit("order.parcel_closed", o, nil, nil, map[string]any{"parcel": p.number})
+	}
+
 	st.attachToHandover(o)
 	st.emit("order.packed", o, nil, nil, nil)
 
@@ -401,6 +438,13 @@ func (st *state) reopen(o *order) error {
 		return stepError("an order that is %s has no closed parcel to reopen", o.status)
 	}
 
+	// An order packed in several parcels is reopened as one open parcel: the others were made by the packing; the labels of the
+	// parcels that go are gone with them.
+	for _, p := range o.parcels[1:] {
+		st.dropLabel(o, p)
+	}
+
+	o.parcels = o.parcels[:1]
 	p := o.parcels[0]
 	p.closedAt, p.units = nil, nil
 
@@ -423,7 +467,11 @@ func (st *state) handOver(o *order) error {
 	}
 
 	now := st.now()
-	o.parcels[0].handedOverAt = &now
+
+	for _, p := range o.parcels {
+		p.handedOverAt = &now
+	}
+
 	o.status, o.whStatus = fcapi.OrderStatusShipped, fcapi.OrderWarehouseStatusShipped
 	st.emit("order.handed_over", o, nil, nil, nil)
 
@@ -451,12 +499,16 @@ func (st *state) cancelByWarehouse(o *order) error {
 	return nil
 }
 
-func (st *state) requestDocuments(h *handover) error {
+// requestDocuments is the fulfilment centre asking for the hand-over's documents. boxes is how many transport boxes it names
+// in the request (nil when it says none): the number is on the hand-over from then on, and so in the event, which shows the
+// hand-over as it is.
+func (st *state) requestDocuments(h *handover, boxes *int) error {
 	if h.state != fcapi.HandoverStateOpen {
 		return stepError("a hand-over that is %s cannot be asked for documents", h.state)
 	}
 
 	h.state = fcapi.HandoverStateDocumentsRequested
+	h.transportBoxes = boxes
 	st.emit("handover.requested", nil, nil, h, nil)
 
 	return nil
@@ -468,6 +520,7 @@ func (st *state) withdrawRequest(h *handover) error {
 	}
 
 	h.state = fcapi.HandoverStateOpen
+	h.transportBoxes = nil
 	st.emit("handover.request_withdrawn", nil, nil, h, nil)
 
 	return nil

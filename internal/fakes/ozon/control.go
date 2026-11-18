@@ -26,14 +26,20 @@ import (
 //	POST /__control/postings/split      the split made in the seller's cabinet: posting_number, parts [{posting_number, products
 //	                                    [{sku, quantity}]}]
 //	POST /__control/postings/deadline   posting_number, shipment_date
+//	POST /__control/postings/cut        the seller takes products off a posting in the cabinet: posting_number, products [{sku,
+//	                                    quantity}] (the quantity the posting has of the product now; 0 takes the line off); not every
+//	                                    product may be taken off
 //	POST /__control/fbo-postings        a new FBO posting: posting_number, order_number, status, created_at, in_process_at
 //	                                    (created_at), products [{sku, offer_id, name, quantity}]
 func (s *Server) controlRoutes(mux *http.ServeMux) {
+	s.writingControlRoutes(mux)
+
 	mux.HandleFunc("POST /__control/setup", controlCall(s, (*state).setUp))
 	mux.HandleFunc("POST /__control/postings", controlCall(s, (*state).addPosting))
 	mux.HandleFunc("POST /__control/postings/status", controlCall(s, (*state).setStatus))
 	mux.HandleFunc("POST /__control/postings/split", controlCall(s, (*state).split))
 	mux.HandleFunc("POST /__control/postings/deadline", controlCall(s, (*state).setDeadline))
+	mux.HandleFunc("POST /__control/postings/cut", controlCall(s, (*state).cutProducts))
 	mux.HandleFunc("POST /__control/fbo-postings", controlCall(s, (*state).addFBO))
 	mux.HandleFunc("/__control/", func(w http.ResponseWriter, _ *http.Request) {
 		fakekit.ControlError(w, http.StatusNotFound, "no such control call")
@@ -156,6 +162,10 @@ func checkWarehouses(warehouses []warehouse) error {
 			return fmt.Errorf("the warehouse number %d is not a positive number used once", w.ID)
 		}
 
+		if w.LabelType != "" && !slices.Contains(labelTypes, w.LabelType) {
+			return fmt.Errorf("label_type is one of %q, got %q", labelTypes, w.LabelType)
+		}
+
 		seen[w.ID] = true
 	}
 
@@ -199,6 +209,7 @@ type postingRequest struct {
 	InProcessAt   *time.Time `json:"in_process_at"`
 	ShipmentDate  *time.Time `json:"shipment_date"`
 	Products      []lineItem `json:"products"`
+	IsMultibox    bool       `json:"is_multibox"`
 }
 
 func (st *state) addPosting(in postingRequest) error {
@@ -234,6 +245,7 @@ func (st *state) addPosting(in postingRequest) error {
 	st.postings = append(st.postings, &posting{
 		seq: st.newSeq(), number: in.PostingNumber, orderNumber: in.OrderNumber, status: status, warehouseID: in.WarehouseID,
 		inProcessAt: inProcessAt, shipmentDate: in.ShipmentDate.UTC(), items: slices.Clone(in.Products),
+		multibox: in.IsMultibox,
 	})
 
 	return nil
@@ -404,6 +416,51 @@ func (st *state) setDeadline(in deadlineRequest) error {
 	}
 
 	p.shipmentDate = in.ShipmentDate.UTC()
+
+	return nil
+}
+
+type cutRequest struct {
+	PostingNumber string      `json:"posting_number"`
+	Products      []splitItem `json:"products"`
+}
+
+// cutProducts is the seller taking products off a posting in the cabinet (the wyo server never does): each named product now has the
+// quantity given, which is at most what it had, and 0 takes its line off. A posting left with no product is cancelled in the
+// cabinet, not cut, so it is refused here. A posting that no longer awaits packaging is not cut.
+func (st *state) cutProducts(in cutRequest) error {
+	p := st.postingOf(in.PostingNumber)
+
+	switch {
+	case p == nil:
+		return fmt.Errorf("the posting %q does not exist", in.PostingNumber)
+	case p.status != statusAwaitingPackaging:
+		return errors.New("only a posting that awaits packaging can be cut")
+	}
+
+	items := slices.Clone(p.items)
+
+	for _, want := range in.Products {
+		i := slices.IndexFunc(items, func(l lineItem) bool { return l.SKU == want.SKU })
+
+		switch {
+		case i < 0:
+			return fmt.Errorf("the posting does not have the SKU %d", want.SKU)
+		case want.Quantity < 0 || want.Quantity > items[i].Quantity:
+			return fmt.Errorf("the SKU %d has %d units, not %d", want.SKU, items[i].Quantity, want.Quantity)
+		}
+
+		items[i].Quantity = want.Quantity
+	}
+
+	items = slices.DeleteFunc(items, func(l lineItem) bool { return l.Quantity == 0 })
+	if len(items) == 0 {
+		return errors.New("a posting with no product is cancelled, not cut")
+	}
+
+	p.items = items
+	// The exemplars were made for the units the posting had.
+	p.exemplars, p.check = nil, nil
 
 	return nil
 }

@@ -91,7 +91,7 @@ func TestEveryCallGoesThroughTheOneCallerWithTheKeyOnlyInItsHeaderAndAJournalRow
 		t.Fatalf("the same order sent again is the same order: %+v, %v", again, err)
 	}
 
-	if err := r.client.PutLabel(ctx, sent.Order.Id, "image/png", pngPicture()); err != nil {
+	if err := r.client.PutLabel(ctx, sent.Order.Id, 1, "image/png", pngPicture()); err != nil {
 		t.Fatalf("PutLabel: %v", err)
 	}
 
@@ -302,4 +302,38 @@ func TestTheSettingTakesOnlyAnHTTPSAddressOfAnAPI(t *testing.T) {
 // pngPicture is a picture the fake fulfilment centre recognises as a PNG by its first bytes.
 func pngPicture() []byte {
 	return append([]byte("\x89PNG\r\n\x1a\n"), make([]byte, 64)...)
+}
+
+func TestANewDeadlineIsPassedOnToTheOrderThroughADeclaredRoute(t *testing.T) {
+	t.Parallel()
+
+	r := newFcRig(t)
+	ctx := t.Context()
+
+	sent, err := r.client.SendOrder(ctx, orderIn("100000001", "ART-1", synckit.Noon().Add(48*time.Hour)))
+	if err != nil || sent.Order == nil {
+		t.Fatalf("SendOrder: %+v, %v", sent, err)
+	}
+
+	later := synckit.Noon().Add(53 * time.Hour).UTC()
+	if err := r.client.PatchShipBy(ctx, sent.Order.Id, later); err != nil {
+		t.Fatalf("PatchShipBy: %v", err)
+	}
+
+	got, err := r.client.Order(ctx, sent.Order.Id)
+	if err != nil || !got.ShipBy.Equal(later) {
+		t.Fatalf("the order after the new deadline: %+v, %v, want the deadline %v", got, err, later)
+	}
+
+	var patched bool
+
+	for _, row := range r.kit.Rows(t) {
+		if row.Method == "PATCH" && strings.HasPrefix(row.Path, "/api/v1/orders/") && row.Outcome == journal.Done {
+			patched = true
+		}
+	}
+
+	if !patched {
+		t.Fatal("the journal has no row for the PATCH")
+	}
 }

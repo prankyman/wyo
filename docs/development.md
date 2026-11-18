@@ -186,7 +186,7 @@ test a key of its own.
 - faults — ordered faults a test queues (`POST /__control/faults`): answer 429 with the limit headers, answer 500, answer slowly (the
   answer waits on the injected clock, never on a sleep), or refuse with the answer the test gives (`kind` `refuse`, a `status` from
   400 to 599 and a `body` written as it is). A fault meets the first call of its key, in queue order, that it matches
-  (`method`, `path_prefix`); `count` repeats it.
+  (`method`, `path_prefix`, `path_suffix`, the last one for a path with a number in the middle); `count` repeats it.
 - the fake Ozon's control calls, all `POST` under `/__control/`: `setup` (the key's `client_id`, `seller_name`, `expires_at`, `roles`
   with their methods, `key_state` — `deactivated`, `ip_restricted` or `offer_not_signed` —, `warehouses`, `products`; a key is
   refused as an invalid one until a setup gives it its `client_id`), `postings` (a new FBS posting with several products), `postings/status`

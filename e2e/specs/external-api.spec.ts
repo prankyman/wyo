@@ -1,8 +1,11 @@
+import type { Page } from '@playwright/test';
 import { expect, test } from '../fixtures/test.js';
-import { addAccountThroughApi } from '../helpers/accounts.js';
+import { addAccountThroughApi, addOzonAccountThroughApi } from '../helpers/accounts.js';
 import {
     connectExternalApiThroughApi,
     matchExternalApiThroughApi,
+    OZON_READING_METHODS,
+    ozonSellerSetUp,
     WILDBERRIES_HANDOVER
 } from '../helpers/external-api.js';
 import { openScreen } from '../helpers/open-screen.js';
@@ -19,9 +22,11 @@ import {
     setFcWebhook,
     setUpFc
 } from '../support/fake-fulfilment.js';
+import { makeOzonKey, setUpFakeOzon, type IFakeOzonKey, type IFakeOzonWarehouse } from '../support/fake-ozon.js';
 import { makeToken } from '../support/fake-wildberries.js';
 import { screenOf } from '../support/screens.js';
 import { ruText } from '../support/texts.js';
+import type { IWyoServer } from '../support/wyo-server.js';
 
 /**
  * «Внешний API» (`/external-api`): the address and the key of the fake fulfilment centre filled, checked and emptied, a key that
@@ -193,6 +198,102 @@ test("the marketplace's hand-over settings are drawn from what the adapter decla
     expect(((await saved.json()) as { rows: { handoverSettings: object }[] }).rows[0].handoverSettings).toEqual(
         WILDBERRIES_HANDOVER
     );
+});
+
+/** The warehouses of a made-up Ozon seller: one the seller assembles from, one it delivers from itself (rFBS), one assembled by Ozon. */
+const OZON_WAREHOUSES: IFakeOzonWarehouse[] = [
+    { id: 1001, name: 'Склад FBS' },
+    { id: 1002, name: 'Склад rFBS', is_rfbs: true },
+    { id: 1003, name: 'Склад с автосборкой', auto_assembly: true }
+];
+
+/** A made-up Ozon seller whose key only reads, with the three warehouses above, and its account added. */
+async function addReadOnlyOzonAccount(page: Page, server: IWyoServer, name: string): Promise<IFakeOzonKey> {
+    const key = makeOzonKey();
+    await setUpFakeOzon(
+        key.apiKey,
+        ozonSellerSetUp(key, {
+            warehouses: OZON_WAREHOUSES,
+            roles: [{ name: 'Custom', methods: OZON_READING_METHODS }]
+        })
+    );
+    await addOzonAccountThroughApi(page.context(), server, name, key);
+    return key;
+}
+
+test('an Ozon warehouse is matched like any other, one the seller delivers from is never offered, and one assembled by Ozon warns in its row', async ({
+    ownerPage: page,
+    server
+}) => {
+    const key = makeOzonKey();
+    await setUpFakeOzon(key.apiKey, ozonSellerSetUp(key, { warehouses: OZON_WAREHOUSES }));
+    await addOzonAccountThroughApi(page.context(), server, 'Магазин на Ozon', key);
+    await connectExternalApiThroughApi(page.context(), server, makeFcKey());
+    await openScreen(page, '/external-api');
+    await openSection(page, 'external-api-warehouses');
+
+    const rows = page.getByTestId('warehouses-row');
+    await expect(rows, 'the rFBS warehouse is not offered').toHaveCount(2);
+    await expect(rows.filter({ hasText: 'Склад rFBS' })).toHaveCount(0);
+    const plain = rows.filter({ hasText: 'Склад FBS' });
+    const assembled = rows.filter({ hasText: 'Склад с автосборкой' });
+    await expect(plain.locator('[data-test$="-unmatched"]')).toHaveText(ruText('externalApi.warehouses.unmatched'));
+    await expect(plain.locator('[data-test$="-auto-assembly"]')).toHaveCount(0);
+    await expect(assembled.locator('[data-test$="-auto-assembly"]')).toHaveText(
+        ruText('externalApi.warehouses.autoAssembly')
+    );
+
+    await plain.locator('[data-test$="-box"]').selectOption(FAKE_FC.warehouse);
+
+    await expect(plain.locator('[data-test$="-unmatched"]')).toHaveCount(0);
+    await page.getByTestId('external-api-warehouses-save').click();
+    await expect(page.getByTestId('external-api-warehouses-saved')).toHaveText(ruText('common.disclosure.saved'));
+    const saved = await page.context().request.get(`${server.origin}/api/v1/external-api/warehouses`);
+    const matches = ((await saved.json()) as { rows: { warehouseNumber: string; fcWarehouse?: string }[] }).rows;
+    expect(matches.map((row) => [row.warehouseNumber, row.fcWarehouse])).toEqual([
+        ['1001', FAKE_FC.warehouse],
+        ['1003', undefined]
+    ]);
+});
+
+test('the key of an Ozon account that may only read is warned about with the level to add, a key that writes is not, and Ozon declares no hand-over setting', async ({
+    ownerPage: page,
+    server
+}) => {
+    const writing = makeOzonKey();
+    await setUpFakeOzon(writing.apiKey, ozonSellerSetUp(writing));
+    await addOzonAccountThroughApi(page.context(), server, 'Ozon с записью', writing);
+    await addReadOnlyOzonAccount(page, server, 'Ozon только чтение');
+    await connectExternalApiThroughApi(page.context(), server, makeFcKey());
+    await openScreen(page, '/external-api');
+    await openSection(page, 'external-api-marketplaces');
+
+    const rows = page.getByTestId('codes-row');
+    await expect(rows).toHaveCount(2);
+    await expect(
+        rows.filter({ hasText: 'Ozon только чтение' }).locator('[data-test$="-read-only"]'),
+        'the key that may only read names the level to add'
+    ).toHaveText(ruText('marketplace.ozon.note.readOnly', { account: 'Ozon только чтение' }));
+    await expect(rows.filter({ hasText: 'Ozon с записью' }).locator('[data-test$="-read-only"]')).toHaveCount(0);
+    await expect(
+        rows.locator('[data-test$="-unsupported"]'),
+        'Ozon takes part in the exchange, so no row says «пока не поддерживается»'
+    ).toHaveCount(0);
+
+    await openSection(page, 'external-api-handover');
+    await expect(page.getByTestId('handover-none'), 'Ozon declares no hand-over setting').toHaveText(
+        ruText('externalApi.handover.none')
+    );
+});
+
+test('«Внешний API» with Ozon accounts, a warehouse assembled by Ozon and a key that only reads fits the phone and stands level at every width', async ({
+    ownerPage: page,
+    server
+}) => {
+    await addReadOnlyOzonAccount(page, server, 'Ozon только чтение');
+    await connectExternalApiThroughApi(page.context(), server, makeFcKey());
+
+    await sweepScreen(page, screenOf('/external-api'), { before: openAllSections });
 });
 
 test('notifications switched on show the address to copy, and a signed test notification shows its time', async ({

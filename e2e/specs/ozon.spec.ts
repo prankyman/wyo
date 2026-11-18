@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from '../fixtures/test.js';
 import { addOzonAccountThroughApi, readOrdersNow } from '../helpers/accounts.js';
+import { OZON_READING_METHODS } from '../helpers/external-api.js';
 import { openScreen } from '../helpers/open-screen.js';
 import { sweepScreen } from '../helpers/sweep.js';
 import {
@@ -168,6 +169,34 @@ test('a key without the FBO level is accepted, and its card says what will not b
     );
 });
 
+test('a key that may only read is accepted, and its card says so and names the level to add', async ({
+    ownerPage: page,
+    server
+}) => {
+    const key = await freshKey({ roles: [{ name: 'Custom', methods: OZON_READING_METHODS }] });
+    await addOzonAccountThroughApi(page.context(), server, 'Только чтение', key);
+
+    await openScreen(page, '/marketplaces');
+
+    await expect(page.getByTestId('account-facts-access')).toHaveText(ruText('accounts.fact.access.readOnly'));
+    await expect(page.getByTestId('account-note-missing-posting_fbs_write')).toHaveText(
+        ruText('marketplace.ozon.note.missing.posting_fbs_write')
+    );
+    await sweepScreen(page, screenOf('/marketplaces'));
+});
+
+test('an Ozon key that writes says so on its card and has no note of a level to add', async ({
+    ownerPage: page,
+    server
+}) => {
+    await addOzonAccountThroughApi(page.context(), server, 'С записью', await freshKey());
+
+    await openScreen(page, '/marketplaces');
+
+    await expect(page.getByTestId('account-facts-access')).toHaveText(ruText('accounts.fact.access.readWrite'));
+    await expect(page.getByTestId('account-note-missing-posting_fbs_write')).toHaveCount(0);
+});
+
 test('an Ozon order of three products, its split made in the cabinet and a cancellation show on «Заказы»', async ({
     ownerPage: page,
     server
@@ -197,7 +226,9 @@ test('an Ozon order of three products, its split made in the cabinet and a cance
     await page.getByTestId('orders-refresh').click();
     const row = page.locator('[data-test="orders-list-row"]', { hasText: '31400001-0001-1' });
     await expect(row).toHaveCount(1, { timeout: 15_000 });
-    await expect(row.getByTestId('orders-list-exchange-unsupported')).toBeVisible();
+    // Ozon takes part in the exchange: no «пока не поддерживается»; with «Внешний API» empty the order is simply not passed on.
+    await expect(row.getByTestId('orders-list-exchange-unsupported')).toHaveCount(0);
+    await expect(row.getByTestId('orders-list-exchange-state')).toHaveText(ruText('exchange.state.not_sent'));
 
     await row.getByTestId('orders-list-link').click();
     const panel = page.getByTestId('order-details-panel');

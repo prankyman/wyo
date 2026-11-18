@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -80,25 +81,108 @@ func Origin(testBase, host string) string {
 // MatchRoute finds the route a request matches and the marketplace host it is meant for. A path that begins with a
 // host's name (a segment holding a dot) is a request to a fake marketplace made by Origin: the segment is the host and
 // the rest is the path.
+//
+// A route with a Host matches only a request to a host the pattern names (HostMatches); it is also tried against the
+// request's own host and whole path, because a real link's path may itself begin with a segment that holds a dot. A
+// route without a Host matches the request's host as written and never a host that some route of the same adapter pins:
+// the key of an API route is never sent to a file host.
 func MatchRoute(routes []Route, method string, u *url.URL) (Route, string, bool) {
-	host, path := u.Hostname(), u.Path
+	own := target{host: u.Hostname(), path: u.Path}
+	tried := []target{own}
 
-	if first, rest, found := strings.Cut(strings.TrimPrefix(path, "/"), "/"); found && strings.Contains(first, ".") {
-		host, path = first, "/"+rest
+	if first, rest, found := strings.Cut(strings.TrimPrefix(u.Path, "/"), "/"); found && strings.Contains(first, ".") {
+		tried = []target{{host: first, path: "/" + rest}, own}
 	}
 
-	for _, route := range routes {
-		if route.Method == method && matches(route.Template, path) {
-			return route, host, true
+	for i, t := range tried {
+		pinned := pinnedHost(routes, t.host)
+
+		for _, route := range routes {
+			if route.Method != method || !matches(route.Template, t.path) {
+				continue
+			}
+
+			if (route.Host == "" && i == 0 && !pinned) || (route.Host != "" && HostMatches(route.Host, t.host)) {
+				return route, t.host, true
+			}
 		}
 	}
 
 	return Route{}, "", false
 }
 
-// matches compares a path with a template segment by segment; a {placeholder} takes any segment that is not empty.
+// target is a request's host and path as MatchRoute reads them.
+type target struct{ host, path string }
+
+// pinnedHost says whether some route of the list is sent to the host and no other.
+func pinnedHost(routes []Route, host string) bool {
+	return slices.ContainsFunc(routes, func(r Route) bool { return r.Host != "" && HostMatches(r.Host, host) })
+}
+
+// HostMatches says whether a host is the one a route (or the outbound gate's list) names: an empty pattern names every
+// host, *.domain every host under that domain (at any depth, never the bare domain itself, never another domain that
+// merely ends with the same letters) and any other text exactly that host. The comparison ignores the case.
+func HostMatches(pattern, host string) bool {
+	pattern, host = strings.ToLower(pattern), strings.ToLower(host)
+
+	domain, wildcard := strings.CutPrefix(pattern, "*.")
+	if !wildcard {
+		return pattern == "" || pattern == host
+	}
+
+	labels, under := strings.CutSuffix(host, "."+domain)
+	if !under || labels == "" {
+		return false
+	}
+
+	for label := range strings.SplitSeq(labels, ".") {
+		if !isHostLabel(label) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// WildcardDomain reads a host pattern of the form *.domain: it returns the domain and true when the pattern is one and the
+// domain is made of at least two valid labels (a pattern that names a whole top-level domain would allow far too much).
+func WildcardDomain(pattern string) (string, bool) {
+	domain, wildcard := strings.CutPrefix(strings.ToLower(pattern), "*.")
+	if !wildcard {
+		return "", false
+	}
+
+	labels := strings.Split(domain, ".")
+	if len(labels) < 2 || slices.ContainsFunc(labels, func(l string) bool { return !isHostLabel(l) }) {
+		return "", false
+	}
+
+	return domain, true
+}
+
+// isHostLabel says a label holds only letters, digits and hyphens and is not empty.
+func isHostLabel(label string) bool {
+	return label != "" && !strings.ContainsFunc(label, func(r rune) bool {
+		return (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-'
+	})
+}
+
+// matches compares a path with a template segment by segment; a {placeholder} takes any segment that is not empty, and a
+// last {placeholder...} takes the rest of the path, one segment or more.
 func matches(template, path string) bool {
 	want, got := strings.Split(template, "/"), strings.Split(path, "/")
+
+	rest := strings.HasSuffix(want[len(want)-1], "...}") && strings.HasPrefix(want[len(want)-1], "{")
+	if rest {
+		want = want[:len(want)-1]
+
+		if len(got) <= len(want) || slices.Contains(got[len(want):], "") {
+			return false
+		}
+
+		got = got[:len(want)]
+	}
+
 	if len(want) != len(got) {
 		return false
 	}

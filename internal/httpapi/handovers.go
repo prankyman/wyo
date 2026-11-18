@@ -9,6 +9,7 @@ import (
 
 	"github.com/prankyman/wyo/internal/handover"
 	"github.com/prankyman/wyo/internal/httpapi/gen"
+	"github.com/prankyman/wyo/internal/marketplace"
 	"github.com/prankyman/wyo/internal/store"
 )
 
@@ -89,29 +90,42 @@ func (a *api) ListHandovers(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, body)
 }
 
-// stepStates are the six steps of a hand-over as its strip shows them.
-func stepStates(h store.Handover) []gen.HandoverStepState {
-	now := slices.Index(handover.Steps, h.Step)
-	out := make([]gen.HandoverStepState, 0, len(handover.Steps))
+// stepStates are the steps of a hand-over its marketplace's adapter needs, as the strip shows them. A step before the
+// hand-over's current one in the order the steps run is done, whether the adapter needs it or not.
+func stepStates(h store.Handover, d marketplace.Description) []gen.HandoverStepState {
+	now := slices.Index(marketplace.HandoverStepsAll, h.Step)
+	declared := declaredSteps(d)
+	out := make([]gen.HandoverStepState, 0, len(declared))
 
-	for i, step := range handover.Steps {
+	for _, step := range declared {
+		pos := slices.Index(marketplace.HandoverStepsAll, string(step))
 		state := "todo"
 
 		switch {
-		case h.State == handover.StateDocumentsSent || h.State == handover.StateCompleted || i < now:
+		case h.State == handover.StateDocumentsSent || h.State == handover.StateCompleted || pos < now:
 			state = "done"
-		case i == now && h.State == handover.StateProblem:
+		case pos == now && h.State == handover.StateProblem:
 			state = "failed"
-		case i == now && h.State == handover.StateWaiting:
+		case pos == now && h.State == handover.StateWaiting:
 			state = "waiting"
-		case i == now:
+		case pos == now:
 			state = "now"
 		}
 
-		out = append(out, gen.HandoverStepState{Step: gen.HandoverStep(step), State: gen.HandoverStepStateState(state)})
+		out = append(out, gen.HandoverStepState{Step: step, State: gen.HandoverStepStateState(state)})
 	}
 
 	return out
+}
+
+// descriptionOf is the description of the adapter whose code is given; an unknown code, or none (a hand-over whose orders are
+// not known yet), describes an adapter that needs every step.
+func (a *api) descriptionOf(code string) marketplace.Description {
+	if adapter, ok := a.deps.Marketplaces.Get(code); ok {
+		return adapter.Describe()
+	}
+
+	return marketplace.Description{}
 }
 
 // writeHandover answers with one hand-over's details.
@@ -131,7 +145,7 @@ func (a *api) writeHandover(w http.ResponseWriter, r *http.Request, id int64, st
 	}
 
 	body := gen.HandoverDetails{
-		Handover: item, Steps: stepStates(h), Closed: h.Closed,
+		Handover: item, Steps: stepStates(h, a.descriptionOf(valueOf(item.Marketplace))), Closed: h.Closed,
 		Retryable: h.State == handover.StateWaiting || h.State == handover.StateProblem,
 		NeedsShippingPoint: h.State == handover.StateWaiting && (h.Problem.Code == "shipping_point_needed" ||
 			h.Problem.Code == "shipping_point_gone"),

@@ -133,3 +133,110 @@ func TestAProductCardIsReplacedByTheSameArticleAndBarcode(t *testing.T) {
 
 	same(t, "the later card wins", r.create("A").Lines[0].MarkingRequired, false)
 }
+
+// handover reads a hand-over through the neutral API, as the wyo server does.
+func (r *rig) handover(id string) fcapi.Handover {
+	r.t.Helper()
+
+	res, err := r.client.HandoverGetWithResponse(r.ctx(), id)
+	if err != nil || res.JSON200 == nil {
+		r.t.Fatalf("get hand-over %s: %v %s", id, err, bodyOf(res))
+	}
+
+	return res.JSON200.Handover
+}
+
+// boxesOf asks for the hand-over's documents by control call, naming the transport boxes when count is not 0, and returns
+// the hand-over the fake answers with.
+func boxesOf(r *rig, id string, body any) fcapi.Handover {
+	r.t.Helper()
+
+	var out struct {
+		Handover fcapi.Handover `json:"handover"`
+	}
+
+	r.control(http.MethodPost, "/__control/handovers/"+id+"/request-documents", body, &out)
+
+	return out.Handover
+}
+
+func TestTheFulfilmentCentreNamesTransportBoxesInTheEventThatAsksForTheDocuments(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(t)
+	id := *packedOrder(r, "A", ptr("wildberries")).HandoverId
+
+	same(t, "no boxes before anybody names them", r.handover(id).TransportBoxes == nil, true)
+
+	asked := boxesOf(r, id, map[string]any{"transport_boxes": 3})
+
+	if asked.TransportBoxes == nil || *asked.TransportBoxes != 3 {
+		t.Fatalf("the answer of the control call names %v boxes, want 3", asked.TransportBoxes)
+	}
+
+	events := r.events("")
+	last := events[len(events)-1]
+
+	same(t, "the event", last.Type, "handover.requested")
+
+	if last.Data.Handover == nil || last.Data.Handover.TransportBoxes == nil || *last.Data.Handover.TransportBoxes != 3 {
+		t.Fatalf("handover.requested carries %+v, want the hand-over with 3 transport boxes", last.Data.Handover)
+	}
+
+	if got := r.handover(id).TransportBoxes; got == nil || *got != 3 {
+		t.Fatalf("the hand-over read through the API names %v boxes, want 3", got)
+	}
+}
+
+func TestAHandoverAskedWithoutNamingBoxesNamesNone(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(t)
+	id := *packedOrder(r, "A", ptr("wildberries")).HandoverId
+
+	same(t, "no boxes named", boxesOf(r, id, nil).TransportBoxes == nil, true)
+}
+
+func TestWithdrawingTheRequestTakesTheNamedBoxesBackSoTheNextRequestNamesItsOwn(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(t)
+	id := *packedOrder(r, "A", ptr("wildberries")).HandoverId
+
+	boxesOf(r, id, map[string]any{"transport_boxes": 2})
+	r.control(http.MethodPost, "/__control/handovers/"+id+"/withdraw-request", nil, nil)
+
+	same(t, "the boxes after the withdrawal", r.handover(id).TransportBoxes == nil, true)
+
+	if got := boxesOf(r, id, map[string]any{"transport_boxes": 5}).TransportBoxes; got == nil || *got != 5 {
+		t.Fatalf("the second request names %v boxes, want 5", got)
+	}
+}
+
+func TestANumberOfBoxesThatCannotBeIsRefusedAndTheRequestIsNotMade(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		body any
+	}{
+		{name: "zero boxes", body: map[string]any{"transport_boxes": 0}},
+		{name: "a negative number", body: map[string]any{"transport_boxes": -1}},
+		{name: "a field it does not know", body: map[string]any{"boxes": 2}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			r := newRig(t)
+			id := *packedOrder(r, "A", ptr("wildberries")).HandoverId
+
+			if err := r.ctl.Do(r.ctx(), http.MethodPost, "/__control/handovers/"+id+"/request-documents", tc.body, nil); err == nil {
+				t.Fatal("the control call was accepted")
+			}
+
+			same(t, "the hand-over stays open", r.handover(id).State, fcapi.HandoverStateOpen)
+		})
+	}
+}

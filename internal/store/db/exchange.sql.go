@@ -153,6 +153,15 @@ func (q *Queries) DeleteOrderCodes(ctx context.Context, orderID int64) error {
 	return err
 }
 
+const deleteParcelsOf = `-- name: DeleteParcelsOf :exec
+DELETE FROM exchange_parcels WHERE order_id = ?
+`
+
+func (q *Queries) DeleteParcelsOf(ctx context.Context, orderID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteParcelsOf, orderID)
+	return err
+}
+
 const deleteWarehouseMatch = `-- name: DeleteWarehouseMatch :exec
 DELETE FROM fc_warehouse_map WHERE account_id = ? AND warehouse_number = ?
 `
@@ -211,7 +220,7 @@ func (q *Queries) GetConnection(ctx context.Context) (FcConnection, error) {
 }
 
 const getExchangeOrder = `-- name: GetExchangeOrder :one
-SELECT order_id, fc_id, fc_number, fc_held_id, state, held_reasons, attention, problem_code, problem_params, problem_mp_code, problem_words, problem_at, problem_sent, failed_step, supply_id, confirmed_at, label_print, label_sent_at, codes_state, codes_sent_at, next_check_at, cancel_answer, handed_over_at, sent_at, updated_at FROM exchange_orders WHERE order_id = ?
+SELECT order_id, fc_id, fc_number, fc_held_id, state, held_reasons, attention, problem_code, problem_params, problem_mp_code, problem_words, problem_at, problem_sent, failed_step, supply_id, confirmed_at, codes_state, codes_sent_at, next_check_at, cancel_answer, handed_over_at, sent_at, updated_at, pack_reported_at, pack_tries, pack_next_at, codes_resends, packed_at, ship_by_sent FROM exchange_orders WHERE order_id = ?
 `
 
 func (q *Queries) GetExchangeOrder(ctx context.Context, orderID int64) (ExchangeOrder, error) {
@@ -234,8 +243,6 @@ func (q *Queries) GetExchangeOrder(ctx context.Context, orderID int64) (Exchange
 		&i.FailedStep,
 		&i.SupplyID,
 		&i.ConfirmedAt,
-		&i.LabelPrint,
-		&i.LabelSentAt,
 		&i.CodesState,
 		&i.CodesSentAt,
 		&i.NextCheckAt,
@@ -243,12 +250,18 @@ func (q *Queries) GetExchangeOrder(ctx context.Context, orderID int64) (Exchange
 		&i.HandedOverAt,
 		&i.SentAt,
 		&i.UpdatedAt,
+		&i.PackReportedAt,
+		&i.PackTries,
+		&i.PackNextAt,
+		&i.CodesResends,
+		&i.PackedAt,
+		&i.ShipBySent,
 	)
 	return i, err
 }
 
 const getExchangeOrderByFcID = `-- name: GetExchangeOrderByFcID :one
-SELECT order_id, fc_id, fc_number, fc_held_id, state, held_reasons, attention, problem_code, problem_params, problem_mp_code, problem_words, problem_at, problem_sent, failed_step, supply_id, confirmed_at, label_print, label_sent_at, codes_state, codes_sent_at, next_check_at, cancel_answer, handed_over_at, sent_at, updated_at FROM exchange_orders WHERE fc_id = ? AND fc_id <> '' LIMIT 1
+SELECT order_id, fc_id, fc_number, fc_held_id, state, held_reasons, attention, problem_code, problem_params, problem_mp_code, problem_words, problem_at, problem_sent, failed_step, supply_id, confirmed_at, codes_state, codes_sent_at, next_check_at, cancel_answer, handed_over_at, sent_at, updated_at, pack_reported_at, pack_tries, pack_next_at, codes_resends, packed_at, ship_by_sent FROM exchange_orders WHERE fc_id = ? AND fc_id <> '' LIMIT 1
 `
 
 func (q *Queries) GetExchangeOrderByFcID(ctx context.Context, fcID string) (ExchangeOrder, error) {
@@ -271,8 +284,6 @@ func (q *Queries) GetExchangeOrderByFcID(ctx context.Context, fcID string) (Exch
 		&i.FailedStep,
 		&i.SupplyID,
 		&i.ConfirmedAt,
-		&i.LabelPrint,
-		&i.LabelSentAt,
 		&i.CodesState,
 		&i.CodesSentAt,
 		&i.NextCheckAt,
@@ -280,12 +291,18 @@ func (q *Queries) GetExchangeOrderByFcID(ctx context.Context, fcID string) (Exch
 		&i.HandedOverAt,
 		&i.SentAt,
 		&i.UpdatedAt,
+		&i.PackReportedAt,
+		&i.PackTries,
+		&i.PackNextAt,
+		&i.CodesResends,
+		&i.PackedAt,
+		&i.ShipBySent,
 	)
 	return i, err
 }
 
 const getExchangeOrderByHeldID = `-- name: GetExchangeOrderByHeldID :one
-SELECT order_id, fc_id, fc_number, fc_held_id, state, held_reasons, attention, problem_code, problem_params, problem_mp_code, problem_words, problem_at, problem_sent, failed_step, supply_id, confirmed_at, label_print, label_sent_at, codes_state, codes_sent_at, next_check_at, cancel_answer, handed_over_at, sent_at, updated_at FROM exchange_orders WHERE fc_held_id = ? AND fc_held_id <> '' LIMIT 1
+SELECT order_id, fc_id, fc_number, fc_held_id, state, held_reasons, attention, problem_code, problem_params, problem_mp_code, problem_words, problem_at, problem_sent, failed_step, supply_id, confirmed_at, codes_state, codes_sent_at, next_check_at, cancel_answer, handed_over_at, sent_at, updated_at, pack_reported_at, pack_tries, pack_next_at, codes_resends, packed_at, ship_by_sent FROM exchange_orders WHERE fc_held_id = ? AND fc_held_id <> '' LIMIT 1
 `
 
 func (q *Queries) GetExchangeOrderByHeldID(ctx context.Context, fcHeldID string) (ExchangeOrder, error) {
@@ -308,8 +325,6 @@ func (q *Queries) GetExchangeOrderByHeldID(ctx context.Context, fcHeldID string)
 		&i.FailedStep,
 		&i.SupplyID,
 		&i.ConfirmedAt,
-		&i.LabelPrint,
-		&i.LabelSentAt,
 		&i.CodesState,
 		&i.CodesSentAt,
 		&i.NextCheckAt,
@@ -317,12 +332,18 @@ func (q *Queries) GetExchangeOrderByHeldID(ctx context.Context, fcHeldID string)
 		&i.HandedOverAt,
 		&i.SentAt,
 		&i.UpdatedAt,
+		&i.PackReportedAt,
+		&i.PackTries,
+		&i.PackNextAt,
+		&i.CodesResends,
+		&i.PackedAt,
+		&i.ShipBySent,
 	)
 	return i, err
 }
 
 const getExchangeOrderByNumber = `-- name: GetExchangeOrderByNumber :one
-SELECT x.order_id, x.fc_id, x.fc_number, x.fc_held_id, x.state, x.held_reasons, x.attention, x.problem_code, x.problem_params, x.problem_mp_code, x.problem_words, x.problem_at, x.problem_sent, x.failed_step, x.supply_id, x.confirmed_at, x.label_print, x.label_sent_at, x.codes_state, x.codes_sent_at, x.next_check_at, x.cancel_answer, x.handed_over_at, x.sent_at, x.updated_at FROM exchange_orders x
+SELECT x.order_id, x.fc_id, x.fc_number, x.fc_held_id, x.state, x.held_reasons, x.attention, x.problem_code, x.problem_params, x.problem_mp_code, x.problem_words, x.problem_at, x.problem_sent, x.failed_step, x.supply_id, x.confirmed_at, x.codes_state, x.codes_sent_at, x.next_check_at, x.cancel_answer, x.handed_over_at, x.sent_at, x.updated_at, x.pack_reported_at, x.pack_tries, x.pack_next_at, x.codes_resends, x.packed_at, x.ship_by_sent FROM exchange_orders x
 JOIN orders o ON o.id = x.order_id
 JOIN fc_marketplace_map m ON m.account_id = o.account_id
 WHERE m.fc_marketplace = ? AND o.number = ?
@@ -354,8 +375,6 @@ func (q *Queries) GetExchangeOrderByNumber(ctx context.Context, arg GetExchangeO
 		&i.FailedStep,
 		&i.SupplyID,
 		&i.ConfirmedAt,
-		&i.LabelPrint,
-		&i.LabelSentAt,
 		&i.CodesState,
 		&i.CodesSentAt,
 		&i.NextCheckAt,
@@ -363,6 +382,12 @@ func (q *Queries) GetExchangeOrderByNumber(ctx context.Context, arg GetExchangeO
 		&i.HandedOverAt,
 		&i.SentAt,
 		&i.UpdatedAt,
+		&i.PackReportedAt,
+		&i.PackTries,
+		&i.PackNextAt,
+		&i.CodesResends,
+		&i.PackedAt,
+		&i.ShipBySent,
 	)
 	return i, err
 }
@@ -597,12 +622,13 @@ func (q *Queries) InsertHandoverStep(ctx context.Context, arg InsertHandoverStep
 }
 
 const insertOrderCode = `-- name: InsertOrderCode :exec
-INSERT INTO order_codes (order_id, unit, identifier, code) VALUES (?, ?, ?, ?)
+INSERT INTO order_codes (order_id, unit, line, identifier, code) VALUES (?, ?, ?, ?, ?)
 `
 
 type InsertOrderCodeParams struct {
 	OrderID    int64
 	Unit       int64
+	Line       int64
 	Identifier string
 	Code       string
 }
@@ -611,6 +637,7 @@ func (q *Queries) InsertOrderCode(ctx context.Context, arg InsertOrderCodeParams
 	_, err := q.db.ExecContext(ctx, insertOrderCode,
 		arg.OrderID,
 		arg.Unit,
+		arg.Line,
 		arg.Identifier,
 		arg.Code,
 	)
@@ -645,8 +672,179 @@ func (q *Queries) InsertSupply(ctx context.Context, arg InsertSupplyParams) (int
 	return id, err
 }
 
+const listDeadlineChangedExchangeOrders = `-- name: ListDeadlineChangedExchangeOrders :many
+SELECT x.order_id, x.fc_id, x.fc_number, x.fc_held_id, x.state, x.held_reasons, x.attention, x.problem_code, x.problem_params, x.problem_mp_code, x.problem_words, x.problem_at, x.problem_sent, x.failed_step, x.supply_id, x.confirmed_at, x.codes_state, x.codes_sent_at, x.next_check_at, x.cancel_answer, x.handed_over_at, x.sent_at, x.updated_at, x.pack_reported_at, x.pack_tries, x.pack_next_at, x.codes_resends, x.packed_at, x.ship_by_sent FROM exchange_orders x
+JOIN orders o ON o.id = x.order_id
+WHERE x.state NOT IN ('handed_over', 'cancelled') AND x.cancel_answer = '' AND x.fc_id <> ''
+  AND o.ship_by IS NOT NULL AND (x.ship_by_sent IS NULL OR x.ship_by_sent <> o.ship_by)
+ORDER BY x.order_id
+`
+
+func (q *Queries) ListDeadlineChangedExchangeOrders(ctx context.Context) ([]ExchangeOrder, error) {
+	rows, err := q.db.QueryContext(ctx, listDeadlineChangedExchangeOrders)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ExchangeOrder
+	for rows.Next() {
+		var i ExchangeOrder
+		if err := rows.Scan(
+			&i.OrderID,
+			&i.FcID,
+			&i.FcNumber,
+			&i.FcHeldID,
+			&i.State,
+			&i.HeldReasons,
+			&i.Attention,
+			&i.ProblemCode,
+			&i.ProblemParams,
+			&i.ProblemMpCode,
+			&i.ProblemWords,
+			&i.ProblemAt,
+			&i.ProblemSent,
+			&i.FailedStep,
+			&i.SupplyID,
+			&i.ConfirmedAt,
+			&i.CodesState,
+			&i.CodesSentAt,
+			&i.NextCheckAt,
+			&i.CancelAnswer,
+			&i.HandedOverAt,
+			&i.SentAt,
+			&i.UpdatedAt,
+			&i.PackReportedAt,
+			&i.PackTries,
+			&i.PackNextAt,
+			&i.CodesResends,
+			&i.PackedAt,
+			&i.ShipBySent,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listDueLabelChecks = `-- name: ListDueLabelChecks :many
+SELECT p.order_id, p.number, p.mp_number, p.ticket, p.label_print, p.label_sent_at, p.label_asked_at, p.label_next_at, p.label_tries FROM exchange_parcels p
+JOIN exchange_orders x ON x.order_id = p.order_id
+WHERE p.label_next_at <= ? AND p.label_sent_at IS NULL
+  AND x.state NOT IN ('handed_over', 'cancelled') AND x.cancel_answer = ''
+ORDER BY p.label_next_at, p.order_id, p.number LIMIT ?
+`
+
+type ListDueLabelChecksParams struct {
+	LabelNextAt sql.NullInt64
+	Limit       int64
+}
+
+func (q *Queries) ListDueLabelChecks(ctx context.Context, arg ListDueLabelChecksParams) ([]ExchangeParcel, error) {
+	rows, err := q.db.QueryContext(ctx, listDueLabelChecks, arg.LabelNextAt, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ExchangeParcel
+	for rows.Next() {
+		var i ExchangeParcel
+		if err := rows.Scan(
+			&i.OrderID,
+			&i.Number,
+			&i.MpNumber,
+			&i.Ticket,
+			&i.LabelPrint,
+			&i.LabelSentAt,
+			&i.LabelAskedAt,
+			&i.LabelNextAt,
+			&i.LabelTries,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listDuePackChecks = `-- name: ListDuePackChecks :many
+SELECT order_id, fc_id, fc_number, fc_held_id, state, held_reasons, attention, problem_code, problem_params, problem_mp_code, problem_words, problem_at, problem_sent, failed_step, supply_id, confirmed_at, codes_state, codes_sent_at, next_check_at, cancel_answer, handed_over_at, sent_at, updated_at, pack_reported_at, pack_tries, pack_next_at, codes_resends, packed_at, ship_by_sent FROM exchange_orders
+WHERE pack_next_at <= ? AND state NOT IN ('handed_over', 'cancelled') AND cancel_answer = ''
+ORDER BY pack_next_at, order_id LIMIT ?
+`
+
+type ListDuePackChecksParams struct {
+	PackNextAt sql.NullInt64
+	Limit      int64
+}
+
+func (q *Queries) ListDuePackChecks(ctx context.Context, arg ListDuePackChecksParams) ([]ExchangeOrder, error) {
+	rows, err := q.db.QueryContext(ctx, listDuePackChecks, arg.PackNextAt, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ExchangeOrder
+	for rows.Next() {
+		var i ExchangeOrder
+		if err := rows.Scan(
+			&i.OrderID,
+			&i.FcID,
+			&i.FcNumber,
+			&i.FcHeldID,
+			&i.State,
+			&i.HeldReasons,
+			&i.Attention,
+			&i.ProblemCode,
+			&i.ProblemParams,
+			&i.ProblemMpCode,
+			&i.ProblemWords,
+			&i.ProblemAt,
+			&i.ProblemSent,
+			&i.FailedStep,
+			&i.SupplyID,
+			&i.ConfirmedAt,
+			&i.CodesState,
+			&i.CodesSentAt,
+			&i.NextCheckAt,
+			&i.CancelAnswer,
+			&i.HandedOverAt,
+			&i.SentAt,
+			&i.UpdatedAt,
+			&i.PackReportedAt,
+			&i.PackTries,
+			&i.PackNextAt,
+			&i.CodesResends,
+			&i.PackedAt,
+			&i.ShipBySent,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listDueVerdictChecks = `-- name: ListDueVerdictChecks :many
-SELECT order_id, fc_id, fc_number, fc_held_id, state, held_reasons, attention, problem_code, problem_params, problem_mp_code, problem_words, problem_at, problem_sent, failed_step, supply_id, confirmed_at, label_print, label_sent_at, codes_state, codes_sent_at, next_check_at, cancel_answer, handed_over_at, sent_at, updated_at FROM exchange_orders WHERE codes_state = 'checking' AND next_check_at <= ? ORDER BY next_check_at LIMIT ?
+SELECT order_id, fc_id, fc_number, fc_held_id, state, held_reasons, attention, problem_code, problem_params, problem_mp_code, problem_words, problem_at, problem_sent, failed_step, supply_id, confirmed_at, codes_state, codes_sent_at, next_check_at, cancel_answer, handed_over_at, sent_at, updated_at, pack_reported_at, pack_tries, pack_next_at, codes_resends, packed_at, ship_by_sent FROM exchange_orders WHERE codes_state = 'checking' AND next_check_at <= ? ORDER BY next_check_at LIMIT ?
 `
 
 type ListDueVerdictChecksParams struct {
@@ -680,8 +878,6 @@ func (q *Queries) ListDueVerdictChecks(ctx context.Context, arg ListDueVerdictCh
 			&i.FailedStep,
 			&i.SupplyID,
 			&i.ConfirmedAt,
-			&i.LabelPrint,
-			&i.LabelSentAt,
 			&i.CodesState,
 			&i.CodesSentAt,
 			&i.NextCheckAt,
@@ -689,6 +885,12 @@ func (q *Queries) ListDueVerdictChecks(ctx context.Context, arg ListDueVerdictCh
 			&i.HandedOverAt,
 			&i.SentAt,
 			&i.UpdatedAt,
+			&i.PackReportedAt,
+			&i.PackTries,
+			&i.PackNextAt,
+			&i.CodesResends,
+			&i.PackedAt,
+			&i.ShipBySent,
 		); err != nil {
 			return nil, err
 		}
@@ -737,7 +939,7 @@ func (q *Queries) ListExchangeHistory(ctx context.Context, orderID int64) ([]Exc
 }
 
 const listExchangeOrdersByStep = `-- name: ListExchangeOrdersByStep :many
-SELECT order_id, fc_id, fc_number, fc_held_id, state, held_reasons, attention, problem_code, problem_params, problem_mp_code, problem_words, problem_at, problem_sent, failed_step, supply_id, confirmed_at, label_print, label_sent_at, codes_state, codes_sent_at, next_check_at, cancel_answer, handed_over_at, sent_at, updated_at FROM exchange_orders WHERE failed_step <> '' ORDER BY order_id
+SELECT order_id, fc_id, fc_number, fc_held_id, state, held_reasons, attention, problem_code, problem_params, problem_mp_code, problem_words, problem_at, problem_sent, failed_step, supply_id, confirmed_at, codes_state, codes_sent_at, next_check_at, cancel_answer, handed_over_at, sent_at, updated_at, pack_reported_at, pack_tries, pack_next_at, codes_resends, packed_at, ship_by_sent FROM exchange_orders WHERE failed_step <> '' ORDER BY order_id
 `
 
 func (q *Queries) ListExchangeOrdersByStep(ctx context.Context) ([]ExchangeOrder, error) {
@@ -766,8 +968,6 @@ func (q *Queries) ListExchangeOrdersByStep(ctx context.Context) ([]ExchangeOrder
 			&i.FailedStep,
 			&i.SupplyID,
 			&i.ConfirmedAt,
-			&i.LabelPrint,
-			&i.LabelSentAt,
 			&i.CodesState,
 			&i.CodesSentAt,
 			&i.NextCheckAt,
@@ -775,6 +975,12 @@ func (q *Queries) ListExchangeOrdersByStep(ctx context.Context) ([]ExchangeOrder
 			&i.HandedOverAt,
 			&i.SentAt,
 			&i.UpdatedAt,
+			&i.PackReportedAt,
+			&i.PackTries,
+			&i.PackNextAt,
+			&i.CodesResends,
+			&i.PackedAt,
+			&i.ShipBySent,
 		); err != nil {
 			return nil, err
 		}
@@ -790,7 +996,7 @@ func (q *Queries) ListExchangeOrdersByStep(ctx context.Context) ([]ExchangeOrder
 }
 
 const listExchangeOrdersOf = `-- name: ListExchangeOrdersOf :many
-SELECT order_id, fc_id, fc_number, fc_held_id, state, held_reasons, attention, problem_code, problem_params, problem_mp_code, problem_words, problem_at, problem_sent, failed_step, supply_id, confirmed_at, label_print, label_sent_at, codes_state, codes_sent_at, next_check_at, cancel_answer, handed_over_at, sent_at, updated_at FROM exchange_orders WHERE order_id IN (/*SLICE:ids*/?)
+SELECT order_id, fc_id, fc_number, fc_held_id, state, held_reasons, attention, problem_code, problem_params, problem_mp_code, problem_words, problem_at, problem_sent, failed_step, supply_id, confirmed_at, codes_state, codes_sent_at, next_check_at, cancel_answer, handed_over_at, sent_at, updated_at, pack_reported_at, pack_tries, pack_next_at, codes_resends, packed_at, ship_by_sent FROM exchange_orders WHERE order_id IN (/*SLICE:ids*/?)
 `
 
 func (q *Queries) ListExchangeOrdersOf(ctx context.Context, ids []int64) ([]ExchangeOrder, error) {
@@ -829,8 +1035,6 @@ func (q *Queries) ListExchangeOrdersOf(ctx context.Context, ids []int64) ([]Exch
 			&i.FailedStep,
 			&i.SupplyID,
 			&i.ConfirmedAt,
-			&i.LabelPrint,
-			&i.LabelSentAt,
 			&i.CodesState,
 			&i.CodesSentAt,
 			&i.NextCheckAt,
@@ -838,6 +1042,12 @@ func (q *Queries) ListExchangeOrdersOf(ctx context.Context, ids []int64) ([]Exch
 			&i.HandedOverAt,
 			&i.SentAt,
 			&i.UpdatedAt,
+			&i.PackReportedAt,
+			&i.PackTries,
+			&i.PackNextAt,
+			&i.CodesResends,
+			&i.PackedAt,
+			&i.ShipBySent,
 		); err != nil {
 			return nil, err
 		}
@@ -853,7 +1063,7 @@ func (q *Queries) ListExchangeOrdersOf(ctx context.Context, ids []int64) ([]Exch
 }
 
 const listHandoverOrders = `-- name: ListHandoverOrders :many
-SELECT o.id, o.account_id, o.number, o.grp, COALESCE(x.supply_id, 0) AS supply_id, COALESCE(x.label_print, '') AS label_print
+SELECT o.id, o.account_id, o.number, o.grp, o.warehouse_number, COALESCE(x.supply_id, 0) AS supply_id
 FROM handover_orders h
 JOIN orders o ON o.id = h.order_id
 LEFT JOIN exchange_orders x ON x.order_id = o.id
@@ -862,12 +1072,12 @@ ORDER BY o.account_id, o.grp, o.id
 `
 
 type ListHandoverOrdersRow struct {
-	ID         int64
-	AccountID  int64
-	Number     string
-	Grp        string
-	SupplyID   int64
-	LabelPrint string
+	ID              int64
+	AccountID       int64
+	Number          string
+	Grp             string
+	WarehouseNumber string
+	SupplyID        int64
 }
 
 func (q *Queries) ListHandoverOrders(ctx context.Context, handoverID int64) ([]ListHandoverOrdersRow, error) {
@@ -884,8 +1094,8 @@ func (q *Queries) ListHandoverOrders(ctx context.Context, handoverID int64) ([]L
 			&i.AccountID,
 			&i.Number,
 			&i.Grp,
+			&i.WarehouseNumber,
 			&i.SupplyID,
-			&i.LabelPrint,
 		); err != nil {
 			return nil, err
 		}
@@ -1044,7 +1254,7 @@ func (q *Queries) ListMarketplaceMatches(ctx context.Context) ([]FcMarketplaceMa
 }
 
 const listOpenExchangeOrders = `-- name: ListOpenExchangeOrders :many
-SELECT x.order_id, x.fc_id, x.fc_number, x.fc_held_id, x.state, x.held_reasons, x.attention, x.problem_code, x.problem_params, x.problem_mp_code, x.problem_words, x.problem_at, x.problem_sent, x.failed_step, x.supply_id, x.confirmed_at, x.label_print, x.label_sent_at, x.codes_state, x.codes_sent_at, x.next_check_at, x.cancel_answer, x.handed_over_at, x.sent_at, x.updated_at FROM exchange_orders x
+SELECT x.order_id, x.fc_id, x.fc_number, x.fc_held_id, x.state, x.held_reasons, x.attention, x.problem_code, x.problem_params, x.problem_mp_code, x.problem_words, x.problem_at, x.problem_sent, x.failed_step, x.supply_id, x.confirmed_at, x.codes_state, x.codes_sent_at, x.next_check_at, x.cancel_answer, x.handed_over_at, x.sent_at, x.updated_at, x.pack_reported_at, x.pack_tries, x.pack_next_at, x.codes_resends, x.packed_at, x.ship_by_sent FROM exchange_orders x
 JOIN orders o ON o.id = x.order_id
 WHERE x.state NOT IN ('handed_over', 'cancelled') AND x.cancel_answer = ''
   AND (?1 IS NULL OR o.state = ?1)
@@ -1077,8 +1287,6 @@ func (q *Queries) ListOpenExchangeOrders(ctx context.Context, orderState interfa
 			&i.FailedStep,
 			&i.SupplyID,
 			&i.ConfirmedAt,
-			&i.LabelPrint,
-			&i.LabelSentAt,
 			&i.CodesState,
 			&i.CodesSentAt,
 			&i.NextCheckAt,
@@ -1086,6 +1294,12 @@ func (q *Queries) ListOpenExchangeOrders(ctx context.Context, orderState interfa
 			&i.HandedOverAt,
 			&i.SentAt,
 			&i.UpdatedAt,
+			&i.PackReportedAt,
+			&i.PackTries,
+			&i.PackNextAt,
+			&i.CodesResends,
+			&i.PackedAt,
+			&i.ShipBySent,
 		); err != nil {
 			return nil, err
 		}
@@ -1101,7 +1315,7 @@ func (q *Queries) ListOpenExchangeOrders(ctx context.Context, orderState interfa
 }
 
 const listOrderCodes = `-- name: ListOrderCodes :many
-SELECT order_id, unit, identifier, code, sent_at, verdict, words FROM order_codes WHERE order_id = ? ORDER BY unit
+SELECT order_id, unit, identifier, code, sent_at, verdict, words, line FROM order_codes WHERE order_id = ? ORDER BY unit
 `
 
 func (q *Queries) ListOrderCodes(ctx context.Context, orderID int64) ([]OrderCode, error) {
@@ -1121,6 +1335,54 @@ func (q *Queries) ListOrderCodes(ctx context.Context, orderID int64) ([]OrderCod
 			&i.SentAt,
 			&i.Verdict,
 			&i.Words,
+			&i.Line,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listParcelsOf = `-- name: ListParcelsOf :many
+SELECT order_id, number, mp_number, ticket, label_print, label_sent_at, label_asked_at, label_next_at, label_tries FROM exchange_parcels WHERE order_id IN (/*SLICE:ids*/?) ORDER BY order_id, number
+`
+
+func (q *Queries) ListParcelsOf(ctx context.Context, ids []int64) ([]ExchangeParcel, error) {
+	query := listParcelsOf
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ExchangeParcel
+	for rows.Next() {
+		var i ExchangeParcel
+		if err := rows.Scan(
+			&i.OrderID,
+			&i.Number,
+			&i.MpNumber,
+			&i.Ticket,
+			&i.LabelPrint,
+			&i.LabelSentAt,
+			&i.LabelAskedAt,
+			&i.LabelNextAt,
+			&i.LabelTries,
 		); err != nil {
 			return nil, err
 		}
@@ -1288,12 +1550,12 @@ WHERE o.scheme = 'fbs' AND o.state = 'new' AND x.order_id IS NULL
   AND a.state IN ('working', 'key_expiring', 'no_connection') AND a.read_only = 0
   AND a.marketplace IN (/*SLICE:marketplaces*/?)
 ORDER BY o.created_at, o.id
-LIMIT ?2
+LIMIT ?
 `
 
 type OrdersToSendParams struct {
 	Marketplaces []string
-	Batch        int64
+	Limit        int64
 }
 
 type OrdersToSendRow struct {
@@ -1310,7 +1572,9 @@ type OrdersToSendRow struct {
 	FcWarehouse     string
 }
 
-// Only the orders of the marketplaces whose adapters hand orders over (sqlc.slice(marketplaces)) are sent.
+// Only the orders of the marketplaces whose adapters hand orders over (sqlc.slice(marketplaces)) are sent. The limit is a plain
+// placeholder: sqlc numbers a named one after the slice's first placeholder (`?2`), which with two marketplaces is the second
+// marketplace's name, not the limit.
 func (q *Queries) OrdersToSend(ctx context.Context, arg OrdersToSendParams) ([]OrdersToSendRow, error) {
 	query := ordersToSend
 	var queryParams []interface{}
@@ -1322,7 +1586,7 @@ func (q *Queries) OrdersToSend(ctx context.Context, arg OrdersToSendParams) ([]O
 	} else {
 		query = strings.Replace(query, "/*SLICE:marketplaces*/?", "NULL", 1)
 	}
-	queryParams = append(queryParams, arg.Batch)
+	queryParams = append(queryParams, arg.Limit)
 	rows, err := q.db.QueryContext(ctx, query, queryParams...)
 	if err != nil {
 		return nil, err
@@ -1422,45 +1686,51 @@ func (q *Queries) PutWarehouseMatch(ctx context.Context, arg PutWarehouseMatchPa
 const saveExchangeOrder = `-- name: SaveExchangeOrder :exec
 INSERT INTO exchange_orders (
     order_id, fc_id, fc_number, fc_held_id, state, held_reasons, attention, problem_code, problem_params, problem_mp_code,
-    problem_words, problem_at, problem_sent, failed_step, supply_id, confirmed_at, label_print, label_sent_at, codes_state,
-    codes_sent_at, next_check_at, cancel_answer, handed_over_at, sent_at, updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    problem_words, problem_at, problem_sent, failed_step, supply_id, confirmed_at, pack_reported_at, pack_tries, pack_next_at,
+    codes_resends, packed_at, ship_by_sent, codes_state, codes_sent_at, next_check_at, cancel_answer, handed_over_at, sent_at,
+    updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT (order_id) DO UPDATE SET fc_id = excluded.fc_id, fc_number = excluded.fc_number,
     fc_held_id = excluded.fc_held_id, state = excluded.state, held_reasons = excluded.held_reasons,
     attention = excluded.attention, problem_code = excluded.problem_code, problem_params = excluded.problem_params,
     problem_mp_code = excluded.problem_mp_code, problem_words = excluded.problem_words, problem_at = excluded.problem_at,
     problem_sent = excluded.problem_sent, failed_step = excluded.failed_step, supply_id = excluded.supply_id,
-    confirmed_at = excluded.confirmed_at, label_print = excluded.label_print, label_sent_at = excluded.label_sent_at,
+    confirmed_at = excluded.confirmed_at, pack_reported_at = excluded.pack_reported_at, pack_tries = excluded.pack_tries,
+    pack_next_at = excluded.pack_next_at, codes_resends = excluded.codes_resends, packed_at = excluded.packed_at, ship_by_sent = excluded.ship_by_sent,
     codes_state = excluded.codes_state, codes_sent_at = excluded.codes_sent_at, next_check_at = excluded.next_check_at,
     cancel_answer = excluded.cancel_answer, handed_over_at = excluded.handed_over_at, updated_at = excluded.updated_at
 `
 
 type SaveExchangeOrderParams struct {
-	OrderID       int64
-	FcID          string
-	FcNumber      string
-	FcHeldID      string
-	State         string
-	HeldReasons   string
-	Attention     string
-	ProblemCode   string
-	ProblemParams string
-	ProblemMpCode string
-	ProblemWords  string
-	ProblemAt     sql.NullInt64
-	ProblemSent   int64
-	FailedStep    string
-	SupplyID      sql.NullInt64
-	ConfirmedAt   sql.NullInt64
-	LabelPrint    string
-	LabelSentAt   sql.NullInt64
-	CodesState    string
-	CodesSentAt   sql.NullInt64
-	NextCheckAt   sql.NullInt64
-	CancelAnswer  string
-	HandedOverAt  sql.NullInt64
-	SentAt        int64
-	UpdatedAt     int64
+	OrderID        int64
+	FcID           string
+	FcNumber       string
+	FcHeldID       string
+	State          string
+	HeldReasons    string
+	Attention      string
+	ProblemCode    string
+	ProblemParams  string
+	ProblemMpCode  string
+	ProblemWords   string
+	ProblemAt      sql.NullInt64
+	ProblemSent    int64
+	FailedStep     string
+	SupplyID       sql.NullInt64
+	ConfirmedAt    sql.NullInt64
+	PackReportedAt sql.NullInt64
+	PackTries      int64
+	PackNextAt     sql.NullInt64
+	CodesResends   int64
+	PackedAt       sql.NullInt64
+	ShipBySent     sql.NullInt64
+	CodesState     string
+	CodesSentAt    sql.NullInt64
+	NextCheckAt    sql.NullInt64
+	CancelAnswer   string
+	HandedOverAt   sql.NullInt64
+	SentAt         int64
+	UpdatedAt      int64
 }
 
 func (q *Queries) SaveExchangeOrder(ctx context.Context, arg SaveExchangeOrderParams) error {
@@ -1481,8 +1751,12 @@ func (q *Queries) SaveExchangeOrder(ctx context.Context, arg SaveExchangeOrderPa
 		arg.FailedStep,
 		arg.SupplyID,
 		arg.ConfirmedAt,
-		arg.LabelPrint,
-		arg.LabelSentAt,
+		arg.PackReportedAt,
+		arg.PackTries,
+		arg.PackNextAt,
+		arg.CodesResends,
+		arg.PackedAt,
+		arg.ShipBySent,
 		arg.CodesState,
 		arg.CodesSentAt,
 		arg.NextCheckAt,
@@ -1527,6 +1801,41 @@ func (q *Queries) SaveHandover(ctx context.Context, arg SaveHandoverParams) erro
 		arg.ProblemSent,
 		arg.UpdatedAt,
 		arg.ID,
+	)
+	return err
+}
+
+const saveParcel = `-- name: SaveParcel :exec
+INSERT INTO exchange_parcels (order_id, number, mp_number, ticket, label_print, label_sent_at, label_asked_at, label_next_at, label_tries)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT (order_id, number) DO UPDATE SET mp_number = excluded.mp_number, ticket = excluded.ticket,
+    label_print = excluded.label_print, label_sent_at = excluded.label_sent_at, label_asked_at = excluded.label_asked_at,
+    label_next_at = excluded.label_next_at, label_tries = excluded.label_tries
+`
+
+type SaveParcelParams struct {
+	OrderID      int64
+	Number       int64
+	MpNumber     string
+	Ticket       string
+	LabelPrint   string
+	LabelSentAt  sql.NullInt64
+	LabelAskedAt sql.NullInt64
+	LabelNextAt  sql.NullInt64
+	LabelTries   int64
+}
+
+func (q *Queries) SaveParcel(ctx context.Context, arg SaveParcelParams) error {
+	_, err := q.db.ExecContext(ctx, saveParcel,
+		arg.OrderID,
+		arg.Number,
+		arg.MpNumber,
+		arg.Ticket,
+		arg.LabelPrint,
+		arg.LabelSentAt,
+		arg.LabelAskedAt,
+		arg.LabelNextAt,
+		arg.LabelTries,
 	)
 	return err
 }

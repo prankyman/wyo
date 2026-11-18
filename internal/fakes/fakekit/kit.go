@@ -49,6 +49,10 @@ type Options[S any] struct {
 	Key func(r *http.Request) string
 	// Dialect writes the kit's own answers.
 	Dialect Dialect
+	// RedactBody, when not nil, rewrites the body of a request before the call list keeps it, so that a fake whose requests
+	// carry a secret of its own (a marking code) never lists it. path is the address of the call; the kit has already
+	// replaced the key. Nil keeps the body as it is.
+	RedactBody func(path, body string) string
 }
 
 // Kit keeps the state, the call log and the queued faults of every key.

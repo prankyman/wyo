@@ -39,13 +39,23 @@ export interface IFakeOzonWarehouse {
     id: number;
     name: string;
     is_rfbs?: boolean;
+    /** The label type of the warehouse (`carriage_label_type`); `UNSPECIFIED` when left out. */
+    label_type?: 'UNSPECIFIED' | 'BIG' | 'SMALL';
+    /** Ozon's automatic assembly (`is_auto_assembly`). */
+    auto_assembly?: boolean;
 }
 
+/**
+ * A product of the seller's catalogue. What the product asks of the seller before a posting of it may be packed
+ * (`internal/fakes/ozon/needs.go`): `mark` says whether a marking code is needed (every unit must carry one) or only possible; a
+ * product with none takes no code, and sending one is Ozon's refusal.
+ */
 export interface IFakeOzonProduct {
     sku: number;
     offer_id: string;
     name: string;
     barcodes?: string[];
+    mark?: 'needed' | 'possible';
 }
 
 /**
@@ -108,6 +118,16 @@ export interface IFakeOzonPosting {
     /** The deadline of assembly, RFC 3339. */
     shipment_date: string;
     products: IFakeOzonLine[];
+}
+
+/**
+ * What the next sets of marking codes of a posting end in (`POST /__control/postings/exemplar-check`): `error_sets` of them end
+ * with every mark failed and the error codes `error_codes`, so Ozon refuses the codes with its own words.
+ */
+export interface IFakeOzonCodeCheck {
+    posting_number: string;
+    error_sets: number;
+    error_codes: string[];
 }
 
 export interface IFakeOzonStatusChange {
@@ -190,6 +210,30 @@ export async function splitFakeOzonPosting(apiKey: string, split: IFakeOzonSplit
 /** A new deadline of assembly (`shipment_date`, RFC 3339) for a posting. */
 export async function setFakeOzonDeadline(apiKey: string, postingNumber: string, shipmentDate: string): Promise<void> {
     await control(apiKey, 'postings/deadline', { posting_number: postingNumber, shipment_date: shipmentDate });
+}
+
+/** Makes the next sets of marking codes of a posting end in a refusal with Ozon's error codes. */
+export async function planFakeOzonCodeCheck(apiKey: string, check: IFakeOzonCodeCheck): Promise<void> {
+    await control(apiKey, 'postings/exemplar-check', check);
+}
+
+/** One call the fake Ozon received, without its key (`GET /__control/calls`). */
+export interface IFakeOzonCall {
+    method: string;
+    path: string;
+    status: number;
+}
+
+/** Every call the fake Ozon received for the state of `apiKey`, oldest first, so a test can tell what the wyo server wrote and how often. */
+export async function fakeOzonCalls(apiKey: string): Promise<IFakeOzonCall[]> {
+    const fake = await request.newContext({ baseURL: `http://${FAKE_MARKETPLACES_ADDRESS}` });
+    try {
+        const response = await fake.get(`/${FAKE_OZON_HOST}/__control/calls`, { headers: { Authorization: apiKey } });
+        if (!response.ok()) throw new Error(`the fake Ozon refused /__control/calls with ${response.status()}`);
+        return ((await response.json()) as { calls: IFakeOzonCall[] }).calls;
+    } finally {
+        await fake.dispose();
+    }
 }
 
 /** A new FBO posting of the key's seller. */

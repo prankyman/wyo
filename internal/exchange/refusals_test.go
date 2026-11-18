@@ -23,19 +23,19 @@ func TestARefusalOfTheMarketplaceAtAStepIsAProblemInItsOwnWordsUntilItIsRetried(
 		wantAfter string
 	}{
 		{
-			name: "putting the order into a supply", step: "confirm", method: http.MethodPatch, path: `/supplies/[^/]+/orders$`,
+			name: "putting the order into a supply", step: "confirm", method: http.MethodPatch, path: "/orders",
 			code: "FailedToAddSupplyOrder", message: "Не удалось закрепить сборочное задание за поставкой.",
 			fail:      func(t *testing.T, r *rig, number string) { r.reserve(t, number) },
 			wantState: "reserved", wantAfter: "label_sent",
 		},
 		{
-			name: "fetching the sticker", step: "labels", method: http.MethodPost, path: `/orders/stickers$`,
+			name: "fetching the sticker", step: "labels", method: http.MethodPost, path: "/orders/stickers",
 			code: "StatusMismatch", message: "Несоответствие статусов, проверьте их правильность",
 			fail:      func(t *testing.T, r *rig, number string) { r.reserve(t, number) },
 			wantState: "reserved", wantAfter: "label_sent",
 		},
 		{
-			name: "a code for an order that takes none", step: "codes", method: http.MethodPut, path: `/meta/sgtin$`,
+			name: "a code for an order that takes none", step: "codes", method: http.MethodPut, path: "/meta/sgtin",
 			code: "MetaKeyNotRequired", message: "Order doesn't require ID",
 			fail: func(t *testing.T, r *rig, number string) {
 				r.reserve(t, number)
@@ -44,7 +44,7 @@ func TestARefusalOfTheMarketplaceAtAStepIsAProblemInItsOwnWordsUntilItIsRetried(
 			wantState: "packed", wantAfter: "codes_checking",
 		},
 		{
-			name: "a code for an order not on assembly", step: "codes", method: http.MethodPut, path: `/meta/sgtin$`,
+			name: "a code for an order not on assembly", step: "codes", method: http.MethodPut, path: "/meta/sgtin",
 			code: "FailedToUpdateMeta", message: "Failed to update the label identifiers of the assembly order.",
 			fail: func(t *testing.T, r *rig, number string) {
 				r.reserve(t, number)
@@ -62,7 +62,7 @@ func TestARefusalOfTheMarketplaceAtAStepIsAProblemInItsOwnWordsUntilItIsRetried(
 			r.connect(t)
 
 			number, _ := r.send(t, map[string]any{"required_meta": []string{"sgtin"}})
-			r.refuse(tc.method, tc.path, http.StatusConflict, tc.code, tc.message)
+			r.refuse(t, tc.method, tc.path, http.StatusConflict, tc.code, tc.message)
 			tc.fail(t, r, number)
 
 			x := r.exchanged(t, number)
@@ -190,7 +190,7 @@ func TestARetryThatMeetsALostCallKeepsTheProblemSoItCanBePressedAgain(t *testing
 	r.connect(t)
 
 	number, _ := r.send(t, map[string]any{})
-	r.refuse(http.MethodPatch, `/supplies/[^/]+/orders$`, http.StatusConflict, "FailedToAddSupplyOrder", "Не удалось закрепить сборочное задание")
+	r.refuse(t, http.MethodPatch, "/orders", http.StatusConflict, "FailedToAddSupplyOrder", "Не удалось закрепить сборочное задание")
 	r.reserve(t, number)
 
 	x := r.exchanged(t, number)

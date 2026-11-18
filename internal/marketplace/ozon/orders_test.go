@@ -36,7 +36,8 @@ func TestANewPostingOfSeveralProductsIsOneOrderWithItsLinesAndWithoutTheBuyer(t 
 			{ProductID: "2003", Article: "CAP", Name: "Товар CAP", Barcodes: nil, Quantity: 1},
 		}
 
-		if o.Number != "33333333-0001-1" || o.Basket != "33333333" || o.WarehouseNumber != "1001" || !reflect.DeepEqual(o.Lines, want) ||
+		// Ozon makes one shipment for each warehouse and day, so the warehouse's number is the group the hand-over splits by.
+		if o.Number != "33333333-0001-1" || o.Basket != "33333333" || o.WarehouseNumber != "1001" || o.Group != "1001" || !reflect.DeepEqual(o.Lines, want) ||
 			!o.ShipBy.Equal(synckit.Noon().Add(5*time.Hour)) || o.Status.State != marketplace.StateNew || o.CreatedAt.IsZero() {
 			t.Fatalf("reading %d: the order %+v", reading+1, o)
 		}

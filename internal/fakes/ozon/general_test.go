@@ -68,6 +68,9 @@ type warehousesAnswer struct {
 		Name        string `json:"name"`
 		Status      string `json:"status"`
 		IsRfbs      bool   `json:"is_rfbs"`
+
+		CarriageLabelType string `json:"carriage_label_type"`
+		IsAutoAssembly    bool   `json:"is_auto_assembly"`
 	} `json:"warehouses"`
 	Cursor  string `json:"cursor"`
 	HasNext bool   `json:"has_next"`
@@ -209,4 +212,34 @@ func TestProductInfoRefusesMoreThanAThousandValuesInAll(t *testing.T) {
 	if got.status != http.StatusBadRequest || body.Code != 3 {
 		t.Fatalf("1001 values answered %d %s, want 400", got.status, got.body)
 	}
+}
+
+func TestAWarehouseShowsItsLabelTypeAndItsAutomaticAssemblyAsSetUpAndOrdinaryWhenLeftOut(t *testing.T) {
+	t.Parallel()
+
+	r := newReadyRig(t)
+	r.control("setup", map[string]any{"warehouses": []map[string]any{
+		{"id": 1001, "name": "One"},
+		{"id": 1002, "name": "Two", "label_type": "BIG", "auto_assembly": true},
+		{"id": 1003, "name": "Three", "label_type": "SMALL"},
+	}}, nil)
+
+	var out warehousesAnswer
+
+	r.answer(pathWarehouses, map[string]any{"limit": 10}, &out)
+
+	got := make([]string, len(out.Warehouses))
+	for i, w := range out.Warehouses {
+		got[i] = w.CarriageLabelType + "/" + strconv.FormatBool(w.IsAutoAssembly)
+	}
+
+	// UNSPECIFIED is the value Ozon's file lists for a warehouse that does not choose (OZC section 6).
+	sameStrings(t, "label type and automatic assembly of the three warehouses", got, []string{"UNSPECIFIED/false", "BIG/true", "SMALL/false"})
+}
+
+func TestASetupRefusesALabelTypeOzonDoesNotList(t *testing.T) {
+	t.Parallel()
+
+	r := newReadyRig(t)
+	r.controlRefused("setup", map[string]any{"warehouses": []map[string]any{{"id": 1, "label_type": "HUGE"}}})
 }

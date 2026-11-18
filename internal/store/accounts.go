@@ -69,11 +69,14 @@ type KeyField struct {
 }
 
 // Warehouse is one of the seller's warehouses on a marketplace: the marketplace's own number, its name, and whether the
-// seller delivers its orders to the buyer itself (they are never read).
+// seller delivers its orders to the buyer itself (they are never read), the kind of label the marketplace makes for it ("" when
+// it names none) and whether the marketplace itself assembles its orders.
 type Warehouse struct {
 	Number         string
 	Name           string
 	SellerDelivers bool
+	LabelType      string
+	AutoAssembly   bool
 }
 
 // keyFieldsText keeps the shown fields of a key as JSON; no field is no text.
@@ -272,7 +275,8 @@ func (q *Queries) ReplaceWarehouses(ctx context.Context, accountID int64, list [
 
 	for _, w := range list {
 		if err := q.q.InsertWarehouse(ctx, db.InsertWarehouseParams{
-			AccountID: accountID, Number: w.Number, Name: w.Name, SellerDelivers: boolInt(w.SellerDelivers), UpdatedAt: seconds(at),
+			AccountID: accountID, Number: w.Number, Name: w.Name, SellerDelivers: boolInt(w.SellerDelivers),
+			LabelType: w.LabelType, AutoAssembly: boolInt(w.AutoAssembly), UpdatedAt: seconds(at),
 		}); err != nil {
 			return kind(err)
 		}
@@ -290,7 +294,9 @@ func (q *Queries) Warehouses(ctx context.Context, accountID int64) ([]Warehouse,
 
 	list := make([]Warehouse, 0, len(rows))
 	for _, row := range rows {
-		list = append(list, Warehouse{Number: row.Number, Name: row.Name, SellerDelivers: row.SellerDelivers == 1})
+		list = append(list, Warehouse{
+			Number: row.Number, Name: row.Name, SellerDelivers: row.SellerDelivers == 1, LabelType: row.LabelType, AutoAssembly: row.AutoAssembly == 1,
+		})
 	}
 
 	return list, nil

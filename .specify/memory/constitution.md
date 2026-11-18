@@ -1,6 +1,13 @@
 <!--
 Sync Impact Report:
-- Version change: 1.3.0 → 1.4.0 (MINOR) — Plan 5
+- Version change: 1.4.0 → 1.5.0 (MINOR) — Plan 6
+  (`.agents/plans/wyo-ozon-fbs-exchange-with-a-fulfilment-centre-codes-packing-labels-shipment.md`): a rule widened, nothing
+  removed. Principle XII: the exchange's flow is chosen by the parts an adapter claims (a marketplace that confirms an order, or one
+  whose label exists only after the packing is reported), a marketplace may declare that a second sending of codes replaces the
+  first, a batch is made to hold exactly the hand-over's orders and no others, an adapter declares which of the six hand-over steps it
+  needs, and a label file is fetched without the key and only from the domain the adapter declares; principle IX: that domain is
+  listed in the one list, as a wildcard entry (`*.ozone.ru`, https only, never the bare domain).
+- Earlier: 1.3.0 → 1.4.0 (MINOR) — Plan 5
   (`.agents/plans/wyo-ozon-key-reading-adapter-orders-with-several-products-fake-ozon.md`): principle VI names Ozon's
   description file, the comparison of its later versions and the corrected temporary copy its generator reads (the
   maintainer, 2026-11-18: «Yes, fix them in a temporary copy, use the generator. Fix whatever must be fixed.»); principle IX —
@@ -333,11 +340,15 @@ certificate authority (Plan 2), the marketplaces (Plan 3), the fulfilment centre
 `TestTheFulfilmentCentresAddressIsListedOnlyWhileTheSettingIsFilled`).
 The marketplaces' hosts are declared by the adapters (`marketplace.Adapter.Hosts`), and the wyo server gives the gate the hosts of the
 adapters it registers, so the one list is built in one place at start (`TestEveryHostOfEveryAdapterIsOnTheGatesListInARelease`).
-`internal/outbound` hands out the only HTTP clients; a client refuses, before anything leaves, a request to an address outside its
+A marketplace's file host, from which labels and documents are fetched, is listed the same way, as one wildcard entry: `*.domain`
+names every host under that domain, over https on the standard port only, and never the bare domain, another domain that merely ends
+with the same letters, or a domain of fewer than two labels (Ozon: `*.ozone.ru`; the adapter's file route also carries that host and
+no key). `internal/outbound` hands out the only HTTP clients; a client refuses, before anything leaves, a request to an address outside its
 purpose's list, and follows a redirect only inside it. The look for a newer release names neither the domain nor the installed version.
 This is rule R3 seen from the Go side.
 
-- **Tests:** `TestACallOutsideTheListIsRefusedBeforeItLeaves` and `TestARedirectIsFollowedOnlyInsideTheList` (`internal/outbound`); the
+- **Tests:** `TestACallOutsideTheListIsRefusedBeforeItLeaves` and `TestARedirectIsFollowedOnlyInsideTheList` (`internal/outbound`),
+  `TestAWildcardHostOfAnAdapterAllowsExactlyTheHostsUnderItsDomain` (`internal/outbound`); the
   `forbidigo` rule of `.golangci.yml` that forbids `http.Client`, `http.Transport` and `http.DefaultTransport` anywhere but
   `internal/outbound`, tests, the fakes and the test kit; the updater's test that a look sends exactly three plain downloads.
 
@@ -396,6 +407,23 @@ through the adapter contract's writing parts. It knows no marketplace and no ful
   step's outcome is stored before the next, so a wyo server stopped in the middle goes on from the last finished step.
 - **Never a cancellation at a marketplace:** the wyo server passes a marketplace's cancellation to the fulfilment centre and never
   cancels an order at a marketplace; the owner does that in the marketplace's cabinet.
+- **One flow, chosen by the parts an adapter claims:** the engine never asks which marketplace an order is from. An adapter that
+  claims `orders.confirm` has its order confirmed into a batch when the goods are reserved and its label follows at once; one that
+  claims `orders.pack` has nothing written at the reservation, and its codes, its report of the packing (one package for each of the
+  fulfilment centre's parcels, so that several parcels split the marketplace's order) and then each parcel's label, asked for when the
+  marketplace makes it, follow the fulfilment centre's `order.packing_finished`. An adapter without the parts of either flow is shown as
+  not supported and its orders are not sent.
+- **Codes that replace:** an adapter declares whether a second sending of marking codes replaces the first. When it does, the full set
+  is sent again and nothing is removed first; when it does not say so, the earlier codes are removed first.
+- **A batch of exactly the hand-over's orders:** whatever a marketplace puts into a new batch by itself, the batch is made to hold
+  exactly the orders of the hand-over, and read back and compared both ways; a batch that holds another order is never closed.
+- **The hand-over's steps are declared:** an adapter says which of the six steps (batch, move, boxes, shipping, close, documents) it
+  needs; the runner skips the others and asks for stored shipping settings only when the step «shipping» is declared. Each step's
+  outcome is stored before the next, a step that finds its work already done does not repeat it, and a batch already closed is never
+  closed again.
+- **A file fetched from a link is fetched without the key,** only over https, only from the host the adapter declares for its files,
+  through the one caller; its journal row names a placeholder and never the link, at most 5 MB are taken, and only a file that
+  begins as the kind it should be is passed on.
 - **Events in order, once:** every event is stored first, a repeat is ignored, and events are applied in the order of their numbers,
   only up to the last one read in order; a notification is accepted only with a right signature and a time within five minutes.
 - **What never travels:** a marketplace key never reaches the fulfilment centre, its key never reaches a marketplace, and neither, nor a
@@ -404,7 +432,12 @@ through the adapter contract's writing parts. It knows no marketplace and no ful
   made twice, the events, the budget of a made-up hour); `TestNeitherKeyNorAMarkingCodeLeavesItsOwnSide` (`internal/server`);
   `TestTheCancelMethodOfWildberriesIsCalledNowhereInThisRepository`, `TestTheCancelMethodsOfOzonAreNeverGeneratedInThisRepository` and
   the other architecture tests of rule R6; the contract suite's
-  cases of the writing parts (`RunAdapterContract`).
+  cases of the writing parts (`RunAdapterContract`), run for both adapters; for Ozon's flow:
+  `TestAWalkInterruptedByALostCallAfterEveryWriteInTurnEndsRightAndWritesNothingTwice` (`internal/exchange`),
+  `TestACodeIsSentWithItsSeparatorEscapedOnceAndNeverTwice` (`internal/exchange`),
+  `TestARequestToAFileLinkCarriesNoKeyAndItsJournalRowNamesNoLink` and
+  `TestARequestToAHostOutsideTheRoutesDomainIsRefusedBeforeItLeaves` (`internal/sync`),
+  `TestTheExchangeAtItsPeriodsNeverExceedsEitherBudget` (`internal/exchange`).
 
 ## Development Standards
 
@@ -717,4 +750,4 @@ file records every amendment with its version change and the request that caused
 pull request's description. The version follows semantic versioning of the rules: a principle added or a rule tightened raises the
 second number, a wording change the third; the first number is raised only by the maintainer.
 
-**Version**: 1.4.0 | **Ratified**: 2026-11-17 | **Last Amended**: 2026-11-18
+**Version**: 1.5.0 | **Ratified**: 2026-11-17 | **Last Amended**: 2026-11-18

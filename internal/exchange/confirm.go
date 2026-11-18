@@ -9,9 +9,6 @@ import (
 	"github.com/prankyman/wyo/internal/store"
 )
 
-// supplyNameLayout is the day in the name of an assembly supply: «wyo — сборка 18.11.2026».
-const supplyNameLayout = "02.01.2006"
-
 // roleAssembly is the role of the open supply an account's orders of one group are confirmed into.
 const roleAssembly = "assembly"
 
@@ -25,6 +22,17 @@ func (s *Service) reserved(ctx context.Context, sess *session, o *order) error {
 	if o.x.State != stateReserved {
 		s.note(o, stateReserved, "reserved")
 		s.save(ctx, o)
+	}
+
+	adapter, _, err := s.conn(ctx, o, jobOrders)
+	if err != nil {
+		return errors.Join(errStopped, err)
+	}
+
+	if flowOf(adapter) == flowPack {
+		// Nothing is written to the marketplace at the reservation: the codes, the packing report and the labels follow
+		// the fulfilment centre's order.packing_finished (pack.go).
+		return nil
 	}
 
 	if err := s.confirm(ctx, sess, o); err != nil {
@@ -147,7 +155,7 @@ func (s *Service) assemblySupply(ctx context.Context, c marketplace.OrderConfirm
 
 	now := s.opts.Clock.Now()
 
-	number, err := c.NewBatch(ctx, conn, "wyo — сборка "+now.In(s.opts.Location).Format(supplyNameLayout))
+	number, err := c.NewBatch(ctx, conn, marketplace.AssemblyBatchName(now, s.opts.Location))
 	if err != nil {
 		return store.Supply{}, err
 	}
@@ -164,10 +172,15 @@ func (s *Service) assemblySupply(ctx context.Context, c marketplace.OrderConfirm
 	return sup, err
 }
 
-// attachLabel fetches the order's label and attaches it at the fulfilment centre, unless that has already happened. No
-// scan text goes with it: which text a label's code gives to a scanner is not sourced.
+// attachLabel fetches the order's label and attaches it at the fulfilment centre as the label of its first parcel, unless that
+// has already happened. No scan text goes with it: which text a label's code gives to a scanner is not sourced.
 func (s *Service) attachLabel(ctx context.Context, sess *session, o *order) error {
-	if !o.x.LabelSentAt.IsZero() {
+	rows, err := s.parcelRows(ctx, o, 1)
+	if err != nil {
+		return err
+	}
+
+	if !rows[0].LabelSentAt.IsZero() {
 		return nil
 	}
 
@@ -191,7 +204,7 @@ func (s *Service) attachLabel(ctx context.Context, sess *session, o *order) erro
 		return errSkipped
 	}
 
-	if err := sess.fc.PutLabel(ctx, o.x.FcID, labels[i].ContentType, labels[i].Data); err != nil {
+	if err := sess.fc.PutLabel(ctx, o.x.FcID, 1, labels[i].ContentType, labels[i].Data); err != nil {
 		if s.failed(ctx, err) {
 			return errors.Join(errStopped, err)
 		}
@@ -201,13 +214,14 @@ func (s *Service) attachLabel(ctx context.Context, sess *session, o *order) erro
 		return errSkipped
 	}
 
-	o.x.LabelPrint, o.x.LabelSentAt = labels[i].Print(), s.opts.Clock.Now()
+	rows[0].MpNumber, rows[0].LabelPrint, rows[0].LabelSentAt = o.row.Number, labels[i].Print(), s.opts.Clock.Now()
+	s.saveParcel(ctx, rows[0])
 	s.clearProblem(ctx, sess, o)
 
 	if o.x.State == stateReserved {
 		s.note(o, stateLabelSent, "label_sent")
 	} else {
-		o.added = append(o.added, store.ExchangeHistory{At: o.x.LabelSentAt, State: o.x.State, Code: "label_sent"})
+		o.added = append(o.added, store.ExchangeHistory{At: rows[0].LabelSentAt, State: o.x.State, Code: "label_sent"})
 	}
 
 	s.save(ctx, o)

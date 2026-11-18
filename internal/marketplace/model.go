@@ -126,10 +126,15 @@ type FeedPage struct {
 
 // Warehouse is one of the seller's warehouses on a marketplace. SellerDelivers marks a warehouse whose orders the seller
 // delivers to the buyer itself: they need the buyer's address, which the connector never keeps, so they are never read.
+//
+// LabelType is the kind of label the marketplace makes for the warehouse's orders (empty when it has one kind), and
+// AutoAssembly says the marketplace assembles the warehouse's orders by itself.
 type Warehouse struct {
 	Number         string
 	Name           string
 	SellerDelivers bool
+	LabelType      string
+	AutoAssembly   bool
 }
 
 // KeyFacts is what a key says about itself: its type in the adapter's words, whether it is a test key, its end of life

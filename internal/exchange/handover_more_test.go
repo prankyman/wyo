@@ -256,7 +256,7 @@ func TestRetryingAHandoverThatMeetsALostCallKeepsItsProblem(t *testing.T) {
 	r.connect(t)
 
 	number := r.packedOrder(t, false)
-	r.refuse(http.MethodPatch, `/deliver$`, http.StatusConflict, "SupplyShippingRequired", "Specify shipping point, type and date to close the supply")
+	r.refuse(t, http.MethodPatch, "/deliver", http.StatusConflict, "SupplyShippingRequired", "Specify shipping point, type and date to close the supply")
 
 	h := r.ask(t, number)
 	if h.State != handover.StateProblem || !h.Problem.Sent {
@@ -293,7 +293,7 @@ func TestTheShippingPointsTheMarketplaceRefusesToListAreAnErrorOfTheOwnersChoice
 	r.setHandover(t, nil, "")
 	h := r.ask(t, number)
 
-	r.refuse(http.MethodGet, `/shipping-points$`, http.StatusConflict, "SupplyHasZeroOrders", "Не удалось обработать поставку.")
+	r.refuse(t, http.MethodGet, "/shipping-points", http.StatusConflict, "SupplyHasZeroOrders", "Не удалось обработать поставку.")
 
 	if _, _, err := r.svc.Handovers().Points(t.Context(), h.ID); err == nil {
 		t.Fatal("Points listed points although the marketplace refused")
@@ -306,5 +306,49 @@ func TestTheShippingPointsTheMarketplaceRefusesToListAreAnErrorOfTheOwnersChoice
 
 	if got := r.handover(t); got.State != handover.StateDocumentsSent {
 		t.Fatalf("the hand-over: %+v", got)
+	}
+}
+
+func TestTransportBoxesTheFulfilmentCentreNamesInItsOwnRequestAreAddedToTheSupply(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(t)
+	r.connect(t)
+
+	// Wildberries takes at most one transport box for two orders, so three orders may have two.
+	number := r.packedOrder(t, false)
+	r.packedOrder(t, false)
+	r.packedOrder(t, false)
+	r.setHandover(t, map[string]string{"shipping_type": "selfShipping", "city": "Moscow", "office_type": "sc"}, "101")
+
+	// The fake fulfilment centre names two transport boxes in the event that asks for the documents.
+	do(t, r.fc, http.MethodPost, "/__control/handovers/"+r.handoverOf(t, number)+"/request-documents", map[string]int{"transport_boxes": 2}, nil)
+	r.events(t)
+
+	h := r.handover(t)
+	if h.State != handover.StateDocumentsSent || h.Boxes != 2 {
+		t.Fatalf("the hand-over: %+v", h)
+	}
+
+	supplies, err := r.kit.Store.Read().HandoverSupplies(t.Context(), h.ID)
+	if err != nil || len(supplies) != 1 {
+		t.Fatalf("the hand-over's supplies: %+v, %v", supplies, err)
+	}
+
+	var boxes struct {
+		Boxes []struct {
+			ID string `json:"id"`
+		} `json:"trbxes"`
+	}
+
+	r.kit.Clock.Advance(time.Second) // the fake spaces calls of one token 200 ms apart
+	do(t, r.wb, http.MethodGet, "/api/v3/supplies/"+supplies[0].Number+"/trbx", nil, &boxes)
+
+	if len(boxes.Boxes) != 2 {
+		t.Fatalf("the supply holds %d transport boxes, want the 2 the fulfilment centre named", len(boxes.Boxes))
+	}
+
+	if kinds := documentKinds(r.handoverAt(t, h.FcID)); !slices.Equal(kinds, []string{"handover_code", "box_label", "box_label"}) {
+		t.Fatalf("the documents at the fulfilment centre: %v", kinds)
 	}
 }

@@ -1,7 +1,12 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { marketplaceMatchesOf } from '$test/support/external-api';
-import { MARKETPLACE, SECOND_MARKETPLACE, SECOND_MARKETPLACE_CODE } from '$test/support/marketplaces';
+import {
+    MARKETPLACE,
+    PACKING_MARKETPLACE,
+    SECOND_MARKETPLACE,
+    SECOND_MARKETPLACE_CODE
+} from '$test/support/marketplaces';
 import { flushTicks, sendForm } from '$test/support/superform-answer';
 
 vi.mock('$lib/api/api', async (original) => ({
@@ -145,5 +150,17 @@ describe('MarketplacesSection', () => {
                 { accountId: 8, fcMarketplace: 'mp-a' }
             ]
         });
+    });
+
+    it('draws the box of an account whose marketplace takes part in the exchange by reporting the packing, with its code proposed and no «not supported» note', async () => {
+        const base = marketplaceMatchesOf();
+        draw(marketplaceMatchesOf({ rows: [{ ...base.rows[0], marketplace: SECOND_MARKETPLACE_CODE }] }), vi.fn(), [
+            MARKETPLACE,
+            PACKING_MARKETPLACE
+        ]);
+        await openSection();
+
+        expect(screen.queryByTestId('codes-0-unsupported')).toBeNull();
+        expect(screen.getByTestId('codes-0-box')).toHaveValue('mp-a');
     });
 });

@@ -337,3 +337,34 @@ func TestAnUnknownControlCallIsNotFoundInTheControlCallsWords(t *testing.T) {
 		t.Fatalf("answered %d %s", got.status, got.body)
 	}
 }
+
+func TestProductsTakenOffAPostingInTheCabinetChangeWhatTheAnswersShowAndAreRefusedWhenTheyCannotBe(t *testing.T) {
+	t.Parallel()
+
+	r := newReadyRig(t)
+	r.newPosting("100-1", 24, map[string]any{"products": []map[string]any{line(5001, "ART-1", "One", 3), line(5002, "ART-2", "Two", 1)}})
+
+	// The seller takes two units of the first product and the whole second line off the posting.
+	r.control("postings/cut", map[string]any{"posting_number": "100-1", "products": []map[string]any{
+		{"sku": 5001, "quantity": 1}, {"sku": 5002, "quantity": 0},
+	}}, nil)
+
+	got := r.getPosting("100-1")
+	if len(got.Products) != 1 || got.Products[0].SKU != 5001 || got.Products[0].Quantity != 1 {
+		t.Fatalf("the products after the cut: %+v", got.Products)
+	}
+
+	for name, body := range map[string]map[string]any{
+		"a posting that is not there": {"posting_number": "nobody-1", "products": []map[string]any{{"sku": 5001, "quantity": 1}}},
+		"a product the posting lacks": {"posting_number": "100-1", "products": []map[string]any{{"sku": 5002, "quantity": 1}}},
+		"more than the posting has":   {"posting_number": "100-1", "products": []map[string]any{{"sku": 5001, "quantity": 2}}},
+		"a negative number":           {"posting_number": "100-1", "products": []map[string]any{{"sku": 5001, "quantity": -1}}},
+		"every product taken off":     {"posting_number": "100-1", "products": []map[string]any{{"sku": 5001, "quantity": 0}}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			r.forTest(t).controlRefused("postings/cut", body)
+		})
+	}
+}

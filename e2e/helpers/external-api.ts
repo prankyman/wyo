@@ -1,7 +1,23 @@
 import { expect, type BrowserContext } from '@playwright/test';
-import { FAKE_FC, FAKE_FULFILMENT_URL, makeFcKey, makeFcSecret, setFcWebhook } from '../support/fake-fulfilment.js';
+import {
+    FAKE_FC,
+    FAKE_FULFILMENT_URL,
+    makeFcKey,
+    makeFcSecret,
+    setFcWebhook,
+    setUpFc
+} from '../support/fake-fulfilment.js';
 import { makeToken } from '../support/fake-wildberries.js';
-import { addAccountThroughApi } from './accounts.js';
+import {
+    hoursFromNow,
+    makeOzonKey,
+    setUpFakeOzon,
+    type IFakeOzonKey,
+    type IFakeOzonLine,
+    type IFakeOzonProduct,
+    type IFakeOzonSetup
+} from '../support/fake-ozon.js';
+import { addAccountThroughApi, addOzonAccountThroughApi } from './accounts.js';
 import type { IWyoServer } from '../support/wyo-server.js';
 
 /**
@@ -33,11 +49,13 @@ export async function connectExternalApiThroughApi(
 export interface IMatchOptions {
     /** Also save the hand-over settings of the account (`WILDBERRIES_HANDOVER`). */
     handoverSettings?: boolean;
+    /** The marketplace's code in the fulfilment centre's list; the fake fulfilment centre's `FAKE_FC.marketplace` when left out. */
+    marketplace?: string;
 }
 
 /**
  * «Склады» and «Маркетплейсы» through the API for the account `accountId`: its warehouse 1001 at the fake Wildberries stands for
- * the fake fulfilment centre's warehouse `main`, and its marketplace code is `wildberries`.
+ * the fake fulfilment centre's warehouse `main`, and its marketplace code is `wildberries` (or `options.marketplace`).
  */
 export async function matchExternalApiThroughApi(
     context: BrowserContext,
@@ -52,7 +70,7 @@ export async function matchExternalApiThroughApi(
         rows: [
             {
                 accountId,
-                fcMarketplace: FAKE_FC.marketplace,
+                fcMarketplace: options.marketplace ?? FAKE_FC.marketplace,
                 ...(options.handoverSettings ? { handoverSettings: WILDBERRIES_HANDOVER } : {})
             }
         ]
@@ -207,4 +225,84 @@ export async function setUpExchange(
     await connectExternalApiThroughApi(context, server, key);
     await matchExternalApiThroughApi(context, server, account.id, options);
     return { token, key, accountId: account.id };
+}
+
+/** The marketplace's code the fake fulfilment centre is told to take orders of, for the Ozon account of `setUpOzonExchange`. */
+export const FAKE_FC_OZON = 'ozon';
+
+/** The warehouse of the made-up Ozon seller that stands for the fulfilment centre's `main`, and the number the fake Ozon gives it. */
+export const OZON_WAREHOUSE = { id: 1001, name: 'Склад FBS' } as const;
+
+/**
+ * The made-up Ozon seller's two products, none of which asks for a marking code or another identifier (a test that needs a code
+ * changes a product with `mark`).
+ */
+export const OZON_PRODUCTS: IFakeOzonProduct[] = [
+    { sku: 2001, offer_id: 'SHIRT-RED', name: 'Рубашка', barcodes: ['4600000002001'] },
+    { sku: 2002, offer_id: 'SOCKS-BLUE', name: 'Носки', barcodes: ['4600000002002'] }
+];
+
+/**
+ * The methods of the Ozon level «Posting FBS read-only» and the others the wyo server reads with, as `/v1/roles` lists them: a
+ * key that holds exactly these may read and may not write, so the wyo server marks it «only reads» and names the level to add
+ * (`Posting FBS`). Whole paths: a beginning of a path would open the methods that write under it too.
+ */
+export const OZON_READING_METHODS: string[] = [
+    '/v1/seller/info',
+    '/v2/warehouse/list',
+    '/v4/posting/fbs/unfulfilled/list',
+    '/v3/posting/fbs/get',
+    '/v3/posting/fbo/list',
+    '/v3/product/info/list'
+];
+
+/** `quantity` units of `product` as a line of a posting. */
+export function ozonLine(product: IFakeOzonProduct, quantity: number): IFakeOzonLine {
+    return { sku: product.sku, offer_id: product.offer_id, name: product.name, quantity };
+}
+
+/** A key that writes (`Admin`), alive for 60 days, of a seller with the one FBS warehouse `OZON_WAREHOUSE` and `OZON_PRODUCTS`. */
+export function ozonSellerSetUp(key: IFakeOzonKey, change: IFakeOzonSetup = {}): IFakeOzonSetup {
+    return {
+        client_id: key.clientId,
+        seller_name: 'ООО «Тестовый продавец»',
+        expires_at: hoursFromNow(60 * 24),
+        roles: [{ name: 'Admin', methods: [] }],
+        warehouses: [{ ...OZON_WAREHOUSE }],
+        products: OZON_PRODUCTS,
+        ...change
+    };
+}
+
+export interface IOzonExchangeSetUp {
+    /** The made-up Ozon key; the fake Ozon keeps its postings under it. */
+    ozon: IFakeOzonKey;
+    /** The key of the fake fulfilment centre. */
+    key: string;
+    accountId: number;
+}
+
+/**
+ * Everything an exchange of an Ozon posting needs, through the API: a seller at the fake Ozon on a key of its own (`change` alters
+ * what `ozonSellerSetUp` gives), an Ozon account on that key, a fake fulfilment centre on a key of its own that takes orders of
+ * Ozon, «Внешний API» filled with it, and the account's warehouse `OZON_WAREHOUSE` and marketplace code matched.
+ */
+export async function setUpOzonExchange(
+    context: BrowserContext,
+    server: IWyoServer,
+    change: IFakeOzonSetup = {}
+): Promise<IOzonExchangeSetUp> {
+    const ozon = makeOzonKey();
+    await setUpFakeOzon(ozon.apiKey, ozonSellerSetUp(ozon, change));
+    const key = makeFcKey();
+    await setUpFc(key, {
+        marketplaces: [
+            { code: FAKE_FC.marketplace, name: 'Wildberries' },
+            { code: FAKE_FC_OZON, name: 'Ozon' }
+        ]
+    });
+    const account = await addOzonAccountThroughApi(context, server, 'Магазин на Ozon', ozon);
+    await connectExternalApiThroughApi(context, server, key);
+    await matchExternalApiThroughApi(context, server, account.id, { marketplace: FAKE_FC_OZON });
+    return { ozon, key, accountId: account.id };
 }

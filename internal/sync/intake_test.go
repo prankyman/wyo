@@ -29,11 +29,19 @@ type memoryRig struct {
 func newMemoryRig(t *testing.T, maxStates int) *memoryRig {
 	t.Helper()
 
-	kit := synckit.New(t, &script{})
 	adapter := memadapter.New(maxStates)
 
+	return newMemoryRigOf(t, adapter, adapter)
+}
+
+// newMemoryRigOf is the engine in front of an adapter that is the memory marketplace, or a test's wrapper of it.
+func newMemoryRigOf(t *testing.T, adapter *memadapter.Adapter, registered marketplace.Adapter) *memoryRig {
+	t.Helper()
+
+	kit := synckit.New(t, &script{})
+
 	registry := marketplace.NewRegistry()
-	if err := registry.Register(adapter); err != nil {
+	if err := registry.Register(registered); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
 
@@ -458,5 +466,35 @@ func TestARowChangedInTheSecondOfTheMarkIsReadAndEveryOrderKeptOnce(t *testing.T
 	if len(got) != 2 || got["first-of-the-second"] != 1 || got["second-of-the-second"] != 1 {
 		mark, _ := r.kit.Store.Read().Mark(ctx, a.ID, "orders.feed")
 		t.Fatalf("orders by number = %v; want both orders of the second, each once (the mark is %q)", got, mark)
+	}
+}
+
+func TestAWarehouseIsKeptWithTheKindOfLabelItWantsAndWhetherItAssemblesAutomatically(t *testing.T) {
+	t.Parallel()
+
+	r := newMemoryRig(t, 10)
+	ctx := t.Context()
+
+	r.adapter.SetWarehouses([]marketplace.Warehouse{
+		{Number: "7", Name: "Big labels", LabelType: "BIG"},
+		{Number: "8", Name: "Automatic", AutoAssembly: true},
+	})
+
+	if err := r.engine.RunWarehouses(ctx); err != nil {
+		t.Fatalf("RunWarehouses: %v", err)
+	}
+
+	got, err := r.kit.Store.Read().Warehouses(ctx, r.account.ID)
+	if err != nil {
+		t.Fatalf("Warehouses: %v", err)
+	}
+
+	byNumber := map[string]store.Warehouse{}
+	for _, w := range got {
+		byNumber[w.Number] = w
+	}
+
+	if byNumber["7"].LabelType != "BIG" || byNumber["7"].AutoAssembly || byNumber["8"].LabelType != "" || !byNumber["8"].AutoAssembly {
+		t.Fatalf("the warehouses kept: %+v", got)
 	}
 }

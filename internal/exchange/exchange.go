@@ -253,8 +253,8 @@ func (s *Service) Jobs() []schedule.Job {
 	}
 
 	return []schedule.Job{
-		every(jobOrders, ordersPeriod, s.RunOrders),
-		every(jobStates, statesPeriod, s.RunStates),
+		every(jobOrders, ordersPeriod, s.runOrdersDue),
+		every(jobStates, statesPeriod, s.runStatesDue),
 		every(jobEvents, eventsPeriod, s.RunEvents),
 		every(jobVerdicts, verdictsPeriod, s.RunVerdicts),
 		{Name: jobPrune, Plan: schedule.Nightly{From: 4 * time.Hour, To: 5 * time.Hour, Loc: s.opts.Location}, Run: s.Prune},
@@ -289,15 +289,26 @@ func quiet(err error) error {
 	return err
 }
 
-// RunOrders reads the marketplaces' new orders, sends the ones not sent yet, and goes on with the hand-overs whose steps
-// were interrupted.
-func (s *Service) RunOrders(ctx context.Context) error {
+// RunOrders reads every marketplace's new orders at once, sends the ones not sent yet, and goes on with the hand-overs whose
+// steps were interrupted.
+func (s *Service) RunOrders(ctx context.Context) error { return s.runOrders(ctx, true) }
+
+// runOrdersDue is the scheduled job: RunOrders, but each marketplace is read at its adapter's own period.
+func (s *Service) runOrdersDue(ctx context.Context) error { return s.runOrders(ctx, false) }
+
+// runOrders is RunOrders; all reads every marketplace whatever its period.
+func (s *Service) runOrders(ctx context.Context, all bool) error {
 	sess, err := s.open(ctx, jobOrders)
 	if err != nil {
 		return quiet(err)
 	}
 
-	if err := s.opts.Engine.RunNewOrders(ctx); err != nil {
+	read := s.opts.Engine.RunNewOrdersDue
+	if all {
+		read = s.opts.Engine.RunNewOrders
+	}
+
+	if err := read(ctx); err != nil {
 		s.opts.Log.Warn("the new orders could not be read", "err", err)
 	}
 
@@ -311,21 +322,32 @@ func (s *Service) RunOrders(ctx context.Context) error {
 	return s.handovers.RunWorking(ctx, sess.fc)
 }
 
-// RunStates reads the open orders' states and passes the marketplaces' cancellations on.
-func (s *Service) RunStates(ctx context.Context) error {
+// RunStates reads the open orders' states at once and passes the marketplaces' cancellations on.
+func (s *Service) RunStates(ctx context.Context) error { return s.runStates(ctx, true) }
+
+// runStatesDue is the scheduled job: RunStates, but each marketplace is read at its adapter's own period.
+func (s *Service) runStatesDue(ctx context.Context) error { return s.runStates(ctx, false) }
+
+// runStates is RunStates; all reads every marketplace whatever its period.
+func (s *Service) runStates(ctx context.Context, all bool) error {
 	sess, err := s.open(ctx, jobStates)
 	if err != nil {
 		return quiet(err)
 	}
 
-	if err := s.opts.Engine.RunStates(ctx); err != nil {
+	read := s.opts.Engine.RunStatesDue
+	if all {
+		read = s.opts.Engine.RunStates
+	}
+
+	if err := read(ctx); err != nil {
 		s.opts.Log.Warn("the orders' states could not be read", "err", err)
 	}
 
 	s.run.Lock()
 	defer s.run.Unlock()
 
-	return s.passCancellations(ctx, sess)
+	return errors.Join(s.passCancellations(ctx, sess), s.passDeadlines(ctx, sess))
 }
 
 // RunEvents reads the fulfilment centre's events and applies them in order; beside notifications only every 10 minutes.
@@ -333,8 +355,12 @@ func (s *Service) RunEvents(ctx context.Context) error {
 	return quiet(s.readEvents(ctx, false))
 }
 
-// RunVerdicts asks the marketplaces for the verdicts that are due.
-func (s *Service) RunVerdicts(ctx context.Context) error {
+// RunVerdicts asks the marketplaces for what is due: the verdicts on the marking codes, the packing that was reported, and
+// the labels that are made later.
+func (s *Service) RunVerdicts(ctx context.Context) error { return s.runDue(ctx, s.opts.Clock.Now()) }
+
+// runDue asks for everything due at a moment.
+func (s *Service) runDue(ctx context.Context, at time.Time) error {
 	sess, err := s.open(ctx, jobVerdicts)
 	if err != nil {
 		return quiet(err)
@@ -343,7 +369,9 @@ func (s *Service) RunVerdicts(ctx context.Context) error {
 	s.run.Lock()
 	defer s.run.Unlock()
 
-	return s.checkVerdicts(ctx, sess)
+	return errors.Join(
+		s.checkVerdicts(ctx, sess, at), s.checkPacking(ctx, sess, at), s.checkLabels(ctx, sess, at), s.handovers.RunWaiting(ctx, sess.fc, at),
+	)
 }
 
 // Prune deletes the marking codes of orders handed over 90 days ago and the events applied 30 days ago.
