@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.6](https://github.com/prankyman/wyo/compare/v0.0.5...v0.0.6) (2026-11-18)
+
+### Features
+
+* accounts of Ozon and orders of several products, read from Ozon (Plan 5) ([2975ccb](https://github.com/prankyman/wyo/commit/2975ccb87e0d677af65844b6abc2ea6133a2ff6d))
+
 ## [0.0.5](https://github.com/prankyman/wyo/compare/v0.0.4...v0.0.5) (2026-11-18)
 
 ### Features
