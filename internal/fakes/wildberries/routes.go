@@ -51,6 +51,10 @@ func (c *call) pathID(name string) (int64, bool) {
 	return id, true
 }
 
+// refusedTokenDetails are the 401 answers a test may ask for. «token expired» is the text the plan names (the earlier
+// research «WBF»); the text of a token Wildberries does not know is not sourced, and the fake writes "unauthorized".
+var refusedTokenDetails = map[string]string{"expired": "token expired", "invalid": "unauthorized"}
+
 var supplyID = regexp.MustCompile(`^WB-GI-\d+$`)
 
 // pathSupply reads the id of a supply from the address and finds the supply: 400 for an id of the wrong shape, 404 for one
@@ -84,6 +88,12 @@ func (s *Server) routes(mux *http.ServeMux) {
 				}
 
 				c := &call{s: s, w: out, r: r, st: st}
+
+				if detail := refusedTokenDetails[st.tokenRefused]; detail != "" {
+					s.problem(out, http.StatusUnauthorized, detail)
+
+					return
+				}
 
 				if st.denied[areaOf(r)] {
 					s.problem(out, http.StatusForbidden, "scope is not allowed for this resource")

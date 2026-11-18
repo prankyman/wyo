@@ -49,9 +49,14 @@ func (s Systemctl) Active(ctx context.Context) (bool, error) {
 }
 
 func (s Systemctl) run(ctx context.Context, verb string) error {
-	out, err := exec.CommandContext(ctx, s.Command, verb, s.Unit).CombinedOutput() //nolint:gosec // G204: the command and the unit are the installer's fixed names, never a request's.
+	return systemctl(ctx, s.Command, verb, s.Unit)
+}
+
+// systemctl runs the service manager's command with args and says what it answered when it failed.
+func systemctl(ctx context.Context, command string, args ...string) error {
+	out, err := exec.CommandContext(ctx, command, args...).CombinedOutput() //nolint:gosec // G204: the command and the units are the installer's fixed names, never a request's.
 	if err != nil {
-		return fmt.Errorf("systemctl %s %s: %w: %s", verb, s.Unit, err, strings.TrimSpace(string(out)))
+		return fmt.Errorf("systemctl %s: %w: %s", strings.Join(args, " "), err, strings.TrimSpace(string(out)))
 	}
 
 	return nil

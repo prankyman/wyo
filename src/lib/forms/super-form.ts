@@ -13,11 +13,11 @@ import { collectErrors, pathKey, refreshedErrors, serverOnlyErrors } from './for
 
 // The ONE file that imports the form library at run time (an ESLint rule fails every other file that does). What the
 // pages need of the library comes from here: the schema adapters, the starting values and the two setters.
-export { defaults, setError, setMessage } from 'sveltekit-superforms';
+export { defaults, setError, setMessage, superValidate } from 'sveltekit-superforms';
 export { zod4, zod4Client } from 'sveltekit-superforms/adapters';
 
 /**
- * The library's options, and the project's own: `send`, `saved`, `sample`, `answerGroup`, `disclosure`. The form is always in
+ * The library's options, and the project's own: `send`, `saved`, `sample`, `answerGroup`, `disclosure`, `refusals`. The form is always in
  * the library's single-page mode (`SPA`), so the options that belong to a server-side form (`SPA`, `invalidateAll`) are left
  * out: the wyo interface has no server side to post to.
  */
@@ -49,6 +49,11 @@ export type TSuperFormOptions<
      * success must not close the form it sits in.
      */
     disclosure?: false;
+    /**
+     * The family of texts that words this form's refusals before the general `errors.<code>` (`accounts.refusal`: the
+     * refusals of a marketplace key have texts of their own). See `refusalKey`.
+     */
+    refusals?: string;
 };
 
 /** The live forms of each answer group (`answerGroup`). */
@@ -60,11 +65,15 @@ const answerGroups = new Map<string, Set<{ message: { set(value: undefined): voi
  * `{ error: <key>, params }`, which `FormAnswer` draws under the form's button. The ONE function that does this: no page
  * reads a refusal by itself. The form is made invalid.
  */
-export function applyRefusal<T extends Record<string, unknown>>(form: SuperValidated<T>, refusal: TRefusal): void {
+export function applyRefusal<T extends Record<string, unknown>>(
+    form: SuperValidated<T>,
+    refusal: TRefusal,
+    family?: string
+): void {
     for (const issue of refusal.issues ?? []) {
-        setError(form, issue.path as never, fieldRefusalKey(issue.code));
+        setError(form, issue.path as never, fieldRefusalKey(issue.code, family));
     }
-    setMessage(form, { error: refusalKey(refusal.code), params: refusalParams(refusal) }, { status: 400 });
+    setMessage(form, { error: refusalKey(refusal.code, family), params: refusalParams(refusal) }, { status: 400 });
 }
 
 /** The success answer of a form sent by `send`: `{ saved }`, drawn by `FormAnswer`. */
@@ -120,6 +129,7 @@ export function superForm<
         answerGroup,
         sample,
         disclosure,
+        refusals,
         ...formOptions
     }: TSuperFormOptions<T, M, In> = options ?? {};
     const around = disclosure === false ? undefined : disclosureFormOf();
@@ -145,7 +155,7 @@ export function superForm<
                 if (!event.form.valid) return;
                 const result = await send(event.form.data);
                 if (result.ok) setSaved(event.form, saved);
-                else applyRefusal(event.form, result.refusal);
+                else applyRefusal(event.form, result.refusal, refusals);
             }
         }),
         // `?? ` and not a merge: a form that handles its own errors has said something more useful than this could, and two

@@ -4,12 +4,98 @@
 
 package db
 
+import (
+	"database/sql"
+)
+
+type MarketplaceAccount struct {
+	ID                int64
+	Marketplace       string
+	Name              string
+	State             string
+	Test              int64
+	SellerName        string
+	SellerProfileID   string
+	SecretName        string
+	KeyLast4          string
+	KeyType           string
+	KeyExpiresAt      sql.NullInt64
+	Categories        string
+	MissingCategories string
+	ReadOnly          int64
+	DeadlineHours     int64
+	LastCheckAt       sql.NullInt64
+	LastCheckOutcome  string
+	LastSuccessAt     sql.NullInt64
+	LastRefusalCode   string
+	LastRefusalStatus int64
+	LastRefusalAt     sql.NullInt64
+	FailuresInRow     int64
+	CreatedAt         int64
+}
+
+type MarketplaceWarehouse struct {
+	AccountID int64
+	Number    string
+	Name      string
+	UpdatedAt int64
+}
+
+type Order struct {
+	ID                int64
+	AccountID         int64
+	Number            string
+	Scheme            string
+	JoinKey           string
+	Basket            string
+	WarehouseNumber   string
+	WarehouseName     string
+	Article           string
+	Barcodes          string
+	ProductID         string
+	Kind              string
+	Brand             string
+	Size              string
+	CreatedAt         int64
+	State             string
+	CancelledBy       string
+	SellerStatus      string
+	MarketplaceStatus string
+	UpdatedAt         int64
+}
+
+type OrderEvent struct {
+	ID                int64
+	OrderID           int64
+	At                int64
+	State             string
+	CancelledBy       string
+	SellerStatus      string
+	MarketplaceStatus string
+	Source            string
+}
+
 type Person struct {
 	ID                 int64
 	Login              string
 	PasswordHash       string
 	MustChangePassword int64
 	CreatedAt          int64
+}
+
+type RequestJournal struct {
+	ID          int64
+	At          int64
+	AccountID   sql.NullInt64
+	Marketplace string
+	Method      string
+	Path        string
+	Status      int64
+	Outcome     string
+	ErrorCode   string
+	ErrorText   string
+	DurationMs  int64
+	Job         string
 }
 
 type SchemaMigration struct {
@@ -36,5 +122,12 @@ type Session struct {
 type Setting struct {
 	Key       string
 	Value     string
+	ChangedAt int64
+}
+
+type SyncMark struct {
+	AccountID int64
+	Feed      string
+	Mark      string
 	ChangedAt int64
 }

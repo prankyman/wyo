@@ -16,8 +16,8 @@ const (
 	maxMetaOrders    = 100
 )
 
-// assemblyOrder shows an assembly order in the shape of Wildberries' Order and OrderNew schemas. It never carries the buyer's
-// address or comment: the connector never reads them, and the fake never holds them.
+// assemblyOrder shows an assembly order in the shape of Wildberries' Order and OrderNew schemas. It carries the buyer's
+// address and comment only when a test set them, to prove that the connector drops them.
 func (st *state) assemblyOrder(o *order, isNew bool) map[string]any {
 	required, optional := o.required, o.optional
 	if required == nil {
@@ -38,6 +38,15 @@ func (st *state) assemblyOrder(o *order, isNew bool) map[string]any {
 
 	if isNew {
 		out["requiredMeta"], out["optionalMeta"] = required, optional
+
+		// OrderNew's address and comment (api/wildberries/03-orders-fbs.yaml): sent only when a test set them.
+		if o.buyerAddress != "" {
+			out["address"] = map[string]any{"fullAddress": o.buyerAddress}
+		}
+
+		if o.buyerComment != "" {
+			out["comment"] = o.buyerComment
+		}
 	} else if o.supplyID != "" {
 		out["supplyId"] = o.supplyID
 	}

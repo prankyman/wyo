@@ -4,10 +4,12 @@
     import { t } from '$lib/i18n/i18n';
     import ShowcaseBasics from './ShowcaseBasics.svelte';
     import ShowcaseForms from './ShowcaseForms.svelte';
+    import ShowcaseLists from './ShowcaseLists.svelte';
 </script>
 
 <Stack as="section" dataTest="showcase">
     <PageHeading title={t('showcase.title')} help={t('showcase.help')} helpTestId="showcase-help" />
     <ShowcaseBasics />
     <ShowcaseForms />
+    <ShowcaseLists />
 </Stack>

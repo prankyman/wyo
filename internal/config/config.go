@@ -25,7 +25,7 @@ const (
 )
 
 // Names of the environment variables. /etc/wyo/wyo.env, which the installer writes, holds WYO_DOMAIN, WYO_BEHIND_PROXY and
-// WYO_DATA_DIR; a build made with the wyotest tag reads the last six besides.
+// WYO_DATA_DIR; a build made with the wyotest tag reads the last seven besides.
 const (
 	EnvListen      = "WYO_LISTEN"
 	EnvMode        = "WYO_MODE"
@@ -39,6 +39,7 @@ const (
 	EnvReleaseTestKey = "WYO_RELEASE_TEST_KEY"
 	EnvHTTPPort       = "WYO_HTTP_PORT"
 	EnvHTTPSPort      = "WYO_HTTPS_PORT"
+	EnvMarketplaceURL = "WYO_MARKETPLACE_URL"
 )
 
 // The defaults.
@@ -83,6 +84,8 @@ type TestSettings struct {
 	// HTTPPort and HTTPSPort replace ports 80 and 443; 0 means the usual port.
 	HTTPPort  int
 	HTTPSPort int
+	// MarketplaceURL is the address of a fake marketplace; the adapters put each host's name after it.
+	MarketplaceURL string
 }
 
 // LookupFunc reads one environment variable, like os.LookupEnv.
@@ -198,7 +201,7 @@ func parseInstallation(lookup LookupFunc) (domain string, behindProxy bool, err 
 func parseTestSettings(lookup LookupFunc, allowed bool) (TestSettings, error) {
 	var test TestSettings
 
-	for _, name := range []string{EnvACMEDirectory, EnvACMERoots, EnvReleaseURL, EnvReleaseTestKey, EnvHTTPPort, EnvHTTPSPort} {
+	for _, name := range []string{EnvACMEDirectory, EnvACMERoots, EnvReleaseURL, EnvReleaseTestKey, EnvHTTPPort, EnvHTTPSPort, EnvMarketplaceURL} {
 		if fromEnvironment(lookup, name, "") != "" && !allowed {
 			return TestSettings{}, fmt.Errorf("%s needs a wyo server built with the wyotest tag", name)
 		}
@@ -211,6 +214,10 @@ func parseTestSettings(lookup LookupFunc, allowed bool) (TestSettings, error) {
 	}
 
 	if test.ReleaseURL, err = addressVariable(lookup, EnvReleaseURL); err != nil {
+		return TestSettings{}, err
+	}
+
+	if test.MarketplaceURL, err = addressVariable(lookup, EnvMarketplaceURL); err != nil {
 		return TestSettings{}, err
 	}
 

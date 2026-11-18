@@ -81,6 +81,19 @@ type rig struct {
 	restores    []string
 	comesUp     bool
 	auto        bool
+	// What the service manager had been told, and whether the service ran, when the database was copied.
+	toldAtCopy   []string
+	activeAtCopy bool
+	// The unit file of the daily look, and how often systemd was asked to read it again.
+	timerFile string
+	reloads   int
+}
+
+// timerOptions is the unit file of the daily look as the installer left it.
+type timerOptions struct {
+	text      string
+	exists    bool
+	reloadErr error
 }
 
 type rigOptions struct {
@@ -96,6 +109,7 @@ type rigOptions struct {
 	arch              string
 	binaryGone        bool // the installed program is not where it should be
 	binaryFolderGone  bool // the folder of the installed program does not exist
+	timer             *timerOptions
 }
 
 func newRig(t *testing.T, opts rigOptions) *rig {
@@ -153,8 +167,10 @@ func newRig(t *testing.T, opts rigOptions) *rig {
 		Doer:      r.server.Client(),
 		Verifier:  release.VerifierOf(trusted.public),
 		Service:   r.service,
-		Backup: func(_ context.Context, name string) error {
+		Backup: func(ctx context.Context, name string) error {
 			r.backups = append(r.backups, name)
+			r.toldAtCopy = r.service.told()
+			r.activeAtCopy, _ = r.service.Active(ctx)
 
 			return opts.backupError
 		},
@@ -176,6 +192,22 @@ func newRig(t *testing.T, opts rigOptions) *rig {
 			return nil
 		},
 		Log: slog.New(slog.NewJSONHandler(r.logs, nil)),
+	}
+
+	if opts.timer != nil {
+		r.timerFile = filepath.Join(t.TempDir(), "wyo-update.timer")
+		if opts.timer.exists {
+			if err := os.WriteFile(r.timerFile, []byte(opts.timer.text), 0o644); err != nil { //nolint:gosec // G306: a unit file is readable by everyone.
+				t.Fatalf("write the timer: %v", err)
+			}
+		}
+
+		r.updater.TimerFile = r.timerFile
+		r.updater.ReloadTimer = func(context.Context) error {
+			r.reloads++
+
+			return opts.timer.reloadErr
+		}
 	}
 
 	return r
@@ -484,8 +516,8 @@ func TestAFailedCopyOfTheDatabaseLeavesTheEarlierVersionRunning(t *testing.T) {
 		t.Fatal("Run succeeded although the copy of the database failed")
 	}
 
-	if got := r.service.told(); !slices.Equal(got, []string{"stop", "start"}) {
-		t.Fatalf("the service was told %v, want it stopped and started again", got)
+	if got := r.service.told(); len(got) != 0 || !r.activeAtCopy {
+		t.Fatalf("the service was told %v (running at the copy: %v), want it never stopped: the copy is made first", got, r.activeAtCopy)
 	}
 
 	if r.installedProgram(t) != oldProgram || r.state(t).FailedVersion != "" || r.state(t).LastError == "" {
@@ -575,5 +607,238 @@ func TestAFailedPutBackIsReportedAndTheEarlierProgramStillStarted(t *testing.T) 
 
 	if r.state(t).FailedVersion != "1.1.0" {
 		t.Fatalf("state = %+v, want the failed version recorded", r.state(t))
+	}
+}
+
+// The copy before an update is made while the earlier version still runs, so the wyo server is away only while its
+// program is swapped: stop, swap, start.
+func TestTheDatabaseIsCopiedWhileTheEarlierVersionStillRuns(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(t, rigOptions{installed: "1.0.0", latest: "1.1.0", auto: true, comesUp: true})
+
+	if result, err := r.updater.Run(t.Context(), false); err != nil || result.Outcome != release.OutcomeInstalled {
+		t.Fatalf("Run = %+v, %v", result, err)
+	}
+
+	if len(r.toldAtCopy) != 0 || !r.activeAtCopy {
+		t.Fatalf("at the copy the service had been told %v and ran: %v; want the copy made before the stop", r.toldAtCopy, r.activeAtCopy)
+	}
+
+	if got := r.service.told(); !slices.Equal(got, []string{"stop", "start"}) {
+		t.Fatalf("the service was told %v, want stop then start", got)
+	}
+}
+
+// After a successful update nothing of this run or of earlier interrupted runs is left: no staged program, no work
+// folder of the updater, no request; the copies before an update are trimmed to the newest three at once. The earlier
+// program stays as wyo.previous, so it can be put back.
+func TestASuccessfulUpdateLeavesNothingBehind(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(t, rigOptions{installed: "1.0.0", latest: "1.1.0", auto: false, comesUp: true})
+
+	stale := filepath.Join(r.dir, "update-1234567")
+	notOurs := filepath.Join(r.dir, "update-notes")
+	backups := filepath.Join(r.dir, "backups")
+
+	for _, folder := range []string{stale, notOurs, backups} {
+		if err := os.Mkdir(folder, 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	writes := map[string]string{filepath.Join(stale, programAMD64): "half a download", r.binary + ".new": "half a program"}
+	for path, content := range writes {
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	for i, version := range []string{"0.1.0", "0.2.0", "0.3.0", "0.4.0", "0.5.0"} {
+		path := filepath.Join(backups, "wyo-before-update-"+version+".db")
+		at := r.clock.Now().Add(time.Duration(i-10) * time.Hour)
+
+		if err := os.WriteFile(path, []byte("x"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := os.Chtimes(path, at, at); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := updatestate.Request(r.dir, updatestate.RequestInstall); err != nil {
+		t.Fatalf("Request: %v", err)
+	}
+
+	if result, err := r.updater.Run(t.Context(), false); err != nil || result.Outcome != release.OutcomeInstalled {
+		t.Fatalf("Run = %+v, %v", result, err)
+	}
+
+	for _, gone := range []string{r.binary + ".new", stale, filepath.Join(r.dir, updatestate.RequestFile)} {
+		if _, err := os.Stat(gone); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("%s is still there: %v", gone, err)
+		}
+	}
+
+	if _, err := os.Stat(notOurs); err != nil {
+		t.Errorf("a folder the updater did not make was deleted: %v", err)
+	}
+
+	left, err := filepath.Glob(filepath.Join(backups, "wyo-before-update-*.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := range left {
+		left[i] = filepath.Base(left[i])
+	}
+
+	if want := []string{"wyo-before-update-0.3.0.db", "wyo-before-update-0.4.0.db", "wyo-before-update-0.5.0.db"}; !slices.Equal(left, want) {
+		t.Errorf("the copies before an update are %v, want %v", left, want)
+	}
+
+	if previous := string(readFile(t, r.binary+".previous")); previous != oldProgram {
+		t.Errorf("wyo.previous = %q, want the earlier program", previous)
+	}
+}
+
+func TestATidyingThatFailsDoesNotUndoTheUpdate(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(t, rigOptions{installed: "1.0.0", latest: "1.1.0", auto: true, comesUp: true})
+
+	// A file where the folder of copies should be: the copies cannot be listed, so they cannot be trimmed.
+	if err := os.WriteFile(filepath.Join(r.dir, "backups"), []byte("not a folder"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := r.updater.Run(t.Context(), false)
+	if err != nil || result.Outcome != release.OutcomeInstalled || r.installedProgram(t) != newProgram {
+		t.Fatalf("Run = %+v, %v, program %q; want the update installed", result, err, r.installedProgram(t))
+	}
+
+	if state := r.state(t); state.LastError != "" || state.FailedVersion != "" {
+		t.Fatalf("state = %+v, want no error recorded", state)
+	}
+
+	if !bytes.Contains(r.logs.Bytes(), []byte(`"level":"WARN","msg":"tidying up after the update failed"`)) {
+		t.Fatalf("the log does not say the tidying failed:\n%s", r.logs.String())
+	}
+}
+
+// Every run of the updater, whatever it finds, rewrites the unit file of the daily look when its text is not the
+// version's own: a server that only ever updates itself, and never runs the installer again, still gets the schedule
+// of its version. A file the installer never made is not made.
+func TestEveryRunKeepsTheTimerOfItsVersion(t *testing.T) {
+	t.Parallel()
+
+	const earlier = "[Timer]\nOnCalendar=daily\nRandomizedDelaySec=24h\n"
+
+	cases := []struct {
+		name        string
+		timer       timerOptions
+		wantText    string // empty: no file
+		wantReloads int
+		wantLog     string
+	}{
+		{name: "an earlier text is replaced", timer: timerOptions{text: earlier, exists: true}, wantText: release.TimerUnit, wantReloads: 1, wantLog: `"msg":"the timer of the daily look was rewritten"`},
+		{name: "the same text is left alone", timer: timerOptions{text: release.TimerUnit, exists: true}, wantText: release.TimerUnit},
+		{name: "no timer: not an installed server", timer: timerOptions{}},
+		{name: "systemd cannot read it again", timer: timerOptions{text: earlier, exists: true, reloadErr: errors.New("unit not loaded")}, wantText: release.TimerUnit, wantReloads: 1, wantLog: `"msg":"keeping the timer of the daily look failed"`},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			r := newRig(t, rigOptions{installed: "1.1.0", latest: "1.1.0", auto: true, comesUp: true, timer: &tc.timer})
+
+			if result, err := r.updater.Run(t.Context(), false); err != nil || result.Outcome != release.OutcomeNotNewer {
+				t.Fatalf("Run = %+v, %v; want the usual look", result, err)
+			}
+
+			content, err := os.ReadFile(r.timerFile)
+
+			switch {
+			case tc.wantText == "" && !errors.Is(err, os.ErrNotExist):
+				t.Fatalf("a timer was made: %q, %v", content, err)
+			case tc.wantText != "" && string(content) != tc.wantText:
+				t.Fatalf("the timer is %q, %v; want %q", content, err, tc.wantText)
+			}
+
+			if tc.wantText != "" {
+				if info, err := os.Stat(r.timerFile); err != nil || info.Mode().Perm() != 0o644 {
+					t.Fatalf("the timer's mode: %v, %v; want 0644", info, err)
+				}
+			}
+
+			if r.reloads != tc.wantReloads {
+				t.Fatalf("systemd was asked to read the units again %d times, want %d", r.reloads, tc.wantReloads)
+			}
+
+			if tc.wantLog != "" && !bytes.Contains(r.logs.Bytes(), []byte(tc.wantLog)) {
+				t.Fatalf("the log lacks %s:\n%s", tc.wantLog, r.logs.String())
+			}
+		})
+	}
+}
+
+func TestATimerThatCannotBeReadOrRewrittenIsReportedAndLeftAsItWas(t *testing.T) {
+	t.Parallel()
+
+	const earlier = "[Timer]\nOnCalendar=daily\n"
+
+	cases := []struct {
+		name     string
+		block    func(t *testing.T, timerFile string) // makes the file unreadable or unwritable
+		wantText string                               // what the file holds afterwards; empty: it is not a file
+	}{
+		{name: "the timer cannot be read", block: func(t *testing.T, timerFile string) {
+			t.Helper()
+
+			if err := os.Mkdir(timerFile, 0o755); err != nil { //nolint:gosec // G301: a test's folder.
+				t.Fatalf("make a folder in the timer's place: %v", err)
+			}
+		}},
+		{name: "the new text cannot be written", wantText: earlier, block: func(t *testing.T, timerFile string) {
+			t.Helper()
+
+			if err := os.WriteFile(timerFile, []byte(earlier), 0o644); err != nil { //nolint:gosec // G306: a unit file is readable by everyone.
+				t.Fatalf("write the timer: %v", err)
+			}
+
+			if err := os.Mkdir(timerFile+".new", 0o755); err != nil { //nolint:gosec // G301: a test's folder.
+				t.Fatalf("make a folder where the new text is written: %v", err)
+			}
+		}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			r := newRig(t, rigOptions{installed: "1.1.0", latest: "1.1.0", auto: true, comesUp: true, timer: &timerOptions{}})
+			tc.block(t, r.timerFile)
+
+			if result, err := r.updater.Run(t.Context(), false); err != nil || result.Outcome != release.OutcomeNotNewer {
+				t.Fatalf("Run = %+v, %v; a timer that cannot be kept must not change the run", result, err)
+			}
+
+			if r.reloads != 0 {
+				t.Fatalf("systemd was asked to read the units again %d times, want 0", r.reloads)
+			}
+
+			if !bytes.Contains(r.logs.Bytes(), []byte(`"msg":"keeping the timer of the daily look failed"`)) {
+				t.Fatalf("the log does not report the failure:\n%s", r.logs.String())
+			}
+
+			if tc.wantText != "" {
+				if content := string(readFile(t, r.timerFile)); content != tc.wantText {
+					t.Fatalf("the timer holds %q, want it left as %q", content, tc.wantText)
+				}
+			}
+		})
 	}
 }

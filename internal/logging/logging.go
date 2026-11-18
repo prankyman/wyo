@@ -108,6 +108,10 @@ func isSensitiveName(name string) bool {
 	return false
 }
 
+// Scrub blanks in any text what looks like a credential: a signed token and a key after the word Bearer. The journal
+// of requests uses it on a marketplace's error text, as the logger does on every line.
+func Scrub(text string) string { return scrub(text) }
+
 func scrub(text string) string {
 	text = bearerPattern.ReplaceAllString(text, "Bearer "+Redacted)
 

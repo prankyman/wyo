@@ -92,6 +92,23 @@ func TestTheFeedIsReadFromAMarkAndEndsWithAnEmptyArray(t *testing.T) {
 	same(t, "after the last: an empty array", len(rows), 0)
 }
 
+// A row changed in the middle of a second is written in whole seconds, as Wildberries writes it; its lastChangeDate,
+// named in full, is the moment the row is compared at, so the next request after it is an empty array.
+func TestARowChangedInTheMiddleOfASecondEndsTheFeedAtItsWrittenMoment(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(t)
+	r.clock.Advance(500 * time.Millisecond)
+	r.newOrder(map[string]any{})
+
+	rows := r.feed("dateFrom=2026-01-01")
+	same(t, "the row", len(rows), 1)
+	same(t, "written in whole seconds", rows[0].LastChangeDate, "2026-10-01T12:00:00")
+
+	rows = r.feed("dateFrom=" + url.QueryEscape(rows[0].LastChangeDate))
+	same(t, "after the last: an empty array", len(rows), 0)
+}
+
 func TestFlagOneAsksForTheOrdersOfOneDay(t *testing.T) {
 	t.Parallel()
 

@@ -9,11 +9,12 @@ import (
 	"time"
 )
 
-// The sources of this plan. A notice's text is `notices.<code>` in messages/ru.json.
+// The sources. A notice's text is `notices.<code>` in messages/ru.json.
 const (
 	SourceUpdates     = "updates"
 	SourceCertificate = "certificate"
 	SourceBackups     = "backups"
+	SourceAccounts    = "accounts"
 )
 
 // The tones, the same names as the interface's status tones.

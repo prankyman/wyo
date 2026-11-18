@@ -12,6 +12,39 @@ This file exists because a request the maintainer makes while testing one plan m
 
 ## Open
 
+### 21. The phone's menu strip cuts long labels (2026-11-18)
+
+Found by the smoke test of Plan 3: at 390 × 844 the strip at the bottom holds five items and «Ещё», so «Маркетплейсы» and «Журнал
+запросов» are drawn cut («Маркетп…», «Журнал з…»). It is the library's rule as copied from the maintainer's other repository (five
+items, a label cut to its width), so Plan 3 did not change it. To decide: a short label of its own for the strip (a key such as
+`nav.journal.short`), fewer items in the strip, or two lines of small letters.
+
+### 20. Wildberries' product cards, prices of orders, old orders (2026-11-18)
+
+Left out of Plan 3 (`.agents/plans/wyo-wildberries-keys-adapter-synchronisation-engine-order-list-request-journal.md`, «Not in this
+plan»): the order list shows the product's kind, brand and size the orders feed gives — photographs and full names need reading the
+product cards (the contract part `products.read`, a later stage); the prices of orders are read with the money (Stage 3 of the
+high-level plan); orders older than 90 days and Wildberries' archive are not read, because the feed keeps 90 days and history before the
+installation was not asked for.
+
+### 19. Orders the seller delivers to the buyer itself; tokens «Базовый» and «Сервисный» (2026-11-18)
+
+Left out of Plan 3: Wildberries' seller-warehouse schemes where the seller delivers to the buyer need the buyer's address, which wyo does
+not store (rule R4 and the plan's «no buyer data»). A token of the type «Базовый» is refused, because its limits are too low for this work
+(the orders feed once in three hours), and «Сервисный» is refused, because it belongs to a cloud service of Wildberries' catalogue. To be
+taken up if sellers ask.
+
+### 18. The checks of Plan 3 on the first real Wildberries account (2026-11-18)
+
+Plan 3 is built against the fake Wildberries only (the maintainer, 2026-11-17: «Right now you'll have to do all work pretty much blindly»).
+With a test token first (the sandbox), then with a Personal token (Plan 3, section I): that the token's fields are as Wildberries'
+description says; the two hosts' `/ping`; the real limit headers and the budget's agreement with them; whether a new cabinet answers 403
+until seller-warehouse sales are switched on, and in which words (the wyo server guesses the code `seller_warehouse_off`); whether a token
+with the access level «только чтение» reads the orders (the methods carry Wildberries' mark `x-readonly-method`, which its documents do
+not explain; until then the instructions ask for «чтение и запись»); whether «В доставке» is the right state for an FBO order the feed
+does not mark cancelled (the feed has no status words — a choice of Plan 3, not a sourced fact); how soon a feed row follows its order;
+and item 5's points 1 and 3. What they find becomes Plan 4's premises.
+
 ### 17. A help «?» button carries the same name as the button it explains (2026-11-18)
 
 Found by the smoke test of Plan 2: `ButtonWithHelp` gives its «?» button the accessible name of the button beside it (for example both
@@ -71,9 +104,10 @@ are already implemented [there].» and «When I work with you here in this proje
 Plan 1 copies the components every screen needs (`docs/library-layout.md` lists them). **Copied by the plan that first needs one, with its
 test, never rewritten:**
 
-- the searchable picker `Combobox` (the only user of the package `bits-ui`), `FilePicker`, `CodeNameSelect`, `DateRangeFields`,
-  `TickAllBox`, `FileFormatButtons`, `StepsCard`, `RowButtonForm`, `ReasonDialog`;
-- the list component `DataList` with `ColumnHeading` and `ColumnLegend` — Plan 3 (the order list);
+- the searchable picker `Combobox` (the only user of the package `bits-ui`), `FilePicker`, `CodeNameSelect`, `FileFormatButtons`,
+  `StepsCard`, `RowButtonForm`, `ReasonDialog`;
+- ~~the list component `DataList` with `ColumnHeading` and `ColumnLegend`, `TickAllBox`, `DateRangeFields`~~ — copied by Plan 3 on
+  2026-11-18 (`docs/library-layout.md`);
 - ~~the shell parts (the header, the menu), the sign-in parts and the notification bell — Plan 2~~ — copied by Plan 2 on 2026-11-18
   (`docs/library-layout.md`); the rest of this list stays open.
 

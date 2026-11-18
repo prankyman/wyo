@@ -49,7 +49,10 @@ func TestCheckListsTheAddressesOfEachPurpose(t *testing.T) {
 		{name: "another port of this machine", purpose: outbound.PurposeLocal, address: "http://127.0.0.1:9000/readyz", allowed: false},
 		{name: "another machine is not local", purpose: outbound.PurposeLocal, address: "http://192.0.2.1/readyz", allowed: false},
 		{name: "this machine is not a release host", purpose: outbound.PurposeRelease, address: "http://127.0.0.1/VERSION", allowed: false},
-		{name: "a purpose nobody listed", purpose: outbound.Purpose("marketplace"), address: "https://github.com/x", allowed: false},
+		{name: "a purpose nobody listed", purpose: outbound.Purpose("nobody"), address: "https://github.com/x", allowed: false},
+		{name: "a marketplace host the connector does not use", purpose: outbound.PurposeMarketplace, address: "https://content-api.wildberries.ru/ping", allowed: false},
+		{name: "a marketplace host in plain http", purpose: outbound.PurposeMarketplace, address: "http://marketplace-api.wildberries.ru/ping", allowed: false},
+		{name: "a marketplace host is not a release host", purpose: outbound.PurposeRelease, address: "https://marketplace-api.wildberries.ru/ping", allowed: false},
 	}
 
 	gate := newGate(t)
@@ -121,7 +124,7 @@ func TestACallOutsideTheListIsRefusedBeforeItLeaves(t *testing.T) {
 func TestAClientForAnUnknownPurposeIsRefused(t *testing.T) {
 	t.Parallel()
 
-	if _, err := newGate(t).Client(outbound.Purpose("marketplace")); !errors.Is(err, outbound.ErrRefused) {
+	if _, err := newGate(t).Client(outbound.Purpose("nobody")); !errors.Is(err, outbound.ErrRefused) {
 		t.Fatalf("Client = %v, want ErrRefused", err)
 	}
 }
@@ -172,5 +175,13 @@ func TestTheStandardAddressesAndNames(t *testing.T) {
 				t.Fatalf("got %q, want %q", tc.got, tc.want)
 			}
 		})
+	}
+}
+
+func TestAMarketplaceIsToldTheProgramItsVersionAndWhereItIsPublished(t *testing.T) {
+	t.Parallel()
+
+	if got := newGate(t).UserAgent(outbound.PurposeMarketplace); got != "wyo/1.2.3 (+https://github.com/prankyman/wyo)" {
+		t.Fatalf("UserAgent = %q", got)
 	}
 }

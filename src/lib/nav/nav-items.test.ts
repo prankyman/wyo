@@ -24,9 +24,12 @@ const GROUPED: INavItem[] = [
 ];
 
 describe('NAV_ITEMS, the one list the menu is drawn from', () => {
-    it('holds «Обзор» and «Настройки» in this order, each with an address, a label key, a test id and an icon', () => {
+    it('holds «Обзор», «Заказы», «Маркетплейсы», «Журнал запросов» and «Настройки» in this order, each with an address, a label key, a test id and an icon', () => {
         expect(NAV_ITEMS.map((entry) => [entry.testId, entry.href, entry.labelKey])).toEqual([
             ['nav-overview', '/', 'nav.overview'],
+            ['nav-orders', '/orders', 'nav.orders'],
+            ['nav-marketplaces', '/marketplaces', 'nav.marketplaces'],
+            ['nav-journal', '/journal', 'nav.journal'],
             ['nav-settings', '/settings', 'nav.settings']
         ]);
         expect(NAV_ITEMS.every((entry) => typeof entry.icon === 'function' || typeof entry.icon === 'object')).toBe(
@@ -34,11 +37,11 @@ describe('NAV_ITEMS, the one list the menu is drawn from', () => {
         );
     });
 
-    it('gives every entry a distinct address, test id and label key, and offers both to the phone strip', () => {
+    it('gives every entry a distinct address, test id and label key, and offers all five to the phone strip', () => {
         for (const field of ['href', 'testId', 'labelKey'] as const) {
             expect(new Set(NAV_ITEM_DATA.map((entry) => entry[field])).size).toBe(NAV_ITEM_DATA.length);
         }
-        expect(NAV_ITEMS.map((entry) => entry.phoneTab)).toEqual([1, 2]);
+        expect(NAV_ITEMS.map((entry) => entry.phoneTab)).toEqual([1, 2, 3, 4, 5]);
     });
 });
 

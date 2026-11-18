@@ -25,7 +25,14 @@ interface IException {
     reason: string;
 }
 
-const ALLOWLIST: IException[] = [];
+/** A list row's tick box has no visible name: its `<label>` is the 44 px tap area around the box, named by its aria-label. */
+const ROW_TICK =
+    'The 44 px tap area around the tick box of a table row: the row has no visible label, the box names itself by its own aria-label.';
+
+const ALLOWLIST: IException[] = [
+    { path: 'src/lib/components/ui/DataList.svelte', reason: ROW_TICK },
+    { path: 'src/lib/components/ui/TickAllBox.svelte', reason: ROW_TICK }
+];
 
 function svelteFiles(dir: string, acc: string[] = []): string[] {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

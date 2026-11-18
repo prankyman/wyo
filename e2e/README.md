@@ -52,10 +52,12 @@ A spec that needs no browser (the screens table) imports `test` from `@playwrigh
 | `e2e/helpers/sections.ts`            | open the folded sections of a page (`openAllSections`, `openSection`)                                                            |
 | `e2e/helpers/policy-violations.ts`   | record every refusal by the page's security policy, including those the browser keeps out of its console                         |
 | `e2e/helpers/update-state.ts`        | write the updater's file `update-state.json` into a server's data folder, for a notice behind the bell                           |
+| `e2e/helpers/accounts.ts`            | a marketplace account added and the orders read through the wyo server's own API, for specs not about the form                   |
+| `e2e/support/fake-wildberries.ts`    | made-up tokens in Wildberries' shape (`makeToken`, a new one per test) and the fake Wildberries' control calls                   |
 | `e2e/support/screens.ts`             | the screens table: one row for every page under `src/routes/`                                                                    |
 | `e2e/support/phone-exceptions.ts`    | the exceptions list of the phone's rules; EMPTY, an entry needs a written WCAG reason and may only be removed later              |
 | `e2e/support/owner.ts`, `texts.ts`   | the test owner and the made-up passwords; `ruText(key, params)` reads a text from `messages/ru.json`                             |
-| `e2e/support/wyo-server.ts`          | starts a wyo server in an empty folder, with the owner made first                                                                |
+| `e2e/support/wyo-server.ts`          | starts a wyo server in an empty folder, with the owner made first; `restartWyoServer` runs it again on the same data             |
 | `e2e/support/process.ts`             | starting, waiting for and stopping a program (`wyo-server.ts`, `fakes.ts` use it)                                                |
 
 ## Rules a spec keeps

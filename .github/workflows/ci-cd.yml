@@ -160,6 +160,9 @@ jobs:
             - name: Browser tests
               run: pnpm test:e2e
 
+            - name: Memory of the wyo server with three accounts and 10 000 orders for a made-up day
+              run: pnpm go:measure
+
             - name: Keep the reports
               if: always()
               uses: actions/upload-artifact@v7

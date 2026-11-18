@@ -30,20 +30,30 @@ func dateFrom(text string) (time.Time, bool) {
 	return time.Time{}, false
 }
 
+// changed is the row's lastChangeDate as it is written: in whole seconds, as Wildberries writes it ([REP], the examples of
+// lastChangeDate). The feed is filtered and ordered by this moment, so the written value named in full as the next
+// dateFrom is never earlier than the row itself.
+func (row *feedRow) changed() time.Time { return row.lastChange.Truncate(time.Second) }
+
 func (row *feedRow) json() map[string]any {
 	cancelDate := "0001-01-01T00:00:00"
 	if row.cancelled {
 		cancelDate = row.cancelDate.In(moscow).Format(feedLayout)
 	}
 
+	region := row.region
+	if region == "" {
+		region = "Московская"
+	}
+
 	return map[string]any{
 		"srid": row.srid, "gNumber": row.gNumber, "date": row.date.In(moscow).Format(feedLayout),
-		"lastChangeDate": row.lastChange.In(moscow).Format(feedLayout), "warehouseName": row.warehouseName,
+		"lastChangeDate": row.changed().In(moscow).Format(feedLayout), "warehouseName": row.warehouseName,
 		"warehouseType": row.warehouseType, "supplierArticle": row.article, "nmId": row.nmID, "barcode": row.barcode,
 		"category": "Test category", "subject": "Test subject", "brand": "Test brand", "techSize": "0",
 		"incomeID": 0, "isSupply": false, "isRealization": true, "totalPrice": 1000, "discountPercent": 10, "spp": 5,
 		"finishedPrice": 855, "priceWithDisc": 900, "isCancel": row.cancelled, "cancelDate": cancelDate, "sticker": "",
-		"countryName": "Россия", "oblastOkrugName": "Центральный федеральный округ", "regionName": "Московская",
+		"countryName": "Россия", "oblastOkrugName": "Центральный федеральный округ", "regionName": region,
 	}
 }
 
@@ -74,12 +84,12 @@ func (c *call) feedOrders() {
 		switch {
 		case byDay && row.date.In(moscow).Format("2006-01-02") == day:
 			rows = append(rows, row)
-		case !byDay && row.lastChange.After(from):
+		case !byDay && row.changed().After(from):
 			rows = append(rows, row)
 		}
 	}
 
-	sort.SliceStable(rows, func(i, j int) bool { return rows[i].lastChange.Before(rows[j].lastChange) })
+	sort.SliceStable(rows, func(i, j int) bool { return rows[i].changed().Before(rows[j].changed()) })
 
 	if len(rows) > maxFeedRows {
 		rows = rows[:maxFeedRows]

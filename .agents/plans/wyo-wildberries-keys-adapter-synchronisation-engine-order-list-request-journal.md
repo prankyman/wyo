@@ -329,6 +329,28 @@ premises.
   states — by the constitution's help-text rules.
 - `docs/wildberries.md`: the methods wyo calls and how often, for a seller's engineer.
 
+## K. Updates with a short stop, and the installer run again (the maintainer, 2026-11-18)
+
+The maintainer, 2026-11-18, starting this plan: «Make sure the installation script not only installs the app, but also checks for
+updates and updates it with minimal downtime.» His answers the same day: the work is part of this plan's one commit; «(a) Make sure
+it cleans up after the upgrade»; the installer run again goes through the updater; the daily look «between 1 am MSK and 3 am MSK».
+
+- **The copy of the database is made while the wyo server still runs** (SQLite's write-ahead mode lets a second process read a
+  consistent picture), and only then: stop, swap the program, start, wait for `/readyz`. The wyo server is down only while the new
+  version starts, whatever the database's size. A failed copy stops the update before the wyo server is stopped. The price: a
+  put-back restores the copy, so changes made in the second or two between the copy and the stop are lost.
+- **Cleaning up after a successful update:** the downloads, a leftover `/usr/local/bin/wyo.new`, the work folders of interrupted
+  runs and the request file are deleted; the copies made before updates are trimmed to the newest three at once (the one pruning
+  function of `internal/backup`); one `wyo.previous` stays so the earlier version can be put back. A failed clean-up never turns a
+  successful update into a failure.
+- **The installer run again** on a server whose wyo server runs: it refreshes the units and `wyo.env` and, when the release is newer,
+  asks the updater (the request file `install`, then `wyo-update.service`) instead of replacing the program itself — the same copy,
+  put-back and short stop. It restarts the wyo server only when the program, `wyo.env` or `wyo.service` changed.
+- **The daily look** runs between 01:00 and 03:00 Moscow time whatever the server's own time zone: `OnCalendar=` at 01:00
+  `Europe/Moscow` with a random delay of up to two hours (rule R5: installations do not ask in the same second).
+- **Tests:** the updater's order of steps (copy before stop; a failed copy never stops the wyo server), the clean-up, the put-back;
+  the installer's timer text; the installer job on clean machines: a second run with a newer release goes through the updater.
+
 ## Not in this plan (each goes to the register at the merge, with its reason)
 
 - **Every call that writes to Wildberries, «External API» and the exchange** — Plan 4.

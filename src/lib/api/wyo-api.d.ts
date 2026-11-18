@@ -194,10 +194,448 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/marketplaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every marketplace adapter the wyo server holds - its code, colour mark, the fields of its key form and the parts of the adapter contract it supports. The interface draws the key form, the marks and the columns that exist only for some capability from this list, never from a marketplace's name. */
+        get: operations["listMarketplaces"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The seller's marketplace accounts, in the order they were added. */
+        get: operations["listAccounts"];
+        put?: never;
+        /** Adds an account after checking its key (the contract part `key.check`). The key is stored only in the secret store and never sent back. Refusals lie on the fields: `name` / `required`; `key.<field>` / `required`, `key_unreadable`, `key_expired`, `key_type_not_accepted` (`params.type`: `base`, `service`), `category_missing` (`params.category`), `key_refused` (the marketplace answered 401), `profile_mismatch`; without a field: `no_connection`, `marketplace_busy` (the marketplace answered that its limit of requests is met; `params.retryAfterSeconds` when it named the wait), `marketplace_unknown`. */
+        post: operations["createAccount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** One account. */
+        get: operations["getAccount"];
+        put?: never;
+        post?: never;
+        /** Deletes an account from which no order ever came; any other is refused with `account_has_orders` and can only be switched off. */
+        delete: operations["deleteAccount"];
+        options?: never;
+        head?: never;
+        /** Changes the account's name or its hours to hand an order over. Refusals: `name` / `required`, `deadlineHours` / `out_of_range` (`params.min`, `params.max`). */
+        patch: operations["updateAccount"];
+        trace?: never;
+    };
+    "/api/v1/accounts/{id}/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Replaces the account's key after the same check as an added one. A key of another seller profile is refused with `key.<field>` / `other_seller`, so an account's orders never change owner. */
+        put: operations["replaceAccountKey"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{id}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Checks the stored key again now; the account's state follows the answer. */
+        post: operations["checkAccount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{id}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Switches the account off - nothing is asked for it, its orders stay. */
+        post: operations["disableAccount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{id}/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Switches the account on again and checks its key. */
+        post: operations["enableAccount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The orders of every account and scheme, newest first, 50 a page. Filters: account, scheme, state, the period of creation (dates in the installation's time zone, both ends included) and a search by the order's number, the article or a barcode. */
+        get: operations["listOrders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** One order with the history of its states. */
+        get: operations["getOrder"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** When the order list was last refreshed by the owner and when «Обновить» may be pressed again. */
+        get: operations["getRefresh"];
+        put?: never;
+        /** Starts the three order jobs of every working account at once. Answered at most once in 5 minutes; earlier it is refused with `too_soon` and `params.nextAllowedAt`. */
+        post: operations["refreshOrders"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/journal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The journal of every request the wyo server sent to a marketplace, newest first, 50 a page. Never a key, a query or a body. */
+        get: operations["listJournal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/overview/marketplaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The cards of «Обзор» about accounts and orders. */
+        get: operations["getMarketplacesOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        KeyField: {
+            /** @description The field of the key form; its texts are `marketplace.<code>.key.<name>.label` and `.help`. */
+            name: string;
+            /** @description The value is a secret - drawn as a secret box */
+            secret: boolean;
+        };
+        Marketplace: {
+            /** @description The adapter's code, e.g. `wildberries`; its texts are `marketplace.<code>.name` and `.help`. */
+            code: string;
+            /** @description The name of the colour mark of the theme. */
+            mark: string;
+            keyFields: components["schemas"]["KeyField"][];
+            /** @description The parts of the adapter contract this adapter supports, e.g. `orders.new`. */
+            capabilities: string[];
+        };
+        MarketplaceList: {
+            marketplaces: components["schemas"]["Marketplace"][];
+        };
+        /**
+         * @description The texts are `accounts.state.<state>` and `accounts.state.<state>.help`.
+         * @enum {string}
+         */
+        AccountState: "working" | "key_expiring" | "key_expired" | "key_refused" | "no_connection" | "disabled";
+        AccountRefusal: {
+            /** @description A code of the adapter's refusals; the text is `accounts.refusal.<code>`. */
+            code: string;
+            /** Format: date-time */
+            at: string;
+            /** @description The marketplace's answer status */
+            status?: number;
+        };
+        Account: {
+            /** Format: int64 */
+            id: number;
+            /** @description The adapter's code. */
+            marketplace: string;
+            /** @description The account's own name */
+            name: string;
+            state: components["schemas"]["AccountState"];
+            /** @description A test key - the account talks only to the marketplace's sandbox. */
+            test: boolean;
+            /** @description The seller's name as the marketplace gives it. */
+            sellerName?: string;
+            /** @description The last four characters of the key - never more. */
+            keyLast4: string;
+            /** @description The key's type as the adapter names it, e.g. `personal`, `test`. */
+            keyType?: string;
+            /** Format: date-time */
+            keyExpiresAt?: string;
+            /** @description Categories the key lacks that some part of the account needs, e.g. `statistics`. */
+            missingCategories: string[];
+            /** @description The key allows only reading. */
+            readOnly: boolean;
+            /** @description Hours after an order's creation by which it must be handed to the marketplace. */
+            deadlineHours: number;
+            /** Format: date-time */
+            lastCheckAt?: string;
+            /**
+             * Format: date-time
+             * @description The last successful reading.
+             */
+            lastSuccessAt?: string;
+            lastRefusal?: components["schemas"]["AccountRefusal"];
+            failuresInRow?: number;
+            /** @description An order came from the account; it can then only be switched off. */
+            hasOrders: boolean;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AccountList: {
+            accounts: components["schemas"]["Account"][];
+        };
+        AccountKey: {
+            /** @description The key form's fields by name, as the adapter's `keyFields` lists them. */
+            key: {
+                [key: string]: string;
+            };
+        };
+        AccountCreate: {
+            marketplace: string;
+            name: string;
+            key: {
+                [key: string]: string;
+            };
+        };
+        AccountChange: {
+            name?: string;
+            deadlineHours?: number;
+        };
+        /**
+         * @description `fbs` - the seller packs the order and hands it to the marketplace; `fbo` - the goods lie in the marketplace's own warehouse (read-only).
+         * @enum {string}
+         */
+        OrderScheme: "fbs" | "fbo";
+        /**
+         * @description The connector's own states, the same for every marketplace; the text is `orders.state.<state>`.
+         * @enum {string}
+         */
+        OrderState: "new" | "assembling" | "in_delivery" | "received" | "cancelled" | "unknown";
+        /**
+         * @description Who cancelled a cancelled order; the text is `orders.state.cancelled.<cancelledBy>`.
+         * @enum {string}
+         */
+        CancelledBy: "seller" | "buyer" | "marketplace";
+        /** @description The marketplace's own words for the state, as received. */
+        MarketplaceStatus: {
+            seller?: string;
+            marketplace?: string;
+        };
+        Order: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            accountId: number;
+            accountName: string;
+            marketplace: string;
+            scheme: components["schemas"]["OrderScheme"];
+            /** @description The marketplace's own number of the order. */
+            number: string;
+            /** @description The buyer's basket number. */
+            basket?: string;
+            warehouse?: string;
+            article?: string;
+            barcodes: string[];
+            /** @description The marketplace's own product number. */
+            productId?: string;
+            /** @description The product's kind */
+            kind?: string;
+            brand?: string;
+            size?: string;
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @description Only for `fbs`.
+             */
+            deadlineAt?: string;
+            state: components["schemas"]["OrderState"];
+            cancelledBy?: components["schemas"]["CancelledBy"];
+            marketplaceStatus: components["schemas"]["MarketplaceStatus"];
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        OrderEvent: {
+            /** Format: date-time */
+            at: string;
+            state: components["schemas"]["OrderState"];
+            cancelledBy?: components["schemas"]["CancelledBy"];
+            marketplaceStatus: components["schemas"]["MarketplaceStatus"];
+            /** @description The contract part the change came from, e.g. `orders.new`, `orders.states`, `orders.feed`. */
+            source: string;
+        };
+        OrderDetails: {
+            order: components["schemas"]["Order"];
+            events: components["schemas"]["OrderEvent"][];
+        };
+        OrderList: {
+            orders: components["schemas"]["Order"][];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        RefreshState: {
+            /** Format: date-time */
+            lastRefreshAt?: string;
+            /**
+             * Format: date-time
+             * @description Absent when «Обновить» may be pressed now.
+             */
+            nextAllowedAt?: string;
+        };
+        /**
+         * @description The text is `journal.outcome.<outcome>`.
+         * @enum {string}
+         */
+        JournalOutcome: "done" | "limited" | "refused" | "server_error" | "no_connection" | "key_refused";
+        JournalEntry: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            at: string;
+            /** Format: int64 */
+            accountId?: number;
+            accountName?: string;
+            marketplace?: string;
+            method: string;
+            /** @description The path with placeholders in place of every number, e.g. `/api/v3/supplies/{supplyId}`. */
+            path: string;
+            /** @description The answer's status; 0 when no answer came. */
+            status: number;
+            outcome: components["schemas"]["JournalOutcome"];
+            errorCode?: string;
+            /** @description At most 500 characters */
+            errorText?: string;
+            durationMs: number;
+            /** @description The job that sent it, e.g. `orders.new`, `key.check`, `refresh`. */
+            job: string;
+        };
+        JournalList: {
+            entries: components["schemas"]["JournalEntry"][];
+            total: number;
+            page: number;
+            pageSize: number;
+        };
+        MarketplacesOverview: {
+            /** @description Accounts that are not switched off. */
+            accounts: number;
+            /** @description Accounts in a state other than `working` and `disabled`. */
+            attention: number;
+            newOrders: number;
+            assembling: number;
+            /** @description FBS orders past their deadline and not yet handed over. */
+            overdue: number;
+            /** @description Orders whose marketplace state the table does not hold. */
+            unknownStates: number;
+            /** Format: date-time */
+            lastSuccessAt?: string;
+        };
         Meta: {
             /** @description Always `wyo`. */
             name: string;
@@ -317,7 +755,7 @@ export interface components {
             /** @description Stable while the cause lasts. */
             id: string;
             /** @enum {string} */
-            source: "updates" | "certificate" | "backups";
+            source: "updates" | "certificate" | "backups" | "accounts";
             /** @description The text is `notices.<code>`. */
             code: string;
             /** @enum {string} */
@@ -655,6 +1093,382 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NoticeList"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    listMarketplaces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The adapters. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarketplaceList"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    listAccounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The accounts. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountList"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    createAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountCreate"];
+            };
+        };
+        responses: {
+            /** @description The account as added. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    getAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The account. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    deleteAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    updateAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountChange"];
+            };
+        };
+        responses: {
+            /** @description The account as changed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    replaceAccountKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountKey"];
+            };
+        };
+        responses: {
+            /** @description The account with its new key's last four characters. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    checkAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The account after the check. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    disableAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The account. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    enableAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The account. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    listOrders: {
+        parameters: {
+            query?: {
+                account?: number;
+                scheme?: components["schemas"]["OrderScheme"];
+                state?: components["schemas"]["OrderState"];
+                from?: string;
+                to?: string;
+                q?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of orders. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderList"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    getOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The order. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderDetails"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    getRefresh: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The refresh state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefreshState"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    refreshOrders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Started. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefreshState"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    listJournal: {
+        parameters: {
+            query?: {
+                account?: number;
+                outcome?: components["schemas"]["JournalOutcome"];
+                from?: string;
+                to?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of the journal. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JournalList"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    getMarketplacesOverview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The counts. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarketplacesOverview"];
                 };
             };
             default: components["responses"]["Refusal"];

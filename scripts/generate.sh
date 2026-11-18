@@ -34,9 +34,12 @@ GENERATED=(
     internal/marketplace/wildberries/wbapi/orders/orders.gen.go
     internal/marketplace/wildberries/wbapi/reports/reports.gen.go
     src/lib/api/wyo-api.d.ts
+    internal/store/db/accounts.sql.go
     internal/store/db/db.go
+    internal/store/db/journal.sql.go
     internal/store/db/models.go
     internal/store/db/migrations.sql.go
+    internal/store/db/orders.sql.go
     internal/store/db/people.sql.go
     internal/store/db/secrets.sql.go
     internal/store/db/sessions.sql.go

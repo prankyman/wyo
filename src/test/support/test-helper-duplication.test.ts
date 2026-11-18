@@ -29,7 +29,12 @@ const HOMES: Record<string, string> = {
     markupTree: 'src/test/support/svelte-markup.ts',
     rootMarkup: 'src/test/support/svelte-markup.ts',
     walkMarkup: 'src/test/support/svelte-markup.ts',
-    svelteFilesUnder: 'src/test/support/svelte-markup.ts'
+    svelteFilesUnder: 'src/test/support/svelte-markup.ts',
+    // The marketplaces' names the policy tests look for, and the marketplace data the tests share.
+    marketplaceNamesIn: 'src/test/support/marketplace-names.ts',
+    accountOf: 'src/test/support/marketplaces.ts',
+    orderOf: 'src/test/support/marketplaces.ts',
+    journalEntryOf: 'src/test/support/marketplaces.ts'
 };
 
 const NAMES = Object.keys(HOMES).join('|');

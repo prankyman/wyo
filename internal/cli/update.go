@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -23,13 +24,24 @@ import (
 
 // runUpdate is `wyo update [--check]`, the updater. It runs as root in its own unit (wyo-update.service), apart from the
 // wyo server, because it replaces the program; every file of the database it touches is given back to the data folder's
-// owner afterwards.
+// owner afterwards. `wyo update --timer-unit` only prints the text of wyo-update.timer, which the installer writes.
 func runUpdate(ctx context.Context, e *Env, args []string) int {
-	var onlyLook bool
+	var onlyLook, timerUnit bool
 
-	cfg, _, code := e.settingsOf("update", args, func(f *commandFlags) { f.BoolVar(&onlyLook, "check", false, "") }, 0)
+	cfg, _, code := e.settingsOf("update", args, func(f *commandFlags) {
+		f.BoolVar(&onlyLook, "check", false, "")
+		f.BoolVar(&timerUnit, release.TimerUnitFlag, false, "")
+	}, 0)
 	if code != exitOK {
 		return code
+	}
+
+	if timerUnit {
+		if _, err := io.WriteString(e.Stdout, release.TimerUnit); err != nil {
+			return e.failed(err)
+		}
+
+		return exitOK
 	}
 
 	updater, err := e.updater(cfg)
@@ -102,6 +114,12 @@ func (e *Env) updater(cfg config.Config) (*release.Updater, error) {
 
 	layout := datadir.Layout{Dir: cfg.DataDir}
 
+	// Only root may rewrite a unit file; a run by anyone else leaves the timer alone.
+	timerFile := ""
+	if e.System.Euid() == 0 {
+		timerFile = release.TimerFile
+	}
+
 	return &release.Updater{
 		DataDir: cfg.DataDir, Binary: binary, Arch: runtime.GOARCH, Installed: version.Version,
 		Base: releaseBase(cfg), Doer: releaseClient, Verifier: verifier, Service: e.System.Service(),
@@ -114,6 +132,7 @@ func (e *Env) updater(cfg config.Config) (*release.Updater, error) {
 		Ready:       release.ReadyProbe(localClient, readyAddress(cfg)),
 		AutoUpdates: func(ctx context.Context) (bool, error) { return autoUpdates(ctx, cfg, e) },
 		Clock:       e.Clock, Pause: e.System.Pause, Log: logging.New(e.Stderr, slog.LevelInfo),
+		TimerFile: timerFile, ReloadTimer: release.ReloadTimer("systemctl"),
 	}, nil
 }
 
@@ -130,22 +149,14 @@ func (e *Env) asDataOwner(dir string, stepErr error) error {
 	return giveBackToDataOwner(e.System, dir)
 }
 
-// copyDatabase writes the copy the updater makes before it replaces the program, while the wyo server is stopped.
+// copyDatabase writes the copy the updater makes before it replaces the program, while the wyo server still runs and
+// writes: the database is opened for reading only, so the copy neither waits for the server nor changes the database
+// (store.CopyFile). It needs no lock of the data folder, which the running server holds.
 func copyDatabase(ctx context.Context, layout datadir.Layout, name string) error {
-	st, err := store.Open(ctx, layout.Database())
-	if err != nil {
-		return fmt.Errorf("open the database for its copy: %w", err)
-	}
-
 	path := filepath.Join(layout.Backups(), name)
 	_ = os.Remove(path) // a copy left by an earlier try of the same version is replaced
 
-	copyErr := st.CopyTo(ctx, path)
-	if err := st.Close(); err != nil && copyErr == nil {
-		copyErr = fmt.Errorf("close the database: %w", err)
-	}
-
-	return copyErr
+	return store.CopyFile(ctx, layout.Database(), path)
 }
 
 func autoUpdates(ctx context.Context, cfg config.Config, e *Env) (bool, error) {

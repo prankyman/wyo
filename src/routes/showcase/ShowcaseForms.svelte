@@ -379,6 +379,6 @@
     dataTest="showcase-row"
 >
     {#snippet children(record)}
-        <div class="p-4 text-sm">{record.name}</div>
+        <div class="text-sm">{record.name}</div>
     {/snippet}
 </RowDetailsPanel>

@@ -13,6 +13,7 @@
         "preview": "vite preview",
         "test:headless": "vitest --no-watch",
         "go:test": "bash scripts/go/test.sh",
+        "go:measure": "bash scripts/go/measure.sh",
         "test:coverage": "vitest --no-watch --coverage && bash scripts/go/coverage.sh",
         "coverage:enforce": "node scripts/coverage-check.cjs && bash scripts/go/coverage-enforce.sh",
         "test:e2e": "playwright test",

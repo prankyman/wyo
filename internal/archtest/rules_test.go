@@ -79,3 +79,45 @@ func TestNoGoSourceFileIsTooLong(t *testing.T) {
 		t.Fatalf("split these files:\n%s", strings.Join(long, "\n"))
 	}
 }
+
+func TestEveryAdapterStandsAloneInThisRepository(t *testing.T) {
+	t.Parallel()
+
+	if violations := archtest.AdaptersStandAlone(loadRepository(t)); len(violations) > 0 {
+		t.Fatalf("an adapter reaches beyond its contract:\n%s", strings.Join(violations, "\n"))
+	}
+}
+
+// wildberriesNamedIn are the only folders whose source may name Wildberries (rule R6): its adapter, the fakes and the
+// program that starts them, the outbound gate, which lists every address the wyo server may call in one place
+// (principle IX), and the one list of the adapters the wyo server is built with (internal/server/adapters.go), which must
+// import each adapter to hold it. Tests and generated code are not looked at.
+var wildberriesNamedIn = []string{
+	"internal/marketplace/wildberries", "internal/fakes", "cmd/wyofakes", "internal/outbound", "internal/server/adapters.go",
+}
+
+func TestWildberriesIsNamedOnlyByItsAdapterInThisRepository(t *testing.T) {
+	t.Parallel()
+
+	found, err := archtest.NamedOnlyIn(os.DirFS(moduleRoot), "wildberries", wildberriesNamedIn)
+	if err != nil {
+		t.Fatalf("NamedOnlyIn: %v", err)
+	}
+
+	if len(found) > 0 {
+		t.Fatalf("a marketplace is named outside its adapter:\n%s", strings.Join(found, "\n"))
+	}
+}
+
+func TestEveryClientOfAnAdapterIsBuiltOnTheEnginesConnInThisRepository(t *testing.T) {
+	t.Parallel()
+
+	found, err := archtest.ClientsOnTheConn(os.DirFS(moduleRoot), "internal/marketplace")
+	if err != nil {
+		t.Fatalf("ClientsOnTheConn: %v", err)
+	}
+
+	if len(found) > 0 {
+		t.Fatalf("an adapter could call out by itself:\n%s", strings.Join(found, "\n"))
+	}
+}

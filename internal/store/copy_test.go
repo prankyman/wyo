@@ -48,6 +48,54 @@ func TestACopyIsWrittenWhileAWriteTransactionIsOpen(t *testing.T) {
 	}
 }
 
+// CopyFile is the updater's copy, made by a second process while the wyo server runs: it opens the file for reading
+// only, so it neither waits for the running server's write nor writes anything itself (no migration, no new file).
+func TestACopyOfTheFileIsMadeReadOnlyBesideARunningWriter(t *testing.T) {
+	t.Parallel()
+
+	ctx := t.Context()
+	database := filepath.Join(t.TempDir(), "wyo.db")
+	running := storekit.OpenAt(t, database)
+	copyPath := filepath.Join(t.TempDir(), "copy.db")
+
+	must(t, running.Do(ctx, func(q *store.Queries) error {
+		_, err := q.InsertPerson(ctx, store.Person{Login: "committed", PasswordHash: "h", CreatedAt: noon()})
+
+		return err
+	}))
+
+	must(t, running.Do(ctx, func(q *store.Queries) error {
+		if _, err := q.InsertPerson(ctx, store.Person{Login: "uncommitted", PasswordHash: "h", CreatedAt: noon()}); err != nil {
+			return err
+		}
+
+		return store.CopyFile(ctx, database, copyPath) // the running server's write transaction is still open here
+	}))
+
+	copied := storekit.OpenAt(t, copyPath)
+
+	if _, err := copied.Read().PersonByLogin(ctx, "committed"); err != nil {
+		t.Fatalf("the copy lacks what was committed: %v", err)
+	}
+
+	if _, err := copied.Read().PersonByLogin(ctx, "uncommitted"); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("the copy holds what the open transaction had not committed: %v", err)
+	}
+
+	if err := store.CopyFile(ctx, database, copyPath); !errors.Is(err, os.ErrExist) {
+		t.Fatalf("a copy never overwrites a file: %v", err)
+	}
+
+	absent := filepath.Join(t.TempDir(), "wyo.db")
+	if err := store.CopyFile(ctx, absent, filepath.Join(t.TempDir(), "copy.db")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("a copy of a database that is not there: %v", err)
+	}
+
+	if _, err := os.Stat(absent); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("the copy made a database where there was none: %v", err)
+	}
+}
+
 func TestACopyIsRefusedWhereAFileAlreadyIs(t *testing.T) {
 	t.Parallel()
 

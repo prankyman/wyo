@@ -7,6 +7,13 @@ describe('the words of a refusal', () => {
         expect(refusalKey('never_heard_of_it')).toBe('errors.unknown');
     });
 
+    it('words a code from the family of texts of the place first, and from the general texts when the family has none', () => {
+        expect(refusalKey('key_refused', 'accounts.refusal')).toBe('accounts.refusal.key_refused');
+        expect(refusalKey('network', 'accounts.refusal')).toBe('errors.network');
+        expect(fieldRefusalKey('key_expired', 'accounts.refusal')).toBe('accounts.refusal.key_expired');
+        expect(fieldRefusalKey('required', 'accounts.refusal')).toBe('errors.required');
+    });
+
     it('words the refusal of one field the same way, with its own general text', () => {
         expect(fieldRefusalKey('invalid')).toBe('errors.invalid');
         expect(fieldRefusalKey('never_heard_of_it')).toBe('errors.invalid');

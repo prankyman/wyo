@@ -2,8 +2,8 @@
 // the only place that makes an HTTP client (the linter forbids it everywhere else). A client made here refuses, before
 // anything leaves, a call to an address outside its purpose's list, and follows a redirect only inside that list.
 //
-// This plan lists two purposes: the release address (and the hosts GitHub sends release downloads to) and the
-// certificate authority. Later plans add the marketplaces' and the fulfilment centre's addresses to the same table.
+// The purposes: the release address (and the hosts GitHub sends release downloads to), the certificate authority, the
+// wyo server's own address on this machine and the marketplaces (Plan 3). Plan 4 adds the fulfilment centre's address.
 package outbound
 
 import (
@@ -28,6 +28,8 @@ const (
 	PurposeAuthority Purpose = "authority"
 	// PurposeLocal is the updater's and the installer's look at the wyo server it is installing, on this machine.
 	PurposeLocal Purpose = "local"
+	// PurposeMarketplace is every request to a marketplace; only the synchronisation engine's caller holds its client.
+	PurposeMarketplace Purpose = "marketplace"
 )
 
 // The standard addresses.
@@ -48,6 +50,9 @@ const (
 // programName is how the wyo server and the updater name themselves in a call.
 const programName = "wyo"
 
+// programAddress is where the program is published; a marketplace is told it with the version (rule R5).
+const programAddress = "https://github.com/prankyman/wyo"
+
 // ErrRefused is the answer to a call to an address outside the purpose's list.
 var ErrRefused = errors.New("the address is outside the list of this purpose")
 
@@ -61,6 +66,12 @@ type allowance struct {
 	origins     []string
 	timeout     time.Duration
 	sendVersion bool
+	// sendAddress adds where the program is published to its name and version.
+	sendAddress bool
+	// noRedirects hands a redirect back to the caller instead of following it.
+	noRedirects bool
+	// noProxy never sends a call through a proxy, whatever the environment says (rule R5).
+	noProxy bool
 }
 
 // purposes is THE list. The hosts GitHub sends a release download to were read on 2026-11-17 by following
@@ -82,6 +93,21 @@ var purposes = map[Purpose]allowance{
 		timeout:     10 * time.Second,
 		sendVersion: false,
 	},
+	// The Wildberries hosts the connector's methods live on (.agents/research/wildberries-official-description-files-
+	// check-2026-11-17.md, section 2): the seller-warehouse methods on marketplace-api and its sandbox (column S), the
+	// seller's information on common-api, the orders feed on statistics-api. A call lasts at most 30 seconds, and a
+	// redirect is never followed: the caller refuses it.
+	PurposeMarketplace: {
+		origins: []string{
+			"https://marketplace-api.wildberries.ru", "https://marketplace-api-sandbox.wildberries.ru",
+			"https://common-api.wildberries.ru", "https://statistics-api.wildberries.ru",
+		},
+		timeout:     30 * time.Second,
+		sendVersion: true,
+		sendAddress: true,
+		noRedirects: true,
+		noProxy:     true,
+	},
 }
 
 // Options is what a gate is made from.
@@ -96,6 +122,11 @@ type Options struct {
 	AuthorityDirectory string
 	AuthorityRoots     *x509.CertPool
 	LocalOrigin        string
+	// MarketplaceURL is a fake marketplace's address; the marketplaces' adapters put each host's name after it.
+	MarketplaceURL string
+	// Observe is told every address a client of the gate is asked to call, before the check, with its purpose; only a
+	// test build takes it (the tests of rule R3 record where the wyo server reaches).
+	Observe func(purpose Purpose, address *url.URL)
 }
 
 // Gate hands out the clients.
@@ -105,6 +136,8 @@ type Gate struct {
 	releaseBase string
 	authority   string
 	roots       *x509.CertPool
+	marketplace string
+	observe     func(Purpose, *url.URL)
 }
 
 // New makes a gate. A test address is refused unless this is a build made with the wyotest tag.
@@ -115,6 +148,7 @@ func New(opts Options) (*Gate, error) {
 		releaseBase: ReleaseBase,
 		authority:   AuthorityDirectory,
 		roots:       opts.AuthorityRoots,
+		observe:     opts.Observe,
 	}
 
 	for purpose, entry := range purposes {
@@ -122,7 +156,7 @@ func New(opts Options) (*Gate, error) {
 	}
 
 	if !buildinfo.TestBuild && (opts.ReleaseURL != "" || opts.AuthorityDirectory != "" || opts.AuthorityRoots != nil ||
-		opts.LocalOrigin != "") {
+		opts.LocalOrigin != "" || opts.MarketplaceURL != "" || opts.Observe != nil) {
 		return nil, ErrNotATestBuild
 	}
 
@@ -155,8 +189,27 @@ func New(opts Options) (*Gate, error) {
 		gate.origins[PurposeLocal] = append(gate.origins[PurposeLocal], origin)
 	}
 
+	// Rule R3: a test or development run never calls a real marketplace. A test build lists no real marketplace host, so
+	// with no fake marketplace named every marketplace call is refused before it leaves.
+	if buildinfo.TestBuild {
+		gate.origins[PurposeMarketplace] = nil
+	}
+
+	if opts.MarketplaceURL != "" {
+		origin, err := originOfAddress(opts.MarketplaceURL)
+		if err != nil {
+			return nil, fmt.Errorf("the fake marketplace's address: %w", err)
+		}
+
+		gate.marketplace = opts.MarketplaceURL
+		gate.origins[PurposeMarketplace] = append(gate.origins[PurposeMarketplace], origin)
+	}
+
 	return gate, nil
 }
+
+// MarketplaceURL is the fake marketplace's address of a test build, or "" for the real marketplaces.
+func (g *Gate) MarketplaceURL() string { return g.marketplace }
 
 // ReleaseBase is the address release files are downloaded from.
 func (g *Gate) ReleaseBase() string { return g.releaseBase }
@@ -166,7 +219,12 @@ func (g *Gate) AuthorityDirectory() string { return g.authority }
 
 // UserAgent is how the program names itself in a purpose's calls.
 func (g *Gate) UserAgent(purpose Purpose) string {
-	if entry, known := purposes[purpose]; known && entry.sendVersion && g.version != "" {
+	entry, known := purposes[purpose]
+
+	switch {
+	case known && entry.sendVersion && g.version != "" && entry.sendAddress:
+		return programName + "/" + g.version + " (+" + programAddress + ")"
+	case known && entry.sendVersion && g.version != "":
 		return programName + "/" + g.version
 	}
 
@@ -190,11 +248,20 @@ func (g *Gate) Check(purpose Purpose, u *url.URL) error {
 	return fmt.Errorf("%w: %s (purpose %q)", ErrRefused, got, purpose)
 }
 
+// record tells Observe the address a client is asked to call.
+func (g *Gate) record(purpose Purpose, u *url.URL) {
+	if g.observe != nil {
+		g.observe(purpose, u)
+	}
+}
+
 // ProxyFunc is the check in the form of a transport's proxy function, for a library that makes its own client and lets
 // the program set only that function (CertMagic does): the function runs before each request, redirects included, and
 // an error from it stops the request. It never names a proxy.
 func (g *Gate) ProxyFunc(purpose Purpose) func(*http.Request) (*url.URL, error) {
 	return func(req *http.Request) (*url.URL, error) {
+		g.record(purpose, req.URL)
+
 		return nil, g.Check(purpose, req.URL)
 	}
 }
@@ -212,6 +279,10 @@ func (g *Gate) Client(purpose Purpose) (*http.Client, error) {
 	}
 
 	base := transport.Clone()
+	if entry.noProxy {
+		base.Proxy = nil
+	}
+
 	if g.roots != nil {
 		base.TLSClientConfig = &tls.Config{RootCAs: g.roots, MinVersion: tls.VersionTLS12}
 	}
@@ -220,6 +291,10 @@ func (g *Gate) Client(purpose Purpose) (*http.Client, error) {
 		Transport: guard{gate: g, purpose: purpose, next: base},
 		Timeout:   entry.timeout,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if entry.noRedirects {
+				return http.ErrUseLastResponse
+			}
+
 			if len(via) >= maxRedirects {
 				return fmt.Errorf("stopped after %d redirects", maxRedirects)
 			}
@@ -239,6 +314,8 @@ type guard struct {
 }
 
 func (gd guard) RoundTrip(req *http.Request) (*http.Response, error) {
+	gd.gate.record(gd.purpose, req.URL)
+
 	if err := gd.gate.Check(gd.purpose, req.URL); err != nil {
 		return nil, err
 	}

@@ -54,12 +54,13 @@ func TestTheDataFolderAndTheInstallersVariables(t *testing.T) {
 			env: map[string]string{
 				"WYO_ACME_CA": "https://localhost:14000/dir", "WYO_ACME_ROOTS": "/tmp/roots.pem", "WYO_RELEASE_URL": "http://127.0.0.1:9100/",
 				"WYO_RELEASE_TEST_KEY": "/tmp/test-key.pem", "WYO_HTTP_PORT": "5002", "WYO_HTTPS_PORT": "5001",
+				"WYO_MARKETPLACE_URL": "http://127.0.0.1:8791",
 			},
 			want: config.Config{
 				Listen: "127.0.0.1:8790", Mode: config.ModeDevelopment, DataDir: ".",
 				Test: config.TestSettings{
 					ACMEDirectory: "https://localhost:14000/dir", ACMERoots: "/tmp/roots.pem", ReleaseURL: "http://127.0.0.1:9100/",
-					ReleaseTestKey: "/tmp/test-key.pem", HTTPPort: 5002, HTTPSPort: 5001,
+					ReleaseTestKey: "/tmp/test-key.pem", HTTPPort: 5002, HTTPSPort: 5001, MarketplaceURL: "http://127.0.0.1:8791",
 				},
 			},
 		},
@@ -99,6 +100,7 @@ func TestWhatTheInstallerWritesMustBeUsable(t *testing.T) {
 		{name: "a port of HTTP out of range", env: map[string]string{"WYO_HTTP_PORT": "70000"}, allow: true, wantFail: "WYO_HTTP_PORT"},
 		{name: "an address of the test authority that is not an address", env: map[string]string{"WYO_ACME_CA": "localhost"}, allow: true, wantFail: "WYO_ACME_CA"},
 		{name: "an address of releases that is not an address", env: map[string]string{"WYO_RELEASE_URL": "not an address"}, allow: true, wantFail: "WYO_RELEASE_URL"},
+		{name: "a fake marketplace's address that is not an address", env: map[string]string{"WYO_MARKETPLACE_URL": "127.0.0.1:8791"}, allow: true, wantFail: "WYO_MARKETPLACE_URL"},
 	}
 
 	for _, tc := range tests {
@@ -118,7 +120,7 @@ func TestWhatTheInstallerWritesMustBeUsable(t *testing.T) {
 func TestAReleaseBuildRefusesTheVariablesOfTests(t *testing.T) {
 	t.Parallel()
 
-	for _, name := range []string{"WYO_ACME_CA", "WYO_ACME_ROOTS", "WYO_RELEASE_URL", "WYO_RELEASE_TEST_KEY", "WYO_HTTP_PORT", "WYO_HTTPS_PORT"} {
+	for _, name := range []string{"WYO_ACME_CA", "WYO_ACME_ROOTS", "WYO_RELEASE_URL", "WYO_RELEASE_TEST_KEY", "WYO_HTTP_PORT", "WYO_HTTPS_PORT", "WYO_MARKETPLACE_URL"} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 

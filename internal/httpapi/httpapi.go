@@ -13,15 +13,21 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
+	"github.com/prankyman/wyo/internal/accounts"
 	"github.com/prankyman/wyo/internal/auth"
 	"github.com/prankyman/wyo/internal/backup"
 	"github.com/prankyman/wyo/internal/certstatus"
+	"github.com/prankyman/wyo/internal/clock"
 	"github.com/prankyman/wyo/internal/config"
 	"github.com/prankyman/wyo/internal/httpapi/gen"
+	"github.com/prankyman/wyo/internal/marketplace"
 	"github.com/prankyman/wyo/internal/notices"
 	"github.com/prankyman/wyo/internal/refusal"
 	"github.com/prankyman/wyo/internal/settings"
+	"github.com/prankyman/wyo/internal/store"
+	"github.com/prankyman/wyo/internal/sync"
 )
 
 const (
@@ -50,13 +56,35 @@ type Deps struct {
 	Certificates certstatus.Reporter
 	// Notices are the sources of the bell.
 	Notices []notices.Source
-	Log     *slog.Logger
+
+	// Store is the database the orders, the journal and the overview are read from.
+	Store *store.Store
+	// Marketplaces are the adapters the wyo server holds.
+	Marketplaces *marketplace.Registry
+	// Accounts are the seller's marketplace accounts.
+	Accounts *accounts.Service
+	// Refresher is «Обновить»; its readings run under Lifetime, the wyo server's own lifetime, never under the call's,
+	// which ends with the answer.
+	Refresher Refresher
+	Lifetime  context.Context
+	// Location is the installation's time zone: the dates of a filter are its days.
+	Location *time.Location
+	// Clock gives the moment the overview counts the orders past their deadline at.
+	Clock clock.Clock
+
+	Log *slog.Logger
 	// SecureCookie makes the cookie Secure, which a browser sends over https only. It is false only when the wyo server
 	// serves plain http in a build made for development and tests.
 	SecureCookie bool
 	// TrustProxy says that a web server of the seller's stands in front: the visitor's address is the last of the
 	// X-Forwarded-For header, which that web server writes. Without it the header means nothing.
 	TrustProxy bool
+}
+
+// Refresher is «Обновить»: the synchronisation engine (*sync.Engine) is one.
+type Refresher interface {
+	Refresh(ctx context.Context) (sync.RefreshState, error)
+	RefreshState() sync.RefreshState
 }
 
 // api implements the generated interface.
@@ -79,6 +107,22 @@ func New(deps Deps) (http.Handler, error) {
 
 	if deps.Auth == nil || deps.Settings == nil || deps.Backups == nil || deps.Certificates == nil {
 		return nil, errors.New("the API needs the sign-in, the settings, the copies and the certificate's reporter")
+	}
+
+	if deps.Store == nil || deps.Marketplaces == nil || deps.Accounts == nil || deps.Refresher == nil {
+		return nil, errors.New("the API needs the database, the marketplaces, the accounts and the refresher")
+	}
+
+	if deps.Lifetime == nil {
+		deps.Lifetime = context.Background()
+	}
+
+	if deps.Location == nil {
+		deps.Location = time.UTC
+	}
+
+	if deps.Clock == nil {
+		deps.Clock = clock.Real{}
 	}
 
 	log := deps.Log

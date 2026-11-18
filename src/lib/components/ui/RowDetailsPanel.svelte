@@ -11,7 +11,8 @@
      * A picked row's details or edit form in a side panel — from the right on a computer, from the bottom on a
      * phone. The row keeps its ordinary link (`?<param>=<id>`); a plain press opens the panel without reloading the page, so the
      * list keeps its place and scroll (`openShallowLink`), and closing returns to the same place (`closeShallowDetails`). A direct
-     * address (a reload, a copied link) opens the panel from the record the page's load returned for it.
+     * address (a reload, a copied link) opens the panel from the record the page's load returned for it. The details are padded
+     * here, as the panel's heading is, so no page pads them again.
      */
     interface IProps {
         lang: TLocale;
@@ -31,7 +32,7 @@
         /** The list's own address, without the parameter: where a panel opened by a direct address returns on close. */
         listHref: string;
         title: (record: TRecord) => string;
-        /** `data-test` of the panel: `<dataTest>-panel`, `<dataTest>-close`. */
+        /** `data-test` of the panel: `<dataTest>-panel`, `<dataTest>-close`, and `<dataTest>-content`, the padded details. */
         dataTest: string;
         widthClass?: string;
         /** Drawn right after the title, e.g. the panel's one «?». */
@@ -118,6 +119,8 @@
         {widthClass}
         {heading}
     >
-        {@render children(opened)}
+        <div class="p-4" data-test="{dataTest}-content">
+            {@render children(opened)}
+        </div>
     </SlideOverPanel>
 {/if}

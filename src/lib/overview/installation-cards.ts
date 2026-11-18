@@ -11,7 +11,8 @@ export type TInstallation = components['schemas']['Installation'];
 
 /** One card of «Обзор», every text already worded in the language of the page; `InstallationStateCard` draws it. */
 export interface IInstallationCard {
-    key: 'version' | 'certificate' | 'backups';
+    /** The card's name: `version`, `certificate`, `backups`, and the marketplace cards' `accounts`, `orders`, `reading`. */
+    key: string;
     title: string;
     /** What the card is, why it is there and what the person does about it: the text behind its «?». */
     help: string;
