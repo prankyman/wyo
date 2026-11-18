@@ -70,8 +70,16 @@
   whole path. The full format of `methods[]`: **NOT SOURCED**.
 - **`/v1/seller/info`** (`SellerAPI_SellerInfo`): `company.name` («Название компании на Ozon»), `company.legal_name`, `company.inn`,
   `company.ogrn`, plus ratings and the subscription.
-- **NOT SOURCED:** where the cabinet shows the Client ID; which of the two purposes of step 4 fits a program the seller runs on its own
-  server; the HTTP status of every key error but `403 Offer not signed` (section 4).
+- **Where the cabinet shows the Client ID** — from the page «Seller API» of a seller cabinet (the address in [OZ] quoted above),
+  saved as a PDF by the maintainer from a seller cabinet (not a working shop) on 2026-11-18, read, and **deleted**: it shows that
+  cabinet's numbers. The menu path is «Настройки» → «API интеграции» → «Seller API» (beside «Управление частными приложениями»,
+  «OAuth-доступы», «Уведомления»). At the top of the page is the field «Client ID» with a button to copy it; below it, «API ключи»:
+  «Для работы с Ozon Seller API необходимо использование клиентского идентификатора (Client ID) и уникального ключа (API Key)». In a
+  cabinet whose offer is not accepted the section says «Нет подписанной оферты. Вы не можете создать API ключ, пока не подпишите
+  оферту». The page «Учётная запись» of the same cabinet shows an «Ozon ID» that is a different number from the Client ID.
+  **Inference:** the Client ID is a number (one cabinet seen; its format is not documented).
+- **NOT SOURCED:** which of the two purposes of step 4 fits a program the seller runs on its own server; the HTTP status of every key
+  error but `403 Offer not signed` (section 4).
 
 ## 3. Which role opens which method [ROLES]
 
@@ -276,7 +284,7 @@ request of `/v2/posting/fbs/act/get-postings` — and three fields of `v2Posting
 
 1. The full format of `/v1/roles`' `methods[]`, and which role opens each method of section 3's list.
 2. The HTTP status of each key error of section 4.
-3. Where the cabinet shows the Client ID.
+3. ~~Where the cabinet shows the Client ID~~ — settled on 2026-11-18 by the maintainer's saved cabinet page (section 2).
 4. What `since` and `to` of `/v4/posting/fbs/list` and `/v3/posting/fbo/list` are compared with.
 5. The numbers of a split's parts (section 7), and how the original posting shows afterwards.
 6. The words of `exemplar/status`' `error_codes`; whether codes can be changed after packing.

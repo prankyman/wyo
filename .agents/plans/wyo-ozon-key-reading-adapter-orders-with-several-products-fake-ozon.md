@@ -50,6 +50,8 @@ whole-codebase checks and full test suites; a subagent runs only its own test fi
 - 2026-11-18: Ozon refuses its description file to this machine (OZC §1). The maintainer saved it from a browser
   (`docs/marketplaces/swagger.json`), and Ozon's table of roles as a PDF. The file equals the GitHub copy of the same day but for 9
   example values (OZC §1, point 2), so later versions are read from that copy and compared with the committed file.
+- 2026-11-18: the maintainer saved a seller cabinet's page «Seller API» (not a working shop), which shows where the Client ID is and
+  that a key cannot be made before Ozon's offer is accepted (OZC §2).
 - Stated with the questions on 2026-11-18, and not objected to: stock is a plan of its own after Яндекс Маркет, because the neutral
   fulfilment-centre API has no stock part yet; FBO orders are read-only; rFBS orders are not read (they need the buyer's address); the
   wyo server never cancels at Ozon; Ozon is read every 5 minutes while «Внешний API» is filled (Plan 6); register items 22 and 28 go
@@ -100,10 +102,10 @@ whole-codebase checks and full test suites; a subagent runs only its own test fi
    methods (OZC §5, the rows marked «5»). Ozon's file holds types outside OpenAPI's list (`int`, `bool`, `timestamp`, `enum`, `array of strings`)
    and a server address without a scheme (OZC §1 and §5): **if the generator refuses the file, the stage stops and asks** — Ozon's
    file is never edited.
-4. **How a seller makes the key is taken from Ozon's own text:** OZC §2 (section «Auth» of Ozon's file) and OZC §3 (the table of
-   roles). Where the cabinet shows the Client ID is not in either (OZC §2): the maintainer saves, as for the description file, the page
-   of Ozon's knowledge base that shows it, by a person in a browser; if it cannot be found, the README says only what OZC holds and the
-   place goes to «After the release».
+4. **How a seller makes the key is taken from Ozon's own text:** OZC §2 (section «Auth» of Ozon's file, and the cabinet's page «Seller
+   API» the maintainer saved on 2026-11-18) and OZC §3 (the table of roles). The cabinet pages the maintainer showed (the PDF of
+   «Seller API» and a screenshot of «Учётная запись») held that cabinet's numbers; they were read and deleted, and nothing of them is
+   committed: the repository is public. No real Ozon account is available yet.
 5. **The access levels are decided by the key's own list, not by names.** The table of roles is from 2024 and names none of the
    methods this plan calls (OZC §3). So the key check reads the key's methods from `/v1/roles` and asks whether each method the
    adapter needs is allowed: the key has the role `Admin`, or a role lists the method, or a role lists a beginning of its path that
@@ -350,16 +352,18 @@ and the date.
 
 ## After the release — the checks with the first real Ozon account (register)
 
-The format of `/v1/roles`' method list and which role opens each method this plan calls; the HTTP status of each key error; where the
-cabinet shows the Client ID; what `since` and `to` of the FBO list compare (then the FBO window may become a mark); whether the
-unprocessed list holds a posting the buyer cancelled before packing; how a split made in the cabinet shows; the real limit headers and
-the budget's agreement with them (OZC §10, points 1–5). Only reading calls are made, so the check is safe on a working shop. What they
+The format of `/v1/roles`' method list and which role opens each method this plan calls; the HTTP status of each key error; what
+`since` and `to` of the FBO list compare (then the FBO window may become a mark); whether the unprocessed list holds a posting the
+buyer cancelled before packing; how a split made in the cabinet shows; the real limit headers and the budget's agreement with them
+(OZC §10, points 1, 2, 4, 5). Only reading calls are made, so the check is safe on a working shop. What they
 find becomes Plan 6's premises.
 
 ## I. The instructions
 
 - **`README.md` gains «Подключение Ozon»**, step by step for a seller, written from OZC §2 and §3 (premise 4): what the Client ID and
-  the API key are and why wyo needs both; in the Ozon cabinet «Настройки → Seller API» → «Сгенерировать ключ»; a name for the key
+  the API key are and why wyo needs both; in the Ozon cabinet «Настройки» → «API интеграции» → «Seller API»: the Client ID is the number
+  at the top of that page (with a button to copy it) — not the «Ozon ID» of the page «Учётная запись», which is another number; a key
+  can be made only once Ozon's offer is accepted (the page says «Нет подписанной оферты» until then); «Сгенерировать ключ»; a name for the key
   («wyo»); the access levels to tick for this release — `Posting FBS read-only` (the FBS orders), `Posting FBO` (the FBO orders),
   `Product read-only` (the barcodes), `Warehouse` (the warehouses) — and that `Admin read only` also works; the purpose «для личного
   пользования», because the wyo server is the seller's own program on its own server and nobody else ever gets the key (rule R4; Ozon's
