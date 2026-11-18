@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.7](https://github.com/prankyman/wyo/compare/v0.0.6...v0.0.7) (2026-11-18)
+
+### Features
+
+* the whole Ozon FBS exchange through the neutral fulfilment-centre API (Plan 6) ([4813baa](https://github.com/prankyman/wyo/commit/4813baae5879e230979537bfb32a7f2ce2b9ca02))
+
 ## [0.0.6](https://github.com/prankyman/wyo/compare/v0.0.5...v0.0.6) (2026-11-18)
 
 ### Features
