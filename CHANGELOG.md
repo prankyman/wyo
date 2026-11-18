@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.3](https://github.com/prankyman/wyo/compare/v0.0.2...v0.0.3) (2026-11-18)
+
+### Bug Fixes
+
+* ignore certificate events after the wyo server stops; skip the second gate on main ([69d0de6](https://github.com/prankyman/wyo/commit/69d0de62e5381eac73e3f8ffc4bb78e16ba662f0))
+
 ## [0.0.2](https://github.com/prankyman/wyo/compare/v0.0.1...v0.0.2) (2026-11-18)
 
 ### Features
