@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/v2.8.2/configuration-schema.json
+# Ozon's description file api/ozon/seller-api.json, limited to the methods the connector uses (listed in
+# .agents/research/ozon-official-seller-api-check-2026-11-18.md, section 5): the types and a client. The two methods that cancel
+# a posting are never listed here (a test reads this file).
+package: ozonapi
+output: internal/marketplace/ozon/ozonapi/ozonapi.gen.go
+generate:
+    models: true
+    client: true
+output-options:
+    resolve-type-name-collisions: true
+    include-operation-ids:
+        - AccessAPI_RolesByToken
+        - SellerAPI_SellerInfo
+        - WarehouseListV2
+        - PostingFbsUnfulfilledList
+        - PostingAPI_GetFbsPostingV3
+        - PostingFboList
+        - ProductAPI_GetProductInfoList

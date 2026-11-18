@@ -48,6 +48,8 @@ test('an account added with a made-up token shows its card, which names the key 
     await openScreen(page, '/marketplaces');
     await expect(page.getByTestId('marketplaces-empty')).toHaveText(ruText('accounts.empty'));
 
+    // The wyo server holds more than one marketplace, so the form asks first which one the account is on.
+    await page.locator('#marketplaces-choose-box').selectOption('wildberries');
     await page.getByTestId('account-add-form-name').fill('Магазин одежды');
     await page.getByTestId('account-add-form-key-token').fill(token);
     await page.getByTestId('account-add-form-send').click();
@@ -71,16 +73,28 @@ test('an account added with a made-up token shows its card, which names the key 
     expect(requests.outside([baseURL!])).toEqual([]);
 });
 
-/** Each refusal of a key and the token that provokes it at the fake Wildberries. */
-const REFUSALS: { name: string; code: string; claims: ITokenClaims; refusedByFake?: boolean }[] = [
-    { name: 'an expired token', code: 'key_expired', claims: { expiresAt: daysFromNow(-1) } },
-    { name: 'a «Базовый» token', code: 'key_type_not_accepted', claims: { type: TOKEN_TYPE.base } },
+/**
+ * Each refusal of a key, the token that provokes it at the fake Wildberries, and the text that words it: Wildberries' own
+ * sentence (`marketplace.wildberries.refusal.<code>`) where it has one, the shared one otherwise.
+ */
+const REFUSALS: { name: string; text: string; claims: ITokenClaims; refusedByFake?: boolean }[] = [
+    { name: 'an expired token', text: 'accounts.refusal.key_expired', claims: { expiresAt: daysFromNow(-1) } },
+    {
+        name: 'a «Базовый» token',
+        text: 'marketplace.wildberries.refusal.key_type_not_accepted',
+        claims: { type: TOKEN_TYPE.base }
+    },
     {
         name: 'a token without the category «Маркетплейс»',
-        code: 'category_missing',
+        text: 'marketplace.wildberries.refusal.category_missing',
         claims: { categories: CATEGORY.statistics }
     },
-    { name: 'a token Wildberries answers with 401', code: 'key_refused', claims: {}, refusedByFake: true }
+    {
+        name: 'a token Wildberries answers with 401',
+        text: 'marketplace.wildberries.refusal.key_refused',
+        claims: {},
+        refusedByFake: true
+    }
 ];
 
 for (const refusal of REFUSALS) {
@@ -93,13 +107,12 @@ for (const refusal of REFUSALS) {
         if (refusal.refusedByFake) await setUpFake(token, { token_refused: 'invalid' });
         await openScreen(page, '/marketplaces');
 
+        await page.locator('#marketplaces-choose-box').selectOption('wildberries');
         await page.getByTestId('account-add-form-name').fill('Магазин');
         await page.getByTestId('account-add-form-key-token').fill(token);
         await page.getByTestId('account-add-form-send').click();
 
-        await expect(page.getByTestId('account-add-form-key-token-error')).toHaveText(
-            ruText(`accounts.refusal.${refusal.code}`)
-        );
+        await expect(page.getByTestId('account-add-form-key-token-error')).toHaveText(ruText(refusal.text));
         await expect(page.getByTestId('account-add-form-key-token'), 'a refused save keeps what was typed').toHaveValue(
             token
         );

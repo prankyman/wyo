@@ -20,7 +20,7 @@ const childMarker = "wyofakes-child"
 // that runs main() (the marker argument is how the child knows); the child's own run is the one that does it.
 func TestMainInChildProcess(t *testing.T) {
 	if flag.Arg(0) == childMarker {
-		os.Args = []string{"wyofakes", "--wildberries", "127.0.0.1:0", "--fulfilment", "127.0.0.1:0"}
+		os.Args = []string{"wyofakes", "--marketplaces", "127.0.0.1:0", "--fulfilment", "127.0.0.1:0"}
 
 		main() // never returns: main ends with os.Exit
 

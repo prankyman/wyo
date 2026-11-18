@@ -1277,7 +1277,7 @@ func (q *Queries) MarkOrderCodesSent(ctx context.Context, arg MarkOrderCodesSent
 }
 
 const ordersToSend = `-- name: OrdersToSend :many
-SELECT o.id, o.account_id, o.number, o.basket, o.article, o.barcodes, o.item_id, o.created_at, o.warehouse_number,
+SELECT o.id, o.account_id, o.number, o.basket, o.item_id, o.created_at, o.ship_by, o.warehouse_number,
        a.deadline_hours, m.fc_marketplace, w.fc_warehouse
 FROM orders o
 JOIN marketplace_accounts a ON a.id = o.account_id
@@ -1286,27 +1286,44 @@ JOIN fc_warehouse_map w ON w.account_id = o.account_id AND w.warehouse_number = 
 LEFT JOIN exchange_orders x ON x.order_id = o.id
 WHERE o.scheme = 'fbs' AND o.state = 'new' AND x.order_id IS NULL
   AND a.state IN ('working', 'key_expiring', 'no_connection') AND a.read_only = 0
+  AND a.marketplace IN (/*SLICE:marketplaces*/?)
 ORDER BY o.created_at, o.id
-LIMIT ?
+LIMIT ?2
 `
+
+type OrdersToSendParams struct {
+	Marketplaces []string
+	Batch        int64
+}
 
 type OrdersToSendRow struct {
 	ID              int64
 	AccountID       int64
 	Number          string
 	Basket          string
-	Article         string
-	Barcodes        string
 	ItemID          string
 	CreatedAt       int64
+	ShipBy          sql.NullInt64
 	WarehouseNumber string
 	DeadlineHours   int64
 	FcMarketplace   string
 	FcWarehouse     string
 }
 
-func (q *Queries) OrdersToSend(ctx context.Context, limit int64) ([]OrdersToSendRow, error) {
-	rows, err := q.db.QueryContext(ctx, ordersToSend, limit)
+// Only the orders of the marketplaces whose adapters hand orders over (sqlc.slice(marketplaces)) are sent.
+func (q *Queries) OrdersToSend(ctx context.Context, arg OrdersToSendParams) ([]OrdersToSendRow, error) {
+	query := ordersToSend
+	var queryParams []interface{}
+	if len(arg.Marketplaces) > 0 {
+		for _, v := range arg.Marketplaces {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:marketplaces*/?", strings.Repeat(",?", len(arg.Marketplaces))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:marketplaces*/?", "NULL", 1)
+	}
+	queryParams = append(queryParams, arg.Batch)
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
 	if err != nil {
 		return nil, err
 	}
@@ -1319,10 +1336,9 @@ func (q *Queries) OrdersToSend(ctx context.Context, limit int64) ([]OrdersToSend
 			&i.AccountID,
 			&i.Number,
 			&i.Basket,
-			&i.Article,
-			&i.Barcodes,
 			&i.ItemID,
 			&i.CreatedAt,
+			&i.ShipBy,
 			&i.WarehouseNumber,
 			&i.DeadlineHours,
 			&i.FcMarketplace,

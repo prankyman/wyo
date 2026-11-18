@@ -165,7 +165,7 @@ func TestATestKeyReadsNoFeedAndTalksToTheSandboxAtItsLimit(t *testing.T) {
 	}
 
 	h := http.Header{}
-	a.Authorize(h, "the-token")
+	a.Authorize(h, marketplace.Key{"token": "the-token"})
 
 	if h.Get("Authorization") != "the-token" {
 		t.Fatalf("Authorization %q: Wildberries takes the token as it is", h.Get("Authorization"))

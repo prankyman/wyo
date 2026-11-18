@@ -12,9 +12,9 @@ import (
 
 func anOrder(accountID int64, number, scheme string, created time.Time) store.Order {
 	return store.Order{
-		AccountID: accountID, Number: number, Scheme: scheme, JoinKey: "rid." + number, WarehouseNumber: "1001", Article: "ART-" + number,
-		Barcodes: []string{"460" + number, "461" + number}, ProductID: "123", CreatedAt: created, State: "new", SellerStatus: "new",
-		MarketplaceStatus: "waiting", UpdatedAt: created,
+		AccountID: accountID, Number: number, Scheme: scheme, JoinKey: "rid." + number, WarehouseNumber: "1001",
+		Lines:     []store.OrderLine{{Article: "ART-" + number, Barcodes: []string{"460" + number, "461" + number}, ProductID: "123", Quantity: 1}},
+		CreatedAt: created, State: "new", SellerStatus: "new", MarketplaceStatus: "waiting", UpdatedAt: created,
 	}
 }
 
@@ -78,15 +78,21 @@ func TestAnOrderIsOneRowItsStatesAreEventsAndItsProductIsFilledLater(t *testing.
 			return err
 		}
 
-		return q.UpdateOrderProduct(ctx, id, store.OrderProduct{Basket: "g-1", Kind: "Shirts", Brand: "Brand", Size: "M"}, noon())
+		if err := q.UpdateOrderBasket(ctx, id, "g-1", noon()); err != nil {
+			return err
+		}
+
+		return q.ReplaceOrderLines(ctx, id, []store.OrderLine{{
+			Article: "ART-100", Barcodes: []string{"460100", "461100"}, ProductID: "123", Kind: "Shirts", Brand: "Brand", Size: "M", Quantity: 1,
+		}})
 	})
 	if err != nil {
 		t.Fatalf("changes: %v", err)
 	}
 
 	got, err := s.Read().OrderByNumber(ctx, account, "100")
-	if err != nil || got.State != "cancelled" || got.CancelledBy != "buyer" || got.Kind != "Shirts" || got.Basket != "g-1" ||
-		!reflect.DeepEqual(got.Barcodes, []string{"460100", "461100"}) {
+	if err != nil || got.State != "cancelled" || got.CancelledBy != "buyer" || len(got.Lines) != 1 || got.Lines[0].Kind != "Shirts" ||
+		got.Basket != "g-1" || !reflect.DeepEqual(got.Lines[0].Barcodes, []string{"460100", "461100"}) {
 		t.Fatalf("OrderByNumber: %+v, %v", got, err)
 	}
 
@@ -223,5 +229,101 @@ func TestTheOrderListFiltersCountsAndShowsTheDeadlineAndTheWarehouse(t *testing.
 	counts, err := s.Read().OrderCounts(ctx, noon())
 	if err != nil || counts.ByState["new"] != 2 || counts.ByState["in_delivery"] != 1 || counts.Overdue != 1 {
 		t.Fatalf("OrderCounts: %+v, %v", counts, err)
+	}
+}
+
+func TestAnOrderOfSeveralLinesKeepsThemInOrderWithTheMarketplacesDeadlineAndItsSplitParts(t *testing.T) {
+	t.Parallel()
+
+	s := storekit.Open(t)
+	ctx := t.Context()
+	account := insertAccount(t, s, anAccount("orders.5.key")).ID
+	shipBy := noon().Add(-2 * time.Hour)
+
+	original := anOrder(account, "89491381-0072-1", "fbs", noon().Add(-24*time.Hour))
+	original.ShipBy = shipBy
+	original.Lines = []store.OrderLine{
+		{ProductID: "1001", Article: "SHIRT-RED", Name: "Рубашка", Barcodes: []string{"4600001"}, Quantity: 2},
+		{ProductID: "1002", Article: "SOCKS-BLUE", Name: "Носки", Barcodes: []string{"4600002", "4600003"}, Quantity: 1},
+		{ProductID: "1003", Article: "CAP", Name: "Кепка", Quantity: 3},
+	}
+	id, _ := insertOrder(t, s, original)
+
+	for _, number := range []string{"89491381-0072-2", "89491381-0072-3"} {
+		part := anOrder(account, number, "fbs", noon())
+		part.Parent = original.Number
+		insertOrder(t, s, part)
+	}
+
+	view, err := s.Read().OrderView(ctx, id)
+	if err != nil || !reflect.DeepEqual(view.Lines, original.Lines) || !view.DeadlineAt.Equal(shipBy) || !view.ShipBy.Equal(shipBy) {
+		t.Fatalf("OrderView: %+v, %v; want the three lines in order and the marketplace's deadline", view, err)
+	}
+
+	parts, err := s.Read().OrderParts(ctx, account, original.Number)
+	if err != nil || !reflect.DeepEqual(parts, []string{"89491381-0072-2", "89491381-0072-3"}) {
+		t.Fatalf("OrderParts = %v, %v", parts, err)
+	}
+
+	if none, _ := s.Read().OrderParts(ctx, account, ""); len(none) != 0 {
+		t.Fatalf("the orders split from no order were listed as parts: %v", none)
+	}
+
+	for _, search := range []string{"SOCKS", "4600003", "1003"} {
+		views, err := s.Read().OrderViews(ctx, store.OrderFilter{Search: search})
+		if err != nil || len(views) != 1 || views[0].ID != id || len(views[0].Lines) != 3 {
+			t.Fatalf("search %q: %+v, %v; want the order by its second or third line", search, views, err)
+		}
+	}
+
+	counts, err := s.Read().OrderCounts(ctx, noon())
+	if err != nil || counts.Overdue != 1 {
+		t.Fatalf("OrderCounts = %+v, %v; want the order past the marketplace's deadline, not the parts", counts, err)
+	}
+
+	later := noon().Add(48 * time.Hour)
+	if err := s.Do(ctx, func(q *store.Queries) error { return q.UpdateOrderShipBy(ctx, id, later, noon()) }); err != nil {
+		t.Fatalf("UpdateOrderShipBy: %v", err)
+	}
+
+	found, err := s.Read().OrdersOfNumbers(ctx, account, []string{original.Number, "89491381-0072-2", "unknown"})
+	if err != nil || len(found) != 2 || !found[original.Number].ShipBy.Equal(later) || len(found[original.Number].Lines) != 3 ||
+		found["89491381-0072-2"].Parent != original.Number {
+		t.Fatalf("OrdersOfNumbers = %+v, %v", found, err)
+	}
+
+	if empty, err := s.Read().OrdersOfNumbers(ctx, account, nil); err != nil || len(empty) != 0 {
+		t.Fatalf("OrdersOfNumbers of no number = %v, %v", empty, err)
+	}
+}
+
+func TestWritesCountsTheCommittedWritesOnly(t *testing.T) {
+	t.Parallel()
+
+	s := storekit.Open(t)
+	ctx := t.Context()
+	before := s.Writes()
+
+	insertAccount(t, s, anAccount("orders.6.key"))
+
+	if err := s.Do(ctx, func(*store.Queries) error { return errors.New("undone") }); err == nil {
+		t.Fatal("a failed write was committed")
+	}
+
+	if got := s.Writes() - before; got != 1 {
+		t.Fatalf("Writes grew by %d, want 1: an undone write is not counted", got)
+	}
+}
+
+func TestTheLinesOfAnOrderThatDoesNotExistAreRefused(t *testing.T) {
+	t.Parallel()
+
+	s := storekit.Open(t)
+
+	err := s.Do(t.Context(), func(q *store.Queries) error {
+		return q.ReplaceOrderLines(t.Context(), 999, []store.OrderLine{{Article: "LOST", Quantity: 1}})
+	})
+	if err == nil {
+		t.Fatal("lines were kept for an order that does not exist")
 	}
 }

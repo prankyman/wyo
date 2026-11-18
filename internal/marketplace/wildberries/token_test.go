@@ -75,15 +75,15 @@ func TestATokensOwnFieldsAreReadWithoutCallingAnybody(t *testing.T) {
 			facts, secret, err := wildberries.New(wildberries.Options{}).ReadKey(map[string]string{"token": " " + tc.token + "\n"}, synckit.Noon())
 
 			if tc.wantCode == "" {
-				if err != nil || secret != tc.token || !reflect.DeepEqual(facts, tc.want) {
-					t.Fatalf("ReadKey = %+v, secret kept %v, %v\nwant %+v", facts, secret == tc.token, err, tc.want)
+				if err != nil || secret["token"] != tc.token || !reflect.DeepEqual(facts, tc.want) {
+					t.Fatalf("ReadKey = %+v, secret kept %v, %v\nwant %+v", facts, secret["token"] == tc.token, err, tc.want)
 				}
 
 				return
 			}
 
 			var r *marketplace.Refusal
-			if !errors.As(err, &r) || r.Code != tc.wantCode || r.Field != "key.token" || !reflect.DeepEqual(r.Params, tc.wantParams) || secret != "" {
+			if !errors.As(err, &r) || r.Code != tc.wantCode || r.Field != "key.token" || !reflect.DeepEqual(r.Params, tc.wantParams) || secret != nil {
 				t.Fatalf("ReadKey refused with %+v, secret %q; want %s %v on key.token", r, secret, tc.wantCode, tc.wantParams)
 			}
 		})
@@ -105,7 +105,7 @@ func FuzzReadKey(f *testing.F) {
 			t.Fatalf("an error that is not a refusal: %v", err)
 		}
 
-		if err == nil && (secret == "" || facts.ProfileID == "") {
+		if err == nil && (secret["token"] == "" || facts.ProfileID == "") {
 			t.Fatalf("facts without a secret or a profile: %+v", facts)
 		}
 	})

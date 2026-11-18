@@ -9,6 +9,7 @@ import (
 	fakewb "github.com/prankyman/wyo/internal/fakes/wildberries"
 	"github.com/prankyman/wyo/internal/marketplace"
 	"github.com/prankyman/wyo/internal/sync"
+	"github.com/prankyman/wyo/internal/testkit/memadapter"
 	"github.com/prankyman/wyo/internal/testkit/synckit"
 )
 
@@ -24,8 +25,8 @@ func TestANewKeyIsReadAndCheckedBeforeItIsSaved(t *testing.T) {
 	})
 
 	checked, secret, err := r.engine.CheckNewKey(ctx, "wildberries", 0, map[string]string{"token": token})
-	if err != nil || secret != token || checked.SellerName != "Test seller" || checked.ProfileID != fakeSeller {
-		t.Fatalf("CheckNewKey = %+v, secret kept %v, %v", checked, secret == token, err)
+	if err != nil || secret["token"] != token || checked.SellerName != "Test seller" || checked.ProfileID != fakeSeller {
+		t.Fatalf("CheckNewKey = %+v, secret kept %v, %v", checked, secret["token"] == token, err)
 	}
 
 	rows := r.kit.Rows(t)
@@ -78,5 +79,27 @@ func TestASavedKeyIsCheckedAgainItsFactsRewrittenAndItsWarehousesRead(t *testing
 
 	if _, err := r.engine.CheckAccount(ctx, 999); err == nil {
 		t.Fatal("an account that does not exist was checked")
+	}
+}
+
+func TestAKeyWhoseEndTheMarketplaceGivesAsPassedIsRefusedWhenAdded(t *testing.T) {
+	t.Parallel()
+
+	r := newMemoryRig(t, 10)
+	ctx := t.Context()
+
+	r.adapter.EndKeyAt(synckit.Noon().Add(-time.Minute))
+
+	var refusal *marketplace.Refusal
+	if _, _, err := r.engine.CheckNewKey(ctx, memadapter.Code, 0, marketplace.Key{"token": "mem-ended"}); !errors.As(err, &refusal) ||
+		refusal.Code != "key_expired" || refusal.Field != "key.token" || refusal.State != marketplace.AccountKeyExpired {
+		t.Fatalf("a key the marketplace says has ended: %v", err)
+	}
+
+	r.adapter.EndKeyAt(synckit.Noon().Add(24 * time.Hour))
+
+	checked, _, err := r.engine.CheckNewKey(ctx, memadapter.Code, 0, marketplace.Key{"token": "mem-living"})
+	if err != nil || !checked.ExpiresAt.Equal(synckit.Noon().Add(24*time.Hour)) {
+		t.Fatalf("a key that ends tomorrow: %+v, %v", checked, err)
 	}
 }

@@ -39,8 +39,8 @@ Always say which program you mean:
 - **the wyo server** — the Go program, one file named `wyo`;
 - **the wyo interface** — its pages in a browser, built by SvelteKit and carried inside the wyo server;
 - **the installer** — the script that puts the wyo server on a seller's server (Plan 2);
-- **the fake Wildberries** and **the fake fulfilment centre** — the two small Go programs that answer as Wildberries and as a fulfilment
-  centre's system would, with made-up data (`cmd/wyofakes`).
+- **the fake Wildberries**, **the fake Ozon** and **the fake fulfilment centre** — the small Go programs that answer as Wildberries, as
+  Ozon and as a fulfilment centre's system would, with made-up data (`cmd/wyofakes`; the two fake marketplaces on one address).
 
 Never write "the app" on its own — in code comments, messages, documents, plans and reports alike. The maintainer's other repository is
 called exactly that: «the maintainer's other repository».

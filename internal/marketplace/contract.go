@@ -79,6 +79,9 @@ type Description struct {
 	// HandoverSettings are the settings the owner gives once per account for handing orders over to the marketplace
 	// (Plan 4, section A.5); empty when the adapter has none.
 	HandoverSettings []SettingField
+	// GivesDeadline says the marketplace gives each order the moment it must be handed over by (Order.ShipBy); when it
+	// does not, the deadline is the order's creation plus the account's hours, which the owner sets.
+	GivesDeadline bool
 }
 
 // MessageKey is the family of the adapter's texts in messages/: <family>.name, <family>.help, <family>.key.<field>.*.
@@ -88,12 +91,16 @@ func (d Description) MessageKey() string { return "marketplace." + d.Code }
 func (d Description) Supports(c Capability) bool { return slices.Contains(d.Capabilities, c) }
 
 // LimitGroup is one of a marketplace's request limits: a burst of calls that refills one call every Interval. A call
-// answered with a client error costs ErrorCost calls.
+// answered with a client error costs ErrorCost calls. RemainingHeader names the header by which the marketplace tells how
+// many calls remain, and RetryHeader the one by which it tells, on 429 Too Many Requests, how many seconds to wait;
+// empty when it tells none.
 type LimitGroup struct {
-	Name      string
-	Interval  time.Duration
-	Burst     int
-	ErrorCost int
+	Name            string
+	Interval        time.Duration
+	Burst           int
+	ErrorCost       int
+	RemainingHeader string
+	RetryHeader     string
 }
 
 // Route is one request an adapter may send: its method, its path with a {placeholder} for every value, the limit
@@ -113,11 +120,16 @@ type Doer interface {
 }
 
 // Conn is what an adapter is given to reach its marketplace for one account and one job: the caller, which adds the
-// key, keeps the budget and writes the journal, and whether the account's key is a test key.
+// key, keeps the budget and writes the journal, whether the account's key is a test key, and the categories (the
+// adapter's own codes) its key was found to lack at its last check, so that the part needing one is not asked.
 type Conn struct {
-	Doer Doer
-	Test bool
+	Doer    Doer
+	Test    bool
+	Missing []string
 }
+
+// Lacks says whether the account's key lacks a category.
+func (c Conn) Lacks(category string) bool { return slices.Contains(c.Missing, category) }
 
 // Adapter is the one contract every marketplace implements. A part of the contract is a second interface below; an
 // adapter implements the ones its description claims.
@@ -129,17 +141,20 @@ type Adapter interface {
 	Limit(group string, test bool) (LimitGroup, bool)
 	// Capable says whether a part can be asked of an account with a test key or a real one.
 	Capable(c Capability, test bool) bool
-	// Authorize puts the key into a request's headers, the way the marketplace wants it.
-	Authorize(h http.Header, secret string)
+	// Authorize puts the key's fields into a request's headers, the way the marketplace wants them.
+	Authorize(h http.Header, key Key)
+	// Hosts lists every host the adapter calls; the outbound gate lists exactly the hosts of the registered adapters.
+	Hosts() []string
 	// ErrorOf reads the marketplace's own code and text out of an answer that is not a success.
 	ErrorOf(status int, body []byte) (code, text string)
 }
 
 // KeyChecker is the part key.check.
 type KeyChecker interface {
-	// ReadKey reads the key form's fields without calling anybody: what the key says about itself and the one text the
-	// secret store keeps. A key that cannot be accepted is refused with a *Refusal naming the field.
-	ReadKey(fields map[string]string, now time.Time) (KeyFacts, string, error)
+	// ReadKey reads the key form's fields without calling anybody: what the key says about itself and the fields as they
+	// are kept (without the spaces around them). A key that cannot be accepted is refused with a *Refusal naming the
+	// field.
+	ReadKey(key Key, now time.Time) (KeyFacts, Key, error)
 	// CheckKey asks the marketplace whether the key works and whose it is.
 	CheckKey(ctx context.Context, conn Conn, facts KeyFacts) (CheckedKey, error)
 }

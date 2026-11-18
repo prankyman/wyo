@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
+	"github.com/prankyman/wyo/internal/adapterkit"
 	"github.com/prankyman/wyo/internal/marketplace"
 	"github.com/prankyman/wyo/internal/marketplace/wildberries/wbapi/orders"
 )
@@ -35,14 +36,14 @@ func (a *Adapter) Labels(ctx context.Context, conn marketplace.Conn, numbers []s
 			return WriteRefusal(res.StatusCode(), res.Body)
 		}
 
-		for _, s := range value(res.JSON200.Stickers) {
-			picture, err := base64.StdEncoding.DecodeString(value(s.File))
+		for _, s := range adapterkit.Value(res.JSON200.Stickers) {
+			picture, err := base64.StdEncoding.DecodeString(adapterkit.Value(s.File))
 			if err != nil {
-				return fmt.Errorf("wildberries: the picture of the sticker of order %s is not base64", number(s.OrderId))
+				return fmt.Errorf("wildberries: the picture of the sticker of order %s is not base64", adapterkit.Number(s.OrderId))
 			}
 
 			labels = append(labels, marketplace.Label{
-				Number: number(s.OrderId), ContentType: pictureContentType, Data: picture, Code: value(s.Barcode),
+				Number: adapterkit.Number(s.OrderId), ContentType: pictureContentType, Data: picture, Code: adapterkit.Value(s.Barcode),
 			})
 		}
 

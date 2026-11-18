@@ -15,14 +15,16 @@
   (`https://seller.wildberries.ru/instructions/ru/ru/material/how-to-create-update-or-delete-a-wb-api-token`) и копии статей в
   `docs/marketplaces/`. Разбор — `.agents/research/wildberries-token-check-2026-11-18.md`.
 
-Поведение wyo описано по коду: адаптер Wildberries — `internal/marketplace/wildberries/` (`wildberries.go` — список запросов и пределов,
-`check.go`, `orders.go`, `feed.go`), движок синхронизации — `internal/sync/` (`engine.go` — расписание, `caller.go` — повторы и сроки,
-`budget.go` — учёт пределов), журнал — `internal/journal/journal.go`, список разрешённых адресов — `internal/outbound/outbound.go`.
+Поведение wyo описано по коду: адаптер Wildberries — `internal/marketplace/wildberries/` (`wildberries.go` — список запросов, адресов и
+пределов, `check.go`, `orders.go`, `feed.go`), движок синхронизации — `internal/sync/` (`engine.go` — расписание, `caller.go` — повторы и
+сроки, `budget.go` — учёт пределов), журнал — `internal/journal/journal.go`, список разрешённых адресов — `internal/outbound/outbound.go`
+(его собирает при запуске из адресов, которые называют адаптеры). Те же части для Ozon описаны в `docs/ozon.md`.
 
 ## Адреса
 
 wyo обращается только к четырём адресам Wildberries, и только по `https://`. Других адресов Wildberries в списке разрешённых адресов wyo
-нет (`internal/outbound/outbound.go`, назначение `marketplace`), и запрос на любой другой адрес wyo не отправит.
+нет: адаптер называет свои адреса (`Hosts()` в `internal/marketplace/wildberries/wildberries.go`), `internal/outbound` строит из них список
+назначения `marketplace` при запуске, и запрос на любой другой адрес wyo не отправит.
 
 | Адрес                                    | Что там спрашивает wyo                                  | Источник                                                           |
 | ---------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------ |
@@ -87,7 +89,7 @@ wyo обращается только к четырём адресам Wildberri
 
 ## Запросы, которые пишут, — только когда заполнен «Внешний API»
 
-Когда продавец заполнил страницу «Внешний API» (README, раздел 10), wyo сам выполняет в кабинете шаги обмена с фулфилмент-центром. Все эти
+Когда продавец заполнил страницу «Внешний API» (README, раздел 11), wyo сам выполняет в кабинете шаги обмена с фулфилмент-центром. Все эти
 запросы — в списке `writingRoutes()` файла `internal/marketplace/wildberries/write.go`; каждый пишущий помечен `Write: true`, и движок
 никогда не повторяет его сам (`internal/sync/caller.go`). Перед каждой записью wyo читает текущее состояние и пропускает уже сделанное.
 Все — на адресе `marketplace-api`, в пределе «1 мин \| 300 запросов \| 200 мс \| 20 запросов», из файла `03-orders-fbs.yaml`.

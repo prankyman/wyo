@@ -7,6 +7,7 @@
     import DeadlineCell from '$lib/components/orders/DeadlineCell.svelte';
     import OrderDetails from '$lib/components/orders/OrderDetails.svelte';
     import OrderStateBadge from '$lib/components/orders/OrderStateBadge.svelte';
+    import ProductCell from '$lib/components/orders/ProductCell.svelte';
     import RefreshButton from '$lib/components/orders/RefreshButton.svelte';
     import SchemeBadge from '$lib/components/orders/SchemeBadge.svelte';
     import type { TOrder, TOrderDetails } from '$lib/components/orders/types';
@@ -24,6 +25,7 @@
     import RowDetailsPanel from '$lib/components/ui/RowDetailsPanel.svelte';
     import SelectBox from '$lib/components/ui/SelectBox.svelte';
     import Stack from '$lib/components/ui/Stack.svelte';
+    import StatusBadgeWithHelp from '$lib/components/ui/StatusBadgeWithHelp.svelte';
     import TextBox from '$lib/components/ui/TextBox.svelte';
     import type { IDataListColumn, IDataListRow } from '$lib/components/ui/types';
     import { pageSearch } from '$lib/forms/page-search.svelte';
@@ -33,7 +35,7 @@
     import { filtersInWords } from '$lib/lists/filter-words';
     import { addressWith, filterChips } from '$lib/lists/list-address';
     import { accountNameOf, accountOptions } from '$lib/marketplaces/account-options';
-    import { productText } from '$lib/orders/product-text';
+    import { exchangeSupported } from '$lib/marketplaces/exchange-support';
     import { ORDER_FILTER_ID, ORDER_SCHEMES, ORDER_STATES, orderFilterSchema } from '$lib/validation/list-filters';
     import { onDestroy } from 'svelte';
     import type { PageData } from './$types';
@@ -43,7 +45,10 @@
      * first, 50 a page. The filters live in the address (`FilterSection`, a search form that changes the address), so a filtered
      * list can be opened again by its link; a row opens the order's details beside the list (`RowDetailsPanel`, `?order=<id>`).
      * «Обновить» reads the orders at once, at most once in 5 minutes (`RefreshButton`); after a press the page reads its list
-     * again a few seconds later, when the first answers are in. Every empty list says why it is empty and what to do.
+     * again a few seconds later, when the first answers are in. Every empty list says why it is empty and what to do. The product
+     * of an order is `ProductCell` (its first product and how many more it has), the details beside the list show every product
+     * (`OrderDetails`), and an FBS order of a marketplace whose adapter has no part of the exchange says «не передаётся» in the
+     * column «Обмен», with the reason behind a «?».
      */
     let { data }: { data: PageData } = $props();
 
@@ -67,7 +72,8 @@
             key: 'product',
             labelKey: 'orders.column.product',
             helpKey: 'orders.column.product.help',
-            emphasis: 'secondary'
+            emphasis: 'secondary',
+            custom: true
         },
         {
             key: 'marketplace',
@@ -90,7 +96,6 @@
             href: addressWith(page.url, { order: String(order.id) }, { keep: ['page'] }),
             cells: {
                 number: order.number,
-                product: productText(order, lang) || null,
                 warehouse: order.warehouse ?? null,
                 created: formatDateTime(order.createdAt, lang)
             },
@@ -315,6 +320,15 @@
                             cancelledBy={row.order.cancelledBy}
                             marketplaceStatus={row.order.marketplaceStatus}
                             testId="orders-list-state"
+                        />
+                    {:else if column.key === 'product'}
+                        <ProductCell {lang} lines={row.order.lines} testId="orders-list-product" />
+                    {:else if column.key === 'exchange' && row.order.scheme === 'fbs' && !exchangeSupported(adapterOf(row.order.marketplace))}
+                        <StatusBadgeWithHelp
+                            label={t('exchange.state.not_sent', lang)}
+                            tone="off"
+                            help={t('orders.exchange.unsupported.help', lang)}
+                            testId="orders-list-exchange-unsupported"
                         />
                     {:else if column.key === 'exchange' && row.order.exchange}
                         <ExchangeStateBadge {lang} exchange={row.order.exchange} testId="orders-list-exchange-state" />

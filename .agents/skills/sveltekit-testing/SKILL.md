@@ -339,7 +339,7 @@ day has not started yet, the test sees the wrong day.
 Browser tests (`e2e/specs/*.spec.ts`, Playwright) run against the **BUILT** wyo server (`pnpm build`), never against the Vite dev
 server, and only ever call the wyo server and the fakes. `pnpm test:e2e` starts, for every worker, **a wyo server of its own in test
 mode** (the Go build tag `wyotest`) with **its own empty data folder and its own port** (from 8800 up) and the two fakes
-(`cmd/wyofakes`: the fake Wildberries and the fake fulfilment centre), so workers share nothing. A new browser test therefore:
+(`cmd/wyofakes`: the fake Wildberries and the fake Ozon on one address, and the fake fulfilment centre), so workers share nothing. A new browser test therefore:
 
 - **works in its worker's data folder by default** and never assumes another test's rows; a test that needs rows makes them through the wyo
   server's own API or the fakes' control calls, and cleans up what it leaves;

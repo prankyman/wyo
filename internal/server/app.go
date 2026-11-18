@@ -184,22 +184,29 @@ func (a *App) assemble(ctx context.Context, opts Options) error {
 	return nil
 }
 
-// assembleMarketplaces builds what reads the marketplaces: the adapters, pointed at the fake marketplace when the gate
-// names one; the one caller, with the gate's client of the marketplaces; the engine; and the accounts.
+// assembleMarketplaces builds what reads the marketplaces: the adapters, pointed at the fake marketplace when the
+// configuration (or the gate given) names one; the outbound gate, which lists the adapters' hosts; the one caller, with
+// the gate's client of the marketplaces; the engine; and the accounts.
 func (a *App) assembleMarketplaces(opts Options) (*marketplace.Registry, error) {
 	gate := opts.Gate
-	if gate == nil {
-		var err error
 
-		gate, err = outbound.New(outbound.Options{Version: opts.Version, MarketplaceURL: opts.Config.Test.MarketplaceURL})
+	testBase := opts.Config.Test.MarketplaceURL
+	if gate != nil {
+		testBase = gate.MarketplaceURL()
+	}
+
+	registry, err := adapters(testBase, a.clock)
+	if err != nil {
+		return nil, err
+	}
+
+	if gate == nil {
+		gate, err = outbound.New(outbound.Options{
+			Version: opts.Version, MarketplaceURL: opts.Config.Test.MarketplaceURL, MarketplaceHosts: hostsOf(registry),
+		})
 		if err != nil {
 			return nil, fmt.Errorf("the outbound gate: %w", err)
 		}
-	}
-
-	registry, err := adapters(gate.MarketplaceURL())
-	if err != nil {
-		return nil, err
 	}
 
 	client, err := gate.Client(outbound.PurposeMarketplace)
@@ -273,6 +280,16 @@ func (a *App) routes(api, web http.Handler) http.Handler {
 		mux.HandleFunc("POST /__test/exchange/run", func(w http.ResponseWriter, r *http.Request) {
 			if err := a.Exchange.RunNow(r.Context()); err != nil {
 				a.log.Warn("the exchange's jobs run on request failed", "err", err)
+			}
+
+			w.WriteHeader(http.StatusNoContent)
+		})
+
+		// The same for the readings of the orders, without the 5 minutes «Обновить» waits between two presses: a browser test
+		// reads again what it changed in a fake marketplace.
+		mux.HandleFunc("POST /__test/orders/run", func(w http.ResponseWriter, r *http.Request) {
+			if err := a.Engine.RunOrders(r.Context()); err != nil {
+				a.log.Warn("the readings of the orders run on request failed", "err", err)
 			}
 
 			w.WriteHeader(http.StatusNoContent)

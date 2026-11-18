@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # `pnpm go:measure`: the memory of the wyo server with three accounts and 10 000 orders in its database, reading the fake
-# Wildberries at the synchronisation's periods for a made-up day (plan 3, section H; the test
+# Wildberries and the fake Ozon at the synchronisation's periods for a made-up day (plans 3 and 5, section H; the test
 # TestTheMemoryOfADayWithThreeAccountsAndTenThousandOrders of internal/server, built only with the tag wyomeasure).
 # It prints the line that starts with "wyo-memory:" and, in GitHub Actions, adds it to the run's summary. No race
 # detector: it would change what is measured.

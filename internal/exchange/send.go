@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/prankyman/wyo/internal/fulfilment"
+	"github.com/prankyman/wyo/internal/marketplace"
 
 	"github.com/prankyman/wyo/internal/store"
 )
@@ -12,7 +13,7 @@ import (
 // sendOrders is step 1: every new order of a matched warehouse not sent yet goes to the fulfilment centre. The same order
 // sent twice is one order there, so an order whose answer was lost is simply sent again by the next run.
 func (s *Service) sendOrders(ctx context.Context, sess *session) error {
-	list, err := s.opts.Store.Read().OrdersToSend(ctx, batch)
+	list, err := s.opts.Store.Read().OrdersToSend(ctx, batch, HandingOver(s.opts.Registry))
 	if err != nil {
 		return err
 	}
@@ -30,20 +31,45 @@ func (s *Service) sendOrders(ctx context.Context, sess *session) error {
 	return nil
 }
 
-// orderIn is the order as the neutral API takes it: the marketplace's number as the sender's own, the marketplace's code
-// in the fulfilment centre's list, the basket, the matched warehouse, one line of one unit, and the hand-over deadline.
-func orderIn(o store.OrderToSend) fulfilment.OrderIn {
-	line := fulfilment.OrderLine{Quantity: 1}
+// HandingOver lists the codes of the marketplaces whose adapters hand orders over (the contract part orders.confirm):
+// only their orders are sent to a fulfilment centre. An adapter that claims none of the exchange's parts keeps its
+// orders in the order list alone.
+func HandingOver(registry *marketplace.Registry) []string {
+	var codes []string
 
-	if len(o.Barcodes) > 0 {
-		line.Barcode = text(o.Barcodes[0])
+	for _, adapter := range registry.All() {
+		if adapter.Describe().Supports(marketplace.OrdersConfirm) {
+			codes = append(codes, adapter.Describe().Code)
+		}
 	}
 
-	line.Article, line.MarketplaceItemId = text(o.Article), text(o.ItemID)
+	return codes
+}
+
+// orderIn is the order as the neutral API takes it: the marketplace's number as the sender's own, the marketplace's code
+// in the fulfilment centre's list, the basket, the matched warehouse, one line for each of the order's products with
+// its units, and the hand-over deadline (the marketplace's own when it gave one).
+func orderIn(o store.OrderToSend) fulfilment.OrderIn {
+	lines := make([]fulfilment.OrderLine, 0, len(o.Lines))
+
+	for _, l := range o.Lines {
+		line := fulfilment.OrderLine{Quantity: max(1, l.Quantity)}
+
+		if len(l.Barcodes) > 0 {
+			line.Barcode = text(l.Barcodes[0])
+		}
+
+		line.Article, line.MarketplaceItemId = text(l.Article), text(o.ItemID)
+		lines = append(lines, line)
+	}
+
+	shipBy := fulfilment.ShipBy(o.CreatedAt, o.DeadlineHours)
+	if !o.ShipBy.IsZero() {
+		shipBy = o.ShipBy.UTC()
+	}
 
 	in := fulfilment.OrderIn{
-		ExternalId: o.Number, Marketplace: text(o.FcMarketplace), Warehouse: text(o.FcWarehouse),
-		ShipBy: fulfilment.ShipBy(o.CreatedAt, o.DeadlineHours), Lines: []fulfilment.OrderLine{line},
+		ExternalId: o.Number, Marketplace: text(o.FcMarketplace), Warehouse: text(o.FcWarehouse), ShipBy: shipBy, Lines: lines,
 	}
 	in.GroupId = text(o.Basket)
 

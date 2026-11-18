@@ -2,6 +2,8 @@ import type { components } from '$lib/api/wyo-api';
 
 /** One order of one account, in the connector's own states (`GET /api/v1/orders`). */
 export type TOrder = components['schemas']['Order'];
+/** One product of an order with how many units of it (`Order.lines`). */
+export type TOrderLine = components['schemas']['OrderLine'];
 export type TOrderList = components['schemas']['OrderList'];
 export type TOrderState = components['schemas']['OrderState'];
 export type TOrderScheme = components['schemas']['OrderScheme'];

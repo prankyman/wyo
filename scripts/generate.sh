@@ -6,6 +6,10 @@
 #   internal/httpapi/gen/                              from api/wyo.yaml (oapi-codegen)
 #   internal/fulfilment/fcapi/                         from api/fulfilment-centre.yaml (oapi-codegen)
 #   internal/marketplace/wildberries/wbapi/<package>/  from api/wildberries/*.yaml (oapi-codegen)
+#   internal/marketplace/ozon/ozonapi/                 from api/ozon/seller-api.json (oapi-codegen), through a corrected
+#                                                      copy written by tools/specfix into a temporary folder: Ozon's file
+#                                                      departs from OpenAPI where the generator refuses it, and the
+#                                                      committed file is never edited (api/ozon/README.md)
 #   src/lib/api/wyo-api.d.ts                           from api/wyo.yaml (openapi-typescript)
 #   internal/store/db/                                 from internal/store/*.sql, migrations/ and queries/ (sqlc)
 set -euo pipefail
@@ -33,6 +37,7 @@ GENERATED=(
     internal/marketplace/wildberries/wbapi/items/items.gen.go
     internal/marketplace/wildberries/wbapi/orders/orders.gen.go
     internal/marketplace/wildberries/wbapi/reports/reports.gen.go
+    internal/marketplace/ozon/ozonapi/ozonapi.gen.go
     src/lib/api/wyo-api.d.ts
     internal/store/db/accounts.sql.go
     internal/store/db/db.go
@@ -59,6 +64,11 @@ generate_into() {
         cp "$root/go.mod" "$out/go.mod"
     fi
 
+    # The corrected copy of Ozon's file lives only for this run.
+    local ozon
+    ozon="$(mktemp -d)"
+    go run ./tools/specfix "$root/api/ozon/seller-api.json" "$ozon/seller-api.json" >/dev/null
+
     (
         cd "$out"
         oapi-codegen -config "$root/api/codegen/wyo.cfg.yaml" "$root/api/wyo.yaml"
@@ -67,7 +77,9 @@ generate_into() {
         oapi-codegen -config "$root/api/codegen/wildberries-items.cfg.yaml" "$root/api/wildberries/02-items.yaml"
         oapi-codegen -config "$root/api/codegen/wildberries-orders.cfg.yaml" "$root/api/wildberries/03-orders-fbs.yaml"
         oapi-codegen -config "$root/api/codegen/wildberries-reports.cfg.yaml" "$root/api/wildberries/12-reports.yaml"
+        oapi-codegen -config "$root/api/codegen/ozon.cfg.yaml" "$ozon/seller-api.json"
     )
+    rm -rf "$ozon"
 
     # sqlc resolves every path of its configuration against the folder the configuration is in, so when the output goes
     # elsewhere the inputs go with it.

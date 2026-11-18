@@ -78,8 +78,8 @@ test('an order made in the fake appears after «Обновить», which then w
     await expect(row, 'the list stays beside the details').toBeVisible();
     await expect(panel.getByTestId('order-state')).toHaveText(ruText('orders.state.new'));
     await expect(panel.getByTestId('order-facts-number')).toHaveText(number);
-    await expect(panel.getByTestId('order-facts-article')).toHaveText('ART-E2E-1');
-    await expect(panel.getByTestId('order-facts-barcodes')).toHaveText('4600000000201');
+    await expect(panel.getByTestId('order-lines-1-article')).toHaveText('ART-E2E-1');
+    await expect(panel.getByTestId('order-lines-1-barcodes')).toHaveText('4600000000201');
     expect(new URL(page.url()).searchParams.get('order')).toBe(await row.getAttribute('data-order-id'));
 
     await page.getByTestId('order-details-close').click();

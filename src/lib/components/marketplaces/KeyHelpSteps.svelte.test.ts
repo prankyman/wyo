@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
-import { MARKETPLACE_CODE } from '$test/support/marketplaces';
+import { MARKETPLACE_CODE, SECOND_MARKETPLACE_CODE } from '$test/support/marketplaces';
 import KeyHelpSteps from './KeyHelpSteps.svelte';
 
 /** How a seller makes the key a marketplace's adapter asks for: a folded section with the strip of steps and each step in full. */
@@ -19,6 +19,19 @@ describe('KeyHelpSteps', () => {
         expect(steps[0]).toHaveTextContent('Интеграции по API');
         expect(steps[0]).toHaveTextContent('/api-integrations');
         expect(steps[4]).toHaveTextContent('Скопировать и закрыть');
+    });
+
+    it('draws every step of the second adapter, which makes its key of two values: no step is missing from the numbering', () => {
+        render(KeyHelpSteps, { props: { lang: 'ru', code: SECOND_MARKETPLACE_CODE, id: 'key-help', open: true } });
+
+        expect(screen.getByTestId('key-help-intro')).toHaveTextContent('3 месяца');
+        const steps = within(screen.getByTestId('key-help-list')).getAllByRole('listitem');
+        expect(steps).toHaveLength(8);
+        expect(steps[2]).toHaveTextContent('Client ID');
+        expect(steps[4]).toHaveTextContent('Posting FBS read-only');
+        expect(steps[4]).toHaveTextContent('Admin read only');
+        expect(steps[5]).toHaveTextContent('для личного пользования');
+        expect(steps[7]).toHaveTextContent('Разрешённые сети');
     });
 
     it('draws nothing for an adapter whose steps the interface has no texts for', () => {

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { accountOf, MARKETPLACE } from '$test/support/marketplaces';
+import { accountOf, MARKETPLACE, SECOND_MARKETPLACE } from '$test/support/marketplaces';
 import { sendForm } from '$test/support/superform-answer';
 
 vi.mock('$lib/api/api', async (original) => ({
@@ -95,5 +95,85 @@ describe('KeyForm', () => {
         await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
         expect(put).toHaveBeenCalledExactlyOnceWith('/api/v1/accounts/7/key', { key: { token: TOKEN } });
         expect(screen.getByTestId('account-7-replace-key-token')).toHaveValue('');
+    });
+
+    it('draws a field that is not secret as an ordinary box with the digit keyboard and the secret one hidden, and sends both', async () => {
+        const added = accountOf({ keyLast4: 'zz99', keyFields: [{ name: 'client_id', value: '1234567' }] });
+        post.mockResolvedValue({ ok: true, data: added });
+        const onSaved = vi.fn();
+        render(KeyForm, { props: { lang: 'ru', marketplace: SECOND_MARKETPLACE, id: 'account-add-form', onSaved } });
+
+        const open = screen.getByTestId('account-add-form-key-client_id');
+        const secret = screen.getByTestId('account-add-form-key-api_key');
+        expect(open).toHaveAttribute('type', 'text');
+        expect(open).toHaveAttribute('inputmode', 'numeric');
+        expect(secret).toHaveAttribute('type', 'password');
+        expect(secret).not.toHaveAttribute('inputmode');
+        expect(screen.getByTestId('account-add-form-key-client_id-field')).toHaveTextContent('Client ID');
+        expect(screen.getByTestId('account-add-form-key-api_key-field')).toHaveTextContent('API-ключ');
+        await fireEvent.input(screen.getByTestId('account-add-form-name'), { target: { value: 'Второй магазин' } });
+        await fireEvent.input(open, { target: { value: '1234567' } });
+        await fireEvent.input(secret, { target: { value: TOKEN } });
+        await sendForm(screen.getByTestId('account-add-form'));
+
+        await waitFor(() => expect(onSaved).toHaveBeenCalledExactlyOnceWith(added));
+        expect(post).toHaveBeenCalledExactlyOnceWith('/api/v1/accounts', {
+            marketplace: SECOND_MARKETPLACE.code,
+            name: 'Второй магазин',
+            key: { client_id: '1234567', api_key: TOKEN }
+        });
+        expect(open).toHaveValue('');
+        expect(secret).toHaveValue('');
+    });
+
+    it('replaces the key of such an account: the box that is not secret starts with the stored value and keeps it, the secret box empties', async () => {
+        const account = accountOf({
+            marketplace: SECOND_MARKETPLACE.code,
+            keyFields: [{ name: 'client_id', value: '1234567' }]
+        });
+        put.mockResolvedValue({ ok: true, data: { ...account, keyLast4: 'zz99' } });
+        const onSaved = vi.fn();
+        render(KeyForm, {
+            props: { lang: 'ru', marketplace: SECOND_MARKETPLACE, account, id: 'account-7-replace', onSaved }
+        });
+
+        expect(screen.getByTestId('account-7-replace-key-client_id')).toHaveValue('1234567');
+        expect(screen.getByTestId('account-7-replace-key-api_key')).toHaveValue('');
+        await fireEvent.input(screen.getByTestId('account-7-replace-key-api_key'), { target: { value: TOKEN } });
+        await sendForm(screen.getByTestId('account-7-replace'));
+
+        await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
+        expect(put).toHaveBeenCalledExactlyOnceWith('/api/v1/accounts/7/key', {
+            key: { client_id: '1234567', api_key: TOKEN }
+        });
+        expect(screen.getByTestId('account-7-replace-key-client_id')).toHaveValue('1234567');
+        expect(screen.getByTestId('account-7-replace-key-api_key')).toHaveValue('');
+    });
+
+    it('words a refusal in the marketplace’s own sentence with the access level it names, under the box it lies on', async () => {
+        post.mockResolvedValue({
+            ok: false,
+            status: 422,
+            refusal: {
+                code: 'invalid',
+                params: { level: 'Posting FBS read-only' },
+                issues: [{ path: 'key.api_key', code: 'access_level_missing' }]
+            }
+        });
+        render(KeyForm, {
+            props: { lang: 'ru', marketplace: SECOND_MARKETPLACE, id: 'account-add-form', onSaved: vi.fn() }
+        });
+        await fireEvent.input(screen.getByTestId('account-add-form-name'), { target: { value: 'Второй магазин' } });
+        await fireEvent.input(screen.getByTestId('account-add-form-key-client_id'), { target: { value: '1234567' } });
+        await fireEvent.input(screen.getByTestId('account-add-form-key-api_key'), { target: { value: TOKEN } });
+
+        await sendForm(screen.getByTestId('account-add-form'));
+
+        await waitFor(() =>
+            expect(screen.getByTestId('account-add-form-key-api_key-field')).toHaveTextContent(
+                'нет уровня доступа «Posting FBS read-only»'
+            )
+        );
+        expect(screen.getByTestId('account-add-form-key-api_key-field')).not.toHaveTextContent('{level}');
     });
 });

@@ -86,8 +86,9 @@ func (adapter) Limit(group string, _ bool) (marketplace.LimitGroup, bool) {
 	return sellerWarehouse, group == "orders"
 }
 
-func (adapter) Capable(marketplace.Capability, bool) bool { return true }
-func (adapter) Authorize(h http.Header, secret string)    { h.Set("Authorization", secret) }
+func (adapter) Capable(marketplace.Capability, bool) bool    { return true }
+func (adapter) Authorize(h http.Header, key marketplace.Key) { h.Set("Authorization", key["token"]) }
+func (adapter) Hosts() []string                              { return nil }
 
 func (adapter) ErrorOf(_ int, body []byte) (string, string) {
 	code, rest, _ := strings.Cut(strings.TrimPrefix(string(body), `{"code":"`), `","message":"`)

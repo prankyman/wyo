@@ -1,6 +1,12 @@
 import { render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
-import { MARKETPLACE_CODE, MARKETPLACE_NAME } from '$test/support/marketplaces';
+import {
+    MARKETPLACE_CODE,
+    MARKETPLACE_NAME,
+    SECOND_MARKETPLACE,
+    SECOND_MARKETPLACE_CODE,
+    SECOND_MARKETPLACE_NAME
+} from '$test/support/marketplaces';
 import MarketplaceMark from './MarketplaceMark.svelte';
 
 /** A marketplace's colour mark and its name, from the adapter's description — never from a name written in a screen. */
@@ -15,6 +21,15 @@ describe('MarketplaceMark', () => {
         expect(screen.getByTestId('mark')).toHaveTextContent(MARKETPLACE_NAME);
         expect(screen.getByTestId('mark-dot')).toHaveClass(dotClass);
         expect(screen.getByTestId('mark-dot')).toHaveAttribute('aria-hidden', 'true');
+    });
+
+    it('draws the second adapter with its own mark and name', () => {
+        render(MarketplaceMark, {
+            props: { lang: 'ru', code: SECOND_MARKETPLACE_CODE, mark: SECOND_MARKETPLACE.mark, dataTest: 'mark' }
+        });
+
+        expect(screen.getByTestId('mark')).toHaveTextContent(SECOND_MARKETPLACE_NAME);
+        expect(screen.getByTestId('mark-dot')).toHaveClass('bg-mark-azure');
     });
 
     it('shows the code itself for an adapter this interface has no name for', () => {

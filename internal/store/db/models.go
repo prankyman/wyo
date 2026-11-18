@@ -142,6 +142,7 @@ type MarketplaceAccount struct {
 	CreatedAt         int64
 	HandoverSettings  string
 	ShippingPoint     string
+	KeyFields         string
 }
 
 type MarketplaceSupply struct {
@@ -157,10 +158,11 @@ type MarketplaceSupply struct {
 }
 
 type MarketplaceWarehouse struct {
-	AccountID int64
-	Number    string
-	Name      string
-	UpdatedAt int64
+	AccountID      int64
+	Number         string
+	Name           string
+	UpdatedAt      int64
+	SellerDelivers int64
 }
 
 type Order struct {
@@ -172,12 +174,6 @@ type Order struct {
 	Basket            string
 	WarehouseNumber   string
 	WarehouseName     string
-	Article           string
-	Barcodes          string
-	ProductID         string
-	Kind              string
-	Brand             string
-	Size              string
 	CreatedAt         int64
 	State             string
 	CancelledBy       string
@@ -188,6 +184,8 @@ type Order struct {
 	ItemID            string
 	RequiredIds       string
 	OptionalIds       string
+	ShipBy            sql.NullInt64
+	ParentNumber      string
 }
 
 type OrderCode struct {
@@ -209,6 +207,19 @@ type OrderEvent struct {
 	SellerStatus      string
 	MarketplaceStatus string
 	Source            string
+}
+
+type OrderLine struct {
+	OrderID   int64
+	Line      int64
+	ProductID string
+	Article   string
+	Name      string
+	Barcodes  string
+	Kind      string
+	Brand     string
+	Size      string
+	Quantity  int64
 }
 
 type Person struct {

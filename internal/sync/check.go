@@ -30,28 +30,52 @@ func (e *Engine) keyChecker(code string) (marketplace.Adapter, marketplace.KeyCh
 }
 
 // CheckNewKey reads a key the owner typed and asks the marketplace about it, before anything is saved: what the key says
-// about itself, whose it is and the text the secret store is to keep. accountID is the account whose key is being
-// replaced (its journal rows carry it), or 0 for a new account. A key that cannot be accepted is refused with a
-// *marketplace.Refusal naming its field; no connection is a *marketplace.CallError.
-func (e *Engine) CheckNewKey(ctx context.Context, code string, accountID int64, fields map[string]string) (marketplace.CheckedKey, string, error) {
+// about itself, whose it is and the key's fields as they are to be kept (marketplace.PackKey makes the one text of the
+// secret store). accountID is the account whose key is being replaced (its journal rows carry it), or 0 for a new
+// account. A key that cannot be accepted is refused with a *marketplace.Refusal naming its field; no connection is a
+// *marketplace.CallError.
+func (e *Engine) CheckNewKey(ctx context.Context, code string, accountID int64, fields marketplace.Key) (marketplace.CheckedKey, marketplace.Key, error) {
 	adapter, checker, err := e.keyChecker(code)
 	if err != nil {
-		return marketplace.CheckedKey{}, "", err
+		return marketplace.CheckedKey{}, nil, err
 	}
 
-	facts, secret, err := checker.ReadKey(fields, e.opts.Clock.Now())
+	facts, key, err := checker.ReadKey(fields, e.opts.Clock.Now())
 	if err != nil {
-		return marketplace.CheckedKey{}, "", err
+		return marketplace.CheckedKey{}, nil, err
 	}
 
-	conn := e.opts.Caller.Conn(Target{Adapter: adapter, AccountID: accountID, Test: facts.Test, Job: keyCheckJob, Key: logging.Secret(secret)})
+	packed := marketplace.PackKey(adapter.Describe().KeyFields, key)
+	conn := e.opts.Caller.Conn(Target{Adapter: adapter, AccountID: accountID, Test: facts.Test, Job: keyCheckJob, Key: logging.Secret(packed)})
 
 	checked, err := checker.CheckKey(ctx, conn, facts)
 	if err != nil {
-		return marketplace.CheckedKey{}, "", err
+		return marketplace.CheckedKey{}, nil, err
 	}
 
-	return checked, secret, nil
+	// A marketplace that gives a key's end in its answer (not in the key's own text) may give one that has passed: such a
+	// key is refused as one that has ended, on the form's secret field.
+	if !checked.ExpiresAt.IsZero() && !e.opts.Clock.Now().Before(checked.ExpiresAt) {
+		return marketplace.CheckedKey{}, nil, &marketplace.Refusal{
+			Code: codeKeyExpired, Field: secretField(adapter.Describe().KeyFields), State: marketplace.AccountKeyExpired, StopsJobs: true,
+		}
+	}
+
+	return checked, key, nil
+}
+
+// codeKeyExpired is the refusal of a key whose end has passed.
+const codeKeyExpired = "key_expired"
+
+// secretField is where a refusal of a whole key lies in the form: `key.<the first secret field>`.
+func secretField(fields []marketplace.KeyField) string {
+	for _, f := range fields {
+		if f.Secret {
+			return "key." + f.Name
+		}
+	}
+
+	return ""
 }
 
 // CheckAccount checks a saved account's key again: its own fields, then the marketplace. A key that passes rewrites the
@@ -86,7 +110,7 @@ func (e *Engine) CheckAccount(ctx context.Context, id int64) (store.Account, err
 
 	key := store.AccountKey{
 		State: string(state), Test: checked.Test, SellerName: checked.SellerName, SellerProfileID: checked.ProfileID,
-		KeyLast4: row.KeyLast4, KeyType: checked.Type, KeyExpiresAt: checked.ExpiresAt, Categories: checked.Categories,
+		KeyLast4: row.KeyLast4, KeyFields: row.KeyFields, KeyType: checked.Type, KeyExpiresAt: checked.ExpiresAt, Categories: checked.Categories,
 		MissingCategories: checked.MissingCategories, ReadOnly: checked.ReadOnly, CheckedAt: now, CheckOutcome: journal.Done,
 	}
 
@@ -108,8 +132,9 @@ func (e *Engine) checkStored(ctx context.Context, row store.Account, adapter mar
 		return marketplace.CheckedKey{}, fmt.Errorf("read the account's key: %w", err)
 	}
 
-	// The secret store keeps the text of the key form's first field (marketplace.KeyChecker.ReadKey gives it).
-	fields := map[string]string{adapter.Describe().KeyFields[0].Name: secret}
+	// The secret store keeps the key's fields packed into one text (marketplace.PackKey); a key stored before keys were
+	// packed is its form's first field.
+	fields := marketplace.UnpackKey(adapter.Describe().KeyFields, secret)
 
 	facts, _, err := checker.ReadKey(fields, e.opts.Clock.Now())
 	if err != nil {

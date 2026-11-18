@@ -50,7 +50,7 @@ const maxFeedReadings = 10
 
 var (
 	codePattern = regexp.MustCompile(`^[a-z]+$`)
-	// namePattern is a name of a setting: lower-case words joined by underscores.
+	// namePattern is a name of a key field or a setting: lower-case words joined by underscores.
 	namePattern = regexp.MustCompile(`^[a-z]+(_[a-z]+)*$`)
 )
 
@@ -102,7 +102,7 @@ func checkDescription(t *testing.T, a marketplace.Adapter, desc marketplace.Desc
 		"code %q, mark %q, %d key fields: a code of lower-case letters, a mark and at least one field", desc.Code, desc.Mark, len(desc.KeyFields))
 
 	for _, field := range desc.KeyFields {
-		expect(t, codePattern.MatchString(field.Name), "the key field %q is not a name of lower-case letters", field.Name)
+		expect(t, namePattern.MatchString(field.Name), "the key field %q is not a name of lower-case words joined by underscores", field.Name)
 	}
 
 	names := map[string]bool{}
@@ -173,8 +173,8 @@ func keyCheck(t *testing.T, f Fixture) {
 
 	key := f.Key(t)
 
-	facts, secret, err := c.ReadKey(key, f.Now)
-	expect(t, err == nil && secret != "" && facts.ProfileID != "", "a working key: %+v, secret given %v, %v", facts, secret != "", err)
+	facts, kept, err := c.ReadKey(key, f.Now)
+	expect(t, err == nil && len(kept) > 0 && facts.ProfileID != "", "a working key: %+v, fields kept %v, %v", facts, len(kept) > 0, err)
 
 	checked, err := c.CheckKey(t.Context(), f.Conn(t, key), facts)
 	expect(t, err == nil && checked.ProfileID == facts.ProfileID, "CheckKey: %+v, %v", checked, err)
@@ -205,9 +205,20 @@ func ordersNew(t *testing.T, f Fixture) {
 		}
 
 		expect(t, len(found) == 1 && found[0].Scheme == marketplace.SchemeFBS && found[0].Status.State == marketplace.StateNew &&
-			!found[0].CreatedAt.IsZero(),
-			"reading %d: the new order %s once, new, of the seller-warehouse scheme; got %+v", reading+1, number, found)
+			!found[0].CreatedAt.IsZero() && everyLineIsAProduct(found[0].Lines),
+			"reading %d: the new order %s once, new, of the seller-warehouse scheme, with its products; got %+v", reading+1, number, found)
 	}
+}
+
+// everyLineIsAProduct says an order has at least one line and every line names its product and at least one unit.
+func everyLineIsAProduct(lines []marketplace.Line) bool {
+	for _, l := range lines {
+		if l.Quantity < 1 || (l.ProductID == "" && l.Article == "") {
+			return false
+		}
+	}
+
+	return len(lines) > 0
 }
 
 func ordersStates(t *testing.T, f Fixture) {

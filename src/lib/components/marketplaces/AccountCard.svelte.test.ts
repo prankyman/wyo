@@ -1,6 +1,13 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { accountOf, MARKETPLACE, MARKETPLACE_NAME } from '$test/support/marketplaces';
+import {
+    accountOf,
+    MARKETPLACE,
+    MARKETPLACE_NAME,
+    SECOND_MARKETPLACE,
+    SECOND_MARKETPLACE_CODE,
+    SECOND_MARKETPLACE_NAME
+} from '$test/support/marketplaces';
 
 vi.mock('$lib/api/api', async (original) => ({
     ...(await original<typeof import('$lib/api/api')>()),
@@ -24,6 +31,16 @@ const props = (change: Partial<Parameters<typeof accountOf>[0]> = {}) => ({
     marketplace: MARKETPLACE,
     onChanged: vi.fn(),
     onDeleted: vi.fn()
+});
+
+/** An account of the second adapter: its key has a field that is not secret, and its orders come with their own deadline. */
+const secondProps = (change: Partial<Parameters<typeof accountOf>[0]> = {}) => ({
+    ...props({
+        marketplace: SECOND_MARKETPLACE_CODE,
+        keyFields: [{ name: 'client_id', value: '1234567' }],
+        ...change
+    }),
+    marketplace: SECOND_MARKETPLACE
 });
 
 /** One marketplace account on «Маркетплейсы»: what its key and its readings say, and what the owner can do with it. */
@@ -137,5 +154,86 @@ describe('AccountCard', () => {
 
         await waitFor(() => expect(shown.onDeleted).toHaveBeenCalledExactlyOnceWith(7));
         expect(del).toHaveBeenCalledExactlyOnceWith('/api/v1/accounts/7');
+    });
+
+    it('shows the fields of the key that are not secret in full with their names, beside the secret one’s last four characters', () => {
+        render(AccountCard, { props: secondProps({ keyLast4: 'zz99' }) });
+
+        expect(screen.getByTestId('account-mark')).toHaveTextContent(SECOND_MARKETPLACE_NAME);
+        expect(screen.getByTestId('account-facts-key_client_id')).toHaveTextContent('1234567');
+        expect(screen.getByTestId('account-facts-key_client_id-help-button')).toBeInTheDocument();
+        expect(screen.getByText('Client ID')).toBeInTheDocument();
+        expect(screen.getByTestId('account-facts-key')).toHaveTextContent('заканчивается на zz99');
+    });
+
+    it('claims no right of the key for a marketplace that is only read, whose key does not say whether it may write', () => {
+        render(AccountCard, { props: secondProps() });
+
+        expect(screen.queryByTestId('account-facts-access')).toBeNull();
+    });
+
+    it('draws no fact of a key field for an account whose key has none that is not secret', () => {
+        render(AccountCard, { props: props() });
+
+        expect(screen.queryByTestId('account-facts-key_client_id')).toBeNull();
+    });
+
+    it('says in the marketplace’s own words what a key without a level of access hides, and has no note of a test key', () => {
+        render(AccountCard, {
+            props: secondProps({ missingCategories: ['posting_fbo', 'product', 'seller_info'] })
+        });
+
+        expect(screen.getByTestId('account-note-missing-posting_fbo')).toHaveTextContent(
+            'нет уровня доступа «Posting FBO»'
+        );
+        expect(screen.getByTestId('account-note-missing-product')).toHaveTextContent(
+            'нет уровня доступа «Product read-only»'
+        );
+        expect(screen.getByTestId('account-note-missing-seller_info')).toHaveTextContent('сведениям о вашей компании');
+        expect(screen.queryByTestId('account-note-test')).toBeNull();
+    });
+
+    it.each([
+        [1, 'У аккаунта 1 склад, с которого'],
+        [2, 'У аккаунта 2 склада, с которых'],
+        [5, 'У аккаунта 5 складов, с которых']
+    ] as const)(
+        'says how many warehouses the seller delivers from itself, whose orders are not read: %i',
+        (count, sentence) => {
+            render(AccountCard, { props: secondProps({ sellerDeliversWarehouses: count }) });
+
+            expect(screen.getByTestId('account-note-seller-delivers')).toHaveTextContent(sentence);
+            expect(screen.getByTestId('account-note-seller-delivers')).toHaveTextContent(
+                'адреса покупателей никогда не хранит'
+            );
+        }
+    );
+
+    it('says nothing of such warehouses when there are none', () => {
+        render(AccountCard, { props: secondProps({ sellerDeliversWarehouses: undefined }) });
+
+        expect(screen.queryByTestId('account-note-seller-delivers')).toBeNull();
+    });
+
+    it('shows the hours to hand an order over only for a marketplace that does not give each order its own deadline', () => {
+        const { unmount } = render(AccountCard, { props: props() });
+        expect(screen.getByTestId('account-facts-deadlineHours')).toHaveTextContent('48 ч после создания заказа');
+        unmount();
+
+        render(AccountCard, { props: secondProps() });
+        expect(screen.queryByTestId('account-facts-deadlineHours')).toBeNull();
+    });
+
+    it('words the last refusal in the marketplace’s own words, and in the general ones for a code nobody described', () => {
+        const { unmount } = render(AccountCard, {
+            props: secondProps({ lastRefusal: { code: 'key_deactivated', at: '2026-11-18T11:00:00' } })
+        });
+        expect(screen.getByTestId('account-facts-lastRefusal')).toHaveTextContent('Api-key is deactivated');
+        unmount();
+
+        render(AccountCard, {
+            props: secondProps({ lastRefusal: { code: 'never_heard_of_it', at: '2026-11-18T11:00:00' } })
+        });
+        expect(screen.getByTestId('account-facts-lastRefusal')).toHaveTextContent('у wyo нет описания этого отказа');
     });
 });

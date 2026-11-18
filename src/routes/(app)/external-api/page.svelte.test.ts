@@ -7,7 +7,7 @@ import {
     marketplaceMatchesOf,
     warehouseMatchesOf
 } from '$test/support/external-api';
-import { MARKETPLACE } from '$test/support/marketplaces';
+import { MARKETPLACE, SECOND_MARKETPLACE, SECOND_MARKETPLACE_CODE } from '$test/support/marketplaces';
 import { flushTicks, sendForm } from '$test/support/superform-answer';
 import type { TExternalApi } from '$lib/components/external-api/types';
 
@@ -131,6 +131,22 @@ describe('«Внешний API»', () => {
         render(Page);
 
         expect(await screen.findByTestId('external-api-not-working')).toHaveTextContent('Обмен работает, только пока');
+    });
+
+    it('hands the section of the marketplaces the adapters, so an account whose marketplace cannot exchange yet says so', async () => {
+        const base = marketplaceMatchesOf();
+        answers(connectionOf(), {
+            '/api/v1/external-api/marketplaces': {
+                ok: true,
+                data: { ...base, rows: [{ ...base.rows[0], marketplace: SECOND_MARKETPLACE_CODE }, base.rows[1]] }
+            },
+            '/api/v1/marketplaces': { ok: true, data: { marketplaces: [MARKETPLACE, SECOND_MARKETPLACE] } }
+        });
+
+        render(Page);
+
+        expect(await screen.findByTestId('codes-0-unsupported')).toHaveTextContent('пока не поддерживается');
+        expect(screen.getByTestId('codes-1-box')).toBeInTheDocument();
     });
 
     it('keeps a section whose data could not be read as a folded place with «Повторить», and reads it again', async () => {

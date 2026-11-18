@@ -2,6 +2,7 @@ package fakekit
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -17,6 +18,8 @@ const (
 	FaultServerError FaultKind = "server_error"
 	// FaultSlow waits DelayMS (on the injected Delayer) and then answers as the fake would have.
 	FaultSlow FaultKind = "slow"
+	// FaultRefuse answers with the Status and the Body the test gave, in place of the fake's own answer.
+	FaultRefuse FaultKind = "refuse"
 )
 
 // Fault is an answer a test queues in advance. A fault meets the first call, in queue order, that it matches, and a
@@ -32,17 +35,33 @@ type Fault struct {
 	RetryAfterSeconds int `json:"retry_after_seconds,omitempty"`
 	// DelayMS is how long FaultSlow waits.
 	DelayMS int `json:"delay_ms,omitempty"`
+	// Status is the HTTP status FaultRefuse answers with; it must be 400 to 599.
+	Status int `json:"status,omitempty"`
+	// Body is what FaultRefuse writes, as it is, with the content type application/json; it may be empty.
+	Body string `json:"body,omitempty"`
 }
 
 func (f Fault) validate() error {
 	switch f.Kind {
-	case FaultRateLimited, FaultServerError, FaultSlow:
+	case FaultRateLimited, FaultServerError, FaultSlow, FaultRefuse:
 	default:
 		return fmt.Errorf("unknown fault kind %q", f.Kind)
 	}
 
 	if f.Count < 0 || f.RetryAfterSeconds < 0 || f.DelayMS < 0 {
 		return fmt.Errorf("count, retry_after_seconds and delay_ms cannot be negative")
+	}
+
+	if f.Kind == FaultRefuse {
+		if f.Status < http.StatusBadRequest || f.Status > 599 {
+			return fmt.Errorf("a refuse fault needs a status from 400 to 599")
+		}
+
+		return nil
+	}
+
+	if f.Status != 0 || f.Body != "" {
+		return fmt.Errorf("status and body belong to a refuse fault only")
 	}
 
 	return nil
@@ -111,5 +130,11 @@ func (k *Kit[S]) applyFault(w http.ResponseWriter, r *http.Request, api http.Han
 		}
 
 		api.ServeHTTP(w, r)
+	case FaultRefuse:
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(f.Status)
+
+		// The status line is sent; a failed write has nobody left to tell.
+		_, _ = io.WriteString(w, f.Body)
 	}
 }

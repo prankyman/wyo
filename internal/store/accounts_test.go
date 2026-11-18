@@ -258,3 +258,45 @@ func TestAnAccountWithoutOrdersCanBeDeletedWithItsWarehousesAndMarks(t *testing.
 		t.Fatalf("a second delete: %v", err)
 	}
 }
+
+func TestAnAccountKeepsTheShownFieldsOfItsKeyAndTheWarehousesTheSellerDeliversFrom(t *testing.T) {
+	t.Parallel()
+
+	s := storekit.Open(t)
+	ctx := t.Context()
+
+	a := anAccount("accounts.shown.key")
+	a.KeyFields = []store.KeyField{{Name: "client_id", Value: "123456"}}
+	added := insertAccount(t, s, a)
+
+	if got, err := s.Read().Account(ctx, added.ID); err != nil || !reflect.DeepEqual(got.KeyFields, a.KeyFields) {
+		t.Fatalf("Account = %+v, %v; want the Client ID kept", got.KeyFields, err)
+	}
+
+	err := s.Do(ctx, func(q *store.Queries) error {
+		if err := q.UpdateAccountKey(ctx, added.ID, store.AccountKey{State: "working", CheckedAt: noon()}); err != nil {
+			return err
+		}
+
+		return q.ReplaceWarehouses(ctx, added.ID, []store.Warehouse{
+			{Number: "1", Name: "Склад продавца"}, {Number: "2", Name: "Доставка продавцом", SellerDelivers: true},
+		}, noon())
+	})
+	if err != nil {
+		t.Fatalf("change: %v", err)
+	}
+
+	if got, _ := s.Read().Account(ctx, added.ID); got.KeyFields != nil {
+		t.Fatalf("a key of one secret field still shows %+v", got.KeyFields)
+	}
+
+	warehouses, err := s.Read().Warehouses(ctx, added.ID)
+	delivers := map[string]bool{}
+	for _, w := range warehouses {
+		delivers[w.Number] = w.SellerDelivers
+	}
+
+	if err != nil || len(warehouses) != 2 || delivers["1"] || !delivers["2"] {
+		t.Fatalf("Warehouses = %+v, %v", warehouses, err)
+	}
+}

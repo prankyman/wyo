@@ -71,7 +71,8 @@ UPDATE fc_events SET applied_at = ? WHERE id = ?;
 DELETE FROM fc_events WHERE received_at < ? AND applied_at IS NOT NULL;
 
 -- name: OrdersToSend :many
-SELECT o.id, o.account_id, o.number, o.basket, o.article, o.barcodes, o.item_id, o.created_at, o.warehouse_number,
+-- Only the orders of the marketplaces whose adapters hand orders over (sqlc.slice(marketplaces)) are sent.
+SELECT o.id, o.account_id, o.number, o.basket, o.item_id, o.created_at, o.ship_by, o.warehouse_number,
        a.deadline_hours, m.fc_marketplace, w.fc_warehouse
 FROM orders o
 JOIN marketplace_accounts a ON a.id = o.account_id
@@ -80,8 +81,9 @@ JOIN fc_warehouse_map w ON w.account_id = o.account_id AND w.warehouse_number = 
 LEFT JOIN exchange_orders x ON x.order_id = o.id
 WHERE o.scheme = 'fbs' AND o.state = 'new' AND x.order_id IS NULL
   AND a.state IN ('working', 'key_expiring', 'no_connection') AND a.read_only = 0
+  AND a.marketplace IN (sqlc.slice(marketplaces))
 ORDER BY o.created_at, o.id
-LIMIT ?;
+LIMIT sqlc.arg(batch);
 
 -- name: GetExchangeOrder :one
 SELECT * FROM exchange_orders WHERE order_id = ?;

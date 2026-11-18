@@ -68,11 +68,24 @@ func cancelledBy(who string) *gen.CancelledBy {
 func orderBody(v store.OrderView) gen.Order {
 	return gen.Order{
 		Id: v.ID, AccountId: v.AccountID, AccountName: v.AccountName, Marketplace: v.Marketplace, Scheme: gen.OrderScheme(v.Scheme),
-		Number: v.Number, Basket: text(v.Basket), Warehouse: text(v.Warehouse), Article: text(v.Article), Barcodes: words(v.Barcodes),
-		ProductId: text(v.ProductID), Kind: text(v.Kind), Brand: text(v.Brand), Size: text(v.Size), CreatedAt: v.CreatedAt,
-		DeadlineAt: moment(v.DeadlineAt), State: gen.OrderState(v.State), CancelledBy: cancelledBy(v.CancelledBy),
-		MarketplaceStatus: statusBody(v.SellerStatus, v.MarketplaceStatus), UpdatedAt: moment(v.UpdatedAt),
+		Number: v.Number, Basket: text(v.Basket), Warehouse: text(v.Warehouse), Lines: linesBody(v.Lines), CreatedAt: v.CreatedAt,
+		DeadlineAt: moment(v.DeadlineAt), ShipBy: moment(v.ShipBy), ParentNumber: text(v.Parent), State: gen.OrderState(v.State),
+		CancelledBy: cancelledBy(v.CancelledBy), MarketplaceStatus: statusBody(v.SellerStatus, v.MarketplaceStatus),
+		UpdatedAt: moment(v.UpdatedAt),
 	}
+}
+
+// linesBody is an order's products as the API gives them.
+func linesBody(lines []store.OrderLine) []gen.OrderLine {
+	out := make([]gen.OrderLine, 0, len(lines))
+	for _, l := range lines {
+		out = append(out, gen.OrderLine{
+			ProductId: text(l.ProductID), Article: text(l.Article), Name: text(l.Name), Barcodes: words(l.Barcodes), Kind: text(l.Kind),
+			Brand: text(l.Brand), Size: text(l.Size), Quantity: l.Quantity,
+		})
+	}
+
+	return out
 }
 
 // ListOrders answers GET /api/v1/orders.
@@ -153,6 +166,13 @@ func (a *api) writeOrder(w http.ResponseWriter, r *http.Request, id int64, statu
 		return
 	}
 
+	parts, err := q.OrderParts(r.Context(), v.AccountID, v.Number)
+	if err != nil {
+		a.fail(w, r, err)
+
+		return
+	}
+
 	details, has, err := a.deps.Exchange.Details(r.Context(), v)
 	if err != nil {
 		a.fail(w, r, err)
@@ -160,7 +180,7 @@ func (a *api) writeOrder(w http.ResponseWriter, r *http.Request, id int64, statu
 		return
 	}
 
-	body := gen.OrderDetails{Order: orderBody(v), Events: make([]gen.OrderEvent, 0, len(events))}
+	body := gen.OrderDetails{Order: orderBody(v), Events: make([]gen.OrderEvent, 0, len(events)), Parts: words(parts)}
 	if has {
 		body.Order.Exchange = exchangeBody(details.View)
 		body.Exchange = exchangeDetailsBody(details)

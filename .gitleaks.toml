@@ -28,6 +28,8 @@ regexes = [
     # their last four characters.
     '''^mem-CANARY0123456789$''',
     '''^mem-CANARY-other-0123456789$''',
+    # internal/marketplace/key_test.go: a made-up token of one field, as a release before keys were packed stored it.
+    '''^eyJhbGciOi\.eyJzaWQiOiIx\.c2ln$''',
     # internal/marketplace/wildberries/token_test.go: a text shaped like a token whose middle part is not JSON.
     '''^a\.bm90IGpzb24\.c$''',
     # internal/fakes/fulfilment/webhook_test.go: the example secret the Standard Webhooks specification publishes.

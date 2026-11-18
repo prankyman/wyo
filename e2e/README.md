@@ -18,7 +18,7 @@ workers (default 2). A failed test is never retried.
 
 1. **Global setup** (`e2e/global-setup.ts`) runs `scripts/e2e/build.sh`: the interface with `vite build` into `internal/webui/dist/`
    unless a real build is there and no source file is newer than it; then `bin/wyo-test` (the wyo server built with the Go tag
-   `wyotest`, version `0.0.0-e2e`) and `bin/wyofakes` (the fake Wildberries and the fake fulfilment centre). Then it starts the fakes
+   `wyotest`, version `0.0.0-e2e`) and `bin/wyofakes` (the fake Wildberries and the fake Ozon on one address, and the fake fulfilment centre). Then it starts the fakes
    once for the whole run (`e2e/support/fakes.ts`): on `127.0.0.1:8791` and `127.0.0.1:8792`, and waits for `/__control/health`. When both
    already answer (`pnpm dev` is running) they are used as they are and left running.
 2. **Every test** runs against a wyo server (`server` in `e2e/fixtures/test.ts`), in test mode, in an empty data folder with the owner

@@ -48,4 +48,20 @@ describe('AccountChangeForm', () => {
         );
         expect(patch).not.toHaveBeenCalled();
     });
+
+    it('asks only the name when the marketplace gives each order its own deadline, and sends only the name', async () => {
+        const changed = accountOf({ name: 'Одежда' });
+        patch.mockResolvedValue({ ok: true, data: changed });
+        const onSaved = vi.fn();
+        render(AccountChangeForm, {
+            props: { lang: 'ru', account: accountOf(), givesDeadline: true, id: 'account-7-change', onSaved }
+        });
+
+        expect(screen.queryByTestId('account-7-change-hours')).toBeNull();
+        await fireEvent.input(screen.getByTestId('account-7-change-name'), { target: { value: 'Одежда' } });
+        await sendForm(screen.getByTestId('account-7-change'));
+
+        await waitFor(() => expect(onSaved).toHaveBeenCalledExactlyOnceWith(changed));
+        expect(patch).toHaveBeenCalledExactlyOnceWith('/api/v1/accounts/7', { name: 'Одежда' });
+    });
 });

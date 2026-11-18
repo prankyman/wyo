@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/prankyman/wyo/internal/adapterkit"
 	"github.com/prankyman/wyo/internal/marketplace"
 	"github.com/prankyman/wyo/internal/marketplace/wildberries/wbapi/orders"
 )
@@ -125,11 +126,11 @@ func (a *Adapter) SetShipping(ctx context.Context, conn marketplace.Conn, batch 
 
 		if result.Error != nil {
 			return &marketplace.Refusal{
-				Code: result.Error.Detail, Status: result.Error.Code, Params: map[string]any{"text": cut(result.Error.Detail)},
+				Code: result.Error.Detail, Status: result.Error.Code, Params: map[string]any{"text": adapterkit.Cut(result.Error.Detail)},
 			}
 		}
 
-		if value(result.Success) {
+		if adapterkit.Value(result.Success) {
 			return nil
 		}
 	}
@@ -149,7 +150,7 @@ func (a *Adapter) DeleteBatch(ctx context.Context, conn marketplace.Conn, batch 
 		return err
 	}
 
-	if !succeeded(res.StatusCode()) {
+	if !adapterkit.Succeeded(res.StatusCode()) {
 		return WriteRefusal(res.StatusCode(), res.Body)
 	}
 
@@ -168,7 +169,7 @@ func (a *Adapter) CloseBatch(ctx context.Context, conn marketplace.Conn, batch s
 		return err
 	}
 
-	if !succeeded(res.StatusCode()) {
+	if !adapterkit.Succeeded(res.StatusCode()) {
 		return WriteRefusal(res.StatusCode(), res.Body)
 	}
 
@@ -194,7 +195,7 @@ func (a *Adapter) BatchCode(ctx context.Context, conn marketplace.Conn, batch st
 		return marketplace.Document{}, WriteRefusal(res.StatusCode(), res.Body)
 	}
 
-	return marketplace.Document{ContentType: pictureContentType, Data: value(res.JSON200.File), Code: value(res.JSON200.Barcode)}, nil
+	return marketplace.Document{ContentType: pictureContentType, Data: adapterkit.Value(res.JSON200.File), Code: adapterkit.Value(res.JSON200.Barcode)}, nil
 }
 
 // BoxLabels implements marketplace.HandoverDocumenter: POST /api/v3/supplies/{id}/trbx/stickers as PNG pictures. How
@@ -218,13 +219,13 @@ func (a *Adapter) BoxLabels(ctx context.Context, conn marketplace.Conn, batch st
 
 	var documents []marketplace.Document
 
-	for _, s := range value(res.JSON200.Stickers) {
-		picture, err := base64.StdEncoding.DecodeString(value(s.File))
+	for _, s := range adapterkit.Value(res.JSON200.Stickers) {
+		picture, err := base64.StdEncoding.DecodeString(adapterkit.Value(s.File))
 		if err != nil {
 			return nil, fmt.Errorf("wildberries: the picture of a box label is not base64")
 		}
 
-		documents = append(documents, marketplace.Document{ContentType: pictureContentType, Data: picture, Code: value(s.Barcode)})
+		documents = append(documents, marketplace.Document{ContentType: pictureContentType, Data: picture, Code: adapterkit.Value(s.Barcode)})
 	}
 
 	return documents, nil

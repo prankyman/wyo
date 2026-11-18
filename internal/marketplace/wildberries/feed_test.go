@@ -33,7 +33,8 @@ func TestTheFeedIsReadOnFromItsMarkInMoscowTime(t *testing.T) {
 
 	fbo, fbs := page.Rows[0], page.Rows[1]
 	if fbo.Number != "fbo-1" || fbo.Scheme != marketplace.SchemeFBO || fbo.Basket != "g-9" || fbo.Warehouse != "Коледино" ||
-		fbo.Kind != "Test subject" || fbo.Brand != "Test brand" || fbo.Size != "0" || fbo.ProductID != "99" ||
+		len(fbo.Lines) != 1 || fbo.Lines[0].Kind != "Test subject" || fbo.Lines[0].Brand != "Test brand" || fbo.Lines[0].Size != "0" ||
+		fbo.Lines[0].ProductID != "99" || fbo.Lines[0].Quantity != 1 ||
 		fbo.Status.State != marketplace.StateCancelled || !fbo.CreatedAt.Equal(twoHoursAgo) {
 		t.Fatalf("the row of Wildberries' warehouse: %+v", fbo)
 	}

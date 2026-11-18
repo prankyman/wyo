@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"strings"
 	"time"
 
@@ -21,6 +22,7 @@ type Account struct {
 	SellerProfileID   string
 	SecretName        string
 	KeyLast4          string
+	KeyFields         []KeyField
 	KeyType           string
 	KeyExpiresAt      time.Time
 	Categories        []string
@@ -50,6 +52,7 @@ type AccountKey struct {
 	SellerName        string
 	SellerProfileID   string
 	KeyLast4          string
+	KeyFields         []KeyField
 	KeyType           string
 	KeyExpiresAt      time.Time
 	Categories        []string
@@ -59,10 +62,39 @@ type AccountKey struct {
 	CheckOutcome      string
 }
 
-// Warehouse is one of the seller's warehouses on a marketplace: the marketplace's own number and its name.
+// KeyField is a field of an account's key that is not secret, with its value: the screens show it in full.
+type KeyField struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+// Warehouse is one of the seller's warehouses on a marketplace: the marketplace's own number, its name, and whether the
+// seller delivers its orders to the buyer itself (they are never read).
 type Warehouse struct {
-	Number string
-	Name   string
+	Number         string
+	Name           string
+	SellerDelivers bool
+}
+
+// keyFieldsText keeps the shown fields of a key as JSON; no field is no text.
+func keyFieldsText(list []KeyField) string {
+	if len(list) == 0 {
+		return ""
+	}
+
+	raw, _ := json.Marshal(list) // a list of texts always encodes
+
+	return string(raw)
+}
+
+// keyFieldsOf reads them back; a text that cannot be read is no field.
+func keyFieldsOf(text string) []KeyField {
+	var list []KeyField
+	if text == "" || json.Unmarshal([]byte(text), &list) != nil {
+		return nil
+	}
+
+	return list
 }
 
 func optionalSeconds(t time.Time) sql.NullInt64 {
@@ -96,7 +128,8 @@ func wordsOf(text string) []string {
 func account(row db.MarketplaceAccount) Account {
 	return Account{
 		ID: row.ID, Marketplace: row.Marketplace, Name: row.Name, State: row.State, Test: row.Test == 1, SellerName: row.SellerName,
-		SellerProfileID: row.SellerProfileID, SecretName: row.SecretName, KeyLast4: row.KeyLast4, KeyType: row.KeyType,
+		SellerProfileID: row.SellerProfileID, SecretName: row.SecretName, KeyLast4: row.KeyLast4, KeyFields: keyFieldsOf(row.KeyFields),
+		KeyType:      row.KeyType,
 		KeyExpiresAt: optionalMoment(row.KeyExpiresAt), Categories: wordsOf(row.Categories),
 		MissingCategories: wordsOf(row.MissingCategories), ReadOnly: row.ReadOnly == 1, DeadlineHours: int(row.DeadlineHours),
 		LastCheckAt: optionalMoment(row.LastCheckAt), LastCheckOutcome: row.LastCheckOutcome,
@@ -129,6 +162,7 @@ func (q *Queries) InsertAccount(ctx context.Context, a Account) (Account, error)
 		KeyExpiresAt: optionalSeconds(a.KeyExpiresAt), Categories: words(a.Categories), MissingCategories: words(a.MissingCategories),
 		ReadOnly: boolInt(a.ReadOnly), DeadlineHours: int64(a.DeadlineHours), LastCheckAt: optionalSeconds(a.LastCheckAt),
 		LastCheckOutcome: a.LastCheckOutcome, LastSuccessAt: optionalSeconds(a.LastSuccessAt), CreatedAt: seconds(a.CreatedAt),
+		KeyFields: keyFieldsText(a.KeyFields),
 	})
 	if err != nil {
 		return Account{}, kind(err)
@@ -166,7 +200,7 @@ func (q *Queries) Accounts(ctx context.Context) ([]Account, error) {
 func (q *Queries) UpdateAccountKey(ctx context.Context, id int64, k AccountKey) error {
 	return changedOne(q.q.UpdateAccountKey(ctx, db.UpdateAccountKeyParams{
 		State: k.State, Test: boolInt(k.Test), SellerName: k.SellerName, SellerProfileID: k.SellerProfileID, KeyLast4: k.KeyLast4,
-		KeyType: k.KeyType, KeyExpiresAt: optionalSeconds(k.KeyExpiresAt), Categories: words(k.Categories),
+		KeyFields: keyFieldsText(k.KeyFields), KeyType: k.KeyType, KeyExpiresAt: optionalSeconds(k.KeyExpiresAt), Categories: words(k.Categories),
 		MissingCategories: words(k.MissingCategories), ReadOnly: boolInt(k.ReadOnly), LastCheckAt: optionalSeconds(k.CheckedAt),
 		LastCheckOutcome: k.CheckOutcome, LastSuccessAt: optionalSeconds(k.CheckedAt), ID: id,
 	}))
@@ -238,7 +272,7 @@ func (q *Queries) ReplaceWarehouses(ctx context.Context, accountID int64, list [
 
 	for _, w := range list {
 		if err := q.q.InsertWarehouse(ctx, db.InsertWarehouseParams{
-			AccountID: accountID, Number: w.Number, Name: w.Name, UpdatedAt: seconds(at),
+			AccountID: accountID, Number: w.Number, Name: w.Name, SellerDelivers: boolInt(w.SellerDelivers), UpdatedAt: seconds(at),
 		}); err != nil {
 			return kind(err)
 		}
@@ -256,7 +290,7 @@ func (q *Queries) Warehouses(ctx context.Context, accountID int64) ([]Warehouse,
 
 	list := make([]Warehouse, 0, len(rows))
 	for _, row := range rows {
-		list = append(list, Warehouse{Number: row.Number, Name: row.Name})
+		list = append(list, Warehouse{Number: row.Number, Name: row.Name, SellerDelivers: row.SellerDelivers == 1})
 	}
 
 	return list, nil

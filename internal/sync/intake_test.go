@@ -160,8 +160,9 @@ func TestAFeedRowOfTheMarketplacesWarehouseFollowsItsState(t *testing.T) {
 	r := newMemoryRig(t, 10)
 	ctx := t.Context()
 	row := marketplace.FeedRow{
-		JoinKey: "fbo-1", Number: "fbo-1", Scheme: marketplace.SchemeFBO, Barcode: "4601", CreatedAt: synckit.Noon(),
-		Status: marketplace.Status{State: marketplace.StateInDelivery},
+		JoinKey: "fbo-1", Number: "fbo-1", Scheme: marketplace.SchemeFBO, Lines: []marketplace.Line{{Barcodes: []string{"4601"}}},
+		CreatedAt: synckit.Noon(),
+		Status:    marketplace.Status{State: marketplace.StateInDelivery},
 	}
 
 	r.adapter.AddFeedRow(row)
@@ -171,7 +172,7 @@ func TestAFeedRowOfTheMarketplacesWarehouseFollowsItsState(t *testing.T) {
 		t.Fatalf("RunOrders: %v", err)
 	}
 
-	row.Status, row.Kind = marketplace.Status{State: marketplace.StateCancelled}, "Shirts"
+	row.Status, row.Lines = marketplace.Status{State: marketplace.StateCancelled}, []marketplace.Line{{Barcodes: []string{"4601"}, Kind: "Shirts"}}
 	r.adapter.AddFeedRow(row)
 
 	if err := r.engine.RunOrders(ctx); err != nil {
@@ -179,7 +180,8 @@ func TestAFeedRowOfTheMarketplacesWarehouseFollowsItsState(t *testing.T) {
 	}
 
 	got, err := r.kit.Store.Read().OrderByNumber(ctx, r.account.ID, "fbo-1")
-	if err != nil || got.State != "cancelled" || got.Kind != "Shirts" || !reflect.DeepEqual(got.Barcodes, []string{"4601"}) {
+	if err != nil || got.State != "cancelled" || len(got.Lines) != 1 || got.Lines[0].Kind != "Shirts" ||
+		!reflect.DeepEqual(got.Lines[0].Barcodes, []string{"4601"}) {
 		t.Fatalf("the order of the marketplace's warehouse: %+v, %v", got, err)
 	}
 

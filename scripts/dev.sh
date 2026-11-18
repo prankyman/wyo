@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# `pnpm dev`: the fake Wildberries and the fake fulfilment centre, the wyo server in development mode, then Vite on its own port,
-# passing /api on to the wyo server. Ctrl+C stops all three.
+# `pnpm dev`: the fake marketplaces (the fake Wildberries and the fake Ozon, on one address) and the fake fulfilment centre, the
+# wyo server in development mode, then Vite on its own port, passing /api on to the wyo server. Ctrl+C stops all three.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/go/common.sh"
 
@@ -23,9 +23,10 @@ if [ ! -f "$data/wyo.db" ]; then
     bin/wyo-dev owner create --data "$data" --login owner --password-file <(printf '%s\n' development-password)
 fi
 
-bin/wyofakes --wildberries 127.0.0.1:8791 --fulfilment 127.0.0.1:8792 &
+bin/wyofakes --marketplaces 127.0.0.1:8791 --fulfilment 127.0.0.1:8792 &
 pids+=("$!")
-# The wyo server asks the fake Wildberries instead of the real one (rule R3).
+# The wyo server asks the fake marketplaces (the fake Wildberries and the fake Ozon, on one address) instead of the real ones
+# (rule R3).
 WYO_MARKETPLACE_URL=http://127.0.0.1:8791 bin/wyo-dev --listen 127.0.0.1:8790 --mode development --data "$data" &
 pids+=("$!")
 

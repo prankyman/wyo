@@ -54,8 +54,25 @@ type Status struct {
 	Marketplace string
 }
 
+// Line is one product of an order with its quantity: the marketplace's own number of the product, the seller's article,
+// the name, the barcodes, the kind, the brand and the size when the marketplace gives them, and how many units (at least
+// one).
+type Line struct {
+	ProductID string
+	Article   string
+	Name      string
+	Barcodes  []string
+	Kind      string
+	Brand     string
+	Size      string
+	Quantity  int
+}
+
 // Order is an order as an adapter gives it. It never carries anything about the buyer but the basket's number: no
-// address, no comment, no region.
+// name, no phone, no address, no comment, no region. Lines are its products, at least one.
+//
+// ShipBy is the moment the marketplace says the order must be handed over by (zero when it gives none: the deadline is
+// then the creation plus the account's hours). Parent is the number of the order the marketplace split this one from.
 //
 // Group, ItemID, Required and Optional are given by the list of new orders (orders.new) for the exchange with a
 // fulfilment centre: the group of orders that may travel together (a text the engine only compares), the marketplace's
@@ -67,13 +84,10 @@ type Order struct {
 	Basket          string
 	WarehouseNumber string
 	WarehouseName   string
-	Article         string
-	Barcodes        []string
-	ProductID       string
-	Kind            string
-	Brand           string
-	Size            string
+	Lines           []Line
 	CreatedAt       time.Time
+	ShipBy          time.Time
+	Parent          string
 	Status          Status
 	Group           string
 	ItemID          string
@@ -81,10 +95,11 @@ type Order struct {
 	Optional        []string
 }
 
-// OrderStatus is the present state of one known order.
+// OrderStatus is the present state of one known order, and its deadline when the marketplace gives one (zero: unchanged).
 type OrderStatus struct {
 	Number string
 	Status Status
+	ShipBy time.Time
 }
 
 // FeedRow is one row of a marketplace's orders feed. JoinKey ties it to an order the seller packs; a row of the
@@ -95,12 +110,7 @@ type FeedRow struct {
 	Number    string
 	Basket    string
 	Warehouse string
-	Article   string
-	Barcode   string
-	ProductID string
-	Kind      string
-	Brand     string
-	Size      string
+	Lines     []Line
 	CreatedAt time.Time
 	Status    Status
 }
@@ -114,10 +124,12 @@ type FeedPage struct {
 	Done bool
 }
 
-// Warehouse is one of the seller's warehouses on a marketplace.
+// Warehouse is one of the seller's warehouses on a marketplace. SellerDelivers marks a warehouse whose orders the seller
+// delivers to the buyer itself: they need the buyer's address, which the connector never keeps, so they are never read.
 type Warehouse struct {
-	Number string
-	Name   string
+	Number         string
+	Name           string
+	SellerDelivers bool
 }
 
 // KeyFacts is what a key says about itself: its type in the adapter's words, whether it is a test key, its end of life

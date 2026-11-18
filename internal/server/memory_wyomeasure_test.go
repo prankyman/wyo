@@ -20,14 +20,15 @@ import (
 	"github.com/prankyman/wyo/internal/testkit/synckit"
 )
 
-// The measurement of plan 3, section H: the memory of the wyo server with three accounts and 10 000 orders in its
-// database, reading the fake Wildberries at the plan's periods for a made-up day. It runs only when asked for
+// The measurement of plan 3, section H, widened by plan 5, section H: the memory of the wyo server with three accounts —
+// two of Wildberries and one of Ozon, whose orders have three products on average — and 10 000 orders in its database,
+// reading the fakes at the plans' periods for a made-up day. It runs only when asked for
 // (`pnpm go:measure`, the build tag wyomeasure), because it measures, not checks: the pipeline prints its line, and the
 // README's requirements take the number with the date.
 //
 // What the number is: the peak resident memory of the whole test process (VmHWM of /proc/self/status) and the Go heap
-// in use after the day. The process also holds the fake Wildberries and the test itself, so the number is an upper
-// bound of the wyo server's own memory.
+// in use after the day. The process also holds the fakes and the test itself, so the number is an upper bound of the wyo
+// server's own memory.
 func TestTheMemoryOfADayWithThreeAccountsAndTenThousandOrders(t *testing.T) {
 	const (
 		accountCount = 3
@@ -36,7 +37,7 @@ func TestTheMemoryOfADayWithThreeAccountsAndTenThousandOrders(t *testing.T) {
 	)
 
 	clk := clock.NewFixed(synckit.Noon())
-	fake := fakeWildberries(t, clk)
+	fake := fakeMarketplaces(t, clk)
 
 	var day *daykit.Day
 
@@ -50,7 +51,7 @@ func TestTheMemoryOfADayWithThreeAccountsAndTenThousandOrders(t *testing.T) {
 
 	var ids []int64
 
-	for i := range accountCount {
+	for i := range accountCount - 1 {
 		name := fmt.Sprintf("account-%d", i+1)
 		tokenText := token("measure-"+name, clk.Now())
 		ids = append(ids, addAccount(t, app, name, tokenText, clk.Now()))
@@ -60,6 +61,24 @@ func TestTheMemoryOfADayWithThreeAccountsAndTenThousandOrders(t *testing.T) {
 			if err := control.Do(t.Context(), "POST", "/__control/orders", map[string]any{"article": "ART-" + name}, nil); err != nil {
 				t.Fatalf("an order at the fake: %v", err)
 			}
+		}
+	}
+
+	ozonID, key := addOzonAccount(t, app, fake.URL, "account-ozon", clk.Now())
+	ids = append(ids, ozonID)
+
+	control := fakekit.NewControl(fake.URL+"/"+ozonHost, key["api_key"], fake.Client())
+	for i := range newEachDay {
+		products := []map[string]any{}
+		for line := range 2 + i%3 {
+			products = append(products, map[string]any{"sku": 2001, "offer_id": fmt.Sprintf("ART-%d", line), "name": "Товар", "quantity": 1 + line})
+		}
+
+		if err := control.Do(t.Context(), "POST", "/__control/postings", map[string]any{
+			"posting_number": fmt.Sprintf("20000000-%04d-1", i), "order_number": "20000000", "warehouse_id": 1001,
+			"shipment_date": clk.Now().Add(5 * time.Hour), "products": products,
+		}, nil); err != nil {
+			t.Fatalf("a posting at the fake: %v", err)
 		}
 	}
 
@@ -124,9 +143,18 @@ func seedOrders(t *testing.T, app *server.App, accounts []int64, count int, now 
 			created := now.Add(-time.Duration(i%90)*24*time.Hour - time.Duration(i%600)*time.Minute)
 			number := strconv.Itoa(900_000_000 + i)
 
+			// The orders of the last account, the Ozon one, have two, three or four products: three on average.
+			account := i % len(accounts)
+			lines := []store.OrderLine{{Article: fmt.Sprintf("ART-%d", i%400), Barcodes: []string{fmt.Sprintf("46%011d", i)}, Quantity: 1}}
+
+			if account == len(accounts)-1 {
+				for extra := range 1 + i%3 {
+					lines = append(lines, store.OrderLine{Article: fmt.Sprintf("ART-%d-%d", i%400, extra), Quantity: 1 + extra})
+				}
+			}
+
 			if _, _, err := q.InsertOrder(t.Context(), store.Order{
-				AccountID: accounts[i%len(accounts)], Number: number, Scheme: scheme, JoinKey: "srid-" + number,
-				Article: fmt.Sprintf("ART-%d", i%400), Barcodes: []string{fmt.Sprintf("46%011d", i)}, CreatedAt: created,
+				AccountID: accounts[account], Number: number, Scheme: scheme, JoinKey: "srid-" + number, Lines: lines, CreatedAt: created,
 				State: state, SellerStatus: "complete", MarketplaceStatus: "sold", UpdatedAt: created,
 			}); err != nil {
 				return err

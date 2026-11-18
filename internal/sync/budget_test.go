@@ -16,7 +16,10 @@ func noon() time.Time { return time.Date(2026, 11, 18, 12, 0, 0, 0, moscow) }
 
 // sellerWarehouse is the limit of Wildberries' seller-warehouse methods as the fake keeps it: 300 a minute, one every
 // 200 milliseconds, 20 at once, a client error counted as ten.
-var sellerWarehouse = marketplace.LimitGroup{Name: "marketplace", Interval: 200 * time.Millisecond, Burst: 20, ErrorCost: 10}
+var sellerWarehouse = marketplace.LimitGroup{
+	Name: "marketplace", Interval: 200 * time.Millisecond, Burst: 20, ErrorCost: 10,
+	RemainingHeader: "X-Ratelimit-Remaining", RetryHeader: "X-Ratelimit-Retry",
+}
 
 func header(name string, value int) http.Header {
 	h := http.Header{}

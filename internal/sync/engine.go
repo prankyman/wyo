@@ -63,7 +63,8 @@ type RefreshState struct {
 type Engine struct {
 	opts EngineOptions
 
-	orders stdsync.Mutex // one reading of the orders at a time
+	locksMu stdsync.Mutex
+	locks   map[int64]*stdsync.Mutex // one reading of an account's orders at a time, per account
 
 	refreshMu   stdsync.Mutex
 	lastRefresh time.Time
@@ -76,7 +77,22 @@ func NewEngine(o EngineOptions) *Engine {
 		o.Location = time.UTC
 	}
 
-	return &Engine{opts: o}
+	return &Engine{opts: o, locks: map[int64]*stdsync.Mutex{}}
+}
+
+// lockOf is the lock of an account's readings of orders: one at a time for each account, so an account that waits for
+// its marketplace's budget never holds up another account's readings.
+func (e *Engine) lockOf(accountID int64) *stdsync.Mutex {
+	e.locksMu.Lock()
+	defer e.locksMu.Unlock()
+
+	l := e.locks[accountID]
+	if l == nil {
+		l = &stdsync.Mutex{}
+		e.locks[accountID] = l
+	}
+
+	return l
 }
 
 // Jobs are the engine's scheduled jobs: the orders every 30 minutes, the warehouses and the key check once a day, each
@@ -204,7 +220,9 @@ func (e *Engine) runningAccounts(ctx context.Context) ([]account, error) {
 
 func (e *Engine) connOf(row store.Account, adapter marketplace.Adapter) func(job string) marketplace.Conn {
 	return func(job string) marketplace.Conn {
-		return e.opts.Caller.Conn(Target{Adapter: adapter, AccountID: row.ID, Test: row.Test, Job: job, SecretName: row.SecretName})
+		return e.opts.Caller.Conn(Target{
+			Adapter: adapter, AccountID: row.ID, Test: row.Test, Job: job, SecretName: row.SecretName, Missing: row.MissingCategories,
+		})
 	}
 }
 
@@ -239,10 +257,7 @@ type part struct {
 
 // RunOrders reads the new orders, the states of the open ones and the orders feed of every running account.
 func (e *Engine) RunOrders(ctx context.Context) error {
-	e.orders.Lock()
-	defer e.orders.Unlock()
-
-	return e.forEach(ctx, []part{
+	return e.forEachLocked(ctx, []part{
 		{capability: marketplace.OrdersNew, run: e.takeNewOrders},
 		{capability: marketplace.OrdersStates, run: e.takeStates},
 		{capability: marketplace.OrdersFeed, run: e.takeFeed},
@@ -252,29 +267,17 @@ func (e *Engine) RunOrders(ctx context.Context) error {
 // RunNewOrders reads only the new orders of every running account: the exchange with a fulfilment centre asks it every
 // minute while «Внешний API» is filled.
 func (e *Engine) RunNewOrders(ctx context.Context) error {
-	e.orders.Lock()
-	defer e.orders.Unlock()
-
-	return e.forEach(ctx, []part{{capability: marketplace.OrdersNew, run: e.takeNewOrders}})
+	return e.forEachLocked(ctx, []part{{capability: marketplace.OrdersNew, run: e.takeNewOrders}})
 }
 
 // RunStates reads only the states of the open orders of every running account: the exchange asks it every 5 minutes
 // while «Внешний API» is filled, so that a cancellation is passed on.
 func (e *Engine) RunStates(ctx context.Context) error {
-	e.orders.Lock()
-	defer e.orders.Unlock()
-
-	return e.forEach(ctx, []part{{capability: marketplace.OrdersStates, run: e.takeStates}})
+	return e.forEachLocked(ctx, []part{{capability: marketplace.OrdersStates, run: e.takeStates}})
 }
 
 // RunWarehouses reads the warehouses of every running account.
 func (e *Engine) RunWarehouses(ctx context.Context) error {
-	return e.forEach(ctx, []part{{capability: marketplace.WarehousesRead, run: e.takeWarehouses}})
-}
-
-// forEach reads the parts of every running account one after another. One reading of an account ends as one success,
-// one failure, a stop (a refusal that stops the account's jobs: nothing more is asked of it) or a limit to wait out.
-func (e *Engine) forEach(ctx context.Context, parts []part) error {
 	accounts, err := e.runningAccounts(ctx)
 	if err != nil {
 		return err
@@ -285,24 +288,58 @@ func (e *Engine) forEach(ctx context.Context, parts []part) error {
 			return ctx.Err()
 		}
 
-		result := readOK
-
-		for _, p := range parts {
-			if !a.adapter.Describe().Supports(p.capability) || !a.adapter.Capable(p.capability, a.row.Test) {
-				continue
-			}
-
-			if err := p.run(ctx, a); err != nil {
-				result = max(result, e.classify(ctx, a, p.capability, err))
-			}
-
-			if result == readStopped {
-				break
-			}
-		}
-
-		e.settle(ctx, a, result)
+		e.read(ctx, a, []part{{capability: marketplace.WarehousesRead, run: e.takeWarehouses}})
 	}
 
 	return ctx.Err()
+}
+
+// forEachLocked reads the parts of every running account, each account at the same time as the others and under its own
+// lock (lockOf): a reading of an account waits only for another reading of the same account.
+func (e *Engine) forEachLocked(ctx context.Context, parts []part) error {
+	accounts, err := e.runningAccounts(ctx)
+	if err != nil {
+		return err
+	}
+
+	var wg stdsync.WaitGroup
+
+	for _, a := range accounts {
+		wg.Go(func() {
+			lock := e.lockOf(a.row.ID)
+
+			lock.Lock()
+			defer lock.Unlock()
+
+			if ctx.Err() == nil {
+				e.read(ctx, a, parts)
+			}
+		})
+	}
+
+	wg.Wait()
+
+	return ctx.Err()
+}
+
+// read reads the parts of one account one after another. One reading of an account ends as one success, one failure, a
+// stop (a refusal that stops the account's jobs: nothing more is asked of it) or a limit to wait out.
+func (e *Engine) read(ctx context.Context, a account, parts []part) {
+	result := readOK
+
+	for _, p := range parts {
+		if !a.adapter.Describe().Supports(p.capability) || !a.adapter.Capable(p.capability, a.row.Test) {
+			continue
+		}
+
+		if err := p.run(ctx, a); err != nil {
+			result = max(result, e.classify(ctx, a, p.capability, err))
+		}
+
+		if result == readStopped {
+			break
+		}
+	}
+
+	e.settle(ctx, a, result)
 }

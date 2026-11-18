@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { exchangeDetailsOf } from '$test/support/external-api';
-import { MARKETPLACE, MARKETPLACE_NAME, orderOf } from '$test/support/marketplaces';
+import { lineOf, MARKETPLACE, MARKETPLACE_NAME, orderDetailsOf, orderOf } from '$test/support/marketplaces';
 import OrderDetails from './OrderDetails.svelte';
 
 /** An order's details beside the list: every field, the marketplace's own words, and the history of its states. */
@@ -29,7 +29,8 @@ describe('OrderDetails', () => {
                             marketplaceStatus: { seller: 'confirm', marketplace: 'waiting' },
                             source: 'orders.states'
                         }
-                    ]
+                    ],
+                    parts: []
                 }
             }
         });
@@ -38,9 +39,9 @@ describe('OrderDetails', () => {
         expect(screen.getByTestId('order-state')).toHaveTextContent('На сборке');
         expect(screen.getByTestId('order-scheme')).toHaveTextContent('FBS');
         expect(screen.getByTestId('order-facts-account')).toHaveTextContent('Магазин одежды');
-        expect(screen.getByTestId('order-facts-article')).toHaveTextContent('DRESS-RED-42');
-        expect(screen.getByTestId('order-facts-barcodes')).toHaveTextContent('2040000000017');
-        expect(screen.getByTestId('order-facts-kind')).toHaveTextContent('Платья');
+        expect(screen.getByTestId('order-lines-1-article')).toHaveTextContent('DRESS-RED-42');
+        expect(screen.getByTestId('order-lines-1-barcodes')).toHaveTextContent('2040000000017');
+        expect(screen.getByTestId('order-lines-1-kind')).toHaveTextContent('Платья');
         expect(screen.getByTestId('order-facts-basket')).toHaveTextContent('1234567');
         expect(screen.getByTestId('order-facts-marketplaceStatus')).toHaveTextContent('confirm / waiting');
         expect(screen.getByTestId('order-deadline')).toHaveAttribute('data-tone');
@@ -65,7 +66,8 @@ describe('OrderDetails', () => {
                             marketplaceStatus: { seller: 'cancel', marketplace: 'canceled_by_client' },
                             source: 'orders.states'
                         }
-                    ]
+                    ],
+                    parts: []
                 }
             }
         });
@@ -79,7 +81,7 @@ describe('OrderDetails', () => {
         render(OrderDetails, {
             props: {
                 lang: 'ru',
-                details: { order: orderOf({ state: 'cancelled', cancelledBy: 'seller' }), events: [] }
+                details: orderDetailsOf({ order: orderOf({ state: 'cancelled', cancelledBy: 'seller' }) })
             }
         });
 
@@ -91,26 +93,22 @@ describe('OrderDetails', () => {
         render(OrderDetails, {
             props: {
                 lang: 'ru',
-                details: {
+                details: orderDetailsOf({
                     order: orderOf({
                         scheme: 'fbo',
                         deadlineAt: undefined,
                         basket: undefined,
-                        kind: undefined,
-                        brand: undefined,
-                        size: undefined,
-                        barcodes: []
-                    }),
-                    events: []
-                }
+                        lines: [lineOf({ kind: undefined, brand: undefined, size: undefined, barcodes: [] })]
+                    })
+                })
             }
         });
 
         expect(screen.getByTestId('order-scheme')).toHaveTextContent('FBO');
         expect(screen.queryByTestId('order-deadline')).toBeNull();
         expect(screen.queryByTestId('order-facts-basket')).toBeNull();
-        expect(screen.queryByTestId('order-facts-kind')).toBeNull();
-        expect(screen.queryByTestId('order-facts-barcodes')).toBeNull();
+        expect(screen.queryByTestId('order-lines-1-kind')).toBeNull();
+        expect(screen.queryByTestId('order-lines-1-barcodes')).toBeNull();
         expect(screen.queryByTestId('order-history')).toBeNull();
     });
 
@@ -118,7 +116,7 @@ describe('OrderDetails', () => {
         const { unmount } = render(OrderDetails, {
             props: {
                 lang: 'ru',
-                details: { order: orderOf(), events: [], exchange: exchangeDetailsOf({ state: 'label_sent' }) }
+                details: orderDetailsOf({ exchange: exchangeDetailsOf({ state: 'label_sent' }) })
             }
         });
 
@@ -126,7 +124,41 @@ describe('OrderDetails', () => {
         expect(screen.getByTestId('exchange-state')).toHaveTextContent('этикетка передана');
         unmount();
 
-        render(OrderDetails, { props: { lang: 'ru', details: { order: orderOf(), events: [] } } });
+        render(OrderDetails, { props: { lang: 'ru', details: orderDetailsOf() } });
         expect(screen.queryByTestId('order-exchange')).toBeNull();
+    });
+
+    it('draws every product of an order of several, each with its quantity, through the lines block', () => {
+        render(OrderDetails, {
+            props: {
+                lang: 'ru',
+                details: orderDetailsOf({
+                    order: orderOf({
+                        lines: [lineOf({ quantity: 2 }), lineOf({ article: 'SHIRT-BLUE-M', quantity: 1 })]
+                    })
+                })
+            }
+        });
+
+        expect(screen.getByTestId('order-lines')).toBeInTheDocument();
+        expect(screen.getByTestId('order-lines-1-quantity')).toHaveTextContent('2 единицы товара');
+        expect(screen.getByTestId('order-lines-2-article')).toHaveTextContent('SHIRT-BLUE-M');
+        expect(screen.queryByTestId('order-facts-article')).toBeNull();
+    });
+
+    it('names the order a split order came from, and the orders a split order was split into', () => {
+        const { unmount } = render(OrderDetails, {
+            props: { lang: 'ru', details: orderDetailsOf({ order: orderOf({ parentNumber: '89491381-0072-1' }) }) }
+        });
+
+        expect(screen.getByTestId('order-facts-parent')).toHaveTextContent('89491381-0072-1');
+        expect(screen.queryByTestId('order-facts-parts')).toBeNull();
+        unmount();
+
+        render(OrderDetails, {
+            props: { lang: 'ru', details: orderDetailsOf({ parts: ['89491381-0072-2', '89491381-0072-3'] }) }
+        });
+        expect(screen.getByTestId('order-facts-parts')).toHaveTextContent('89491381-0072-2, 89491381-0072-3');
+        expect(screen.queryByTestId('order-facts-parent')).toBeNull();
     });
 });

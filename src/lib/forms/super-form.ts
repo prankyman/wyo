@@ -5,7 +5,7 @@ import { onDestroy } from 'svelte';
 import { get } from 'svelte/store';
 import { refusalParams, type TApiResult, type TRefusal } from '$lib/api/api';
 import { disclosureFormOf } from '$lib/components/ui/disclosure-form';
-import { fieldRefusalKey, refusalKey } from '$lib/api/refusal-key';
+import { fieldRefusalKey, refusalKey, type TFamily } from '$lib/api/refusal-key';
 import { getLocale, t } from '$lib/i18n/i18n';
 import { toast } from '$lib/stores/toast.svelte';
 import { answerOf } from './answer';
@@ -53,7 +53,7 @@ export type TSuperFormOptions<
      * The family of texts that words this form's refusals before the general `errors.<code>` (`accounts.refusal`: the
      * refusals of a marketplace key have texts of their own). See `refusalKey`.
      */
-    refusals?: string;
+    refusals?: TFamily;
 };
 
 /** The live forms of each answer group (`answerGroup`). */
@@ -68,7 +68,7 @@ const answerGroups = new Map<string, Set<{ message: { set(value: undefined): voi
 export function applyRefusal<T extends Record<string, unknown>>(
     form: SuperValidated<T>,
     refusal: TRefusal,
-    family?: string
+    family?: TFamily
 ): void {
     for (const issue of refusal.issues ?? []) {
         setError(form, issue.path as never, fieldRefusalKey(issue.code, family));

@@ -37,23 +37,35 @@ func TestAReleaseBuildRefusesTestAddresses(t *testing.T) {
 	}
 }
 
-// A release build lists the Wildberries hosts the connector's methods live on; a test build lists none of them (rule R3,
-// TestATestBuildCallsNoRealMarketplace).
-func TestAReleaseBuildListsTheMarketplacesHosts(t *testing.T) {
+// A release build lists the hosts of the marketplace adapters it is given, over https only; a test build lists none of them
+// (rule R3, TestATestBuildCallsNoRealMarketplace). The hosts of every adapter of the wyo server are checked by
+// TestEveryHostOfEveryAdapterIsOnTheGatesListInARelease (internal/server).
+func TestAReleaseBuildListsTheMarketplacesHostsItIsGiven(t *testing.T) {
 	t.Parallel()
 
-	gate, err := outbound.New(outbound.Options{Version: "1.2.3"})
+	gate, err := outbound.New(outbound.Options{Version: "1.2.3", MarketplaceHosts: []string{"api.example.test", "Other.Example.Test"}})
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
 
-	for _, address := range []string{
-		"https://marketplace-api.wildberries.ru/api/v3/orders/new", "https://marketplace-api-sandbox.wildberries.ru/ping",
-		"https://statistics-api.wildberries.ru/api/v1/supplier/orders", "https://common-api.wildberries.ru/api/v1/seller-info",
-	} {
-		u, _ := url.Parse(address)
-		if err := gate.Check(outbound.PurposeMarketplace, u); err != nil {
-			t.Errorf("Check(%q) = %v, want it allowed", address, err)
+	cases := []struct {
+		address string
+		allowed bool
+	}{
+		{address: "https://api.example.test/v1/roles", allowed: true},
+		{address: "https://other.example.test/ping", allowed: true},
+		{address: "http://api.example.test/v1/roles", allowed: false},
+		{address: "https://more.api.example.test/v1/roles", allowed: false},
+	}
+
+	for _, tc := range cases {
+		u, _ := url.Parse(tc.address)
+		if err := gate.Check(outbound.PurposeMarketplace, u); (err == nil) != tc.allowed {
+			t.Errorf("Check(%q) = %v, want allowed %v", tc.address, err, tc.allowed)
 		}
+	}
+
+	if _, err := outbound.New(outbound.Options{MarketplaceHosts: []string{"https://api.example.test/x"}}); err == nil {
+		t.Fatal("an address in place of a host name was taken")
 	}
 }

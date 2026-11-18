@@ -1,11 +1,32 @@
 -- name: InsertOrder :one
 INSERT INTO orders (
-    account_id, number, scheme, join_key, basket, warehouse_number, warehouse_name, article, barcodes, product_id, kind,
-    brand, size, created_at, state, cancelled_by, seller_status, marketplace_status, updated_at, grp, item_id, required_ids,
-    optional_ids
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    account_id, number, scheme, join_key, basket, warehouse_number, warehouse_name, created_at, ship_by, parent_number, state,
+    cancelled_by, seller_status, marketplace_status, updated_at, grp, item_id, required_ids, optional_ids
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT (account_id, number) DO NOTHING
 RETURNING id;
+
+-- name: InsertOrderLine :exec
+INSERT INTO order_lines (order_id, line, product_id, article, name, barcodes, kind, brand, size, quantity)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- name: DeleteOrderLines :exec
+DELETE FROM order_lines WHERE order_id = ?;
+
+-- name: ListOrderLines :many
+SELECT * FROM order_lines WHERE order_id = ? ORDER BY line;
+
+-- name: ListOrderLinesOf :many
+SELECT * FROM order_lines WHERE order_id IN (sqlc.slice(order_ids)) ORDER BY order_id, line;
+
+-- name: UpdateOrderShipBy :execrows
+UPDATE orders SET ship_by = ?, updated_at = ? WHERE id = ?;
+
+-- name: ListOrderParts :many
+SELECT number FROM orders WHERE account_id = ? AND parent_number = ? AND parent_number <> '' ORDER BY number;
+
+-- name: ListOrdersOfNumbers :many
+SELECT * FROM orders WHERE account_id = ? AND number IN (sqlc.slice(numbers));
 
 -- name: GetOrderByNumber :one
 SELECT * FROM orders WHERE account_id = ? AND number = ?;
@@ -16,8 +37,8 @@ SELECT * FROM orders WHERE account_id = ? AND join_key = ? ORDER BY id LIMIT 1;
 -- name: UpdateOrderStatus :execrows
 UPDATE orders SET state = ?, cancelled_by = ?, seller_status = ?, marketplace_status = ?, updated_at = ? WHERE id = ?;
 
--- name: UpdateOrderProduct :execrows
-UPDATE orders SET basket = ?, kind = ?, brand = ?, size = ?, updated_at = ? WHERE id = ?;
+-- name: UpdateOrderBasket :execrows
+UPDATE orders SET basket = ?, updated_at = ? WHERE id = ?;
 
 -- name: InsertOrderEvent :exec
 INSERT INTO order_events (order_id, at, state, cancelled_by, seller_status, marketplace_status, source)
@@ -51,8 +72,11 @@ WHERE (sqlc.narg(account_id) IS NULL OR o.account_id = sqlc.narg(account_id))
   AND (sqlc.narg(state) IS NULL OR o.state = sqlc.narg(state))
   AND (sqlc.narg(created_from) IS NULL OR o.created_at >= sqlc.narg(created_from))
   AND (sqlc.narg(created_before) IS NULL OR o.created_at < sqlc.narg(created_before))
-  AND (sqlc.narg(search) IS NULL OR instr(o.number, sqlc.narg(search)) > 0 OR instr(o.article, sqlc.narg(search)) > 0
-       OR instr(o.barcodes, sqlc.narg(search)) > 0)
+  AND (sqlc.narg(search) IS NULL OR instr(o.number, sqlc.narg(search)) > 0 OR EXISTS (
+       SELECT 1 FROM order_lines l
+       WHERE l.order_id = o.id
+         AND (instr(l.article, sqlc.narg(search)) > 0 OR instr(l.barcodes, sqlc.narg(search)) > 0
+              OR instr(l.product_id, sqlc.narg(search)) > 0)))
   AND (sqlc.narg(attention_now) IS NULL OR EXISTS (
        SELECT 1 FROM exchange_orders x
        WHERE x.order_id = o.id
@@ -68,8 +92,11 @@ WHERE (sqlc.narg(account_id) IS NULL OR o.account_id = sqlc.narg(account_id))
   AND (sqlc.narg(state) IS NULL OR o.state = sqlc.narg(state))
   AND (sqlc.narg(created_from) IS NULL OR o.created_at >= sqlc.narg(created_from))
   AND (sqlc.narg(created_before) IS NULL OR o.created_at < sqlc.narg(created_before))
-  AND (sqlc.narg(search) IS NULL OR instr(o.number, sqlc.narg(search)) > 0 OR instr(o.article, sqlc.narg(search)) > 0
-       OR instr(o.barcodes, sqlc.narg(search)) > 0)
+  AND (sqlc.narg(search) IS NULL OR instr(o.number, sqlc.narg(search)) > 0 OR EXISTS (
+       SELECT 1 FROM order_lines l
+       WHERE l.order_id = o.id
+         AND (instr(l.article, sqlc.narg(search)) > 0 OR instr(l.barcodes, sqlc.narg(search)) > 0
+              OR instr(l.product_id, sqlc.narg(search)) > 0)))
   AND (sqlc.narg(attention_now) IS NULL OR EXISTS (
        SELECT 1 FROM exchange_orders x
        WHERE x.order_id = o.id
@@ -85,4 +112,4 @@ GROUP BY o.state;
 SELECT count(*) FROM orders o
 JOIN marketplace_accounts a ON a.id = o.account_id
 WHERE a.state <> 'disabled' AND o.scheme = 'fbs' AND o.state IN ('new', 'assembling')
-  AND o.created_at + a.deadline_hours * 3600 < sqlc.arg(now);
+  AND COALESCE(o.ship_by, o.created_at + a.deadline_hours * 3600) < CAST(sqlc.arg(now) AS INTEGER);

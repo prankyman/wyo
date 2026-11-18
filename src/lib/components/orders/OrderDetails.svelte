@@ -10,15 +10,17 @@
     import type { TLocale } from '$lib/i18n/types';
     import { deadlineMatters } from '$lib/orders/deadline';
     import DeadlineCell from './DeadlineCell.svelte';
+    import OrderLines from './OrderLines.svelte';
     import OrderStateBadge from './OrderStateBadge.svelte';
     import SchemeBadge from './SchemeBadge.svelte';
     import type { TOrderDetails } from './types';
 
     /**
      * One order's details beside the order list (`GET /api/v1/orders/{id}`): the marketplace, the scheme and the state; the
-     * deadline of an FBS order while it waits to be handed over (new or assembling); every field the order has — the field it lacks is left out, not drawn empty; the marketplace's
-     * own words for the state as received; and the history of states, oldest first, each in the list's words (with who
-     * cancelled) and with where the change came from. An FBS order that has an exchange with a fulfilment centre draws it last
+     * deadline of an FBS order while it waits to be handed over (new or assembling); every field the order has — the field it lacks is left out, not drawn empty —
+     * and, after them, its products with their quantities (`OrderLines`); the order a split order came from and the orders a
+     * split order was split into; the marketplace's own words for the state as received; and the history of states, oldest first,
+     * each in the list's words (with who cancelled) and with where the change came from. An FBS order that has an exchange with a fulfilment centre draws it last
      * (`OrderExchangeDetails`); the page is told (`onExchangeRetried`) when «Передать заново» was pressed, to read the order again.
      */
     interface IProps {
@@ -44,12 +46,8 @@
         add('account', 'orders.field.account', order.accountName);
         add('basket', 'orders.field.basket', order.basket);
         add('warehouse', 'orders.column.warehouse', order.warehouse, 'orders.column.warehouse.help');
-        add('article', 'orders.field.article', order.article);
-        add('barcodes', 'orders.field.barcodes', order.barcodes.join(', '));
-        add('productId', 'orders.field.productId', order.productId);
-        add('kind', 'orders.field.kind', order.kind);
-        add('brand', 'orders.field.brand', order.brand);
-        add('size', 'orders.field.size', order.size);
+        add('parent', 'orders.field.parent', order.parentNumber, 'orders.field.parent.help');
+        add('parts', 'orders.field.parts', details.parts.join(', '), 'orders.field.parts.help');
         add('createdAt', 'orders.column.created', formatDateTime(order.createdAt, lang), 'orders.column.created.help');
         add('updatedAt', 'orders.field.updatedAt', order.updatedAt ? formatDateTime(order.updatedAt, lang) : undefined);
         add(
@@ -85,6 +83,7 @@
         </p>
     {/if}
     <FactList items={facts} dataTest="order-facts" />
+    <OrderLines {lang} lines={order.lines} />
     {#if details.events.length > 0}
         <div>
             <HeadingWithHelp text={t('orders.details.history', lang)} level="h3" look="section" />
