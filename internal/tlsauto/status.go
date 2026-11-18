@@ -26,41 +26,58 @@ type failure struct {
 type progress struct {
 	mu     sync.Mutex
 	failed *failure
-	log    *slog.Logger
+	// stopped is set when the wyo server stops: CertMagic's try in flight reports afterwards, and that report is ignored.
+	stopped bool
+	log     *slog.Logger
 	// changed is told after each change; tests wait on it.
 	changed func()
 }
 
 func (p *progress) onEvent(ctx context.Context, event string, data map[string]any) error {
-	switch event {
-	case "cert_failed":
-		err, _ := data["error"].(error)
+	if event != "cert_failed" && event != "cert_obtained" {
+		return nil
+	}
 
-		p.mu.Lock()
-		p.failed = &failure{reason: reasonOf(err)}
-		reason := p.failed.reason
+	// The lock is held while the event is written down and logged, so that stop, which takes it, returns only after the
+	// last report before it: nothing is changed or written once the wyo server has stopped.
+	p.mu.Lock()
+
+	if p.stopped {
 		p.mu.Unlock()
+
+		return nil
+	}
+
+	if event == "cert_failed" {
+		err, _ := data["error"].(error)
+		p.failed = &failure{reason: reasonOf(err)}
 
 		if p.log != nil {
-			p.log.WarnContext(ctx, "certificate not obtained", "reason", reason, "error", err)
+			p.log.WarnContext(ctx, "certificate not obtained", "reason", p.failed.reason, "error", err)
 		}
-	case "cert_obtained":
-		p.mu.Lock()
+	} else {
 		p.failed = nil
-		p.mu.Unlock()
 
 		if p.log != nil {
 			p.log.InfoContext(ctx, "certificate obtained")
 		}
-	default:
-		return nil
 	}
+
+	p.mu.Unlock()
 
 	if p.changed != nil {
 		p.changed()
 	}
 
 	return nil
+}
+
+// stop ignores every event from now on; it returns once an event being written down has been.
+func (p *progress) stop() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	p.stopped = true
 }
 
 func (p *progress) last() *failure {

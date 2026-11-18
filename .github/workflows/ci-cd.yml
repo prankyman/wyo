@@ -24,9 +24,13 @@ env:
 jobs:
     check-skip-ci:
         runs-on: ubuntu-24.04
+        permissions:
+            contents: read
+            actions: read
         outputs:
             skip_ci: ${{ steps.check.outputs.skip_ci }}
             should_release: ${{ steps.release.outputs.should_release }}
+            tested: ${{ steps.tested.outputs.tested }}
             from: ${{ steps.range.outputs.from }}
             to: ${{ steps.range.outputs.to }}
         steps:
@@ -80,10 +84,34 @@ jobs:
                     echo "should_release=false" >> "$GITHUB_OUTPUT"
                   fi
 
+            # A merge to main whose files are byte for byte those of the pull request's last commit, whose own run of this
+            # workflow passed, needs no second gate and installer job: they would test the same files again. The merge
+            # commit's second parent is that last commit; its tree equals the merge's only when main had nothing else in
+            # between. Anything else — a squash, main moved, no green run — runs every job as before.
+            - name: Were these exact files already tested on their pull request
+              id: tested
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  echo "tested=false" >> "$GITHUB_OUTPUT"
+                  [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ] || exit 0
+                  HEAD_OF_PR=$(git rev-parse -q --verify HEAD^2 2>/dev/null) || { echo "Not a merge commit: every job runs."; exit 0; }
+                  if [ "$(git rev-parse HEAD^{tree})" != "$(git rev-parse "$HEAD_OF_PR^{tree}")" ]; then
+                    echo "The merge's files differ from the pull request's last commit: every job runs."; exit 0
+                  fi
+                  GREEN=$(gh api "repos/${{ github.repository }}/actions/workflows/ci-cd.yml/runs?head_sha=$HEAD_OF_PR&event=pull_request&status=success" \
+                    --jq '.total_count') || GREEN=0
+                  if [ "${GREEN:-0}" -gt 0 ]; then
+                    echo "tested=true" >> "$GITHUB_OUTPUT"
+                    echo "The pull request's run on $HEAD_OF_PR passed on these exact files: the gate and the installer job are not repeated."
+                  else
+                    echo "No passed pull-request run on $HEAD_OF_PR: every job runs."
+                  fi
+
     gate:
         runs-on: ubuntu-24.04
         needs: check-skip-ci
-        if: needs.check-skip-ci.outputs.skip_ci == 'false'
+        if: needs.check-skip-ci.outputs.skip_ci == 'false' && needs.check-skip-ci.outputs.tested != 'true'
         timeout-minutes: 40
         steps:
             - name: Checkout
@@ -151,7 +179,7 @@ jobs:
     installer:
         runs-on: ${{ matrix.os }}
         needs: check-skip-ci
-        if: needs.check-skip-ci.outputs.skip_ci == 'false'
+        if: needs.check-skip-ci.outputs.skip_ci == 'false' && needs.check-skip-ci.outputs.tested != 'true'
         timeout-minutes: 30
         strategy:
             fail-fast: false
@@ -189,7 +217,13 @@ jobs:
     release:
         runs-on: ubuntu-24.04
         needs: [check-skip-ci, gate, installer]
-        if: needs.check-skip-ci.outputs.should_release == 'true'
+        # The gate and the installer job either passed in this run, or were skipped because the pull request's run passed
+        # on the same files (`tested`). `always()` lets the release run after skipped jobs; it never runs after a failure.
+        if: >-
+            always() && needs.check-skip-ci.outputs.should_release == 'true' && (
+              (needs.gate.result == 'success' && needs.installer.result == 'success') ||
+              (needs.check-skip-ci.outputs.tested == 'true' && needs.gate.result == 'skipped' && needs.installer.result == 'skipped')
+            )
         outputs:
             version: ${{ steps.version.outputs.version }}
         concurrency:

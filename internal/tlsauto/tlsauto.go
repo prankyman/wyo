@@ -228,6 +228,7 @@ func (s *Server) stop(ctx context.Context, servers ...*http.Server) {
 	}
 
 	s.cache.Stop()
+	s.progress.stop()
 }
 
 // Status is the certificate's state now.
