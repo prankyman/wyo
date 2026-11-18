@@ -1,6 +1,9 @@
 <!--
 Sync Impact Report:
-- Version change: 1.0.0 → 1.1.0 (MINOR) — Plan 2
+- Version change: 1.1.0 → 1.1.1 (PATCH) — the maintainer, 2026-11-18: «Yes, I want the change!» (no second wait of about
+  7 minutes after a merge) — a push to main no longer reruns the gate and the installer job on files their pull request's run already passed;
+  «The pipeline» describes it, and the release's signing and installer steps of Plan 2.
+- Earlier: 1.0.0 → 1.1.0 (MINOR) — Plan 2
   (`.agents/plans/wyo-program-go-server-embedded-interface-database-owner-sign-in-installer-https-updates-signed-release.md`):
   principles VIII (a seller's database is upgraded in place, for ever) and IX (every outgoing call goes through one gate) added with
   their tests; rule R3's Go test named; help-text rule 9's menu-place tokens arrived with the menu; «Where code lives» gained the
@@ -512,10 +515,13 @@ docs/, .agents/, .specify/, .github/workflows/ci-cd.yml, .husky/
 - **Secret scan:** `.gitleaks.toml` on gitleaks' default rules; an exception is made by value, never by a whole file kind.
 - **The pipeline** `.github/workflows/ci-cd.yml` runs on every pull request and every push to `main`, ends early when the last commit's
   subject holds `[skip ci]`, and otherwise runs on `ubuntu-24.04`: the secret scan, `commitlint`, `pnpm tools:install`,
-  `pnpm install --frozen-lockfile`, `pnpm precommit` and `pnpm test:e2e`. A push to `main` whose commits since the last version tag hold
-  a `feat` or a `fix` also runs the release job: `commit-and-tag-version`, the release commit and tag, the builds `wyo_linux_amd64` and
-  `wyo_linux_arm64` with `checksums.txt`, published as a GitHub Release. The signature of a release is added by Plan 2, together with
-  the installer and the updater that check it, so that a signature is never made by one plan and first checked by another.
+  `pnpm install --frozen-lockfile`, `pnpm precommit` and `pnpm test:e2e`; beside it the installer job runs on three clean machines. **A
+  push to `main` does not test the same files twice:** when the merge commit's files are byte for byte those of the pull request's last
+  commit and that commit's own run passed, the gate and the installer job are skipped and the release starts at once; anything else (a
+  squash, `main` moved, no passed run) runs every job. A push to `main` whose commits since the last version tag hold a `feat` or a
+  `fix` also runs the release job: `commit-and-tag-version`, the builds `wyo_linux_amd64` and `wyo_linux_arm64`, `install.sh`,
+  `VERSION`, `checksums.txt` signed with the repository's secret `RELEASE_SIGNING_KEY` and checked with the committed public key, then
+  the release commit and tag and the GitHub Release; then the released installer is run once against the real release address.
 
 ### Unit and integration tests
 
@@ -602,4 +608,4 @@ file records every amendment with its version change and the request that caused
 pull request's description. The version follows semantic versioning of the rules: a principle added or a rule tightened raises the
 second number, a wording change the third; the first number is raised only by the maintainer.
 
-**Version**: 1.1.0 | **Ratified**: 2026-11-17 | **Last Amended**: 2026-11-18
+**Version**: 1.1.1 | **Ratified**: 2026-11-17 | **Last Amended**: 2026-11-18

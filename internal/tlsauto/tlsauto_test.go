@@ -3,10 +3,12 @@
 package tlsauto
 
 import (
+	"bytes"
 	"context"
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -202,5 +204,24 @@ func TestAnEventOfCertMagicChangesTheState(t *testing.T) {
 
 	if err := state.onEvent(context.Background(), "tls_get_certificate", nil); err != nil || state.last() == nil {
 		t.Fatalf("an event nobody follows changed the state: %+v, %v", state.last(), err)
+	}
+}
+
+// When the wyo server stops, CertMagic's try in flight learns of it afterwards and reports a failure ("context canceled"). That
+// report must change nothing and write nothing: the server has said it stopped, and the next start begins afresh.
+func TestAnEventAfterTheStopChangesNothingAndWritesNothing(t *testing.T) {
+	t.Parallel()
+
+	var logged bytes.Buffer
+
+	state := &progress{log: slog.New(slog.NewTextHandler(&logged, nil))}
+	state.stop()
+
+	if err := state.onEvent(context.Background(), "cert_failed", map[string]any{"error": context.Canceled}); err != nil {
+		t.Fatalf("onEvent: %v", err)
+	}
+
+	if state.last() != nil || logged.Len() != 0 {
+		t.Fatalf("after the stop: failure %+v, log %q; want none and nothing", state.last(), logged.String())
 	}
 }
