@@ -124,7 +124,8 @@ func onlyWildberriesThroughTheFake(t *testing.T, recorded []string, fakeURL stri
 			if hostOfFake(address, fakeURL) != "" {
 				continue
 			}
-		case outbound.PurposeLocal:
+		case outbound.PurposeLocal, outbound.PurposeFulfilment:
+			// With «Внешний API» empty (rule R3) the fulfilment centre is never reached.
 		}
 
 		t.Fatalf("the wyo server reached %s (purpose %s): only the marketplaces' hosts, the release address and the "+

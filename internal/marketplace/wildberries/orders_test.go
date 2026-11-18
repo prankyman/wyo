@@ -106,3 +106,61 @@ func TestStatesAreAskedOnlyForWildberriesNumbers(t *testing.T) {
 		t.Fatalf("MaxStates = %d, want the 1000 of 03-orders-fbs.yaml", r.adapter.MaxStates())
 	}
 }
+
+func TestANewOrderTellsItsGroupItsSizeAndWhichIdentifiersWildberriesTakes(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(t)
+	token := r.token(t)
+	r.newOrder(t, token, map[string]any{
+		"chrt_id": 555, "cargo_type": 2, "required_meta": []string{"sgtin", "imei"},
+		"optional_meta": []string{"expiration", "customsDeclaration", "gtin", "uin"},
+	})
+
+	list, err := r.adapter.NewOrders(t.Context(), r.conn(t, token, false))
+	if err != nil || len(list) != 1 {
+		t.Fatalf("NewOrders = %+v, %v", list, err)
+	}
+
+	got := list[0]
+	if got.Group != "w1001:c2:x0:b0" || got.ItemID != "555" ||
+		!reflect.DeepEqual(got.Required, []string{"marking", "imei"}) ||
+		!reflect.DeepEqual(got.Optional, []string{"expiry", "customs", "gtin", "uin"}) {
+		t.Fatalf("group %q, item %q, required %v, optional %v", got.Group, got.ItemID, got.Required, got.Optional)
+	}
+}
+
+func TestTheGroupOfAnOrderChangesWithWhatWildberriesKeepsApartInOneSupply(t *testing.T) {
+	t.Parallel()
+
+	r := newStubRig(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"orders":[
+			{"id":1,"warehouseId":7,"cargoType":1,"crossBorderType":0,"options":{"isB2B":false},"requiredMeta":["sgtin","somethingNew"]},
+			{"id":2,"warehouseId":8,"cargoType":1,"crossBorderType":0,"options":{"isB2B":false}},
+			{"id":3,"warehouseId":7,"cargoType":3,"crossBorderType":0,"options":{"isB2B":false}},
+			{"id":4,"warehouseId":7,"cargoType":1,"crossBorderType":1,"options":{"isB2B":false}},
+			{"id":5,"warehouseId":7,"cargoType":1,"crossBorderType":0,"options":{"isB2B":true}},
+			{"id":6,"warehouseId":7,"cargoType":1,"crossBorderType":0}
+		]}`))
+	}))
+
+	list, err := r.adapter.NewOrders(t.Context(), r.conn(t, "a-token", false))
+	if err != nil || len(list) != 6 {
+		t.Fatalf("NewOrders = %+v, %v", list, err)
+	}
+
+	groups := make([]string, len(list))
+	for i, o := range list {
+		groups[i] = o.Group
+	}
+
+	want := []string{"w7:c1:x0:b0", "w8:c1:x0:b0", "w7:c3:x0:b0", "w7:c1:x1:b0", "w7:c1:x0:b1", "w7:c1:x0:b0"}
+	if !reflect.DeepEqual(groups, want) {
+		t.Fatalf("groups %v, want %v", groups, want)
+	}
+
+	if !reflect.DeepEqual(list[0].Required, []string{"marking", "somethingNew"}) || list[0].ItemID != "" {
+		t.Fatalf("an identifier the connector does not know is kept as Wildberries wrote it: %v, item %q", list[0].Required, list[0].ItemID)
+	}
+}

@@ -75,15 +75,29 @@ func NewCaller(o CallerOptions) *Caller {
 	return &Caller{opts: o, budget: NewBudget()}
 }
 
-// Target is whom a Conn calls for: an adapter, an account (0 for a key checked before it is saved), whether its key is a
-// test key, the job, and the key — by its name in the secret store, read at every call, or given for a check.
+// Endpoint is what the caller needs of the side it calls: the requests it may send, their limits, how the key goes into a
+// request and how a refusal is read. Every marketplace adapter is one; the fulfilment-centre client's endpoint is the
+// other (internal/fulfilment).
+type Endpoint interface {
+	Describe() marketplace.Description
+	Routes() []marketplace.Route
+	Limit(group string, test bool) (marketplace.LimitGroup, bool)
+	Authorize(h http.Header, secret string)
+	ErrorOf(status int, body []byte) (code, text string)
+}
+
+// Target is whom a Conn calls for: an endpoint, an account (0 for a key checked before it is saved, or for the fulfilment
+// centre), whether its key is a test key, the job, and the key — by its name in the secret store, read at every call, or
+// given for a check. Client, when given, is the outbound gate's client of another purpose (the fulfilment centre's); the
+// caller's own client of the marketplaces is used otherwise.
 type Target struct {
-	Adapter    marketplace.Adapter
+	Adapter    Endpoint
 	AccountID  int64
 	Test       bool
 	Job        string
 	SecretName string
 	Key        logging.Secret
+	Client     marketplace.Doer
 }
 
 // Conn gives an adapter the caller for one target.
@@ -229,7 +243,12 @@ func (d *doer) send(req *http.Request, route marketplace.Route, key BudgetKey, l
 
 	clk := d.caller.opts.Clock
 	started := clk.Now()
-	res, err := d.caller.opts.Client.Do(out)
+	client := d.caller.opts.Client
+	if d.target.Client != nil {
+		client = d.target.Client
+	}
+
+	res, err := client.Do(out)
 	elapsed := clk.Now().Sub(started)
 
 	entry := journal.Entry{

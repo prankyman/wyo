@@ -97,10 +97,21 @@ export async function setUpFake(token: string, setup: IFakeSetup): Promise<void>
     await control(token, 'setup', setup);
 }
 
-/** A new assembly order (FBS) of the token's seller; returns the fake's number of it. */
-export async function makeFakeOrder(token: string, order: { article: string; skus: string[] }): Promise<number> {
+/**
+ * A new assembly order (FBS) of the token's seller; returns the fake's number of it. `required_meta` names the kinds of marking
+ * code Wildberries wants for the order (`sgtin`, `imei`, ...).
+ */
+export async function makeFakeOrder(
+    token: string,
+    order: { article: string; skus: string[]; required_meta?: string[] }
+): Promise<number> {
     const answer = (await control(token, 'orders', order)) as { id: number };
     return answer.id;
+}
+
+/** The verdict Wildberries gives the codes of one kind of an order (`sgtinNotFound` refuses an `sgtin` code). */
+export async function setFakeVerdict(token: string, orderId: number, key: string, decision: string): Promise<void> {
+    await control(token, 'verdicts', { order: orderId, key, decision });
 }
 
 /** What Wildberries has done with an order: `declined_by_client` is the buyer's cancellation. */

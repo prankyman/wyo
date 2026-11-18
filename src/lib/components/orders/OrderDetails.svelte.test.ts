@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
+import { exchangeDetailsOf } from '$test/support/external-api';
 import { MARKETPLACE, MARKETPLACE_NAME, orderOf } from '$test/support/marketplaces';
 import OrderDetails from './OrderDetails.svelte';
 
@@ -111,5 +112,21 @@ describe('OrderDetails', () => {
         expect(screen.queryByTestId('order-facts-kind')).toBeNull();
         expect(screen.queryByTestId('order-facts-barcodes')).toBeNull();
         expect(screen.queryByTestId('order-history')).toBeNull();
+    });
+
+    it('draws the exchange with the fulfilment centre for an FBS order that has one, and not for an order that has none', () => {
+        const { unmount } = render(OrderDetails, {
+            props: {
+                lang: 'ru',
+                details: { order: orderOf(), events: [], exchange: exchangeDetailsOf({ state: 'label_sent' }) }
+            }
+        });
+
+        expect(screen.getByTestId('order-exchange')).toBeInTheDocument();
+        expect(screen.getByTestId('exchange-state')).toHaveTextContent('этикетка передана');
+        unmount();
+
+        render(OrderDetails, { props: { lang: 'ru', details: { order: orderOf(), events: [] } } });
+        expect(screen.queryByTestId('order-exchange')).toBeNull();
     });
 });

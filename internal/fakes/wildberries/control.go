@@ -21,6 +21,8 @@ import (
 //	                                             a test sends to prove the connector drops them); answers {"id": ...}
 //	POST /__control/orders/{id}/wb-status        what Wildberries has done with the order (waiting, sold, declined_by_client, ...)
 //	POST /__control/orders/{id}/reshipment       the order must be shipped again
+//	POST /__control/orders/{id}/new-sticker      the order's sticker gets a new number, so a label read again differs (a
+//	                                             sticker that changes on command)
 //	POST /__control/verdicts                     the verdict Wildberries gives an order's marking codes of one kind
 //	POST /__control/supplies/{supplyId}/scan     the supply was scanned at the receiving point
 //	POST /__control/feed                         rows of the statistics feed (orders of other schemes)
@@ -29,6 +31,7 @@ func (s *Server) controlRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /__control/orders", s.controlOrder)
 	mux.HandleFunc("POST /__control/orders/{id}/wb-status", s.controlWBStatus)
 	mux.HandleFunc("POST /__control/orders/{id}/reshipment", s.controlReshipment)
+	mux.HandleFunc("POST /__control/orders/{id}/new-sticker", s.controlNewSticker)
 	mux.HandleFunc("POST /__control/verdicts", s.controlVerdict)
 	mux.HandleFunc("POST /__control/supplies/{supplyId}/scan", s.controlScan)
 	mux.HandleFunc("POST /__control/feed", s.controlFeed)
@@ -278,6 +281,19 @@ func (s *Server) controlReshipment(w http.ResponseWriter, r *http.Request) {
 		}
 
 		o.reshipment = true
+		done(w)
+	})
+}
+
+func (s *Server) controlNewSticker(w http.ResponseWriter, r *http.Request) {
+	s.use(r, func(st *state) {
+		o := s.orderFromPath(w, r, st)
+		if o == nil {
+			return
+		}
+
+		st.nextSticker++
+		o.stickerID = st.nextSticker
 		done(w)
 	})
 }

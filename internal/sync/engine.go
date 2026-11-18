@@ -208,6 +208,22 @@ func (e *Engine) connOf(row store.Account, adapter marketplace.Adapter) func(job
 	}
 }
 
+// Conn gives what reaching an account's marketplace for one job takes: the account, its adapter and the caller's Conn.
+// ErrUnknownMarketplace when no adapter has the account's code.
+func (e *Engine) Conn(ctx context.Context, accountID int64, job string) (store.Account, marketplace.Adapter, marketplace.Conn, error) {
+	row, err := e.opts.Store.Read().Account(ctx, accountID)
+	if err != nil {
+		return store.Account{}, nil, marketplace.Conn{}, err
+	}
+
+	adapter, known := e.opts.Registry.Get(row.Marketplace)
+	if !known {
+		return store.Account{}, nil, marketplace.Conn{}, ErrUnknownMarketplace
+	}
+
+	return row, adapter, e.connOf(row, adapter)(job), nil
+}
+
 // write runs a change of the database; a failure is logged, because a job goes on with the other accounts.
 func (e *Engine) write(ctx context.Context, fn func(q *store.Queries) error) {
 	if err := e.opts.Store.Do(ctx, fn); err != nil {
@@ -231,6 +247,24 @@ func (e *Engine) RunOrders(ctx context.Context) error {
 		{capability: marketplace.OrdersStates, run: e.takeStates},
 		{capability: marketplace.OrdersFeed, run: e.takeFeed},
 	})
+}
+
+// RunNewOrders reads only the new orders of every running account: the exchange with a fulfilment centre asks it every
+// minute while «Внешний API» is filled.
+func (e *Engine) RunNewOrders(ctx context.Context) error {
+	e.orders.Lock()
+	defer e.orders.Unlock()
+
+	return e.forEach(ctx, []part{{capability: marketplace.OrdersNew, run: e.takeNewOrders}})
+}
+
+// RunStates reads only the states of the open orders of every running account: the exchange asks it every 5 minutes
+// while «Внешний API» is filled, so that a cancellation is passed on.
+func (e *Engine) RunStates(ctx context.Context) error {
+	e.orders.Lock()
+	defer e.orders.Unlock()
+
+	return e.forEach(ctx, []part{{capability: marketplace.OrdersStates, run: e.takeStates}})
 }
 
 // RunWarehouses reads the warehouses of every running account.

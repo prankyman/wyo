@@ -19,6 +19,8 @@ export interface IInstallationCard {
     state: { label: string; tone: TTone };
     sentence: string;
     action: { label: string; href: string };
+    /** Further links of the card, drawn after its action (the card of «Внешний API» links to the orders that need the owner). */
+    moreActions?: { label: string; href: string }[];
 }
 
 const SETTINGS = '/settings';

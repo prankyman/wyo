@@ -25,7 +25,10 @@ export const ORDER_STATES = ['new', 'assembling', 'in_delivery', 'received', 'ca
 export const ORDER_SCHEMES = ['fbs', 'fbo'] as const;
 export const JOURNAL_OUTCOMES = ['done', 'limited', 'refused', 'server_error', 'no_connection', 'key_refused'] as const;
 
-/** The filter of «Заказы»: account, scheme, state, the period of creation, and a search by number, article or barcode. */
+/**
+ * The filter of «Заказы»: account, scheme, state, the period of creation, a search by number, article or barcode, and
+ * «Требуют внимания» (`true`: only the orders that need the owner).
+ */
 export const orderFilterSchema = z
     .object({
         account: ID,
@@ -33,15 +36,23 @@ export const orderFilterSchema = z
         state: z.enum(['', ...ORDER_STATES]).default(''),
         from: DAY,
         to: DAY,
-        q: z.string().trim().max(100, 'errors.search_too_long').default('')
+        q: z.string().trim().max(100, 'errors.search_too_long').default(''),
+        attention: z.enum(['', 'true']).default('')
     })
     .superRefine(periodInOrder);
 
-/** The filter of «Журнал запросов»: account, outcome and the period. */
+/**
+ * The filter of «Журнал запросов»: account, outcome, where the request went (a marketplace's code, or `fulfilment` for the
+ * fulfilment centre) and the period.
+ */
 export const journalFilterSchema = z
     .object({
         account: ID,
         outcome: z.enum(['', ...JOURNAL_OUTCOMES]).default(''),
+        target: z
+            .string()
+            .regex(/^[A-Za-z0-9_-]*$/, 'errors.invalid')
+            .default(''),
         from: DAY,
         to: DAY
     })

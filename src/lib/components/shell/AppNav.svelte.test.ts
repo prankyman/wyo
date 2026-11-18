@@ -83,16 +83,31 @@ describe('AppNav, the left column', () => {
 
 describe('AppNav, the strip along the bottom of a phone', () => {
     it('draws the items as tabs, marks the open page, and shows «Ещё» only when it has something to hold', () => {
-        const { unmount } = render(AppNav, { props: { ...PROPS, variant: 'tabstrip' } });
+        const FIVE = Array.from({ length: 5 }, (_, index) =>
+            item(`nav-p${index}`, `/p${index}`, { phoneTab: index + 1 })
+        );
+        const { unmount } = render(AppNav, {
+            props: { ...PROPS, currentPath: '/p4', items: FIVE, variant: 'tabstrip' }
+        });
 
-        expect(screen.getByTestId('nav-overview-tab')).toHaveAttribute('href', '/');
-        expect(screen.getByTestId('nav-settings-tab')).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByTestId('nav-p0-tab')).toHaveAttribute('href', '/p0');
+        expect(screen.getByTestId('nav-p4-tab')).toHaveAttribute('aria-current', 'page');
         expect(screen.queryByTestId('nav-more-tab')).toBeNull();
         expect(screen.queryByTestId('app-sidebar')).toBeNull();
         unmount();
 
-        render(AppNav, { props: { ...PROPS, variant: 'tabstrip', version: '1.2.3' } });
+        render(AppNav, { props: { ...PROPS, items: FIVE, variant: 'tabstrip', version: '1.2.3' } });
         expect(screen.getByTestId('nav-more-tab')).toBeInTheDocument();
+    });
+
+    it('keeps «Передачи» and «Внешний API» of the real menu in the «Ещё» sheet, and the five older pages on the strip', async () => {
+        render(AppNav, { props: { ...PROPS, variant: 'tabstrip' } });
+
+        expect(screen.getByTestId('nav-settings-tab')).toHaveAttribute('aria-current', 'page');
+        expect(screen.queryByTestId('nav-handovers-tab')).toBeNull();
+        await fireEvent.click(screen.getByTestId('nav-more-tab'));
+        expect(screen.getByTestId('nav-handovers-more')).toHaveAttribute('href', '/handovers');
+        expect(screen.getByTestId('nav-external-api-more')).toHaveAttribute('href', '/external-api');
     });
 
     it('puts the items past the five tabs in the «Ещё» sheet, with their group, and closes the sheet on a choice', async () => {

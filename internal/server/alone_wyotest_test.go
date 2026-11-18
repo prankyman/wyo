@@ -42,8 +42,8 @@ func TestAMadeUpDayReachesOnlyTheMarketplacesOfTheAccounts(t *testing.T) {
 				addAccount(t, app, name, token(t.Name()+name, clk.Now()), clk.Now())
 			}
 
-			// One party per job: the copy's and the engine's.
-			day = daykit.New(clk, 1+len(app.Engine.Jobs()), clk.Now().Add(24*time.Hour))
+			// One party per job: the copy's, the engine's and the exchange's (which do nothing while «Внешний API» is empty).
+			day = daykit.New(clk, 1+len(app.Engine.Jobs())+len(app.Exchange.Jobs()), clk.Now().Add(24*time.Hour))
 
 			if err := app.RunWith(t.Context(), func(ctx context.Context) error {
 				select {

@@ -90,6 +90,10 @@ func (a *api) ListOrders(w http.ResponseWriter, r *http.Request, params gen.List
 		CreatedFrom: from, CreatedBefore: before, Search: valueOf(params.Q), Page: page,
 	}
 
+	if valueOf(params.Attention) {
+		filter.AttentionAt = a.deps.Clock.Now()
+	}
+
 	q := a.deps.Store.Read()
 
 	list, err := q.OrderViews(r.Context(), filter)
@@ -106,9 +110,21 @@ func (a *api) ListOrders(w http.ResponseWriter, r *http.Request, params gen.List
 		return
 	}
 
+	views, err := a.deps.Exchange.Views(r.Context(), list)
+	if err != nil {
+		a.fail(w, r, err)
+
+		return
+	}
+
 	body := gen.OrderList{Orders: make([]gen.Order, 0, len(list)), Total: int(total), Page: page, PageSize: store.DefaultPageSize}
 	for _, v := range list {
-		body.Orders = append(body.Orders, orderBody(v))
+		order := orderBody(v)
+		if view, ok := views[v.ID]; ok {
+			order.Exchange = exchangeBody(view)
+		}
+
+		body.Orders = append(body.Orders, order)
 	}
 
 	writeJSON(w, http.StatusOK, body)
@@ -116,6 +132,11 @@ func (a *api) ListOrders(w http.ResponseWriter, r *http.Request, params gen.List
 
 // GetOrder answers GET /api/v1/orders/{id}.
 func (a *api) GetOrder(w http.ResponseWriter, r *http.Request, id int64) {
+	a.writeOrder(w, r, id, http.StatusOK)
+}
+
+// writeOrder answers with one order, the history of its states and its exchange.
+func (a *api) writeOrder(w http.ResponseWriter, r *http.Request, id int64, status int) {
 	q := a.deps.Store.Read()
 
 	v, err := q.OrderView(r.Context(), id)
@@ -132,7 +153,18 @@ func (a *api) GetOrder(w http.ResponseWriter, r *http.Request, id int64) {
 		return
 	}
 
+	details, has, err := a.deps.Exchange.Details(r.Context(), v)
+	if err != nil {
+		a.fail(w, r, err)
+
+		return
+	}
+
 	body := gen.OrderDetails{Order: orderBody(v), Events: make([]gen.OrderEvent, 0, len(events))}
+	if has {
+		body.Order.Exchange = exchangeBody(details.View)
+		body.Exchange = exchangeDetailsBody(details)
+	}
 	for _, e := range events {
 		body.Events = append(body.Events, gen.OrderEvent{
 			At: e.At, State: gen.OrderState(e.State), CancelledBy: cancelledBy(e.CancelledBy),
@@ -140,7 +172,7 @@ func (a *api) GetOrder(w http.ResponseWriter, r *http.Request, id int64) {
 		})
 	}
 
-	writeJSON(w, http.StatusOK, body)
+	writeJSON(w, status, body)
 }
 
 // GetMarketplacesOverview answers GET /api/v1/overview/marketplaces: the accounts that are not switched off, those of

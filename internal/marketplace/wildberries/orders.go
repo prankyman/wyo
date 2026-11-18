@@ -2,6 +2,7 @@ package wildberries
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"slices"
 	"strconv"
@@ -64,7 +65,7 @@ func StatusOf(seller, wb string) marketplace.Status {
 // NewOrders implements marketplace.NewOrderReader (GET /api/v3/orders/new). One assembly order is one unit of goods.
 // The buyer's address and comment that Wildberries may send are never copied: marketplace.Order has no place for them.
 func (a *Adapter) NewOrders(ctx context.Context, conn marketplace.Conn) ([]marketplace.Order, error) {
-	client, err := ordersClient(conn, a.marketplaceOrigin(conn.Test))
+	client, err := a.ordersOn(conn)
 	if err != nil {
 		return nil, err
 	}
@@ -88,12 +89,25 @@ func (a *Adapter) NewOrders(ctx context.Context, conn marketplace.Conn) ([]marke
 		list = append(list, marketplace.Order{
 			Number: number(o.Id), Scheme: marketplace.SchemeFBS, JoinKey: value(o.Rid), WarehouseNumber: number(o.WarehouseId),
 			Article: value(o.Article), Barcodes: value(o.Skus), ProductID: number(o.NmId), CreatedAt: value(o.CreatedAt).UTC(),
+			Group: groupOf(o), ItemID: number(o.ChrtId), Required: identifiersOf(value(o.RequiredMeta)), Optional: identifiersOf(value(o.OptionalMeta)),
 			// The list of new orders gives no statuses; a new assembly order is «Новое сборочное задание».
 			Status: marketplace.Status{State: marketplace.StateNew, Seller: sellerNew},
 		})
 	}
 
 	return list, nil
+}
+
+// groupOf is the group an order belongs to: one supply holds orders of one seller's warehouse, one cargo type, one
+// cross-border type and either business buyers or none («WBF» §4.1, kept by the maintainer outside this repository). The
+// text is only ever compared. An absent value counts as 0.
+func groupOf(o orders.OrderNew) string {
+	b2b := 0
+	if o.Options != nil && value(o.Options.IsB2B) {
+		b2b = 1
+	}
+
+	return fmt.Sprintf("w%s:c%d:x%d:b%d", number(o.WarehouseId), value(o.CargoType), value(o.CrossBorderType), b2b)
 }
 
 // MaxStates implements marketplace.StateReader.
@@ -114,7 +128,7 @@ func (a *Adapter) States(ctx context.Context, conn marketplace.Conn, numbers []s
 		return nil, nil
 	}
 
-	client, err := ordersClient(conn, a.marketplaceOrigin(conn.Test))
+	client, err := a.ordersOn(conn)
 	if err != nil {
 		return nil, err
 	}

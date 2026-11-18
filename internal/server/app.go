@@ -19,6 +19,8 @@ import (
 	"github.com/prankyman/wyo/internal/clock"
 	"github.com/prankyman/wyo/internal/config"
 	"github.com/prankyman/wyo/internal/datalock"
+	"github.com/prankyman/wyo/internal/exchange"
+	"github.com/prankyman/wyo/internal/fulfilment"
 	"github.com/prankyman/wyo/internal/httpapi"
 	"github.com/prankyman/wyo/internal/journal"
 	"github.com/prankyman/wyo/internal/marketplace"
@@ -65,6 +67,8 @@ type App struct {
 	// Engine reads the marketplaces; Accounts are the seller's accounts on them.
 	Engine   *sync.Engine
 	Accounts *accounts.Service
+	// Exchange is the exchange with the fulfilment centre of «Внешний API».
+	Exchange *exchange.Service
 
 	handler  http.Handler
 	log      *slog.Logger
@@ -156,11 +160,13 @@ func (a *App) assemble(ctx context.Context, opts Options) error {
 		Backups:      a.Backups,
 		DataDir:      a.Layout.Dir,
 		Certificates: certificates,
-		Notices:      append([]notices.Source{updatestate.Source{Dir: a.Layout.Dir}, a.Backups, a.Accounts}, opts.Notices...),
+		Notices: append([]notices.Source{updatestate.Source{Dir: a.Layout.Dir}, a.Backups, a.Accounts, a.Exchange},
+			opts.Notices...),
 		Store:        a.Store,
 		Marketplaces: registry,
 		Accounts:     a.Accounts,
 		Refresher:    a.Engine,
+		Exchange:     a.Exchange,
 		Lifetime:     a.lifetime,
 		Location:     a.location,
 		Clock:        a.clock,
@@ -213,6 +219,18 @@ func (a *App) assembleMarketplaces(opts Options) (*marketplace.Registry, error) 
 		Store: a.Store, Keys: a.Vault, Engine: a.Engine, Registry: registry, Clock: a.clock, Log: a.log,
 	})
 
+	fcClient, err := gate.Client(outbound.PurposeFulfilment)
+	if err != nil {
+		return nil, err
+	}
+
+	a.Exchange = exchange.New(exchange.Options{
+		Store: a.Store, Keys: a.Vault, Engine: a.Engine, Registry: registry, Gate: gate, Clock: a.clock, Log: a.log,
+		Location: a.location,
+		// A build for development and tests takes the fake fulfilment centre's plain http address.
+		Dialer: fulfilment.Dialer{Caller: caller, HTTP: fcClient, AllowHTTP: buildinfo.TestBuild},
+	})
+
 	return registry, nil
 }
 
@@ -249,7 +267,21 @@ func (a *App) routes(api, web http.Handler) http.Handler {
 		_, _ = io.WriteString(w, "ok\n")
 	})
 
+	if buildinfo.TestBuild {
+		// A build for development and tests runs the exchange's jobs at once on request: a browser test drives the exchange
+		// through the fakes without waiting for the jobs' periods. A released wyo server has no such address.
+		mux.HandleFunc("POST /__test/exchange/run", func(w http.ResponseWriter, r *http.Request) {
+			if err := a.Exchange.RunNow(r.Context()); err != nil {
+				a.log.Warn("the exchange's jobs run on request failed", "err", err)
+			}
+
+			w.WriteHeader(http.StatusNoContent)
+		})
+	}
+
 	mux.Handle("/api/", api)
+	// The fulfilment centre's signed notifications (the access table's one "signed" call).
+	mux.Handle("/hooks/", api)
 	// "/api" alone would otherwise be redirected to "/api/"; the interface's handler answers it with a refusal.
 	mux.Handle("/api", web)
 	mux.Handle("/", web)
@@ -272,6 +304,10 @@ func (a *App) RunWith(ctx context.Context, serve func(ctx context.Context) error
 	jobs, stop := context.WithCancel(ctx)
 	defer stop()
 
+	if err := a.Exchange.Start(jobs); err != nil {
+		return err
+	}
+
 	var group stdsync.WaitGroup
 
 	group.Add(1)
@@ -279,7 +315,7 @@ func (a *App) RunWith(ctx context.Context, serve func(ctx context.Context) error
 	go func() {
 		defer group.Done()
 
-		_ = schedule.New(a.clock, a.random, a.wait, a.log).Run(jobs, append([]schedule.Job{a.Backups.Job(a.location)}, a.Engine.Jobs()...)...)
+		_ = schedule.New(a.clock, a.random, a.wait, a.log).Run(jobs, a.jobs()...)
 	}()
 
 	err := serve(ctx)
@@ -288,6 +324,11 @@ func (a *App) RunWith(ctx context.Context, serve func(ctx context.Context) error
 	group.Wait()
 
 	return err
+}
+
+// jobs are every scheduled job: the daily copy, the readings of the marketplaces and the exchange.
+func (a *App) jobs() []schedule.Job {
+	return append(append([]schedule.Job{a.Backups.Job(a.location)}, a.Engine.Jobs()...), a.Exchange.Jobs()...)
 }
 
 // Close ends the readings «Обновить» started, closes the database and lets the data folder's lock go; closing twice is

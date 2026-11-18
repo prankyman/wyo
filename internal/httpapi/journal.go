@@ -33,7 +33,7 @@ func (a *api) ListJournal(w http.ResponseWriter, r *http.Request, params gen.Lis
 
 	from, before := a.period(params.From, params.To)
 	filter := store.JournalFilter{
-		AccountID: valueOf(params.Account), Outcome: string(valueOf(params.Outcome)), From: from, Before: before, Page: page,
+		AccountID: valueOf(params.Account), Outcome: string(valueOf(params.Outcome)), Target: valueOf(params.Target), From: from, Before: before, Page: page,
 	}
 
 	q := a.deps.Store.Read()

@@ -33,7 +33,9 @@ func TestEveryPartOfTheContractIsNamedAndOnlyThisStagesPartsAreSupported(t *test
 
 	want := map[marketplace.Capability]bool{
 		marketplace.KeyCheck: true, marketplace.WarehousesRead: true, marketplace.OrdersNew: true, marketplace.OrdersStates: true,
-		marketplace.OrdersFeed: true,
+		marketplace.OrdersFeed: true, marketplace.OrdersConfirm: true, marketplace.LabelsFetch: true, marketplace.CodesReport: true,
+		marketplace.CodesVerdict: true, marketplace.HandoverGroup: true, marketplace.HandoverClose: true,
+		marketplace.HandoverDocuments: true,
 	}
 
 	if !reflect.DeepEqual(supported, want) {
@@ -41,9 +43,7 @@ func TestEveryPartOfTheContractIsNamedAndOnlyThisStagesPartsAreSupported(t *test
 	}
 
 	for _, c := range []marketplace.Capability{
-		marketplace.OrdersConfirm, marketplace.LabelsFetch, marketplace.CodesReport, marketplace.CodesVerdict,
-		marketplace.HandoverGroup, marketplace.HandoverClose, marketplace.HandoverDocuments, marketplace.StockPush,
-		marketplace.StockRead, marketplace.SalesRead, marketplace.MoneyRead, marketplace.ProductsRead,
+		marketplace.StockPush, marketplace.StockRead, marketplace.SalesRead, marketplace.MoneyRead, marketplace.ProductsRead,
 		marketplace.SuppliesRequest, marketplace.SuppliesContents,
 	} {
 		found := false

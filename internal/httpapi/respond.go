@@ -11,6 +11,8 @@ import (
 
 	"github.com/prankyman/wyo/internal/accounts"
 	"github.com/prankyman/wyo/internal/auth"
+	"github.com/prankyman/wyo/internal/exchange"
+	"github.com/prankyman/wyo/internal/handover"
 	"github.com/prankyman/wyo/internal/issue"
 	"github.com/prankyman/wyo/internal/journal"
 	"github.com/prankyman/wyo/internal/marketplace"
@@ -58,10 +60,11 @@ func decode(w http.ResponseWriter, r *http.Request, into any) bool {
 // `internal`.
 func (a *api) fail(w http.ResponseWriter, r *http.Request, err error) {
 	var (
-		tooMany *auth.TooManyAttemptsError
-		invalid *issue.Error
-		refused *marketplace.Refusal
-		callErr *marketplace.CallError
+		tooMany  *auth.TooManyAttemptsError
+		invalid  *issue.Error
+		refused  *marketplace.Refusal
+		callErr  *marketplace.CallError
+		external *exchange.Refused
 	)
 
 	switch {
@@ -87,6 +90,18 @@ func (a *api) fail(w http.ResponseWriter, r *http.Request, err error) {
 		refusal.Code(w, http.StatusNotFound, "not_found")
 	case errors.Is(err, settings.ErrUnknownSetting):
 		refusal.Code(w, http.StatusBadRequest, "bad_request")
+	case errors.As(err, &external):
+		refusal.Code(w, http.StatusUnprocessableEntity, external.Code)
+	case errors.Is(err, exchange.ErrEmpty):
+		refusal.Code(w, http.StatusConflict, "external_api_empty")
+	case errors.Is(err, exchange.ErrNotRetryable):
+		refusal.Code(w, http.StatusConflict, "exchange_not_retryable")
+	case errors.Is(err, handover.ErrNotRetryable):
+		refusal.Code(w, http.StatusConflict, "handover_not_retryable")
+	case errors.Is(err, handover.ErrNoBatch):
+		refusal.Code(w, http.StatusConflict, "shipping_points_unavailable")
+	case errors.Is(err, handover.ErrUnknownPoint):
+		refusal.Code(w, http.StatusUnprocessableEntity, "shipping_point_unknown")
 	case errors.Is(err, store.ErrNotFound):
 		refusal.Code(w, http.StatusNotFound, "not_found")
 	default:

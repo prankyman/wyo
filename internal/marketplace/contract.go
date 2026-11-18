@@ -40,12 +40,14 @@ const (
 )
 
 // supportedNow are the parts the engine can drive today. An adapter that claims another part fails the contract suite.
-var supportedNow = []Capability{KeyCheck, WarehousesRead, OrdersNew, OrdersStates, OrdersFeed}
+var supportedNow = []Capability{
+	KeyCheck, WarehousesRead, OrdersNew, OrdersStates, OrdersFeed,
+	OrdersConfirm, LabelsFetch, CodesReport, CodesVerdict, HandoverGroup, HandoverClose, HandoverDocuments,
+}
 
 // AllCapabilities lists every part of the contract, the supported ones first.
 func AllCapabilities() []Capability {
 	return append(slices.Clone(supportedNow),
-		OrdersConfirm, LabelsFetch, CodesReport, CodesVerdict, HandoverGroup, HandoverClose, HandoverDocuments,
 		StockPush, StockRead, SalesRead, MoneyRead, ProductsRead, SuppliesRequest, SuppliesContents,
 	)
 }
@@ -59,6 +61,13 @@ type KeyField struct {
 	Secret bool
 }
 
+// SettingField is one of an adapter's hand-over settings: a choice among Choices, or a text when Choices is empty. Its
+// texts are marketplace.<code>.handover.<name>.label and .help, and marketplace.<code>.handover.<name>.choice.<value>.
+type SettingField struct {
+	Name    string
+	Choices []string
+}
+
 // Description is what an adapter says about itself; the screens are drawn from it, never from a marketplace's name.
 type Description struct {
 	// Code names the adapter in data and in message keys: lower-case Latin letters.
@@ -67,6 +76,9 @@ type Description struct {
 	Mark         string
 	KeyFields    []KeyField
 	Capabilities []Capability
+	// HandoverSettings are the settings the owner gives once per account for handing orders over to the marketplace
+	// (Plan 4, section A.5); empty when the adapter has none.
+	HandoverSettings []SettingField
 }
 
 // MessageKey is the family of the adapter's texts in messages/: <family>.name, <family>.help, <family>.key.<field>.*.

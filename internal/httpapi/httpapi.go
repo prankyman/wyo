@@ -21,6 +21,7 @@ import (
 	"github.com/prankyman/wyo/internal/certstatus"
 	"github.com/prankyman/wyo/internal/clock"
 	"github.com/prankyman/wyo/internal/config"
+	"github.com/prankyman/wyo/internal/exchange"
 	"github.com/prankyman/wyo/internal/httpapi/gen"
 	"github.com/prankyman/wyo/internal/marketplace"
 	"github.com/prankyman/wyo/internal/notices"
@@ -63,6 +64,8 @@ type Deps struct {
 	Marketplaces *marketplace.Registry
 	// Accounts are the seller's marketplace accounts.
 	Accounts *accounts.Service
+	// Exchange is the exchange with the fulfilment centre of «Внешний API».
+	Exchange *exchange.Service
 	// Refresher is «Обновить»; its readings run under Lifetime, the wyo server's own lifetime, never under the call's,
 	// which ends with the answer.
 	Refresher Refresher
@@ -109,8 +112,8 @@ func New(deps Deps) (http.Handler, error) {
 		return nil, errors.New("the API needs the sign-in, the settings, the copies and the certificate's reporter")
 	}
 
-	if deps.Store == nil || deps.Marketplaces == nil || deps.Accounts == nil || deps.Refresher == nil {
-		return nil, errors.New("the API needs the database, the marketplaces, the accounts and the refresher")
+	if deps.Store == nil || deps.Marketplaces == nil || deps.Accounts == nil || deps.Refresher == nil || deps.Exchange == nil {
+		return nil, errors.New("the API needs the database, the marketplaces, the accounts, the refresher and the exchange")
 	}
 
 	if deps.Lifetime == nil {
@@ -169,9 +172,11 @@ func New(deps Deps) (http.Handler, error) {
 		})
 	}
 
-	mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) {
-		refusal.Code(w, http.StatusNotFound, "not_found")
-	})
+	for _, prefix := range []string{"/api/", "/hooks/"} {
+		mux.HandleFunc(prefix, func(w http.ResponseWriter, _ *http.Request) {
+			refusal.Code(w, http.StatusNotFound, "not_found")
+		})
+	}
 
 	// Go's own protection against a write made on behalf of another site: it looks at Sec-Fetch-Site, or compares the
 	// host of Origin with the host asked for, and lets a request that has neither (not a browser) through.
@@ -189,7 +194,7 @@ type sessionKey struct{}
 // prolonged only when the call carries PersonHeader. A call the table does not know is treated as the owner's.
 func (a *api) guard(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if access, known := a.access[r.Pattern]; known && access == AccessPublic {
+		if access, known := a.access[r.Pattern]; known && (access == AccessPublic || access == AccessSigned) {
 			next.ServeHTTP(w, r)
 
 			return

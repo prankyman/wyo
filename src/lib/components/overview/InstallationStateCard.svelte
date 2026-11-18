@@ -7,7 +7,7 @@
 
     /**
      * One card of «Обзор» that says how one part of the installation stands: a title with its «?», a state in the colour of its
-     * tone, one sentence that says what it means and what to do, and, when there is something to press, one action. The version,
+     * tone, one sentence that says what it means and what to do, and, when there is something to press, one action and, if the card has them, further links. The version,
      * the certificate and the last copy of the database are drawn by it, and so is the card a later plan adds.
      */
     interface IProps {
@@ -19,9 +19,11 @@
         state: { label: string; tone: TTone };
         sentence: string;
         action?: { label: string; href: string };
+        /** Further links, drawn after the action: `<testId>-more-<n>`. */
+        moreActions?: { label: string; href: string }[];
     }
 
-    let { testId, title, help, state, sentence, action }: IProps = $props();
+    let { testId, title, help, state, sentence, action, moreActions = [] }: IProps = $props();
 </script>
 
 <section class="rounded border border-ink-200 bg-white p-4" data-test={testId}>
@@ -32,8 +34,11 @@
         </div>
         <p class="text-sm text-ink-700" data-test="{testId}-sentence">{sentence}</p>
         {#if action}
-            <div>
+            <div class="flex flex-wrap gap-2">
                 <Button href={action.href} variant="secondary" dataTest="{testId}-action">{action.label}</Button>
+                {#each moreActions as more, index (index)}
+                    <Button href={more.href} variant="secondary" dataTest="{testId}-more-{index}">{more.label}</Button>
+                {/each}
             </div>
         {/if}
     </Stack>

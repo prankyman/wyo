@@ -15,6 +15,8 @@ const (
 	SourceCertificate = "certificate"
 	SourceBackups     = "backups"
 	SourceAccounts    = "accounts"
+	// SourceExternalAPI is the exchange with the fulfilment centre of «Внешний API» (Plan 4).
+	SourceExternalAPI = "external_api"
 )
 
 // The tones, the same names as the interface's status tones.

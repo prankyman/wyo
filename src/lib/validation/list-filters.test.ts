@@ -11,8 +11,24 @@ describe('the filters of the order list and the journal', () => {
             state: 'new',
             from: '2026-11-01',
             to: '',
-            q: 'DRESS'
+            q: 'DRESS',
+            attention: ''
         });
+    });
+
+    it('reads «Требуют внимания» and the place a journal request went to from the address', async () => {
+        await expect(
+            readListFilter(new URL('http://localhost/orders?attention=true'), orderFilterSchema, 'orders-filter')
+        ).resolves.toMatchObject({ attention: 'true' });
+        await expect(
+            readListFilter(new URL('http://localhost/journal?target=fulfilment'), journalFilterSchema, 'journal-filter')
+        ).resolves.toMatchObject({ target: 'fulfilment' });
+    });
+
+    it('shows the whole list for an attention filter that is not «true» or empty', async () => {
+        await expect(
+            readListFilter(new URL('http://localhost/orders?attention=maybe'), orderFilterSchema, 'orders-filter')
+        ).resolves.toMatchObject({ attention: '' });
     });
 
     it('drops an address it cannot read and shows the whole list instead of a refusal', async () => {
@@ -21,6 +37,7 @@ describe('the filters of the order list and the journal', () => {
         await expect(readListFilter(url, journalFilterSchema, 'journal-filter')).resolves.toEqual({
             account: '',
             outcome: '',
+            target: '',
             from: '',
             to: ''
         });

@@ -272,7 +272,7 @@ func (c *call) supplyTransfer() {
 }
 
 // GET /api/marketplace/v3/fbs/supplies/{supplyId}/shipping-points?city=&officeType=&shippingDt=: the points a supply can be
-// shipped to. A supply with no orders has none to offer (409); a small or large cargo needs a date («Укажите планируемую
+// shipped to, of the kinds in officeType («Укажите значения через запятую», the example is `sc,pp`). A supply with no orders has none to offer (409); a small or large cargo needs a date («Укажите планируемую
 // дату отгрузки для поставок МГТ (cargoType 1) и КГТ+ (cargoType 3)»).
 func (c *call) shippingPoints() {
 	sp, ok := c.pathSupply()
@@ -304,7 +304,7 @@ func (c *call) shippingPoints() {
 	out := []map[string]any{}
 
 	for _, p := range c.st.points {
-		if strings.EqualFold(p.City, city) && p.OfficeType == officeType {
+		if strings.EqualFold(p.City, city) && slices.Contains(strings.Split(officeType, ","), p.OfficeType) {
 			out = append(out, map[string]any{
 				"id": p.ID, "name": p.Name, "address": p.Address, "city": p.City, "officeType": p.OfficeType,
 				"latitude": p.Latitude, "longitude": p.Longitude, "fulfillment": p.Fulfillment, "available": p.Available,

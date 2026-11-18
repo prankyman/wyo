@@ -127,8 +127,10 @@ func TestAnOrderIsShownWithEveryFieldAndItsHistory(t *testing.T) {
 	want := fmt.Sprintf(`{"events":[`+
 		`{"at":%q,"marketplaceStatus":{"marketplace":"waiting","seller":"new"},"source":"orders.new","state":"new"},`+
 		`{"at":%q,"marketplaceStatus":{"seller":"new"},"source":"orders.states","state":"new"}],`+
+		`"exchange":{"heldReasons":[],"history":[],"reason":"external_api_empty","retryable":false,"state":"not_sent","verdicts":[]},`+
 		`"order":{"accountId":%d,"accountName":"Склад","article":"ART-7","barcodes":["4600000000017","4600000000024"],"basket":"B-1",`+
-		`"brand":"Север","createdAt":%q,"deadlineAt":%q,"id":%d,"kind":"Футболки","marketplace":"memory",`+
+		`"brand":"Север","createdAt":%q,"deadlineAt":%q,`+
+		`"exchange":{"reason":"external_api_empty","state":"not_sent"},"id":%d,"kind":"Футболки","marketplace":"memory",`+
 		`"marketplaceStatus":{"marketplace":"waiting","seller":"new"},"number":"5001","productId":"777","scheme":"fbs","size":"M",`+
 		`"state":"new","updatedAt":%q,"warehouse":"Москва"}}`,
 		created, hourAgo, account, created, deadline, ids[0], noon)

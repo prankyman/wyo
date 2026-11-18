@@ -362,3 +362,34 @@ func TestAJournalRowThatCannotBeWrittenNeverChangesTheAnswer(t *testing.T) {
 		t.Fatalf("answer %v, %v; log %q", res, err, k.Logs.String())
 	}
 }
+
+// countingDoer is a client of another purpose: it counts what it is given and hands it to the test's server.
+type countingDoer struct {
+	next  marketplace.Doer
+	calls int
+}
+
+func (c *countingDoer) Do(req *http.Request) (*http.Response, error) {
+	c.calls++
+
+	return c.next.Do(req)
+}
+
+func TestATargetWithAClientOfItsOwnIsSentThroughItAndStillWritesTheJournal(t *testing.T) {
+	t.Parallel()
+
+	k := synckit.New(t, &script{})
+	own := &countingDoer{next: k.HTTP}
+
+	target := savedTarget(t, k)
+	target.Client = own
+
+	res, err := send(t, k, target, http.MethodGet, "/api/orders/new", "")
+	if err != nil || res.StatusCode != http.StatusOK {
+		t.Fatalf("Do: %v, %v", res, err)
+	}
+
+	if own.calls != 1 || len(k.Rows(t)) != 1 {
+		t.Fatalf("the target's own client sent %d requests and the journal has %d rows; want 1 and 1", own.calls, len(k.Rows(t)))
+	}
+}

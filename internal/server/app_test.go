@@ -260,7 +260,7 @@ func TestTheRunningServerMakesTheDailyCopy(t *testing.T) {
 	app := openApp(t, server.Options{Clock: clk, Wait: func(ctx context.Context, d time.Duration) error { return day.Wait(ctx, d) }, Location: time.UTC})
 
 	// One party per job: the copy's and the engine's.
-	day = daykit.New(clk, 1+len(app.Engine.Jobs()), clk.Now().Add(24*time.Hour))
+	day = daykit.New(clk, 1+len(app.Engine.Jobs())+len(app.Exchange.Jobs()), clk.Now().Add(24*time.Hour))
 
 	ln, err := (&net.ListenConfig{}).Listen(ctx, "tcp", "127.0.0.1:0")
 	if err != nil {

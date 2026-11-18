@@ -1,6 +1,11 @@
 <!--
 Sync Impact Report:
-- Version change: 1.1.1 → 1.2.0 (MINOR) — Plan 3
+- Version change: 1.2.0 → 1.3.0 (MINOR) — Plan 4
+  (`.agents/plans/wyo-external-api-wildberries-fbs-exchange-with-a-fulfilment-centre-orders-stickers-codes-hand-over.md`): principle
+  XII (the exchange with a fulfilment centre: alone by default, one client, never a blind write, never a cancellation at a
+  marketplace) added with its tests; rule R6's test of the neutral API's one client is built; principle IX lists the fulfilment
+  centre's purpose; «Where code lives» gained `internal/fulfilment`, `internal/exchange`, `internal/handover`.
+- Earlier: 1.1.1 → 1.2.0 (MINOR) — Plan 3
   (`.agents/plans/wyo-wildberries-keys-adapter-synchronisation-engine-order-list-request-journal.md`): principles X (one adapter
   contract, one contract test suite) and XI (one synchronisation engine: one caller, one budget, one journal) added with their tests;
   rules R5 and R6 name their tests; the updater's copy of the database is made while the wyo server runs (principle VIII).
@@ -118,8 +123,9 @@ marketplace-specific outside its adapter. Every piece of interface used twice is
 
 - **Tests:** the architecture tests in `internal/archtest` (generated packages are imported only by their one owner; nothing under
   `internal/` imports the fakes except tests and `cmd/wyofakes`; `TestEveryAdapterStandsAloneInThisRepository` — an adapter never
-  imports another adapter and makes no request itself; `TestWildberriesIsNamedOnlyByItsAdapterInThisRepository`; Plan 4 adds: only the
-  fulfilment-centre client knows the neutral API); `src/lib/marketplace-name-policy.test.ts` — no file under `src/` names a marketplace
+  imports another adapter and makes no request itself; `TestWildberriesIsNamedOnlyByItsAdapterInThisRepository`;
+  `TestOnlyTheFulfilmentPackagesAndTheFakeFulfilmentCentreMayImportItsClient` — only the fulfilment-centre client knows the neutral
+  API; `TestNoFolderOfTheExchangeNamesAMarketplaceInThisRepository`); `src/lib/marketplace-name-policy.test.ts` — no file under `src/` names a marketplace
   outside the message keys `marketplace.<code>.*`; the component policy tests of principle III.
 
 ### R7. Free and open (NON-NEGOTIABLE)
@@ -304,7 +310,8 @@ with nobody there to repair it by hand.
 ### IX. Every outgoing call goes through one gate (NON-NEGOTIABLE)
 
 Every address the wyo server or the updater may call is listed in one place, `internal/outbound`, by purpose: the release address and the
-certificate authority (Plan 2), the marketplaces (Plan 3), the fulfilment centre's address only while «External API» is filled (Plan 4).
+certificate authority (Plan 2), the marketplaces (Plan 3), the fulfilment centre's address only while «External API» is filled (Plan 4,
+`TestTheFulfilmentCentresAddressIsListedOnlyWhileTheSettingIsFilled`).
 `internal/outbound` hands out the only HTTP clients; a client refuses, before anything leaves, a request to an address outside its
 purpose's list, and follows a redirect only inside it. The look for a newer release names neither the domain nor the installed version.
 This is rule R3 seen from the Go side.
@@ -339,6 +346,27 @@ a refused key stops its account's readings. «Обновить» is answered at 
   `TestFiveFailedReadingsInARowMakeTheAccountWithoutConnectionAndOneGoodReadingMends`, `TestRefreshIsAnsweredAtMostOnceInFiveMinutes`),
   `TestARowKeepsWhatHappenedAndNeverTheKeyAQueryOrALongText` (`internal/journal`), `TestAMadeUpDayReachesOnlyTheMarketplacesOfTheAccounts`
   (rule R3, `internal/server`) and the canary test of rule R4 in `internal/server`.
+
+### XII. The exchange with a fulfilment centre (NON-NEGOTIABLE)
+
+The exchange (`internal/exchange`, `internal/handover`) works only while «Внешний API» is filled; it sends to the fulfilment centre
+only through the one fulfilment-centre client (`internal/fulfilment`) and the one caller of principle XI, and to a marketplace only
+through the adapter contract's writing parts. It knows no marketplace and no fulfilment product.
+
+- **Alone by default:** with «Внешний API» empty every job returns at once and the outbound gate lists no fulfilment centre; emptying
+  the setting stops every call to it at once.
+- **Never a blind write:** before each write to a marketplace the state it changes is read, and a write already made is skipped; each
+  step's outcome is stored before the next, so a wyo server stopped in the middle goes on from the last finished step.
+- **Never a cancellation at a marketplace:** the wyo server passes a marketplace's cancellation to the fulfilment centre and never
+  cancels an order at a marketplace; the owner does that in the marketplace's cabinet.
+- **Events in order, once:** every event is stored first, a repeat is ignored, and events are applied in the order of their numbers,
+  only up to the last one read in order; a notification is accepted only with a right signature and a time within five minutes.
+- **What never travels:** a marketplace key never reaches the fulfilment centre, its key never reaches a marketplace, and neither, nor a
+  marking code, reaches a log line, a journal row or an answer; the browser never sees a marking code.
+- **Tests:** the tests of `internal/exchange` (the whole walk with both fakes, every branch, every step interrupted in turn with no write
+  made twice, the events, the budget of a made-up hour); `TestNeitherKeyNorAMarkingCodeLeavesItsOwnSide` (`internal/server`);
+  `TestTheCancelMethodOfWildberriesIsCalledNowhereInThisRepository` and the other architecture tests of rule R6; the contract suite's
+  cases of the writing parts (`RunAdapterContract`).
 
 ## Development Standards
 
@@ -521,7 +549,8 @@ internal/marketplace/wildberries/          the Wildberries adapter; wbapi/ is ge
 internal/sync/                the synchronisation engine: the one caller, the budget, the jobs, the marks
 internal/journal/             the journal of every request sent to a marketplace
 internal/accounts/            the seller's marketplace accounts
-internal/fulfilment/fcapi/    generated from api/fulfilment-centre.yaml
+internal/fulfilment/          the one fulfilment-centre client; fcapi/ is generated from api/fulfilment-centre.yaml
+internal/exchange/, handover/ the exchange with a fulfilment centre and the hand-overs' steps (principle XII)
 internal/fakes/fakekit/, fulfilment/, wildberries/
 internal/archtest/            the architecture tests
 tools/covercheck/             the Go coverage floors
@@ -648,4 +677,4 @@ file records every amendment with its version change and the request that caused
 pull request's description. The version follows semantic versioning of the rules: a principle added or a rule tightened raises the
 second number, a wording change the third; the first number is raised only by the maintainer.
 
-**Version**: 1.2.0 | **Ratified**: 2026-11-17 | **Last Amended**: 2026-11-18
+**Version**: 1.3.0 | **Ratified**: 2026-11-17 | **Last Amended**: 2026-11-18

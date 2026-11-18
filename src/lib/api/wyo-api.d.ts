@@ -387,7 +387,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The journal of every request the wyo server sent to a marketplace, newest first, 50 a page. Never a key, a query or a body. */
+        /** The journal of every request the wyo server sent to a marketplace or to the fulfilment centre, newest first, 50 a page. Never a key, a query or a body. */
         get: operations["listJournal"];
         put?: never;
         post?: never;
@@ -414,6 +414,226 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/external-api": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The setting «Внешний API» - the address of a fulfilment centre's system and the last four characters of its key, the state of the last check and what the fulfilment centre answered. Empty by default. */
+        get: operations["getExternalApi"];
+        /** «Проверить и сохранить»: asks the fulfilment centre's system `GET /api/v1/account` with the key and saves the address and the key only when it answers and the key may write. Refusals - `invalid_address`, `fc_key_refused`, `fc_read_only_key`, `fc_api_off`, `fc_forbidden`, `fc_unavailable`, `fc_no_connection`, `fc_unreadable`. */
+        put: operations["putExternalApi"];
+        post?: never;
+        /** «Отключить»: empties the setting. From this moment nothing is sent anywhere but to the marketplaces; the matches, the orders' exchange states and the hand-overs are kept for when it is filled again. */
+        delete: operations["deleteExternalApi"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/external-api/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Checks the saved setting again; the answer is the setting with the new state. */
+        post: operations["checkExternalApi"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/external-api/warehouses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Each warehouse of the seller on a marketplace beside the fulfilment centre's warehouse that stands for it, and the fulfilment centre's warehouses to choose from. */
+        get: operations["getExternalApiWarehouses"];
+        /** Saves the matches sent; a row with no `fcWarehouse` removes its match. */
+        put: operations["putExternalApiWarehouses"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/external-api/marketplaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** For each account, the marketplace's code in the fulfilment centre's own list (with a proposal when a code equals the adapter's), whether its key may write, and the adapter's hand-over settings. */
+        get: operations["getExternalApiMarketplaces"];
+        /** Saves the rows sent: a row's `fcMarketplace` (absent - unchanged, empty - no match) and its `handoverSettings` (absent - unchanged). */
+        put: operations["putExternalApiMarketplaces"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/external-api/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How the wyo server learns what the fulfilment centre did - by asking once a minute, or by notifications. */
+        get: operations["getExternalApiEvents"];
+        /** Switches between asking and notifications. Switching notifications on makes the address to copy; the signing secret the fulfilment centre's system shows is sent with `secret` (`whsec_` and base64). Refusals - `invalid_secret`, `external_api_empty`. */
+        put: operations["putExternalApiEvents"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/handovers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The hand-overs the fulfilment centre asked documents for, newest first. */
+        get: operations["listHandovers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/handovers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** One hand-over with the strip of its steps, its orders and its problem. */
+        get: operations["getHandover"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/handovers/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** «Повторить» - goes on from the step that failed or waited. Refusal - `handover_not_retryable`. */
+        post: operations["retryHandover"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/handovers/{id}/shipping-point": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** The points the marketplace offers for this hand-over's batch, asked of the marketplace now, and the point remembered for the account. Refusal - `shipping_points_unavailable` (the batch is not made yet). */
+        get: operations["getHandoverShippingPoints"];
+        /** Remembers the point for the account (for this and the next hand-overs) and goes on with the steps. Refusal - `shipping_point_unknown`. */
+        put: operations["putHandoverShippingPoint"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{id}/exchange/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** «Передать заново» - repeats the order's step that failed, for a reason the owner has removed. Refusal - `exchange_not_retryable`. */
+        post: operations["retryOrderExchange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/overview/external-api": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The card «Внешний API» of «Обзор». */
+        get: operations["getExternalApiOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hooks/fulfilment/{text}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                text: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A signed notification of the fulfilment centre (the Standard Webhooks scheme of docs/fulfilment-centre-api.md). The only address open without signing in that changes anything; it carries no cookie, and the signature stands in its place. Accepted only with the right address text, a right signature and a time no more than five minutes away; at most 256 KB. Refusals - `not_found`, `bad_signature`, `too_large`. */
+        post: operations["receiveFulfilmentNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -432,6 +652,12 @@ export interface components {
             keyFields: components["schemas"]["KeyField"][];
             /** @description The parts of the adapter contract this adapter supports, e.g. `orders.new`. */
             capabilities: string[];
+            /** @description The adapter's hand-over settings (Plan 4, «Внешний API»): a choice among `choices`, or a text when there are none. Texts - `marketplace.<code>.handover.<name>.label`, `.help` and `.choice.<value>`. */
+            handoverSettings: components["schemas"]["SettingField"][];
+        };
+        SettingField: {
+            name: string;
+            choices: string[];
         };
         MarketplaceList: {
             marketplaces: components["schemas"]["Marketplace"][];
@@ -560,6 +786,8 @@ export interface components {
             marketplaceStatus: components["schemas"]["MarketplaceStatus"];
             /** Format: date-time */
             updatedAt?: string;
+            /** @description The exchange with the fulfilment centre; only for `fbs` orders. */
+            exchange?: components["schemas"]["OrderExchange"];
         };
         OrderEvent: {
             /** Format: date-time */
@@ -573,6 +801,7 @@ export interface components {
         OrderDetails: {
             order: components["schemas"]["Order"];
             events: components["schemas"]["OrderEvent"][];
+            exchange?: components["schemas"]["OrderExchangeDetails"];
         };
         OrderList: {
             orders: components["schemas"]["Order"][];
@@ -602,6 +831,7 @@ export interface components {
             /** Format: int64 */
             accountId?: number;
             accountName?: string;
+            /** @description The adapter's code, or `fulfilment` for a request to the fulfilment centre. */
             marketplace?: string;
             method: string;
             /** @description The path with placeholders in place of every number, e.g. `/api/v3/supplies/{supplyId}`. */
@@ -635,6 +865,277 @@ export interface components {
             unknownStates: number;
             /** Format: date-time */
             lastSuccessAt?: string;
+        };
+        /**
+         * @description The state of «Внешний API» after its last check or call; the text is `externalApi.state.<state>`. `empty` - not filled; the exchange works only in `working`.
+         * @enum {string}
+         */
+        ExternalApiState: "empty" | "working" | "key_refused" | "read_only_key" | "api_off" | "forbidden" | "unavailable" | "no_connection" | "unreadable";
+        FcMarketplace: {
+            /** @description The fulfilment centre's own code of a marketplace. */
+            code: string;
+            /** @description The name the fulfilment centre gives it. */
+            name: string;
+        };
+        ExternalApi: {
+            state: components["schemas"]["ExternalApiState"];
+            /** @description The address of the fulfilment centre's API, `https://…`. */
+            address?: string;
+            /** @description The last four characters of the key; the key itself is never sent. */
+            keyLast4?: string;
+            /** @description The name the fulfilment centre gives this seller. */
+            sellerName?: string;
+            /** @description The marketplaces the fulfilment centre accepts orders of, as its last answer listed them. */
+            marketplaces?: components["schemas"]["FcMarketplace"][];
+            /** Format: date-time */
+            checkedAt?: string;
+            eventsMode: components["schemas"]["EventsMode"];
+            /** Format: date-time */
+            lastEventAt?: string;
+        };
+        ExternalApiConnect: {
+            address: string;
+            key: string;
+        };
+        FcWarehouse: {
+            code: string;
+            name: string;
+            city?: string;
+        };
+        WarehouseMatch: {
+            /** Format: int64 */
+            accountId: number;
+            accountName: string;
+            marketplace: string;
+            /** @description The marketplace's own number of the seller's warehouse. */
+            warehouseNumber: string;
+            warehouseName: string;
+            /** @description The fulfilment centre's warehouse code; absent - not matched. */
+            fcWarehouse?: string;
+        };
+        WarehouseMatches: {
+            /** @description The fulfilment centre's working warehouses, asked of it now; empty when it does not answer. */
+            fcWarehouses: components["schemas"]["FcWarehouse"][];
+            rows: components["schemas"]["WarehouseMatch"][];
+        };
+        WarehouseMatchesChange: {
+            rows: {
+                /** Format: int64 */
+                accountId: number;
+                warehouseNumber: string;
+                fcWarehouse?: string;
+            }[];
+        };
+        MarketplaceMatch: {
+            /** Format: int64 */
+            accountId: number;
+            accountName: string;
+            marketplace: string;
+            /** @description The marketplace's code in the fulfilment centre's list. */
+            fcMarketplace?: string;
+            /** @description A code of the fulfilment centre's list that equals the adapter's, offered when none is chosen. */
+            proposed?: string;
+            /** @description The account's key may only read; the exchange cannot write with it. */
+            readOnly: boolean;
+            /** @description The adapter's hand-over settings (`Marketplace.handoverSettings`) by name. */
+            handoverSettings: {
+                [key: string]: string;
+            };
+        };
+        MarketplaceMatches: {
+            fcMarketplaces: components["schemas"]["FcMarketplace"][];
+            rows: components["schemas"]["MarketplaceMatch"][];
+        };
+        MarketplaceMatchesChange: {
+            rows: {
+                /** Format: int64 */
+                accountId: number;
+                fcMarketplace?: string;
+                handoverSettings?: {
+                    [key: string]: string;
+                };
+            }[];
+        };
+        /**
+         * @description `poll` - the wyo server asks once a minute; `notify` - it receives notifications and asks every 10 minutes.
+         * @enum {string}
+         */
+        EventsMode: "poll" | "notify";
+        EventsSetting: {
+            mode: components["schemas"]["EventsMode"];
+            /** @description The wyo server's own address to copy into the fulfilment centre's system (notifications only). */
+            hookUrl?: string;
+            /** @description The signing secret is saved; it is never sent back. */
+            secretSaved?: boolean;
+            /** Format: date-time */
+            lastNotificationAt?: string;
+            /**
+             * Format: date-time
+             * @description The last test notification received.
+             */
+            lastPingAt?: string;
+            /** Format: date-time */
+            lastEventAt?: string;
+        };
+        EventsSettingChange: {
+            mode: components["schemas"]["EventsMode"];
+            secret?: string;
+        };
+        /**
+         * @description The exchange's own state of an order; the text is `exchange.state.<state>`.
+         * @enum {string}
+         */
+        ExchangeState: "not_sent" | "sent" | "held" | "reserved" | "label_sent" | "packed" | "codes_checking" | "codes_accepted" | "handed_over" | "cancelled";
+        /**
+         * @description Why an order is not sent; the text is `exchange.reason.<reason>`.
+         * @enum {string}
+         */
+        ExchangeReason: "external_api_empty" | "marketplace_not_matched" | "warehouse_not_matched" | "already_on_assembly" | "not_seller_warehouse" | "key_read_only";
+        /**
+         * @description Why an order needs the owner; the text is `exchange.attention.<code>`.
+         * @enum {string}
+         */
+        Attention: "held" | "not_reserved_in_time" | "problem" | "codes_refused" | "cancelled_by_warehouse" | "change_waits";
+        Problem: {
+            /** @description The wyo server's code of the problem; the text is `problem.<code>`. */
+            code: string;
+            params?: {
+                [key: string]: unknown;
+            };
+            /** @description The marketplace's own code of its refusal, as received. */
+            marketplaceCode?: string;
+            /** @description The marketplace's or the fulfilment centre's own words, as received (at most 300 characters). */
+            words?: string;
+            /** Format: date-time */
+            at: string;
+        };
+        OrderExchange: {
+            state: components["schemas"]["ExchangeState"];
+            reason?: components["schemas"]["ExchangeReason"];
+            attention?: components["schemas"]["Attention"];
+            problem?: components["schemas"]["Problem"];
+        };
+        HeldReason: {
+            /** @description The fulfilment centre's reason code; the text is `exchange.held.<code>`. */
+            code: string;
+            params?: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description The verdict on one identifier of an order. The code itself is never sent to the browser. */
+        CodeVerdict: {
+            /** @description The text is `exchange.identifier.<identifier>`. */
+            identifier: string;
+            /**
+             * @description The text is `exchange.verdict.<verdict>`.
+             * @enum {string}
+             */
+            verdict: "accepted" | "not_required" | "pending" | "unfinished" | "missing" | "refused";
+            /** @description The marketplace's own word for the verdict, as received. */
+            words?: string;
+            /** @description How many units' codes were sent. */
+            units?: number;
+        };
+        ExchangeEvent: {
+            /** Format: date-time */
+            at: string;
+            state: components["schemas"]["ExchangeState"];
+            /** @description What happened, e.g. `sent`, `held`, `label_sent`, `codes_refused`; the text is `exchange.event.<code>`. */
+            code?: string;
+        };
+        OrderExchangeDetails: {
+            state: components["schemas"]["ExchangeState"];
+            reason?: components["schemas"]["ExchangeReason"];
+            attention?: components["schemas"]["Attention"];
+            problem?: components["schemas"]["Problem"];
+            /** @description The order's number at the fulfilment centre. */
+            fcNumber?: string;
+            heldReasons: components["schemas"]["HeldReason"][];
+            verdicts: components["schemas"]["CodeVerdict"][];
+            /**
+             * @description The fulfilment centre's answer to a cancellation passed on; the text is `exchange.cancel.<answer>`.
+             * @enum {string}
+             */
+            cancelAnswer?: "cancelled" | "waiting" | "needs_person" | "handed_over";
+            history: components["schemas"]["ExchangeEvent"][];
+            /** @description «Передать заново» may be pressed. */
+            retryable: boolean;
+        };
+        /**
+         * @description The text is `handovers.state.<state>`.
+         * @enum {string}
+         */
+        HandoverState: "working" | "waiting" | "problem" | "documents_sent" | "withdrawn" | "completed";
+        /**
+         * @description The text is `handovers.step.<step>`.
+         * @enum {string}
+         */
+        HandoverStep: "batch" | "move" | "boxes" | "shipping" | "close" | "documents";
+        Handover: {
+            /** Format: int64 */
+            id: number;
+            /** @description The fulfilment centre's number of the hand-over. */
+            number: string;
+            /** Format: date */
+            day: string;
+            /** @description The adapter's code, when the hand-over's orders are known. */
+            marketplace?: string;
+            state: components["schemas"]["HandoverState"];
+            step: components["schemas"]["HandoverStep"];
+            /** @description The marketplace's numbers of the hand-over's batches (Wildberries' supplies). */
+            batches: string[];
+            orders: number;
+            /** @description Transport boxes the fulfilment centre named. */
+            boxes: number;
+            problem?: components["schemas"]["Problem"];
+            /** Format: date-time */
+            requestedAt: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        HandoverList: {
+            handovers: components["schemas"]["Handover"][];
+        };
+        HandoverStepState: {
+            step: components["schemas"]["HandoverStep"];
+            /** @enum {string} */
+            state: "done" | "now" | "waiting" | "failed" | "todo";
+        };
+        HandoverDetails: {
+            handover: components["schemas"]["Handover"];
+            steps: components["schemas"]["HandoverStepState"][];
+            orderList: {
+                /** Format: int64 */
+                id: number;
+                number: string;
+            }[];
+            retryable: boolean;
+            /** @description The owner must pick the shipping point. */
+            needsShippingPoint: boolean;
+            /** @description The batch is closed at the marketplace; nothing can be undone. */
+            closed: boolean;
+        };
+        ShippingPoint: {
+            id: string;
+            name: string;
+            address?: string;
+        };
+        ShippingPointChoice: {
+            points: components["schemas"]["ShippingPoint"][];
+            /** @description The point remembered for the account. */
+            chosen?: string;
+        };
+        ShippingPointPick: {
+            point: string;
+        };
+        ExternalApiOverview: {
+            state: components["schemas"]["ExternalApiState"];
+            /** Format: date-time */
+            lastEventAt?: string;
+            /** @description Orders that need the owner (the filter «Требуют внимания»). */
+            attention: number;
+            /** @description Hand-overs that wait or have a problem. */
+            handoversWaiting: number;
         };
         Meta: {
             /** @description Always `wyo`. */
@@ -755,7 +1256,7 @@ export interface components {
             /** @description Stable while the cause lasts. */
             id: string;
             /** @enum {string} */
-            source: "updates" | "certificate" | "backups" | "accounts";
+            source: "updates" | "certificate" | "backups" | "accounts" | "external_api";
             /** @description The text is `notices.<code>`. */
             code: string;
             /** @enum {string} */
@@ -1341,6 +1842,8 @@ export interface operations {
                 from?: string;
                 to?: string;
                 q?: string;
+                /** @description Only the orders that need the owner. */
+                attention?: boolean;
                 page?: number;
             };
             header?: never;
@@ -1431,6 +1934,8 @@ export interface operations {
             query?: {
                 account?: number;
                 outcome?: components["schemas"]["JournalOutcome"];
+                /** @description Where a request went - a marketplace's code, or `fulfilment` for the fulfilment centre. */
+                target?: string;
                 from?: string;
                 to?: string;
                 page?: number;
@@ -1470,6 +1975,418 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MarketplacesOverview"];
                 };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    getExternalApi: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The setting. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalApi"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    putExternalApi: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExternalApiConnect"];
+            };
+        };
+        responses: {
+            /** @description Saved and checked. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalApi"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    deleteExternalApi: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Emptied. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    checkExternalApi: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Checked. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalApi"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    getExternalApiWarehouses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The matches. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarehouseMatches"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    putExternalApiWarehouses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarehouseMatchesChange"];
+            };
+        };
+        responses: {
+            /** @description The matches as saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarehouseMatches"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    getExternalApiMarketplaces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The accounts. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarketplaceMatches"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    putExternalApiMarketplaces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarketplaceMatchesChange"];
+            };
+        };
+        responses: {
+            /** @description The accounts as saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarketplaceMatches"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    getExternalApiEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The events' setting. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventsSetting"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    putExternalApiEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventsSettingChange"];
+            };
+        };
+        responses: {
+            /** @description Saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventsSetting"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    listHandovers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The hand-overs. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HandoverList"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    getHandover: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The hand-over. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HandoverDetails"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    retryHandover: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Started. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HandoverDetails"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    getHandoverShippingPoints: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The points. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShippingPointChoice"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    putHandoverShippingPoint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShippingPointPick"];
+            };
+        };
+        responses: {
+            /** @description Saved; the steps go on. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HandoverDetails"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    retryOrderExchange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Started. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderDetails"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    getExternalApiOverview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The card. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalApiOverview"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    receiveFulfilmentNotification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                text: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Stored; applied afterwards. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             default: components["responses"]["Refusal"];
         };

@@ -3,7 +3,8 @@
 // anything leaves, a call to an address outside its purpose's list, and follows a redirect only inside that list.
 //
 // The purposes: the release address (and the hosts GitHub sends release downloads to), the certificate authority, the
-// wyo server's own address on this machine and the marketplaces (Plan 3). Plan 4 adds the fulfilment centre's address.
+// wyo server's own address on this machine, the marketplaces (Plan 3), and the fulfilment centre's address, listed only
+// while «Внешний API» is filled (Plan 4, SetFulfilment).
 package outbound
 
 import (
@@ -14,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/prankyman/wyo/internal/buildinfo"
@@ -30,6 +32,9 @@ const (
 	PurposeLocal Purpose = "local"
 	// PurposeMarketplace is every request to a marketplace; only the synchronisation engine's caller holds its client.
 	PurposeMarketplace Purpose = "marketplace"
+	// PurposeFulfilment is every request to the fulfilment centre of «Внешний API»; its list holds that one address only
+	// while the setting is filled (rule R3).
+	PurposeFulfilment Purpose = "fulfilment"
 )
 
 // The standard addresses.
@@ -108,6 +113,15 @@ var purposes = map[Purpose]allowance{
 		noRedirects: true,
 		noProxy:     true,
 	},
+	// The fulfilment centre's address is not written here: SetFulfilment lists it while «Внешний API» is filled. A call
+	// lasts at most 30 seconds and a redirect is never followed («A redirect … is a failure» of the neutral API).
+	PurposeFulfilment: {
+		timeout:     30 * time.Second,
+		sendVersion: true,
+		sendAddress: true,
+		noRedirects: true,
+		noProxy:     true,
+	},
 }
 
 // Options is what a gate is made from.
@@ -131,6 +145,7 @@ type Options struct {
 
 // Gate hands out the clients.
 type Gate struct {
+	mu          sync.RWMutex
 	version     string
 	origins     map[Purpose][]string
 	releaseBase string
@@ -208,6 +223,29 @@ func New(opts Options) (*Gate, error) {
 	return gate, nil
 }
 
+// SetFulfilment lists the fulfilment centre's address (scheme, host and port) as the only one of its purpose, or lists
+// none when address is empty: «Внешний API» was emptied, and from this moment every call to it is refused before it
+// leaves.
+func (g *Gate) SetFulfilment(address string) error {
+	var origins []string
+
+	if address != "" {
+		origin, err := originOfAddress(address)
+		if err != nil {
+			return fmt.Errorf("the fulfilment centre's address: %w", err)
+		}
+
+		origins = []string{origin}
+	}
+
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	g.origins[PurposeFulfilment] = origins
+
+	return nil
+}
+
 // MarketplaceURL is the fake marketplace's address of a test build, or "" for the real marketplaces.
 func (g *Gate) MarketplaceURL() string { return g.marketplace }
 
@@ -233,7 +271,10 @@ func (g *Gate) UserAgent(purpose Purpose) string {
 
 // Check says whether a call to u is allowed for the purpose; the answer to a call that is not wraps ErrRefused.
 func (g *Gate) Check(purpose Purpose, u *url.URL) error {
+	g.mu.RLock()
 	origins, known := g.origins[purpose]
+	g.mu.RUnlock()
+
 	if !known {
 		return fmt.Errorf("%w: nothing is listed for the purpose %q", ErrRefused, purpose)
 	}

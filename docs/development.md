@@ -197,6 +197,14 @@ shows a signature and no secret), so the unit test takes the vector of the speci
 endpoint-verification extension publishes. Notifications are sent once each, in order; a failed one is not retried by the fake
 (the contract's eight attempts are not played), a test asks for it again with `POST /__control/resend`.
 
+**Driving the exchange with a fulfilment centre** (Plan 4, `docs/external-api.md`). A `wyotest` build accepts a plain `http://` address
+for «Внешний API», so the page takes the fake fulfilment centre, `http://127.0.0.1:8792`, with any key of your own. The exchange's jobs
+run every minute; a `wyotest` build also answers `POST /__test/exchange/run` (no sign-in) by running every job of the exchange at once,
+so a browser test or a person at `pnpm dev` plays the fulfilment centre's part with its control calls (reserve, pack with
+`marking_code`s, request a hand-over's documents) and sees the result at once. The fake Wildberries changes an order's sticker on
+`POST /__control/orders/{id}/new-sticker`, and `/__control/setup` with `shipping_points` makes a shipping point disappear. A released wyo
+server answers neither the test address nor a plain `http://` address.
+
 A fact about a marketplace is written only from its official documents with the address and the date read (`docs/marketplaces/` holds the
 pages saved on 2026-11-17); a gap is marked "not documented" and goes to the checks of the first real account (`.agents/backlog.md`).
 

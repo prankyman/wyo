@@ -18,6 +18,9 @@ const (
 	AccessPublic Access = "public"
 	// AccessOwner is for a call only the signed-in owner may make.
 	AccessOwner Access = "owner"
+	// AccessSigned is for a call made by another program with a signature the handler checks (a fulfilment centre's
+	// notification): no session, no cookie.
+	AccessSigned Access = "signed"
 )
 
 // Route is one call: a method, an address as the description writes it, and who may make it.
@@ -60,6 +63,27 @@ var accessByCall = map[string]Access{
 	"POST /api/v1/sync/refresh":          AccessOwner,
 	"GET /api/v1/journal":                AccessOwner,
 	"GET /api/v1/overview/marketplaces":  AccessOwner,
+
+	"GET /api/v1/external-api":                  AccessOwner,
+	"PUT /api/v1/external-api":                  AccessOwner,
+	"DELETE /api/v1/external-api":               AccessOwner,
+	"POST /api/v1/external-api/check":           AccessOwner,
+	"GET /api/v1/external-api/warehouses":       AccessOwner,
+	"PUT /api/v1/external-api/warehouses":       AccessOwner,
+	"GET /api/v1/external-api/marketplaces":     AccessOwner,
+	"PUT /api/v1/external-api/marketplaces":     AccessOwner,
+	"GET /api/v1/external-api/events":           AccessOwner,
+	"PUT /api/v1/external-api/events":           AccessOwner,
+	"GET /api/v1/handovers":                     AccessOwner,
+	"GET /api/v1/handovers/{id}":                AccessOwner,
+	"POST /api/v1/handovers/{id}/retry":         AccessOwner,
+	"GET /api/v1/handovers/{id}/shipping-point": AccessOwner,
+	"PUT /api/v1/handovers/{id}/shipping-point": AccessOwner,
+	"POST /api/v1/orders/{id}/exchange/retry":   AccessOwner,
+	"GET /api/v1/overview/external-api":         AccessOwner,
+	// The only address open without signing in that changes anything: it carries no cookie, and the notification's
+	// signature (checked by the exchange) stands in its place.
+	"POST /hooks/fulfilment/{text}": AccessSigned,
 }
 
 // Routes lists every call of api/wyo.yaml with its access. It fails when a call has no access declared, or the

@@ -2,6 +2,7 @@
     import { goto, invalidateAll } from '$app/navigation';
     import { page } from '$app/state';
     import { refusalKey } from '$lib/api/refusal-key';
+    import ExchangeStateBadge from '$lib/components/exchange/ExchangeStateBadge.svelte';
     import MarketplaceMark from '$lib/components/marketplaces/MarketplaceMark.svelte';
     import DeadlineCell from '$lib/components/orders/DeadlineCell.svelte';
     import OrderDetails from '$lib/components/orders/OrderDetails.svelte';
@@ -78,7 +79,8 @@
         { key: 'warehouse', labelKey: 'orders.column.warehouse', helpKey: 'orders.column.warehouse.help' },
         { key: 'created', labelKey: 'orders.column.created', helpKey: 'orders.column.created.help' },
         { key: 'deadline', labelKey: 'orders.column.deadline', helpKey: 'orders.column.deadline.help', custom: true },
-        { key: 'state', labelKey: 'orders.column.state', helpKey: 'orders.column.state.help', custom: true }
+        { key: 'state', labelKey: 'orders.column.state', helpKey: 'orders.column.state.help', custom: true },
+        { key: 'exchange', labelKey: 'orders.column.exchange', helpKey: 'orders.column.exchange.help', custom: true }
     ];
 
     const rows = $derived<IOrderRow[]>(
@@ -129,7 +131,8 @@
                 key: 'to',
                 label: data.filter.to ? t('orders.chip.to', lang, { value: formatIsoDay(data.filter.to, lang) }) : null
             },
-            { key: 'q', label: data.filter.q ? t('orders.chip.q', lang, { value: data.filter.q }) : null }
+            { key: 'q', label: data.filter.q ? t('orders.chip.q', lang, { value: data.filter.q }) : null },
+            { key: 'attention', label: data.filter.attention ? t('orders.chip.attention', lang) : null }
         ])
     );
 
@@ -251,6 +254,24 @@
                                 dataTest="orders-filter-q"
                             />
                         </Field>
+                        <Field
+                            layout="inline"
+                            label={t('orders.filter.attention', lang)}
+                            help={t('orders.filter.attention.help', lang)}
+                            for="orders-filter-attention"
+                        >
+                            <input
+                                id="orders-filter-attention"
+                                type="checkbox"
+                                role="switch"
+                                name="attention"
+                                value="true"
+                                checked={$filters.attention === 'true'}
+                                onchange={(event) => ($filters.attention = event.currentTarget.checked ? 'true' : '')}
+                                class="size-5 shrink-0"
+                                data-test="orders-filter-attention"
+                            />
+                        </Field>
                     </div>
                     <FormButtons>
                         <Button type="submit" variant="secondary" dataTest="orders-filter-apply">
@@ -295,6 +316,8 @@
                             marketplaceStatus={row.order.marketplaceStatus}
                             testId="orders-list-state"
                         />
+                    {:else if column.key === 'exchange' && row.order.exchange}
+                        <ExchangeStateBadge {lang} exchange={row.order.exchange} testId="orders-list-exchange-state" />
                     {/if}
                 {/snippet}
             </DataList>
@@ -322,7 +345,12 @@
         dataTest="order-details"
     >
         {#snippet children(details: TOrderDetails)}
-            <OrderDetails {lang} {details} marketplace={adapterOf(details.order.marketplace)} />
+            <OrderDetails
+                {lang}
+                {details}
+                marketplace={adapterOf(details.order.marketplace)}
+                onExchangeRetried={() => invalidateAll()}
+            />
         {/snippet}
     </RowDetailsPanel>
 </Stack>

@@ -65,7 +65,7 @@ func TestTheMemoryOfADayWithThreeAccountsAndTenThousandOrders(t *testing.T) {
 
 	seedOrders(t, app, ids, orderCount, clk.Now())
 
-	day = daykit.New(clk, 1+len(app.Engine.Jobs()), clk.Now().Add(24*time.Hour))
+	day = daykit.New(clk, 1+len(app.Engine.Jobs())+len(app.Exchange.Jobs()), clk.Now().Add(24*time.Hour))
 
 	if err := app.RunWith(t.Context(), func(ctx context.Context) error {
 		select {
