@@ -98,6 +98,12 @@
     --color-stop-900: oklch(39.6% 0.141 25.723);
     --color-stop-950: oklch(25.8% 0.092 26.042);
 
+    /*
+     * The marketplaces' marks: the small coloured dot beside a marketplace's name (`MarketplaceMark`). The adapter names its mark
+     * (`GET /api/v1/marketplaces`, `mark`); a mark the theme does not hold is drawn in the neutral grey.
+     */
+    --color-mark-plum: oklch(48% 0.2 330);
+
     --breakpoint-xs: 30rem;
 
     /* Corners: 6 px on boxes, buttons and cards. */

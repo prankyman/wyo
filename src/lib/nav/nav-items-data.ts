@@ -10,10 +10,13 @@ import type { INavItemData, TNavSection } from './types';
  */
 export const NAV_ITEM_DATA = [
     { labelKey: 'nav.overview', href: '/', testId: 'nav-overview', phoneTab: 1 },
-    { labelKey: 'nav.settings', href: '/settings', testId: 'nav-settings', phoneTab: 2 }
+    { labelKey: 'nav.orders', href: '/orders', testId: 'nav-orders', phoneTab: 2 },
+    { labelKey: 'nav.marketplaces', href: '/marketplaces', testId: 'nav-marketplaces', phoneTab: 3 },
+    { labelKey: 'nav.journal', href: '/journal', testId: 'nav-journal', phoneTab: 4 },
+    { labelKey: 'nav.settings', href: '/settings', testId: 'nav-settings', phoneTab: 5 }
 ] as const satisfies readonly INavItemData[];
 
-/** The menu's groups in the order they are drawn. None is needed for two items. */
+/** The menu's groups in the order they are drawn. None is needed for five items. */
 export const NAV_SECTIONS: readonly TNavSection[] = [];
 
 /** The label of each group, written out so the check for unused message keys finds every one. */

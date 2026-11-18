@@ -18,15 +18,19 @@ const URGENCY_OF_TONE: Record<TNotice['tone'], TUrgency> = {
     ok: 'info'
 };
 
-/** The page where each source's notices are dealt with: the certificate's card is on «Обзор», the rest are in «Настройки». */
+/**
+ * The page where each source's notices are dealt with: the certificate's card is on «Обзор», the marketplace accounts' keys on
+ * «Маркетплейсы», the rest are in «Настройки».
+ */
 const PAGE_OF_SOURCE: Record<TNotice['source'], string> = {
     updates: '/settings',
     backups: '/settings',
-    certificate: '/'
+    certificate: '/',
+    accounts: '/marketplaces'
 };
 
-/** The codes whose text is counted («3 дня назад»): the parameter that holds the count. */
-const COUNTED: Record<string, string> = { backup_old: 'days' };
+/** The codes whose text is counted («3 дня назад», «через 3 дня»): the parameter that holds the count. */
+const COUNTED: Record<string, string> = { backup_old: 'days', account_key_expiring: 'days' };
 
 /** A notice's sentence, worded from its code and parameters in the language of the page. */
 function textOf(notice: TNotice, lang: TLocale): string {

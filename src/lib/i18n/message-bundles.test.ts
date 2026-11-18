@@ -197,7 +197,12 @@ describe('message bundles', () => {
      * moving a key out of the call, and a string that only looks like a key goes on the allow-list below with its reason.
      */
     it('resolves every key-shaped string written anywhere in src/, however it reaches t()', () => {
-        const NOT_A_MESSAGE_KEY = new Map<string, string>();
+        const NOT_A_MESSAGE_KEY = new Map<string, string>([
+            [
+                'accounts.refusal',
+                'the family of the texts of the accounts’ refusals (`src/lib/marketplaces/refusals.ts`); `refusalKey` adds the code'
+            ]
+        ]);
         const names = new Set([...(russian?.keys ?? [])].map((key) => key.split('.')[0]));
         const KEY_SHAPED = new RegExp(`['"\`]((?:${[...names].join('|')})\\.[A-Za-z0-9_.]+)['"\`]`, 'g');
         const unresolved: string[] = [];

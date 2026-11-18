@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -78,7 +79,10 @@ func TestANewDatabaseGetsTheFirstMigration(t *testing.T) {
 		t.Fatalf("Close: %v", err)
 	}
 
-	want := []string{"people", "schema_migrations", "secrets", "sessions", "settings"}
+	want := []string{
+		"marketplace_accounts", "marketplace_warehouses", "order_events", "orders", "people", "request_journal", "schema_migrations",
+		"secrets", "sessions", "settings", "sync_marks",
+	}
 	if got := tablesOf(t, path); strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Fatalf("tables %v, want %v", got, want)
 	}
@@ -139,7 +143,7 @@ func TestASecondStartChangesNothing(t *testing.T) {
 		t.Fatal("a database that existed is not reported as created")
 	}
 
-	if len(before) != 1 || len(after) != 1 || before[0] != after[0] {
+	if len(before) != len(store.Embedded()) || !reflect.DeepEqual(before, after) {
 		t.Fatalf("applied before %+v, after %+v: a second start must change nothing", before, after)
 	}
 }

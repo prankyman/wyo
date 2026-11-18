@@ -1,6 +1,7 @@
 package backup_test
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -180,6 +181,47 @@ func TestTheCopiesBeforeAnUpdateAreASeparateSetOfThree(t *testing.T) {
 
 	if entries, _ := f.svc.List(t.Context()); len(entries) != 1 {
 		t.Fatalf("the copies before an update are not listed with the daily ones: %+v", entries)
+	}
+}
+
+// Prune is the one trimming of the copies' folder: the daily copy calls it after each copy, and the updater after each
+// successful update, so the copies before an update never wait for the next night to be trimmed.
+func TestPruneKeepsTheNewestOfEachSetAndNothingElseIsTouched(t *testing.T) {
+	t.Parallel()
+
+	layout := datadir.Layout{Dir: filepath.Join(t.TempDir(), "data")}
+	must(t, layout.Ensure())
+
+	for day := 1; day <= 9; day++ {
+		must(t, os.WriteFile(filepath.Join(layout.Backups(), fmt.Sprintf("wyo-2026-11-%02d.db", day)), []byte("x"), 0o600))
+	}
+
+	for i, version := range []string{"0.1.0", "0.2.0", "0.3.0", "0.4.0", "0.5.0"} {
+		path := filepath.Join(layout.Backups(), backup.BeforeUpdateName(version))
+		must(t, os.WriteFile(path, []byte("x"), 0o600))
+		must(t, os.Chtimes(path, noon().Add(time.Duration(i)*time.Hour), noon().Add(time.Duration(i)*time.Hour)))
+	}
+
+	must(t, os.WriteFile(filepath.Join(layout.Backups(), "notes.txt"), []byte("mine"), 0o600))
+
+	must(t, backup.Prune(layout))
+
+	entries, err := os.ReadDir(layout.Backups())
+	must(t, err)
+
+	left := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		left = append(left, entry.Name())
+	}
+
+	want := "notes.txt,wyo-2026-11-03.db,wyo-2026-11-04.db,wyo-2026-11-05.db,wyo-2026-11-06.db,wyo-2026-11-07.db," +
+		"wyo-2026-11-08.db,wyo-2026-11-09.db,wyo-before-update-0.3.0.db,wyo-before-update-0.4.0.db,wyo-before-update-0.5.0.db"
+	if got := strings.Join(left, ","); got != want {
+		t.Fatalf("left %s\nwant %s", got, want)
+	}
+
+	if err := backup.Prune(datadir.Layout{Dir: filepath.Join(t.TempDir(), "nowhere")}); err != nil {
+		t.Fatalf("a folder of copies that does not exist has nothing to trim: %v", err)
 	}
 }
 

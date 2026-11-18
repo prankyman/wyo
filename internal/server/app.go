@@ -9,9 +9,10 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"sync"
+	stdsync "sync"
 	"time"
 
+	"github.com/prankyman/wyo/internal/accounts"
 	"github.com/prankyman/wyo/internal/auth"
 	"github.com/prankyman/wyo/internal/buildinfo"
 	"github.com/prankyman/wyo/internal/certstatus"
@@ -19,9 +20,13 @@ import (
 	"github.com/prankyman/wyo/internal/config"
 	"github.com/prankyman/wyo/internal/datalock"
 	"github.com/prankyman/wyo/internal/httpapi"
+	"github.com/prankyman/wyo/internal/journal"
+	"github.com/prankyman/wyo/internal/marketplace"
 	"github.com/prankyman/wyo/internal/notices"
+	"github.com/prankyman/wyo/internal/outbound"
 	"github.com/prankyman/wyo/internal/schedule"
 	"github.com/prankyman/wyo/internal/secretbox"
+	"github.com/prankyman/wyo/internal/sync"
 	"github.com/prankyman/wyo/internal/updatestate"
 	"github.com/prankyman/wyo/internal/webui"
 )
@@ -40,6 +45,9 @@ type Options struct {
 	// Certificates tells the state of the certificate. When nil, the state follows the settings: a web server of the
 	// seller's holds it, or there is none (plain http, development and tests).
 	Certificates certstatus.Reporter
+	// Gate hands out the clients of outgoing calls. When nil, one is made from the configuration: the marketplaces, or the
+	// fake marketplace of a test build (WYO_MARKETPLACE_URL).
+	Gate *outbound.Gate
 
 	// The rest is given by tests; each has a working default.
 	Clock    clock.Clock
@@ -54,6 +62,9 @@ type App struct {
 	*Services
 	// Vault is the secret store of this database and key file.
 	Vault *secretbox.Vault
+	// Engine reads the marketplaces; Accounts are the seller's accounts on them.
+	Engine   *sync.Engine
+	Accounts *accounts.Service
 
 	handler  http.Handler
 	log      *slog.Logger
@@ -62,8 +73,12 @@ type App struct {
 	random   schedule.Random
 	location *time.Location
 
+	// lifetime is the wyo server's own: the readings «Обновить» starts run under it and end when the server closes.
+	lifetime    context.Context
+	endLifetime context.CancelFunc
+
 	lock      *datalock.Lock
-	closeOnce sync.Once
+	closeOnce stdsync.Once
 	closeErr  error
 }
 
@@ -100,6 +115,8 @@ func Open(ctx context.Context, opts Options) (*App, error) {
 		app.location = time.Local
 	}
 
+	app.lifetime, app.endLifetime = context.WithCancel(context.WithoutCancel(ctx))
+
 	if err := app.assemble(ctx, opts); err != nil {
 		return nil, errors.Join(err, app.Close())
 	}
@@ -122,6 +139,11 @@ func (a *App) assemble(ctx context.Context, opts Options) error {
 
 	a.Vault = secretbox.NewVault(box, a.Store)
 
+	registry, err := a.assembleMarketplaces(opts)
+	if err != nil {
+		return err
+	}
+
 	certificates := opts.Certificates
 	if certificates == nil {
 		certificates = defaultCertificate(cfg)
@@ -134,7 +156,14 @@ func (a *App) assemble(ctx context.Context, opts Options) error {
 		Backups:      a.Backups,
 		DataDir:      a.Layout.Dir,
 		Certificates: certificates,
-		Notices:      append([]notices.Source{updatestate.Source{Dir: a.Layout.Dir}, a.Backups}, opts.Notices...),
+		Notices:      append([]notices.Source{updatestate.Source{Dir: a.Layout.Dir}, a.Backups, a.Accounts}, opts.Notices...),
+		Store:        a.Store,
+		Marketplaces: registry,
+		Accounts:     a.Accounts,
+		Refresher:    a.Engine,
+		Lifetime:     a.lifetime,
+		Location:     a.location,
+		Clock:        a.clock,
 		Log:          a.log,
 		// Plain http reaches only a build for development and tests (with a domain, https is served even there).
 		SecureCookie: !buildinfo.TestBuild || cfg.Domain != "",
@@ -147,6 +176,44 @@ func (a *App) assemble(ctx context.Context, opts Options) error {
 	a.handler = a.routes(api, webui.New(opts.Files, opts.Web))
 
 	return nil
+}
+
+// assembleMarketplaces builds what reads the marketplaces: the adapters, pointed at the fake marketplace when the gate
+// names one; the one caller, with the gate's client of the marketplaces; the engine; and the accounts.
+func (a *App) assembleMarketplaces(opts Options) (*marketplace.Registry, error) {
+	gate := opts.Gate
+	if gate == nil {
+		var err error
+
+		gate, err = outbound.New(outbound.Options{Version: opts.Version, MarketplaceURL: opts.Config.Test.MarketplaceURL})
+		if err != nil {
+			return nil, fmt.Errorf("the outbound gate: %w", err)
+		}
+	}
+
+	registry, err := adapters(gate.MarketplaceURL())
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := gate.Client(outbound.PurposeMarketplace)
+	if err != nil {
+		return nil, err
+	}
+
+	logbook := journal.New(a.Store, a.clock, a.log)
+	caller := sync.NewCaller(sync.CallerOptions{
+		Client: client, Keys: a.Vault, Journal: logbook, Clock: a.clock, Wait: a.wait, Random: a.random, Log: a.log,
+	})
+
+	a.Engine = sync.NewEngine(sync.EngineOptions{
+		Store: a.Store, Caller: caller, Registry: registry, Journal: logbook, Clock: a.clock, Log: a.log, Location: a.location,
+	})
+	a.Accounts = accounts.New(accounts.Options{
+		Store: a.Store, Keys: a.Vault, Engine: a.Engine, Registry: registry, Clock: a.clock, Log: a.log,
+	})
+
+	return registry, nil
 }
 
 // defaultCertificate is the state of the certificate when no part that obtains one reports it: behind the seller's web
@@ -193,25 +260,26 @@ func (a *App) routes(api, web http.Handler) http.Handler {
 // Handler is the whole wyo server's handler.
 func (a *App) Handler() http.Handler { return a.handler }
 
-// Run serves on ln and runs the daily copy beside it, until ctx ends. It returns nil after a clean stop.
+// Run serves on ln and runs the scheduled jobs beside it, until ctx ends. It returns nil after a clean stop.
 func (a *App) Run(ctx context.Context, ln net.Listener) error {
 	return a.RunWith(ctx, func(ctx context.Context) error { return Serve(ctx, ln, a.handler, a.log) })
 }
 
-// RunWith runs the daily copy beside serve until serve returns; serve is how the handler is served (on one plain
-// listener, or on ports 80 and 443 with the certificate the wyo server obtains itself).
+// RunWith runs the scheduled jobs — the daily copy and the readings of the marketplaces — beside serve until serve
+// returns; serve is how the handler is served (on one plain listener, or on ports 80 and 443 with the certificate the wyo
+// server obtains itself).
 func (a *App) RunWith(ctx context.Context, serve func(ctx context.Context) error) error {
 	jobs, stop := context.WithCancel(ctx)
 	defer stop()
 
-	var group sync.WaitGroup
+	var group stdsync.WaitGroup
 
 	group.Add(1)
 
 	go func() {
 		defer group.Done()
 
-		_ = schedule.New(a.clock, a.random, a.wait, a.log).Run(jobs, a.Backups.Job(a.location))
+		_ = schedule.New(a.clock, a.random, a.wait, a.log).Run(jobs, append([]schedule.Job{a.Backups.Job(a.location)}, a.Engine.Jobs()...)...)
 	}()
 
 	err := serve(ctx)
@@ -222,9 +290,16 @@ func (a *App) RunWith(ctx context.Context, serve func(ctx context.Context) error
 	return err
 }
 
-// Close closes the database and lets the data folder's lock go; closing twice is harmless.
+// Close ends the readings «Обновить» started, closes the database and lets the data folder's lock go; closing twice is
+// harmless.
 func (a *App) Close() error {
 	a.closeOnce.Do(func() {
+		a.endLifetime()
+
+		if a.Engine != nil {
+			a.Engine.Wait()
+		}
+
 		a.closeErr = errors.Join(a.Services.Close(), a.lock.Release())
 	})
 

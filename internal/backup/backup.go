@@ -170,7 +170,11 @@ func (s *Service) List(context.Context) ([]Entry, error) {
 
 // files lists the files of the copies' folder whose names match; a folder that does not exist has none.
 func (s *Service) files(match func(name string) bool) ([]fs.FileInfo, error) {
-	dirEntries, err := os.ReadDir(s.layout.Backups())
+	return filesIn(s.layout.Backups(), match)
+}
+
+func filesIn(folder string, match func(name string) bool) ([]fs.FileInfo, error) {
+	dirEntries, err := os.ReadDir(folder)
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, nil
 	}
@@ -197,16 +201,25 @@ func (s *Service) files(match func(name string) bool) ([]fs.FileInfo, error) {
 	return files, nil
 }
 
-// prune deletes every daily copy but the newest seven, and every copy made before an update but the newest three.
-func (s *Service) prune() error {
-	daily, err := s.files(func(name string) bool { return dailyName.MatchString(name) })
+// BeforeUpdateName is the name of the copy of the database the updater makes before an update to version.
+func BeforeUpdateName(version string) string { return beforeUpdatePrefix + version + ".db" }
+
+func (s *Service) prune() error { return Prune(s.layout) }
+
+// Prune deletes every daily copy but the newest seven, and every copy made before an update but the newest three; no
+// other file of the copies' folder is touched. It is the one trimming of the folder: the daily copy calls it after each
+// copy, and the updater after each successful update.
+func Prune(layout datadir.Layout) error {
+	folder := layout.Backups()
+
+	daily, err := filesIn(folder, func(name string) bool { return dailyName.MatchString(name) })
 	if err != nil {
 		return err
 	}
 
 	sort.Slice(daily, func(i, j int) bool { return daily[i].Name() > daily[j].Name() })
 
-	beforeUpdate, err := s.files(func(name string) bool {
+	beforeUpdate, err := filesIn(folder, func(name string) bool {
 		return strings.HasPrefix(name, beforeUpdatePrefix) && strings.HasSuffix(name, ".db")
 	})
 	if err != nil {
@@ -222,7 +235,7 @@ func (s *Service) prune() error {
 		keep  int
 	}{{daily, KeepDaily}, {beforeUpdate, KeepBeforeUpdate}} {
 		for i := set.keep; i < len(set.files); i++ {
-			errs = append(errs, os.Remove(filepath.Join(s.layout.Backups(), set.files[i].Name())))
+			errs = append(errs, os.Remove(filepath.Join(folder, set.files[i].Name())))
 		}
 	}
 

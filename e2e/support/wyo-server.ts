@@ -1,5 +1,6 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { FAKE_WILDBERRIES_ADDRESS } from './fakes.js';
 import { TEST_OWNER, type IOwner } from './owner.js';
 import { runProgram, startProgram, waitForAnswer, type IProgram } from './process.js';
 
@@ -56,19 +57,38 @@ async function createOwner(dataDir: string, owner: IOwner): Promise<void> {
 
 /**
  * Starts one wyo server in test mode on `port`, in the empty folder `dataDir`, with the owner already made, and returns when
- * `GET /api/v1/meta` answers. The server is given no settings but its flags.
+ * `GET /api/v1/meta` answers. The server is given no settings but its flags and the address of the fake Wildberries
+ * (`WYO_MARKETPLACE_URL`), so it asks the fake and never a real marketplace.
  */
 export async function startWyoServer(port: number, dataDir: string, owner: IOwner = TEST_OWNER): Promise<IWyoServer> {
     rmSync(dataDir, { recursive: true, force: true });
     mkdirSync(dataDir, { recursive: true });
     await createOwner(dataDir, owner);
-    const origin = `http://127.0.0.1:${port}`;
+    const origin = `http://${HOST}:${port}`;
+    return { origin, port, dataDir, owner, program: await runWyoServer(port, dataDir) };
+}
+
+const HOST = '127.0.0.1';
+
+/** Runs the wyo server on `port` in `dataDir` as the folder stands, and returns when `GET /api/v1/meta` answers. */
+async function runWyoServer(port: number, dataDir: string): Promise<IProgram> {
     const program = startProgram(
         `the wyo server of port ${port}`,
         WYO_TEST_BINARY,
-        ['--listen', `127.0.0.1:${port}`, '--mode', 'test', '--data', dataDir],
-        { cwd: dataDir, env: cleanEnvironment() }
+        ['--listen', `${HOST}:${port}`, '--mode', 'test', '--data', dataDir],
+        { cwd: dataDir, env: { ...cleanEnvironment(), WYO_MARKETPLACE_URL: `http://${FAKE_WILDBERRIES_ADDRESS}` } }
     );
-    await waitForAnswer(program, `${origin}/api/v1/meta`);
-    return { origin, port, dataDir, owner, program };
+    await waitForAnswer(program, `http://${HOST}:${port}/api/v1/meta`);
+    return program;
+}
+
+/**
+ * Stops `server` and runs it again on the same port in the same data folder: everything it stored stays — the owner, the session,
+ * the accounts, the orders — and what a wyo server holds only while it runs starts afresh, such as the moment «Обновить» was last
+ * answered (the 5-minute rule). For a test that needs a second reading without waiting five minutes. `server.program` is replaced
+ * in place, so whoever stops the server at the end of the test stops the new program.
+ */
+export async function restartWyoServer(server: IWyoServer): Promise<void> {
+    await server.program.stop();
+    server.program = await runWyoServer(server.port, server.dataDir);
 }

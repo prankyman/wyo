@@ -263,6 +263,21 @@ snapshot() { # what a second run of the installer must leave as it is
     }
 }
 
+# The timer's schedule as systemd read it: "{ OnCalendar=*-*-* 01:00:00 Europe/Moscow ; next_elapse=… }".
+timer_is_moscow() { systemctl show -p TimersCalendar --value wyo-update.timer | grep -qF '01:00:00 Europe/Moscow'; }
+
+# The unit file of the daily look holds the text the installed program prints.
+timer_is_the_programs() { cmp -s <(/usr/local/bin/wyo update --timer-unit) /etc/systemd/system/wyo-update.timer; }
+
+# write_earlier_timer puts back the timer an installer of version 0.0.3 wrote: once a day at a random moment.
+write_earlier_timer() {
+    printf '%s\n' '[Unit]' 'Description=wyo daily look for a newer version' '' '[Timer]' 'OnCalendar=daily' \
+        'RandomizedDelaySec=24h' 'Persistent=true' '' '[Install]' 'WantedBy=timers.target' >/etc/systemd/system/wyo-update.timer
+    systemctl daemon-reload
+    systemctl restart wyo-update.timer
+    if timer_is_moscow; then fail "the earlier timer was not read"; fi
+}
+
 check_installation() {
     step "The installation: user, modes, certificate, sign-in"
     expect "the service is active" systemctl is-active --quiet wyo.service
@@ -275,6 +290,9 @@ check_installation() {
     expect_equal "certs/: mode and owner" "700 wyo:wyo" "$(stat -c '%a %U:%G' /var/lib/wyo/certs)"
     expect_equal "backups/: mode and owner" "700 wyo:wyo" "$(stat -c '%a %U:%G' /var/lib/wyo/backups)"
     expect "the database exists and belongs to wyo" test "$(stat -c %U /var/lib/wyo/wyo.db)" = wyo
+    expect "the daily look runs at 01:00 Moscow time" timer_is_moscow
+    expect_equal "the daily look is moved by up to two hours" 2h "$(systemctl show -p RandomizedDelayUSec --value wyo-update.timer)"
+    expect_equal "the move is fixed for this server" yes "$(systemctl show -p FixedRandomDelay --value wyo-update.timer)"
 
     wait_until "https answers" 120 healthy
     expect "the certificate is the test authority's" \
@@ -339,21 +357,51 @@ updater_finished() { [ "$(systemctl show -p ActiveState --value wyo-update.servi
 
 installed_version_is() { [ "$(version_of /usr/local/bin/wyo)" = "$1" ] && systemctl is-active --quiet wyo.service && healthy; }
 
-newer_release_is_installed() {
-    step "A newer release is installed by the updater and the data stays"
+# leftover_work_folders: the updater's work folders still in the data folder, one per line.
+leftover_work_folders() { find /var/lib/wyo -mindepth 1 -maxdepth 1 -type d -name 'update-*'; }
+
+# The installer, run again with a newer release on a server where wyo runs, does not replace the program itself: it asks
+# the updater, as the owner's press does. That the updater did it shows in the copy of the database it makes before an
+# update (the installer makes none) and in its state file. The owner's press itself is proven by the broken release.
+rerun_installs_newer_through_updater() {
+    step "A second run of the installer with a newer release goes through the updater and the data stays"
     local key_before
     key_before=$(sha256sum /var/lib/wyo/secret.key)
     serve_release newer
-    expect "the owner's press is answered" request_update
-    wait_until "version $VERSION_NEWER runs" 240 installed_version_is "$VERSION_NEWER"
+    bash "$DIR/install-test.sh" </dev/null >"$DIR/rerun-newer.log" 2>&1 || { cat "$DIR/rerun-newer.log" >&2; fail "the run of the installer with a newer release failed"; }
+    expect "the installer says the updater installed the version" grep -qF "wyo обновлён до версии $VERSION_NEWER" "$DIR/rerun-newer.log"
+    wait_until "version $VERSION_NEWER runs" 120 installed_version_is "$VERSION_NEWER"
     expect_equal "the earlier program is kept as wyo.previous" "$VERSION_FIRST" "$(version_of /usr/local/bin/wyo.previous)"
     expect "a copy of the database was made before the update" test -s "/var/lib/wyo/backups/wyo-before-update-$VERSION_NEWER.db"
-    # The updater records the update only after the new version answered /readyz, a moment after it started.
-    wait_until "the updater has finished" 120 updater_finished
+    expect "the updater has finished" updater_finished
     expect_equal "the state names the version" "$VERSION_NEWER" "$(state_field latestVersion)"
     expect_equal "no version failed" "" "$(state_field failedVersion)"
+    expect "the request file is gone" test ! -e /var/lib/wyo/update-request
+    expect_equal "no work folder of the updater is left" "" "$(leftover_work_folders)"
+    expect "no staged program is left" test ! -e /usr/local/bin/wyo.new
     expect_equal "the key file is unchanged" "$key_before" "$(sha256sum /var/lib/wyo/secret.key)"
     expect_equal "the owner still signs in with the same password" 200 "$(sign_in "$OWNER_PASSWORD")"
+}
+
+# A server set up by an earlier installer has the earlier timer. A run of the installer puts the timer right, and so
+# does a run of the updater of the version that runs (a server that only updates itself never runs the installer
+# again); neither restarts the wyo server, because only the timer changed.
+earlier_timer_is_put_right() {
+    step "An earlier timer is put right by the installer and by the updater without restarting the wyo server"
+    local pid
+    pid=$(main_pid)
+
+    write_earlier_timer
+    bash "$DIR/install-test.sh" </dev/null >"$DIR/rerun-timer.log" 2>&1 || { cat "$DIR/rerun-timer.log" >&2; fail "the run of the installer failed"; }
+    expect "the installer wrote the program's timer" timer_is_the_programs
+    expect "systemd follows the installer's timer" timer_is_moscow
+    expect_equal "the installer did not restart the service" "$pid" "$(main_pid)"
+
+    write_earlier_timer
+    systemctl start wyo-update.service
+    expect "the updater wrote the program's timer" timer_is_the_programs
+    expect "systemd follows the updater's timer" timer_is_moscow
+    expect_equal "the updater did not restart the service" "$pid" "$(main_pid)"
 }
 
 asked_for_programs() { grep -c 'GET /wyo_linux_' "$SERVER_LOG" || true; }
@@ -414,7 +462,8 @@ run_everything() {
     check_installation
     measure
     second_run_changes_nothing
-    newer_release_is_installed
+    rerun_installs_newer_through_updater
+    earlier_timer_is_put_right
     broken_release_is_put_back
     changed_release_is_refused
     uninstall_leaves_the_data

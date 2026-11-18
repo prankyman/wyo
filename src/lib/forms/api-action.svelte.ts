@@ -15,10 +15,14 @@ export class ApiAction {
 
     /**
      * Runs `call`; on success the answer is the text of `savedKey` (none when it is left out: the page moves on, as after a
-     * sign-out), on a refusal the refusal's text. Resolves with the call's result, or null when a call was already running and
-     * nothing was started.
+     * sign-out), on a refusal the refusal's text — from the family of texts of its place first (`family`, see `refusalKey`).
+     * Resolves with the call's result, or null when a call was already running and nothing was started.
      */
-    async run<T>(call: () => Promise<TApiResult<T>>, savedKey?: string): Promise<TApiResult<T> | null> {
+    async run<T>(
+        call: () => Promise<TApiResult<T>>,
+        savedKey?: string,
+        family?: string
+    ): Promise<TApiResult<T> | null> {
         if (this.pending) return null;
         this.pending = true;
         this.saved = null;
@@ -27,7 +31,7 @@ export class ApiAction {
             const result = await call();
             const lang = getLocale();
             if (result.ok) this.saved = savedKey === undefined ? null : t(savedKey, lang);
-            else this.error = t(refusalKey(result.refusal.code), lang, refusalParams(result.refusal));
+            else this.error = t(refusalKey(result.refusal.code, family), lang, refusalParams(result.refusal));
             return result;
         } finally {
             this.pending = false;

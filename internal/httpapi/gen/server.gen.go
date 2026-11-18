@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"compress/flate"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -18,7 +19,59 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+// Defines values for AccountState.
+const (
+	AccountStateDisabled     AccountState = "disabled"
+	AccountStateKeyExpired   AccountState = "key_expired"
+	AccountStateKeyExpiring  AccountState = "key_expiring"
+	AccountStateKeyRefused   AccountState = "key_refused"
+	AccountStateNoConnection AccountState = "no_connection"
+	AccountStateWorking      AccountState = "working"
+)
+
+// Valid indicates whether the value is a known member of the AccountState enum.
+func (e AccountState) Valid() bool {
+	switch e {
+	case AccountStateDisabled:
+		return true
+	case AccountStateKeyExpired:
+		return true
+	case AccountStateKeyExpiring:
+		return true
+	case AccountStateKeyRefused:
+		return true
+	case AccountStateNoConnection:
+		return true
+	case AccountStateWorking:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CancelledBy.
+const (
+	CancelledByBuyer       CancelledBy = "buyer"
+	CancelledByMarketplace CancelledBy = "marketplace"
+	CancelledBySeller      CancelledBy = "seller"
+)
+
+// Valid indicates whether the value is a known member of the CancelledBy enum.
+func (e CancelledBy) Valid() bool {
+	switch e {
+	case CancelledByBuyer:
+		return true
+	case CancelledByMarketplace:
+		return true
+	case CancelledBySeller:
+		return true
+	default:
+		return false
+	}
+}
 
 // Defines values for InstallationBackupsState.
 const (
@@ -89,6 +142,36 @@ func (e InstallationCertificateState) Valid() bool {
 	}
 }
 
+// Defines values for JournalOutcome.
+const (
+	JournalOutcomeDone         JournalOutcome = "done"
+	JournalOutcomeKeyRefused   JournalOutcome = "key_refused"
+	JournalOutcomeLimited      JournalOutcome = "limited"
+	JournalOutcomeNoConnection JournalOutcome = "no_connection"
+	JournalOutcomeRefused      JournalOutcome = "refused"
+	JournalOutcomeServerError  JournalOutcome = "server_error"
+)
+
+// Valid indicates whether the value is a known member of the JournalOutcome enum.
+func (e JournalOutcome) Valid() bool {
+	switch e {
+	case JournalOutcomeDone:
+		return true
+	case JournalOutcomeKeyRefused:
+		return true
+	case JournalOutcomeLimited:
+		return true
+	case JournalOutcomeNoConnection:
+		return true
+	case JournalOutcomeRefused:
+		return true
+	case JournalOutcomeServerError:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MetaMode.
 const (
 	Development MetaMode = "development"
@@ -112,6 +195,7 @@ func (e MetaMode) Valid() bool {
 
 // Defines values for NoticeSource.
 const (
+	Accounts    NoticeSource = "accounts"
 	Backups     NoticeSource = "backups"
 	Certificate NoticeSource = "certificate"
 	Updates     NoticeSource = "updates"
@@ -120,6 +204,8 @@ const (
 // Valid indicates whether the value is a known member of the NoticeSource enum.
 func (e NoticeSource) Valid() bool {
 	switch e {
+	case Accounts:
+		return true
 	case Backups:
 		return true
 	case Certificate:
@@ -152,6 +238,54 @@ func (e NoticeTone) Valid() bool {
 	case NoticeToneWait:
 		return true
 	case NoticeToneWarn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OrderScheme.
+const (
+	Fbo OrderScheme = "fbo"
+	Fbs OrderScheme = "fbs"
+)
+
+// Valid indicates whether the value is a known member of the OrderScheme enum.
+func (e OrderScheme) Valid() bool {
+	switch e {
+	case Fbo:
+		return true
+	case Fbs:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OrderState.
+const (
+	Assembling OrderState = "assembling"
+	Cancelled  OrderState = "cancelled"
+	InDelivery OrderState = "in_delivery"
+	New        OrderState = "new"
+	Received   OrderState = "received"
+	Unknown    OrderState = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the OrderState enum.
+func (e OrderState) Valid() bool {
+	switch e {
+	case Assembling:
+		return true
+	case Cancelled:
+		return true
+	case InDelivery:
+		return true
+	case New:
+		return true
+	case Received:
+		return true
+	case Unknown:
 		return true
 	default:
 		return false
@@ -194,6 +328,90 @@ func (e UpdateRequestRequested) Valid() bool {
 	}
 }
 
+// Account defines model for Account.
+type Account struct {
+	CreatedAt time.Time `json:"createdAt"`
+
+	// DeadlineHours Hours after an order's creation by which it must be handed to the marketplace.
+	DeadlineHours int  `json:"deadlineHours"`
+	FailuresInRow *int `json:"failuresInRow,omitempty"`
+
+	// HasOrders An order came from the account; it can then only be switched off.
+	HasOrders    bool       `json:"hasOrders"`
+	Id           int64      `json:"id"`
+	KeyExpiresAt *time.Time `json:"keyExpiresAt,omitempty"`
+
+	// KeyLast4 The last four characters of the key - never more.
+	KeyLast4 string `json:"keyLast4"`
+
+	// KeyType The key's type as the adapter names it, e.g. `personal`, `test`.
+	KeyType     *string         `json:"keyType,omitempty"`
+	LastCheckAt *time.Time      `json:"lastCheckAt,omitempty"`
+	LastRefusal *AccountRefusal `json:"lastRefusal,omitempty"`
+
+	// LastSuccessAt The last successful reading.
+	LastSuccessAt *time.Time `json:"lastSuccessAt,omitempty"`
+
+	// Marketplace The adapter's code.
+	Marketplace string `json:"marketplace"`
+
+	// MissingCategories Categories the key lacks that some part of the account needs, e.g. `statistics`.
+	MissingCategories []string `json:"missingCategories"`
+
+	// Name The account's own name
+	Name string `json:"name"`
+
+	// ReadOnly The key allows only reading.
+	ReadOnly bool `json:"readOnly"`
+
+	// SellerName The seller's name as the marketplace gives it.
+	SellerName *string `json:"sellerName,omitempty"`
+
+	// State The texts are `accounts.state.<state>` and `accounts.state.<state>.help`.
+	State AccountState `json:"state"`
+
+	// Test A test key - the account talks only to the marketplace's sandbox.
+	Test bool `json:"test"`
+}
+
+// AccountChange defines model for AccountChange.
+type AccountChange struct {
+	DeadlineHours *int    `json:"deadlineHours,omitempty"`
+	Name          *string `json:"name,omitempty"`
+}
+
+// AccountCreate defines model for AccountCreate.
+type AccountCreate struct {
+	Key         map[string]string `json:"key"`
+	Marketplace string            `json:"marketplace"`
+	Name        string            `json:"name"`
+}
+
+// AccountKey defines model for AccountKey.
+type AccountKey struct {
+	// Key The key form's fields by name, as the adapter's `keyFields` lists them.
+	Key map[string]string `json:"key"`
+}
+
+// AccountList defines model for AccountList.
+type AccountList struct {
+	Accounts []Account `json:"accounts"`
+}
+
+// AccountRefusal defines model for AccountRefusal.
+type AccountRefusal struct {
+	At time.Time `json:"at"`
+
+	// Code A code of the adapter's refusals; the text is `accounts.refusal.<code>`.
+	Code string `json:"code"`
+
+	// Status The marketplace's answer status
+	Status *int `json:"status,omitempty"`
+}
+
+// AccountState The texts are `accounts.state.<state>` and `accounts.state.<state>.help`.
+type AccountState string
+
 // Backup defines model for Backup.
 type Backup struct {
 	CreatedAt time.Time `json:"createdAt"`
@@ -209,6 +427,9 @@ type Backup struct {
 type BackupList struct {
 	Backups []Backup `json:"backups"`
 }
+
+// CancelledBy Who cancelled a cancelled order; the text is `orders.state.cancelled.<cancelledBy>`.
+type CancelledBy string
 
 // Installation defines model for Installation.
 type Installation struct {
@@ -255,6 +476,95 @@ type InstallationCertificateMode string
 // InstallationCertificateState defines model for Installation.Certificate.State.
 type InstallationCertificateState string
 
+// JournalEntry defines model for JournalEntry.
+type JournalEntry struct {
+	AccountId   *int64    `json:"accountId,omitempty"`
+	AccountName *string   `json:"accountName,omitempty"`
+	At          time.Time `json:"at"`
+	DurationMs  int       `json:"durationMs"`
+	ErrorCode   *string   `json:"errorCode,omitempty"`
+
+	// ErrorText At most 500 characters
+	ErrorText *string `json:"errorText,omitempty"`
+	Id        int64   `json:"id"`
+
+	// Job The job that sent it, e.g. `orders.new`, `key.check`, `refresh`.
+	Job         string  `json:"job"`
+	Marketplace *string `json:"marketplace,omitempty"`
+	Method      string  `json:"method"`
+
+	// Outcome The text is `journal.outcome.<outcome>`.
+	Outcome JournalOutcome `json:"outcome"`
+
+	// Path The path with placeholders in place of every number, e.g. `/api/v3/supplies/{supplyId}`.
+	Path string `json:"path"`
+
+	// Status The answer's status; 0 when no answer came.
+	Status int `json:"status"`
+}
+
+// JournalList defines model for JournalList.
+type JournalList struct {
+	Entries  []JournalEntry `json:"entries"`
+	Page     int            `json:"page"`
+	PageSize int            `json:"pageSize"`
+	Total    int            `json:"total"`
+}
+
+// JournalOutcome The text is `journal.outcome.<outcome>`.
+type JournalOutcome string
+
+// KeyField defines model for KeyField.
+type KeyField struct {
+	// Name The field of the key form; its texts are `marketplace.<code>.key.<name>.label` and `.help`.
+	Name string `json:"name"`
+
+	// Secret The value is a secret - drawn as a secret box
+	Secret bool `json:"secret"`
+}
+
+// Marketplace defines model for Marketplace.
+type Marketplace struct {
+	// Capabilities The parts of the adapter contract this adapter supports, e.g. `orders.new`.
+	Capabilities []string `json:"capabilities"`
+
+	// Code The adapter's code, e.g. `wildberries`; its texts are `marketplace.<code>.name` and `.help`.
+	Code      string     `json:"code"`
+	KeyFields []KeyField `json:"keyFields"`
+
+	// Mark The name of the colour mark of the theme.
+	Mark string `json:"mark"`
+}
+
+// MarketplaceList defines model for MarketplaceList.
+type MarketplaceList struct {
+	Marketplaces []Marketplace `json:"marketplaces"`
+}
+
+// MarketplaceStatus The marketplace's own words for the state, as received.
+type MarketplaceStatus struct {
+	Marketplace *string `json:"marketplace,omitempty"`
+	Seller      *string `json:"seller,omitempty"`
+}
+
+// MarketplacesOverview defines model for MarketplacesOverview.
+type MarketplacesOverview struct {
+	// Accounts Accounts that are not switched off.
+	Accounts   int `json:"accounts"`
+	Assembling int `json:"assembling"`
+
+	// Attention Accounts in a state other than `working` and `disabled`.
+	Attention     int        `json:"attention"`
+	LastSuccessAt *time.Time `json:"lastSuccessAt,omitempty"`
+	NewOrders     int        `json:"newOrders"`
+
+	// Overdue FBS orders past their deadline and not yet handed over.
+	Overdue int `json:"overdue"`
+
+	// UnknownStates Orders whose marketplace state the table does not hold.
+	UnknownStates int `json:"unknownStates"`
+}
+
 // Meta defines model for Meta.
 type Meta struct {
 	// Mode `release` for a released wyo server; `development` and `test` only in a build made with the `wyotest` tag.
@@ -295,10 +605,97 @@ type NoticeList struct {
 	Notices []Notice `json:"notices"`
 }
 
+// Order defines model for Order.
+type Order struct {
+	AccountId   int64    `json:"accountId"`
+	AccountName string   `json:"accountName"`
+	Article     *string  `json:"article,omitempty"`
+	Barcodes    []string `json:"barcodes"`
+
+	// Basket The buyer's basket number.
+	Basket *string `json:"basket,omitempty"`
+	Brand  *string `json:"brand,omitempty"`
+
+	// CancelledBy Who cancelled a cancelled order; the text is `orders.state.cancelled.<cancelledBy>`.
+	CancelledBy *CancelledBy `json:"cancelledBy,omitempty"`
+	CreatedAt   time.Time    `json:"createdAt"`
+
+	// DeadlineAt Only for `fbs`.
+	DeadlineAt *time.Time `json:"deadlineAt,omitempty"`
+	Id         int64      `json:"id"`
+
+	// Kind The product's kind
+	Kind        *string `json:"kind,omitempty"`
+	Marketplace string  `json:"marketplace"`
+
+	// MarketplaceStatus The marketplace's own words for the state, as received.
+	MarketplaceStatus MarketplaceStatus `json:"marketplaceStatus"`
+
+	// Number The marketplace's own number of the order.
+	Number string `json:"number"`
+
+	// ProductId The marketplace's own product number.
+	ProductId *string `json:"productId,omitempty"`
+
+	// Scheme `fbs` - the seller packs the order and hands it to the marketplace; `fbo` - the goods lie in the marketplace's own warehouse (read-only).
+	Scheme OrderScheme `json:"scheme"`
+	Size   *string     `json:"size,omitempty"`
+
+	// State The connector's own states, the same for every marketplace; the text is `orders.state.<state>`.
+	State     OrderState `json:"state"`
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	Warehouse *string    `json:"warehouse,omitempty"`
+}
+
+// OrderDetails defines model for OrderDetails.
+type OrderDetails struct {
+	Events []OrderEvent `json:"events"`
+	Order  Order        `json:"order"`
+}
+
+// OrderEvent defines model for OrderEvent.
+type OrderEvent struct {
+	At time.Time `json:"at"`
+
+	// CancelledBy Who cancelled a cancelled order; the text is `orders.state.cancelled.<cancelledBy>`.
+	CancelledBy *CancelledBy `json:"cancelledBy,omitempty"`
+
+	// MarketplaceStatus The marketplace's own words for the state, as received.
+	MarketplaceStatus MarketplaceStatus `json:"marketplaceStatus"`
+
+	// Source The contract part the change came from, e.g. `orders.new`, `orders.states`, `orders.feed`.
+	Source string `json:"source"`
+
+	// State The connector's own states, the same for every marketplace; the text is `orders.state.<state>`.
+	State OrderState `json:"state"`
+}
+
+// OrderList defines model for OrderList.
+type OrderList struct {
+	Orders   []Order `json:"orders"`
+	Page     int     `json:"page"`
+	PageSize int     `json:"pageSize"`
+	Total    int     `json:"total"`
+}
+
+// OrderScheme `fbs` - the seller packs the order and hands it to the marketplace; `fbo` - the goods lie in the marketplace's own warehouse (read-only).
+type OrderScheme string
+
+// OrderState The connector's own states, the same for every marketplace; the text is `orders.state.<state>`.
+type OrderState string
+
 // PasswordChange defines model for PasswordChange.
 type PasswordChange struct {
 	CurrentPassword string `json:"currentPassword"`
 	NewPassword     string `json:"newPassword"`
+}
+
+// RefreshState defines model for RefreshState.
+type RefreshState struct {
+	LastRefreshAt *time.Time `json:"lastRefreshAt,omitempty"`
+
+	// NextAllowedAt Absent when «Обновить» may be pressed now.
+	NextAllowedAt *time.Time `json:"nextAllowedAt,omitempty"`
 }
 
 // Refusal defines model for Refusal.
@@ -370,8 +767,37 @@ type UpdateRequest struct {
 // UpdateRequestRequested defines model for UpdateRequest.Requested.
 type UpdateRequestRequested string
 
+// ListJournalParams defines parameters for ListJournal.
+type ListJournalParams struct {
+	Account *int64              `form:"account,omitempty" json:"account,omitempty"`
+	Outcome *JournalOutcome     `form:"outcome,omitempty" json:"outcome,omitempty"`
+	From    *openapi_types.Date `form:"from,omitempty" json:"from,omitempty"`
+	To      *openapi_types.Date `form:"to,omitempty" json:"to,omitempty"`
+	Page    *int                `form:"page,omitempty" json:"page,omitempty"`
+}
+
+// ListOrdersParams defines parameters for ListOrders.
+type ListOrdersParams struct {
+	Account *int64              `form:"account,omitempty" json:"account,omitempty"`
+	Scheme  *OrderScheme        `form:"scheme,omitempty" json:"scheme,omitempty"`
+	State   *OrderState         `form:"state,omitempty" json:"state,omitempty"`
+	From    *openapi_types.Date `form:"from,omitempty" json:"from,omitempty"`
+	To      *openapi_types.Date `form:"to,omitempty" json:"to,omitempty"`
+	Q       *string             `form:"q,omitempty" json:"q,omitempty"`
+	Page    *int                `form:"page,omitempty" json:"page,omitempty"`
+}
+
 // ChangePasswordJSONRequestBody defines body for ChangePassword for application/json ContentType.
 type ChangePasswordJSONRequestBody = PasswordChange
+
+// CreateAccountJSONRequestBody defines body for CreateAccount for application/json ContentType.
+type CreateAccountJSONRequestBody = AccountCreate
+
+// UpdateAccountJSONRequestBody defines body for UpdateAccount for application/json ContentType.
+type UpdateAccountJSONRequestBody = AccountChange
+
+// ReplaceAccountKeyJSONRequestBody defines body for ReplaceAccountKey for application/json ContentType.
+type ReplaceAccountKeyJSONRequestBody = AccountKey
 
 // SignInJSONRequestBody defines body for SignIn for application/json ContentType.
 type SignInJSONRequestBody = SignIn
@@ -384,6 +810,33 @@ type ServerInterface interface {
 	// ChangePassword Sets a new password after checking the current one, and ends every other session. Refusals lie on the fields: `currentPassword` / `wrong`, `newPassword` / `too_short` (`params.min`), `newPassword` / `same_as_current`.
 	// (PUT /api/v1/account/password)
 	ChangePassword(w http.ResponseWriter, r *http.Request)
+	// ListAccounts The seller's marketplace accounts, in the order they were added.
+	// (GET /api/v1/accounts)
+	ListAccounts(w http.ResponseWriter, r *http.Request)
+	// CreateAccount Adds an account after checking its key (the contract part `key.check`). The key is stored only in the secret store and never sent back. Refusals lie on the fields: `name` / `required`; `key.<field>` / `required`, `key_unreadable`, `key_expired`, `key_type_not_accepted` (`params.type`: `base`, `service`), `category_missing` (`params.category`), `key_refused` (the marketplace answered 401), `profile_mismatch`; without a field: `no_connection`, `marketplace_busy` (the marketplace answered that its limit of requests is met; `params.retryAfterSeconds` when it named the wait), `marketplace_unknown`.
+	// (POST /api/v1/accounts)
+	CreateAccount(w http.ResponseWriter, r *http.Request)
+	// DeleteAccount Deletes an account from which no order ever came; any other is refused with `account_has_orders` and can only be switched off.
+	// (DELETE /api/v1/accounts/{id})
+	DeleteAccount(w http.ResponseWriter, r *http.Request, id int64)
+	// GetAccount One account.
+	// (GET /api/v1/accounts/{id})
+	GetAccount(w http.ResponseWriter, r *http.Request, id int64)
+	// UpdateAccount Changes the account's name or its hours to hand an order over. Refusals: `name` / `required`, `deadlineHours` / `out_of_range` (`params.min`, `params.max`).
+	// (PATCH /api/v1/accounts/{id})
+	UpdateAccount(w http.ResponseWriter, r *http.Request, id int64)
+	// CheckAccount Checks the stored key again now; the account's state follows the answer.
+	// (POST /api/v1/accounts/{id}/check)
+	CheckAccount(w http.ResponseWriter, r *http.Request, id int64)
+	// DisableAccount Switches the account off - nothing is asked for it, its orders stay.
+	// (POST /api/v1/accounts/{id}/disable)
+	DisableAccount(w http.ResponseWriter, r *http.Request, id int64)
+	// EnableAccount Switches the account on again and checks its key.
+	// (POST /api/v1/accounts/{id}/enable)
+	EnableAccount(w http.ResponseWriter, r *http.Request, id int64)
+	// ReplaceAccountKey Replaces the account's key after the same check as an added one. A key of another seller profile is refused with `key.<field>` / `other_seller`, so an account's orders never change owner.
+	// (PUT /api/v1/accounts/{id}/key)
+	ReplaceAccountKey(w http.ResponseWriter, r *http.Request, id int64)
 	// ListBackups The copies of the database kept on the server, newest first.
 	// (GET /api/v1/backups)
 	ListBackups(w http.ResponseWriter, r *http.Request)
@@ -393,12 +846,27 @@ type ServerInterface interface {
 	// GetInstallation The state of the installation shown on «Обзор» - version, updates, certificate, the last copy.
 	// (GET /api/v1/installation)
 	GetInstallation(w http.ResponseWriter, r *http.Request)
+	// ListJournal The journal of every request the wyo server sent to a marketplace, newest first, 50 a page. Never a key, a query or a body.
+	// (GET /api/v1/journal)
+	ListJournal(w http.ResponseWriter, r *http.Request, params ListJournalParams)
+	// ListMarketplaces Every marketplace adapter the wyo server holds - its code, colour mark, the fields of its key form and the parts of the adapter contract it supports. The interface draws the key form, the marks and the columns that exist only for some capability from this list, never from a marketplace's name.
+	// (GET /api/v1/marketplaces)
+	ListMarketplaces(w http.ResponseWriter, r *http.Request)
 	// GetMeta The program's name, version and mode.
 	// (GET /api/v1/meta)
 	GetMeta(w http.ResponseWriter, r *http.Request)
 	// ListNotices What needs the owner's attention now, from every notice source (the bell).
 	// (GET /api/v1/notices)
 	ListNotices(w http.ResponseWriter, r *http.Request)
+	// ListOrders The orders of every account and scheme, newest first, 50 a page. Filters: account, scheme, state, the period of creation (dates in the installation's time zone, both ends included) and a search by the order's number, the article or a barcode.
+	// (GET /api/v1/orders)
+	ListOrders(w http.ResponseWriter, r *http.Request, params ListOrdersParams)
+	// GetOrder One order with the history of its states.
+	// (GET /api/v1/orders/{id})
+	GetOrder(w http.ResponseWriter, r *http.Request, id int64)
+	// GetMarketplacesOverview The cards of «Обзор» about accounts and orders.
+	// (GET /api/v1/overview/marketplaces)
+	GetMarketplacesOverview(w http.ResponseWriter, r *http.Request)
 	// SignOut Ends the session of this browser.
 	// (DELETE /api/v1/session)
 	SignOut(w http.ResponseWriter, r *http.Request)
@@ -417,6 +885,12 @@ type ServerInterface interface {
 	// SaveSettingsGroup Saves the values of one group. A value outside its limits is refused with an issue whose path is the setting's key (`out_of_range` with `params.min` and `params.max`, or `wrong_kind`).
 	// (PUT /api/v1/settings/{group})
 	SaveSettingsGroup(w http.ResponseWriter, r *http.Request, group string)
+	// GetRefresh When the order list was last refreshed by the owner and when «Обновить» may be pressed again.
+	// (GET /api/v1/sync/refresh)
+	GetRefresh(w http.ResponseWriter, r *http.Request)
+	// RefreshOrders Starts the three order jobs of every working account at once. Answered at most once in 5 minutes; earlier it is refused with `too_soon` and `params.nextAllowedAt`.
+	// (POST /api/v1/sync/refresh)
+	RefreshOrders(w http.ResponseWriter, r *http.Request)
 	// RequestUpdateCheck Asks the updater to look for a newer release now (it installs nothing).
 	// (POST /api/v1/updates/check)
 	RequestUpdateCheck(w http.ResponseWriter, r *http.Request)
@@ -439,6 +913,216 @@ func (siw *ServerInterfaceWrapper) ChangePassword(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ChangePassword(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListAccounts operation middleware
+func (siw *ServerInterfaceWrapper) ListAccounts(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAccounts(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateAccount operation middleware
+func (siw *ServerInterfaceWrapper) CreateAccount(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateAccount(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteAccount operation middleware
+func (siw *ServerInterfaceWrapper) DeleteAccount(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteAccount(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetAccount operation middleware
+func (siw *ServerInterfaceWrapper) GetAccount(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAccount(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateAccount operation middleware
+func (siw *ServerInterfaceWrapper) UpdateAccount(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateAccount(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CheckAccount operation middleware
+func (siw *ServerInterfaceWrapper) CheckAccount(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CheckAccount(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DisableAccount operation middleware
+func (siw *ServerInterfaceWrapper) DisableAccount(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DisableAccount(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// EnableAccount operation middleware
+func (siw *ServerInterfaceWrapper) EnableAccount(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.EnableAccount(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReplaceAccountKey operation middleware
+func (siw *ServerInterfaceWrapper) ReplaceAccountKey(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReplaceAccountKey(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -490,6 +1174,105 @@ func (siw *ServerInterfaceWrapper) GetInstallation(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// ListJournal operation middleware
+func (siw *ServerInterfaceWrapper) ListJournal(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListJournalParams
+
+	// ------------- Optional query parameter "account" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "account", r.URL.Query(), &params.Account, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "account"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "account", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "outcome" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "outcome", r.URL.Query(), &params.Outcome, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "outcome"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "outcome", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListJournal(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMarketplaces operation middleware
+func (siw *ServerInterfaceWrapper) ListMarketplaces(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMarketplaces(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetMeta operation middleware
 func (siw *ServerInterfaceWrapper) GetMeta(w http.ResponseWriter, r *http.Request) {
 
@@ -509,6 +1292,157 @@ func (siw *ServerInterfaceWrapper) ListNotices(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListNotices(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListOrders operation middleware
+func (siw *ServerInterfaceWrapper) ListOrders(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListOrdersParams
+
+	// ------------- Optional query parameter "account" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "account", r.URL.Query(), &params.Account, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "account"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "account", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "scheme" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "scheme", r.URL.Query(), &params.Scheme, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "scheme"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "scheme", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "page"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListOrders(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetOrder operation middleware
+func (siw *ServerInterfaceWrapper) GetOrder(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetOrder(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMarketplacesOverview operation middleware
+func (siw *ServerInterfaceWrapper) GetMarketplacesOverview(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMarketplacesOverview(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -605,6 +1539,34 @@ func (siw *ServerInterfaceWrapper) SaveSettingsGroup(w http.ResponseWriter, r *h
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SaveSettingsGroup(w, r, group)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRefresh operation middleware
+func (siw *ServerInterfaceWrapper) GetRefresh(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRefresh(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RefreshOrders operation middleware
+func (siw *ServerInterfaceWrapper) RefreshOrders(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RefreshOrders(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -776,6 +1738,22 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/backups", wrapper.ListBackups)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/backups", wrapper.CreateBackup)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/notices", wrapper.ListNotices)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/marketplaces", wrapper.ListMarketplaces)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/accounts", wrapper.ListAccounts)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/accounts", wrapper.CreateAccount)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/accounts/{id}", wrapper.DeleteAccount)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/accounts/{id}", wrapper.GetAccount)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/accounts/{id}", wrapper.UpdateAccount)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/accounts/{id}/key", wrapper.ReplaceAccountKey)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/accounts/{id}/check", wrapper.CheckAccount)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/accounts/{id}/disable", wrapper.DisableAccount)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/accounts/{id}/enable", wrapper.EnableAccount)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/orders", wrapper.ListOrders)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/orders/{id}", wrapper.GetOrder)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/sync/refresh", wrapper.GetRefresh)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/sync/refresh", wrapper.RefreshOrders)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/journal", wrapper.ListJournal)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/overview/marketplaces", wrapper.GetMarketplacesOverview)
 
 	return m
 }
@@ -785,50 +1763,105 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

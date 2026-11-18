@@ -208,3 +208,14 @@ func TestRedactedFieldsSayTheyWereRedacted(t *testing.T) {
 		t.Fatalf("want %q, got %v", logging.Redacted, got)
 	}
 }
+
+func TestScrubBlanksASignedTokenAndABearerKeyInAnyText(t *testing.T) {
+	t.Parallel()
+
+	text := "refused eyJhbGciOiJFUzI1NiJ9.eyJzaWQiOiIxIn0.c2lnbmF0dXJl and Bearer abcdefgh12345678, status 401"
+
+	got := logging.Scrub(text)
+	if got != "refused [redacted] and Bearer [redacted], status 401" {
+		t.Fatalf("Scrub = %q", got)
+	}
+}

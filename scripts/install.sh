@@ -6,7 +6,9 @@
 # What it does: looks at the server before it asks anything; asks four things (the domain, the owner's login, the
 # owner's password, whether updates install themselves); downloads the wyo server for this processor and checks it
 # against a signed list; sets up the system user, the folders, the four system units and the owner; starts the wyo
-# server and waits until it answers. Run again, it repairs and never destroys. It sends nothing anywhere but its
+# server and waits until it answers. Run again, it repairs and never destroys; on a server where wyo already runs, a
+# newer version is handed to wyo's own updater, as the owner's press of «Обновить сейчас» does, so the database is
+# copied first and the earlier version is put back when the new one does not answer. It sends nothing anywhere but its
 # downloads from the release address below.
 #
 # The order of checking a release is written here and once in Go (internal/release): the signature of checksums.txt
@@ -52,6 +54,11 @@ declare -A T=(
     [bad_version]='В выпуске записана непонятная версия: %s. Ничего не установлено.'
     [verified]='Подпись и контрольные суммы сошлись. Версия: %s.'
     [keep_newer]='Установлена более новая версия (%s), чем в выпуске (%s). Программу не заменяю.'
+    [via_updater]='На сервере уже работает wyo версии %s. Новую версию %s поставит программа обновления wyo, так же как после нажатия «Обновить сейчас»: она сделает копию базы данных, заменит программу и проверит, что новая версия отвечает. Если новая версия не ответит, программа обновления вернёт прежнюю вместе с копией базы данных, поэтому данные не пострадают. Новую версию программа обновления ждёт до 90 секунд и только потом возвращает прежнюю.'
+    [updated]='wyo обновлён до версии %s. Копия базы данных, сделанная перед обновлением, лежит в файле /var/lib/wyo/backups/wyo-before-update-%s.db: она нужна, если понадобится вернуться к прежней версии.'
+    [update_put_back]='Новая версия %s не заработала, поэтому программа обновления вернула прежнюю версию %s и копию базы данных, сделанную перед обновлением. wyo снова работает в прежней версии, данные в сохранности; потеряны только изменения, внесённые в последние одну-две секунды перед заменой программы, потому что копия была сделана до них. Причина записана в журнале программы обновления: sudo journalctl -u wyo-update.service -n 100 --no-pager'
+    [update_failed]='Программа обновления не смогла поставить версию %s. Работает прежняя версия %s, данные не тронуты, потому что программа обновления останавливается раньше, чем что-то меняет. Причина записана в журнале программы обновления: sudo journalctl -u wyo-update.service -n 100 --no-pager'
+    [timer_failed]='Программа wyo не выдала текст расписания ежедневной проверки обновлений (файл wyo-update.timer), поэтому установка остановлена. Запустите установщик ещё раз; если ошибка повторится, сообщите о ней на https://github.com/prankyman/wyo/issues.'
     [installing]='Устанавливаю…'
     [owner_created]='Владелец создан.'
     [owner_failed]='Не удалось создать владельца. Создайте его командой: sudo -u wyo wyo owner create --login ЛОГИН'
@@ -94,6 +101,11 @@ UNIT_DIR=/etc/systemd/system
 SERVICE_USER=wyo
 LOCAL_WAIT=90
 PUBLIC_WAIT=120
+# The files through which the wyo server asks the updater, and the word that asks it to install (internal/updatestate;
+# internal/release/installer_test.go fails when a copy differs).
+UPDATE_REQUEST_FILE='update-request'
+UPDATE_REQUEST_INSTALL='install'
+UPDATE_STATE_FILE='update-state.json'
 
 # say KEY [ARGS…] prints a sentence of the table. The format comes from the table, not from user input.
 say() {
@@ -375,7 +387,13 @@ check_file() {
 }
 
 # ---- Setting up ----
-CHANGED=0
+# The files this run wrote, so that only what changed is restarted.
+CHANGED_FILES=()
+# The version that ran before this run, and whether the updater installs the release instead of the installer.
+INSTALLED_VERSION=''
+THROUGH_UPDATER=0
+# The program that prints the timer's text: the release's own, or the installed one when that is newer.
+UNIT_PROGRAM=''
 
 # put_file SOURCE DEST MODE OWNER:GROUP copies only when the content, the mode or the owner differ, so that a second
 # run of the installer changes nothing.
@@ -386,7 +404,16 @@ put_file() {
         return 0
     fi
     install -m "$mode" -o "${owner%%:*}" -g "${owner##*:}" "$source" "$dest"
-    CHANGED=1
+    CHANGED_FILES+=("$dest")
+}
+
+# changed FILE: this run wrote the file.
+changed() {
+    local file
+    for file in "${CHANGED_FILES[@]}"; do
+        if [ "$file" = "$1" ]; then return 0; fi
+    done
+    return 1
 }
 
 version_of_installed() {
@@ -395,12 +422,29 @@ version_of_installed() {
     fi
 }
 
+# later_than A B: version A is later than version B.
+later_than() {
+    [ "$1" != "$2" ] && [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -n 1)" = "$1" ]
+}
+
+# install_program puts the program in place only on a new server, or when the installed one is missing or does not run
+# (a repair). Where wyo runs with its database, a newer release is left to the updater (update_through_updater), and the
+# same version is not replaced at all.
 install_program() {
-    local installed
-    installed=$(version_of_installed)
-    if [ -n "$installed" ] && [ "$installed" != "$VERSION" ] &&
-        [ "$(printf '%s\n%s\n' "$installed" "$VERSION" | sort -V | tail -n 1)" = "$installed" ]; then
-        say keep_newer "$installed" "$VERSION"
+    UNIT_PROGRAM=$TMP/wyo_linux_$ARCH
+    chmod 0755 "$UNIT_PROGRAM"
+    INSTALLED_VERSION=$(version_of_installed)
+    if [ "$INSTALLED_VERSION" = "$VERSION" ]; then
+        return 0
+    fi
+    if [ -n "$INSTALLED_VERSION" ] && later_than "$INSTALLED_VERSION" "$VERSION"; then
+        UNIT_PROGRAM=$BIN
+        say keep_newer "$INSTALLED_VERSION" "$VERSION"
+        return 0
+    fi
+    if [ -n "$INSTALLED_VERSION" ] && [ -s "$DATA/wyo.db" ]; then
+        THROUGH_UPDATER=1
+        say via_updater "$INSTALLED_VERSION" "$VERSION"
         return 0
     fi
     if [ -f "$BIN" ] && ! cmp -s "$TMP/wyo_linux_$ARCH" "$BIN"; then
@@ -461,24 +505,19 @@ Type=oneshot
 EnvironmentFile=$ENV_FILE
 ExecStart=$BIN update
 UNIT
-    cat >"$TMP/wyo-update.timer" <<UNIT
-[Unit]
-Description=wyo daily look for a newer version
-
-[Timer]
-OnCalendar=daily
-RandomizedDelaySec=24h
-Persistent=true
-
-[Install]
-WantedBy=timers.target
-UNIT
+    # The daily look for a newer version runs once a night between 01:00 and 03:00 Moscow time, whatever the server's
+    # own time zone. Its text has one place, the program (internal/release/timer.go, which explains each setting from
+    # systemd.timer(5), «RandomizedDelaySec=», «FixedRandomDelay=», «Persistent=», and systemd.time(7), «Calendar
+    # Events»: https://www.freedesktop.org/software/systemd/man/latest/systemd.timer.html and systemd.time.html). The
+    # installer asks the program of the release for it; the updater of each version rewrites it the same way, so a
+    # server that only updates itself keeps the schedule of the version that runs.
+    "$UNIT_PROGRAM" update --timer-unit >"$TMP/wyo-update.timer" || die timer_failed
     cat >"$TMP/wyo-update.path" <<UNIT
 [Unit]
 Description=wyo update requested from the interface
 
 [Path]
-PathExists=$DATA/update-request
+PathExists=$DATA/$UPDATE_REQUEST_FILE
 Unit=wyo-update.service
 
 [Install]
@@ -521,15 +560,58 @@ wait_for() {
     return 1
 }
 
+# start_service restarts the wyo server only when its program, its settings or its unit changed. A changed unit of the
+# updater, its timer or its path is read again by daemon-reload; the timer and the path unit are restarted so that they
+# follow the new text at once (the timer's next run is computed anew). Neither touches the wyo server.
 start_service() {
     systemctl daemon-reload
     systemctl enable wyo.service wyo-update.timer wyo-update.path >/dev/null 2>&1
     if ! systemctl is-active --quiet wyo.service; then
         systemctl start wyo.service
-    elif [ "$CHANGED" = 1 ]; then
+    elif changed "$BIN" || changed "$ENV_FILE" || changed "$UNIT_DIR/wyo.service"; then
         systemctl restart wyo.service
     fi
-    systemctl start wyo-update.timer wyo-update.path
+    local unit
+    for unit in wyo-update.timer wyo-update.path; do
+        if changed "$UNIT_DIR/$unit"; then
+            systemctl restart "$unit"
+        else
+            systemctl start "$unit"
+        fi
+    done
+}
+
+# The version the last update failed with, as the updater recorded it, or nothing.
+failed_version() {
+    grep -o '"failedVersion":"[^"]*"' "$DATA/$UPDATE_STATE_FILE" 2>/dev/null | sed 's/^"failedVersion":"//; s/"$//' || true
+}
+
+# update_through_updater asks wyo's updater to install the release, exactly as the wyo server does when the owner
+# presses «Обновить сейчас» (internal/updatestate): the word "install" in the request file, readable by everyone and
+# owned by the wyo server's user, put in place at once. The updater copies the database while the wyo server runs,
+# swaps the program, starts it, waits for its answer and puts the earlier version back when it does not come. Any
+# installed version understands this request, so no newer flag of `wyo update` is needed.
+update_through_updater() {
+    local request
+    request=$(mktemp "$DATA/$UPDATE_REQUEST_FILE.XXXXXX")
+    printf '%s' "$UPDATE_REQUEST_INSTALL" >"$request"
+    chmod 0644 "$request"
+    chown "$SERVICE_USER:$SERVICE_USER" "$request"
+    mv -f "$request" "$DATA/$UPDATE_REQUEST_FILE"
+    # wyo-update.path starts the updater as soon as the file appears. This start joins that run, or starts the run
+    # itself, and returns when the one-shot run has ended; a failed run is read from its result below.
+    systemctl start wyo-update.service || true
+
+    local now
+    now=$(version_of_installed)
+    if [ -n "$now" ] && [ "$now" != "$INSTALLED_VERSION" ] && ! later_than "$VERSION" "$now"; then
+        say updated "$now" "$now"
+        return 0
+    fi
+    if [ "$(failed_version)" = "$VERSION" ]; then
+        die update_put_back "$VERSION" "$INSTALLED_VERSION"
+    fi
+    die update_failed "$VERSION" "$INSTALLED_VERSION"
 }
 
 wait_for_server() {
@@ -558,6 +640,7 @@ install_all() {
     as_service_user "$BIN" init --data "$DATA" "--updates=${UPDATES:-auto}"
     create_owner
     start_service
+    if [ "$THROUGH_UPDATER" = 1 ]; then update_through_updater; fi
     wait_for_server
     echo
     say done_title

@@ -38,23 +38,8 @@ func TestAStoredKeyNeverReachesALogLineOrAnAnswer(t *testing.T) {
 		t.Fatalf("CreateOwner: %v", err)
 	}
 
-	h := app.Handler()
-
-	var answers strings.Builder
-
-	call := func(req apikit.Request) apikit.Response {
-		got := apikit.Do(t, h, req)
-
-		answers.WriteString(got.Body + "\n")
-
-		for name, values := range got.Header {
-			if name != "Set-Cookie" { // the session's cookie is the one place its text belongs: in the header of the call that made it
-				answers.WriteString(name + ": " + strings.Join(values, ",") + "\n")
-			}
-		}
-
-		return got
-	}
+	answers := &answerLog{h: app.Handler()}
+	call := func(req apikit.Request) apikit.Response { return answers.call(t, req) }
 
 	in := call(apikit.Request{Method: http.MethodPost, Path: "/api/v1/session", Body: `{"login":"anna","password":"` + password + `"}`})
 	if in.Status != http.StatusOK || len(in.Cookies) != 1 {
@@ -124,3 +109,28 @@ func TestAStoredKeyNeverReachesALogLineOrAnAnswer(t *testing.T) {
 		}
 	}
 }
+
+// answerLog makes calls of the wyo server's own API and keeps every answer's body and headers, for a canary to look into.
+type answerLog struct {
+	h       http.Handler
+	answers strings.Builder
+}
+
+func (l *answerLog) call(t *testing.T, req apikit.Request) apikit.Response {
+	t.Helper()
+
+	got := apikit.Do(t, l.h, req)
+
+	l.answers.WriteString(got.Body + "\n")
+
+	for name, values := range got.Header {
+		if name != "Set-Cookie" { // the session's cookie is the one place its text belongs: in the header of the call that made it
+			l.answers.WriteString(name + ": " + strings.Join(values, ",") + "\n")
+		}
+	}
+
+	return got
+}
+
+// String is every answer kept.
+func (l *answerLog) String() string { return l.answers.String() }

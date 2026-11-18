@@ -222,10 +222,14 @@ func FakesOnlyInFakes(pkgs []Package) []string {
 	return onlyImportedFrom(pkgs, "internal/fakes", "internal/fakes", "cmd/wyofakes")
 }
 
-// TestSupportOnlyInTests checks that the packages that exist for tests are imported by test files only, so that no
-// released code carries them (a test's imports are not part of the lists this checks).
+// TestSupportOnlyInTests checks that the packages that exist for tests (the test kit and the adapter contract's test
+// suite) are imported by test files only, so that no released code carries them (a test's imports are not part of the
+// lists this checks).
 func TestSupportOnlyInTests(pkgs []Package) []string {
-	return onlyImportedFrom(pkgs, "internal/testkit", "internal/testkit")
+	violations := append(onlyImportedFrom(pkgs, "internal/testkit", "internal/testkit"), onlyImportedFrom(pkgs, contractSuite)...)
+	sort.Strings(violations)
+
+	return violations
 }
 
 func onlyImportedFrom(pkgs []Package, guarded string, allowedFrom ...string) []string {

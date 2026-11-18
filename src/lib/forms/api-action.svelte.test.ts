@@ -42,6 +42,18 @@ describe('ApiAction', () => {
         expect(action.saved).toBe('Сохранено.');
     });
 
+    it('words a refusal from the family of texts of its place first', async () => {
+        const action = new ApiAction();
+
+        await action.run(
+            () => Promise.resolve({ ok: false, status: 409, refusal: { code: 'account_has_orders' } }),
+            undefined,
+            'accounts.refusal'
+        );
+
+        expect(action.error).toContain('пришёл хотя бы один заказ');
+    });
+
     it('says no success when it is given no words for one, as a press that moves the person on', async () => {
         const action = new ApiAction();
 

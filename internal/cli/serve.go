@@ -111,6 +111,7 @@ func (e *Env) serveAutomatic(ctx context.Context, cfg config.Config, log *slog.L
 
 	gate, err := outbound.New(outbound.Options{
 		Version: version.Version, AuthorityDirectory: cfg.Test.ACMEDirectory, AuthorityRoots: roots,
+		MarketplaceURL: cfg.Test.MarketplaceURL,
 	})
 	if err != nil {
 		return e.failed(err)
@@ -133,6 +134,7 @@ func (e *Env) serveAutomatic(ctx context.Context, cfg config.Config, log *slog.L
 	app, code := e.open(ctx, cfg, log, func(o *server.Options) {
 		o.Certificates = certs
 		o.Notices = []notices.Source{certs}
+		o.Gate = gate
 	})
 	if app == nil {
 		return code

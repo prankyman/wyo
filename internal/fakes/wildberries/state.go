@@ -42,6 +42,10 @@ type order struct {
 	transferred    bool
 	reshipment     bool
 	stickerID      int
+	// The buyer's address and comment, which Wildberries may send with a new order; a test sets them to prove the
+	// connector drops them.
+	buyerAddress string
+	buyerComment string
 }
 
 type supply struct {
@@ -111,6 +115,7 @@ type feedRow struct {
 	barcode       string
 	cancelled     bool
 	cancelDate    time.Time
+	region        string
 }
 
 // state is everything one key (one token) has at the fake.
@@ -125,6 +130,7 @@ type state struct {
 	points         []shippingPoint
 	denied         map[string]bool
 	shippingNeeded bool
+	tokenRefused   string
 	orders         map[int64]*order
 	orderList      []*order
 	supplies       map[string]*supply

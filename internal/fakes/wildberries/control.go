@@ -14,9 +14,11 @@ import (
 // The control calls of this fake, besides the ones of fakekit.
 //
 //	POST /__control/setup                        seller, warehouses, offices, shipping_points, denied (areas the token may not
-//	                                             use: marketplace, statistics, common), shipping_required
+//	                                             use: marketplace, statistics, common), shipping_required, token_refused
+//	                                             ("expired" or "invalid": every call answers 401; "" lifts it)
 //	POST /__control/orders                       a new assembly order (article, nm_id, chrt_id, skus, required_meta,
-//	                                             optional_meta, cargo_type); answers {"id": ...}
+//	                                             optional_meta, cargo_type, and the buyer's address and comment, which
+//	                                             a test sends to prove the connector drops them); answers {"id": ...}
 //	POST /__control/orders/{id}/wb-status        what Wildberries has done with the order (waiting, sold, declined_by_client, ...)
 //	POST /__control/orders/{id}/reshipment       the order must be shipped again
 //	POST /__control/verdicts                     the verdict Wildberries gives an order's marking codes of one kind
@@ -66,6 +68,7 @@ func (s *Server) controlSetup(w http.ResponseWriter, r *http.Request) {
 		ShippingPoints   *[]shippingPoint `json:"shipping_points"`
 		Denied           *[]string        `json:"denied"`
 		ShippingRequired *bool            `json:"shipping_required"`
+		TokenRefused     *string          `json:"token_refused"`
 	}
 
 	if !controlBody(w, r, &in) {
@@ -80,6 +83,12 @@ func (s *Server) controlSetup(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
+	}
+
+	if in.TokenRefused != nil && *in.TokenRefused != "" && refusedTokenDetails[*in.TokenRefused] == "" {
+		fakekit.ControlError(w, http.StatusBadRequest, "token_refused is expired, invalid or empty")
+
+		return
 	}
 
 	if (in.Warehouses != nil && len(*in.Warehouses) == 0) || (in.Offices != nil && len(*in.Offices) == 0) {
@@ -119,6 +128,10 @@ func (s *Server) controlSetup(w http.ResponseWriter, r *http.Request) {
 		if in.ShippingRequired != nil {
 			st.shippingNeeded = *in.ShippingRequired
 		}
+
+		if in.TokenRefused != nil {
+			st.tokenRefused = *in.TokenRefused
+		}
 	})
 
 	done(w)
@@ -139,6 +152,8 @@ func (s *Server) controlOrder(w http.ResponseWriter, r *http.Request) {
 		RequiredMeta []string `json:"required_meta"`
 		OptionalMeta []string `json:"optional_meta"`
 		CargoType    int      `json:"cargo_type"`
+		Address      string   `json:"address"`
+		Comment      string   `json:"comment"`
 	}
 
 	if !controlBody(w, r, &in) {
@@ -173,6 +188,7 @@ func (s *Server) controlOrder(w http.ResponseWriter, r *http.Request) {
 			chrtID: in.ChrtID, skus: in.Skus, warehouseID: int(st.warehouses[0].ID), officeID: st.warehouses[0].OfficeID,
 			cargoType: in.CargoType, createdAt: st.now(), required: in.RequiredMeta, optional: in.OptionalMeta,
 			supplierStatus: statusNew, wbStatus: "waiting", meta: map[string][]string{}, verdicts: map[string]string{},
+			buyerAddress: in.Address, buyerComment: in.Comment,
 		}
 
 		if o.article == "" {
@@ -322,6 +338,7 @@ func (s *Server) controlFeed(w http.ResponseWriter, r *http.Request) {
 			NmID            int        `json:"nm_id"`
 			Barcode         string     `json:"barcode"`
 			IsCancel        bool       `json:"is_cancel"`
+			RegionName      string     `json:"region_name"`
 		} `json:"rows"`
 	}
 
@@ -342,7 +359,7 @@ func (s *Server) controlFeed(w http.ResponseWriter, r *http.Request) {
 			added := &feedRow{
 				srid: row.Srid, gNumber: row.GNumber, date: st.now(), lastChange: st.now(), warehouseName: row.WarehouseName,
 				warehouseType: row.WarehouseType, article: row.SupplierArticle, nmID: row.NmID, barcode: row.Barcode,
-				cancelled: row.IsCancel, cancelDate: st.now(),
+				cancelled: row.IsCancel, cancelDate: st.now(), region: row.RegionName,
 			}
 
 			if row.Date != nil {

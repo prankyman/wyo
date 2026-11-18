@@ -166,3 +166,48 @@ export interface IClickableRowProps extends Omit<HTMLAttributes<HTMLTableRowElem
     /** The cells. Exactly one of them holds a `StretchedLink`. */
     children: Snippet;
 }
+
+// ------------------------------------------------------------------ DataList
+
+/** One column of a `DataList`: its heading, how a phone shows it, and how its cell is drawn. */
+export interface IDataListColumn<TRow extends IDataListRow = IDataListRow> {
+    key: string;
+    /** i18n key for the header, never a literal. */
+    labelKey: string;
+    /**
+     * Promote this column on a phone: `primary` becomes the card's heading line, `secondary` the
+     * line under it. Everything else becomes a label/value pair inside the card.
+     */
+    emphasis?: 'primary' | 'secondary';
+    /** Right-align numbers so columns of figures line up on their digits. */
+    align?: 'start' | 'end';
+    /** Hide this column on a phone entirely — for things only useful on a wide screen. */
+    desktopOnly?: boolean;
+    /** The heading also shows a «?» with this help text (a message key). */
+    helpKey?: string;
+    /** The cell is a status badge — its word and colours come from the row. */
+    badge?: {
+        label(row: TRow): string;
+        colorClass(row: TRow): string;
+        dataTest?: string;
+    };
+    /** The cell is drawn by the list's `cell` snippet. */
+    custom?: boolean;
+}
+
+/** One row of a `DataList`: its id, where it links, and the text of each cell. */
+export interface IDataListRow {
+    id: string;
+    /** Where the whole row links, if anywhere. Already localized by the caller. */
+    href?: string;
+    /** Cell text by column key. Formatting (dates, quantities) is the caller's job. */
+    cells: Record<string, string | number | null>;
+    /** Marks a deactivated record so it can be shown greyed without a second column. */
+    muted?: boolean;
+    /** Marks a row that needs attention; it is drawn in the stop colour. */
+    alert?: boolean;
+    /** A short mark drawn beside the primary cell in both layouts. */
+    badge?: string;
+    /** Extra `data-*` attributes on the row and the card (a browser spec reads them). */
+    attributes?: Record<string, string>;
+}

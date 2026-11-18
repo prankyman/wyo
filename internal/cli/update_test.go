@@ -6,10 +6,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/prankyman/wyo/internal/backup"
 	"github.com/prankyman/wyo/internal/clock"
 	"github.com/prankyman/wyo/internal/config"
 	"github.com/prankyman/wyo/internal/datadir"
 	"github.com/prankyman/wyo/internal/release"
+	"github.com/prankyman/wyo/internal/store"
 	"github.com/prankyman/wyo/internal/version"
 )
 
@@ -107,15 +109,15 @@ func TestTheCopyBeforeAnUpdateAndTheSettingItReads(t *testing.T) {
 	dir := initialisedFolder(t)
 	layout := datadir.Layout{Dir: dir}
 
-	if err := copyDatabase(t.Context(), layout, release.BackupName("0.0.3")); err != nil {
+	if err := copyDatabase(t.Context(), layout, backup.BeforeUpdateName("0.0.3")); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := copyDatabase(t.Context(), layout, release.BackupName("0.0.3")); err != nil {
+	if err := copyDatabase(t.Context(), layout, backup.BeforeUpdateName("0.0.3")); err != nil {
 		t.Fatalf("a second copy of the same version replaces the first: %v", err)
 	}
 
-	if matches, _ := filepath.Glob(filepath.Join(layout.Backups(), release.BackupName("0.0.3"))); len(matches) != 1 {
+	if matches, _ := filepath.Glob(filepath.Join(layout.Backups(), backup.BeforeUpdateName("0.0.3"))); len(matches) != 1 {
 		t.Fatalf("copies %v", matches)
 	}
 
@@ -123,9 +125,36 @@ func TestTheCopyBeforeAnUpdateAndTheSettingItReads(t *testing.T) {
 		t.Fatal("a copy of a database that cannot be opened is an error")
 	}
 
+	// The copy is made while the wyo server runs and writes: an open write transaction of the running server neither
+	// blocks it nor ends up in it.
+	running, err := store.Open(t.Context(), layout.Database())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Cleanup(func() { _ = running.Close() })
+
+	err = running.Do(t.Context(), func(*store.Queries) error {
+		return copyDatabase(t.Context(), layout, backup.BeforeUpdateName("0.0.4"))
+	})
+	if err != nil {
+		t.Fatalf("the copy beside a running wyo server: %v", err)
+	}
+
 	auto, err := autoUpdates(t.Context(), config.Config{DataDir: dir}, &Env{Clock: clock.Real{}})
 	if err != nil || !auto {
 		t.Fatalf("automatic updates are on by default: %v %v", auto, err)
+	}
+}
+
+// The installer writes wyo-update.timer with the text the program of the release prints, so the text lives in one
+// place (release.TimerUnit). Printing it reads no data folder and calls nothing.
+func TestTheUpdaterPrintsTheTextOfItsTimer(t *testing.T) {
+	t.Parallel()
+
+	got := runWith(t, &fakeSystem{service: &fakeService{active: true}}, nil, "update", "--"+release.TimerUnitFlag)
+	if got.code != exitOK || got.stdout != release.TimerUnit || got.stderr != "" {
+		t.Fatalf("got %+v, want the timer's text", got)
 	}
 }
 

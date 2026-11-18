@@ -59,6 +59,14 @@ describe('RowDetailsPanel', () => {
         vi.clearAllMocks();
     });
 
+    it('pads the details of the row on every side, as the heading of the panel is padded', () => {
+        renderPanel({ fromLoad: KG });
+
+        const content = screen.getByTestId('unit-edit-content');
+        expect(content).toHaveClass('p-4');
+        expect(content).toContainElement(screen.getByTestId('unit-body'));
+    });
+
     it('draws nothing while no row is opened', () => {
         renderPanel();
         expect(screen.queryByTestId('unit-edit-panel')).not.toBeInTheDocument();

@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/prankyman/wyo/internal/accounts"
 	"github.com/prankyman/wyo/internal/auth"
 	"github.com/prankyman/wyo/internal/backup"
 	"github.com/prankyman/wyo/internal/certstatus"
@@ -25,7 +26,10 @@ import (
 	"github.com/prankyman/wyo/internal/notices"
 	"github.com/prankyman/wyo/internal/settings"
 	"github.com/prankyman/wyo/internal/store"
+	"github.com/prankyman/wyo/internal/sync"
+	"github.com/prankyman/wyo/internal/testkit/memadapter"
 	"github.com/prankyman/wyo/internal/testkit/storekit"
+	"github.com/prankyman/wyo/internal/testkit/synckit"
 	"github.com/prankyman/wyo/internal/updatestate"
 )
 
@@ -50,6 +54,13 @@ type Fixture struct {
 	Layout   datadir.Layout
 	// Logs holds every line the API logged.
 	Logs *bytes.Buffer
+
+	// The marketplaces: the adapter that lives in memory (its keys are "mem-<seller>"), the engine and the accounts. The
+	// kit holds the secret store and the journal; its marketplace answers nothing, because the adapter asks nobody.
+	Memory   *memadapter.Adapter
+	Engine   *sync.Engine
+	Accounts *accounts.Service
+	Sync     *synckit.Kit
 }
 
 // Noon is the moment every fixture's clock starts at: midday in Moscow.
@@ -77,6 +88,15 @@ func New(t *testing.T) *Fixture {
 
 	copies := backup.New(layout, st, clk)
 	logs := &bytes.Buffer{}
+	log := logging.New(logs, slog.LevelDebug)
+
+	kit := synckit.NewOn(t, st, clk, http.NotFoundHandler())
+	memory := memadapter.New(1000)
+	engine, registry := kit.Engine(t, memory)
+	t.Cleanup(engine.Wait) // a refresh's readings end before the database closes
+	marketplaceAccounts := accounts.New(accounts.Options{
+		Store: st, Keys: kit.Vault, Engine: engine, Registry: registry, Clock: clk, Log: log,
+	})
 
 	deps := httpapi.Deps{
 		Info:         httpapi.Info{Version: "1.2.3", Mode: config.ModeRelease},
@@ -85,8 +105,15 @@ func New(t *testing.T) *Fixture {
 		Backups:      copies,
 		DataDir:      layout.Dir,
 		Certificates: certstatus.Fixed{Mode: certstatus.ModeNone, State: certstatus.StateNotApplicable},
-		Notices:      []notices.Source{updatestate.Source{Dir: layout.Dir}, copies},
-		Log:          logging.New(logs, slog.LevelDebug),
+		Notices:      []notices.Source{updatestate.Source{Dir: layout.Dir}, copies, marketplaceAccounts},
+		Store:        st,
+		Marketplaces: registry,
+		Accounts:     marketplaceAccounts,
+		Refresher:    engine,
+		Lifetime:     t.Context(),
+		Location:     Noon().Location(),
+		Clock:        clk,
+		Log:          log,
 		// A request from a test is plain http, so the cookie cannot be Secure here: that property has a test of its own.
 		SecureCookie: false,
 	}
@@ -98,6 +125,7 @@ func New(t *testing.T) *Fixture {
 
 	return &Fixture{
 		Handler: handler, Deps: deps, Store: st, Auth: signIn, Settings: prefs, Backups: copies, Clock: clk, Layout: layout, Logs: logs,
+		Memory: memory, Engine: engine, Accounts: marketplaceAccounts, Sync: kit,
 	}
 }
 

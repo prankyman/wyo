@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"sync"
 	"testing"
 	"time"
 
@@ -20,6 +19,7 @@ import (
 	"github.com/prankyman/wyo/internal/server"
 	"github.com/prankyman/wyo/internal/store"
 	"github.com/prankyman/wyo/internal/testkit/apikit"
+	"github.com/prankyman/wyo/internal/testkit/daykit"
 	"github.com/prankyman/wyo/internal/testkit/httpkit"
 )
 
@@ -245,38 +245,22 @@ func TestBehindAWebServerTheAddressIsTheForwardedOne(t *testing.T) {
 }
 
 // The daily copy runs inside the running wyo server: Run starts the scheduler beside the HTTP server, and the scheduler
-// calls the backup job at its planned moment. Waiting is injected, so a night passes at once.
+// calls the backup job at its planned moment. Waiting is injected: the scheduler's jobs (the copy's and the
+// marketplaces') run through a made-up day, so the night passes at once.
 func TestTheRunningServerMakesTheDailyCopy(t *testing.T) {
 	t.Parallel()
 
 	clk := clock.NewFixed(apikit.Noon())
 
-	var (
-		mu    sync.Mutex
-		waits int
-	)
-
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	wait := func(ctx context.Context, d time.Duration) error {
-		mu.Lock()
-		waits++
-		first := waits == 1
-		mu.Unlock()
+	var day *daykit.Day
 
-		if first {
-			clk.Advance(d) // the first wait ends: the night has come
+	app := openApp(t, server.Options{Clock: clk, Wait: func(ctx context.Context, d time.Duration) error { return day.Wait(ctx, d) }, Location: time.UTC})
 
-			return nil
-		}
-
-		<-ctx.Done()
-
-		return ctx.Err()
-	}
-
-	app := openApp(t, server.Options{Clock: clk, Wait: wait, Location: time.UTC})
+	// One party per job: the copy's and the engine's.
+	day = daykit.New(clk, 1+len(app.Engine.Jobs()), clk.Now().Add(24*time.Hour))
 
 	ln, err := (&net.ListenConfig{}).Listen(ctx, "tcp", "127.0.0.1:0")
 	if err != nil {
@@ -299,7 +283,7 @@ func TestTheRunningServerMakesTheDailyCopy(t *testing.T) {
 
 		select {
 		case <-deadline:
-			t.Fatalf("no copy was made by the scheduler; waits %d", waits)
+			t.Fatalf("no copy was made by the scheduler; the made-up day is over: %v; the clock: %v", day.Over(), clk.Now())
 		case err := <-done:
 			t.Fatalf("Run ended early: %v", err)
 		case <-time.After(10 * time.Millisecond):

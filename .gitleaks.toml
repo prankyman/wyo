@@ -19,6 +19,17 @@ regexes = [
     '''^eyJhbGciOiJFUzI1NiJ9\.eyJzaWQiOiJjYW5hcnkifQ\.c2lnbmF0dXJlLWNhbmFyeQ$''',
     # internal/server/app_test.go: a made-up marketplace key a test stores to prove `wyo init` never makes a new key file over it.
     '''^a-marketplace-key-0123456789$''',
+    # internal/journal/journal_test.go: a made-up seller's key a test proves never reaches a journal row.
+    '''^a-distinctive-seller-key-0123456789$''',
+    # internal/sync/caller_test.go: made-up keys a test proves travel only in the Authorization header.
+    '''^a-distinctive-key-of-the-seller-0123456789$''',
+    '''^the-replaced-key-of-the-seller-987$''',
+    # internal/httpapi/marketplaces_test.go: made-up keys of the in-memory marketplace a test proves are answered only by
+    # their last four characters.
+    '''^mem-CANARY0123456789$''',
+    '''^mem-CANARY-other-0123456789$''',
+    # internal/marketplace/wildberries/token_test.go: a text shaped like a token whose middle part is not JSON.
+    '''^a\.bm90IGpzb24\.c$''',
     # internal/fakes/fulfilment/webhook_test.go: the example secret the Standard Webhooks specification publishes.
     '''^whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw$''',
     # internal/fulfilment/fcapi/fcapi.gen.go: a line of the compressed API description the generator embeds (it follows a

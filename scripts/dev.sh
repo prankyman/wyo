@@ -25,7 +25,8 @@ fi
 
 bin/wyofakes --wildberries 127.0.0.1:8791 --fulfilment 127.0.0.1:8792 &
 pids+=("$!")
-bin/wyo-dev --listen 127.0.0.1:8790 --mode development --data "$data" &
+# The wyo server asks the fake Wildberries instead of the real one (rule R3).
+WYO_MARKETPLACE_URL=http://127.0.0.1:8791 bin/wyo-dev --listen 127.0.0.1:8790 --mode development --data "$data" &
 pids+=("$!")
 
 pnpm exec vite dev --host 127.0.0.1 --port 5190 --strictPort

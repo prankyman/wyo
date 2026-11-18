@@ -173,8 +173,499 @@ paths:
                         content: { application/json: { schema: { $ref: '#/components/schemas/NoticeList' } } }
                     }
                 default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/marketplaces:
+        get:
+            operationId: listMarketplaces
+            summary: >-
+                Every marketplace adapter the wyo server holds - its code, colour mark, the fields of its key form and the
+                parts of the adapter contract it supports. The interface draws the key form, the marks and the columns that
+                exist only for some capability from this list, never from a marketplace's name.
+            responses:
+                '200':
+                    {
+                        description: The adapters.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/MarketplaceList' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/accounts:
+        get:
+            operationId: listAccounts
+            summary: The seller's marketplace accounts, in the order they were added.
+            responses:
+                '200':
+                    {
+                        description: The accounts.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/AccountList' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+        post:
+            operationId: createAccount
+            summary: >-
+                Adds an account after checking its key (the contract part `key.check`). The key is stored only in the
+                secret store and never sent back. Refusals lie on the fields: `name` / `required`; `key.<field>` /
+                `required`, `key_unreadable`, `key_expired`, `key_type_not_accepted` (`params.type`: `base`, `service`),
+                `category_missing` (`params.category`), `key_refused` (the marketplace answered 401), `profile_mismatch`;
+                without a field: `no_connection`, `marketplace_busy` (the marketplace answered that its limit of requests
+                is met; `params.retryAfterSeconds` when it named the wait), `marketplace_unknown`.
+            requestBody:
+                required: true
+                content: { application/json: { schema: { $ref: '#/components/schemas/AccountCreate' } } }
+            responses:
+                '201':
+                    {
+                        description: The account as added.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/Account' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/accounts/{id}:
+        parameters:
+            - { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
+        get:
+            operationId: getAccount
+            summary: One account.
+            responses:
+                '200':
+                    {
+                        description: The account.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/Account' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+        patch:
+            operationId: updateAccount
+            summary: >-
+                Changes the account's name or its hours to hand an order over. Refusals: `name` / `required`,
+                `deadlineHours` / `out_of_range` (`params.min`, `params.max`).
+            requestBody:
+                required: true
+                content: { application/json: { schema: { $ref: '#/components/schemas/AccountChange' } } }
+            responses:
+                '200':
+                    {
+                        description: The account as changed.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/Account' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+        delete:
+            operationId: deleteAccount
+            summary: >-
+                Deletes an account from which no order ever came; any other is refused with `account_has_orders` and can
+                only be switched off.
+            responses:
+                '204': { description: Deleted. }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/accounts/{id}/key:
+        parameters:
+            - { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
+        put:
+            operationId: replaceAccountKey
+            summary: >-
+                Replaces the account's key after the same check as an added one. A key of another seller profile is refused
+                with `key.<field>` / `other_seller`, so an account's orders never change owner.
+            requestBody:
+                required: true
+                content: { application/json: { schema: { $ref: '#/components/schemas/AccountKey' } } }
+            responses:
+                '200':
+                    {
+                        description: The account with its new key's last four characters.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/Account' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/accounts/{id}/check:
+        parameters:
+            - { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
+        post:
+            operationId: checkAccount
+            summary: Checks the stored key again now; the account's state follows the answer.
+            responses:
+                '200':
+                    {
+                        description: The account after the check.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/Account' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/accounts/{id}/disable:
+        parameters:
+            - { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
+        post:
+            operationId: disableAccount
+            summary: Switches the account off - nothing is asked for it, its orders stay.
+            responses:
+                '200':
+                    {
+                        description: The account.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/Account' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/accounts/{id}/enable:
+        parameters:
+            - { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
+        post:
+            operationId: enableAccount
+            summary: Switches the account on again and checks its key.
+            responses:
+                '200':
+                    {
+                        description: The account.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/Account' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/orders:
+        get:
+            operationId: listOrders
+            summary: >-
+                The orders of every account and scheme, newest first, 50 a page. Filters: account, scheme, state, the
+                period of creation (dates in the installation's time zone, both ends included) and a search by the order's
+                number, the article or a barcode.
+            parameters:
+                - { name: account, in: query, schema: { type: integer, format: int64 } }
+                - { name: scheme, in: query, schema: { $ref: '#/components/schemas/OrderScheme' } }
+                - { name: state, in: query, schema: { $ref: '#/components/schemas/OrderState' } }
+                - { name: from, in: query, schema: { type: string, format: date } }
+                - { name: to, in: query, schema: { type: string, format: date } }
+                - { name: q, in: query, schema: { type: string } }
+                - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+            responses:
+                '200':
+                    {
+                        description: One page of orders.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/OrderList' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/orders/{id}:
+        parameters:
+            - { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
+        get:
+            operationId: getOrder
+            summary: One order with the history of its states.
+            responses:
+                '200':
+                    {
+                        description: The order.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/OrderDetails' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/sync/refresh:
+        get:
+            operationId: getRefresh
+            summary: When the order list was last refreshed by the owner and when «Обновить» may be pressed again.
+            responses:
+                '200':
+                    {
+                        description: The refresh state.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/RefreshState' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+        post:
+            operationId: refreshOrders
+            summary: >-
+                Starts the three order jobs of every working account at once. Answered at most once in 5 minutes; earlier
+                it is refused with `too_soon` and `params.nextAllowedAt`.
+            responses:
+                '202':
+                    {
+                        description: Started.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/RefreshState' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/journal:
+        get:
+            operationId: listJournal
+            summary: >-
+                The journal of every request the wyo server sent to a marketplace, newest first, 50 a page. Never a key,
+                a query or a body.
+            parameters:
+                - { name: account, in: query, schema: { type: integer, format: int64 } }
+                - { name: outcome, in: query, schema: { $ref: '#/components/schemas/JournalOutcome' } }
+                - { name: from, in: query, schema: { type: string, format: date } }
+                - { name: to, in: query, schema: { type: string, format: date } }
+                - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+            responses:
+                '200':
+                    {
+                        description: One page of the journal.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/JournalList' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/overview/marketplaces:
+        get:
+            operationId: getMarketplacesOverview
+            summary: The cards of «Обзор» about accounts and orders.
+            responses:
+                '200':
+                    {
+                        description: The counts.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/MarketplacesOverview' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
 components:
     schemas:
+        KeyField:
+            type: object
+            additionalProperties: false
+            required: [name, secret]
+            properties:
+                name:
+                    type: string
+                    description: 'The field of the key form; its texts are `marketplace.<code>.key.<name>.label` and `.help`.'
+                secret: { type: boolean, description: The value is a secret - drawn as a secret box, never sent back. }
+        Marketplace:
+            type: object
+            additionalProperties: false
+            required: [code, mark, keyFields, capabilities]
+            properties:
+                code:
+                    type: string
+                    description: "The adapter's code, e.g. `wildberries`; its texts are `marketplace.<code>.name` and `.help`."
+                mark: { type: string, description: The name of the colour mark of the theme. }
+                keyFields:
+                    type: array
+                    items: { $ref: '#/components/schemas/KeyField' }
+                capabilities:
+                    type: array
+                    description: The parts of the adapter contract this adapter supports, e.g. `orders.new`.
+                    items: { type: string }
+        MarketplaceList:
+            type: object
+            additionalProperties: false
+            required: [marketplaces]
+            properties:
+                marketplaces:
+                    type: array
+                    items: { $ref: '#/components/schemas/Marketplace' }
+        AccountState:
+            type: string
+            enum: [working, key_expiring, key_expired, key_refused, no_connection, disabled]
+            description: 'The texts are `accounts.state.<state>` and `accounts.state.<state>.help`.'
+        AccountRefusal:
+            type: object
+            additionalProperties: false
+            required: [code, at]
+            properties:
+                code:
+                    {
+                        type: string,
+                        description: "A code of the adapter's refusals; the text is `accounts.refusal.<code>`."
+                    }
+                at: { type: string, format: date-time }
+                status: { type: integer, description: The marketplace's answer status, when there was one. }
+        Account:
+            type: object
+            additionalProperties: false
+            required:
+                [
+                    id,
+                    marketplace,
+                    name,
+                    state,
+                    test,
+                    keyLast4,
+                    missingCategories,
+                    readOnly,
+                    deadlineHours,
+                    hasOrders,
+                    createdAt
+                ]
+            properties:
+                id: { type: integer, format: int64 }
+                marketplace: { type: string, description: The adapter's code. }
+                name: { type: string, description: The account's own name, given by the owner. }
+                state: { $ref: '#/components/schemas/AccountState' }
+                test:
+                    type: boolean
+                    description: A test key - the account talks only to the marketplace's sandbox.
+                sellerName: { type: string, description: The seller's name as the marketplace gives it. }
+                keyLast4: { type: string, description: The last four characters of the key - never more. }
+                keyType:
+                    { type: string, description: "The key's type as the adapter names it, e.g. `personal`, `test`." }
+                keyExpiresAt: { type: string, format: date-time }
+                missingCategories:
+                    type: array
+                    description: Categories the key lacks that some part of the account needs, e.g. `statistics`.
+                    items: { type: string }
+                readOnly: { type: boolean, description: The key allows only reading. }
+                deadlineHours:
+                    type: integer
+                    description: Hours after an order's creation by which it must be handed to the marketplace.
+                lastCheckAt: { type: string, format: date-time }
+                lastSuccessAt: { type: string, format: date-time, description: The last successful reading. }
+                lastRefusal: { $ref: '#/components/schemas/AccountRefusal' }
+                failuresInRow: { type: integer }
+                hasOrders:
+                    { type: boolean, description: An order came from the account; it can then only be switched off. }
+                createdAt: { type: string, format: date-time }
+        AccountList:
+            type: object
+            additionalProperties: false
+            required: [accounts]
+            properties:
+                accounts:
+                    type: array
+                    items: { $ref: '#/components/schemas/Account' }
+        AccountKey:
+            type: object
+            additionalProperties: false
+            required: [key]
+            properties:
+                key:
+                    type: object
+                    description: The key form's fields by name, as the adapter's `keyFields` lists them.
+                    additionalProperties: { type: string }
+        AccountCreate:
+            type: object
+            additionalProperties: false
+            required: [marketplace, name, key]
+            properties:
+                marketplace: { type: string }
+                name: { type: string }
+                key:
+                    type: object
+                    additionalProperties: { type: string }
+        AccountChange:
+            type: object
+            additionalProperties: false
+            properties:
+                name: { type: string }
+                deadlineHours: { type: integer }
+        OrderScheme:
+            type: string
+            enum: [fbs, fbo]
+            description: >-
+                `fbs` - the seller packs the order and hands it to the marketplace; `fbo` - the goods lie in the
+                marketplace's own warehouse (read-only).
+        OrderState:
+            type: string
+            enum: [new, assembling, in_delivery, received, cancelled, unknown]
+            description: "The connector's own states, the same for every marketplace; the text is `orders.state.<state>`."
+        CancelledBy:
+            type: string
+            enum: [seller, buyer, marketplace]
+            description: 'Who cancelled a cancelled order; the text is `orders.state.cancelled.<cancelledBy>`.'
+        MarketplaceStatus:
+            type: object
+            additionalProperties: false
+            description: The marketplace's own words for the state, as received.
+            properties:
+                seller: { type: string }
+                marketplace: { type: string }
+        Order:
+            type: object
+            additionalProperties: false
+            required:
+                [id, accountId, accountName, marketplace, scheme, number, barcodes, createdAt, state, marketplaceStatus]
+            properties:
+                id: { type: integer, format: int64 }
+                accountId: { type: integer, format: int64 }
+                accountName: { type: string }
+                marketplace: { type: string }
+                scheme: { $ref: '#/components/schemas/OrderScheme' }
+                number: { type: string, description: The marketplace's own number of the order. }
+                basket: { type: string, description: The buyer's basket number. }
+                warehouse: { type: string }
+                article: { type: string }
+                barcodes:
+                    type: array
+                    items: { type: string }
+                productId: { type: string, description: The marketplace's own product number. }
+                kind: { type: string, description: The product's kind, when the marketplace gave it. }
+                brand: { type: string }
+                size: { type: string }
+                createdAt: { type: string, format: date-time }
+                deadlineAt: { type: string, format: date-time, description: Only for `fbs`. }
+                state: { $ref: '#/components/schemas/OrderState' }
+                cancelledBy: { $ref: '#/components/schemas/CancelledBy' }
+                marketplaceStatus: { $ref: '#/components/schemas/MarketplaceStatus' }
+                updatedAt: { type: string, format: date-time }
+        OrderEvent:
+            type: object
+            additionalProperties: false
+            required: [at, state, marketplaceStatus, source]
+            properties:
+                at: { type: string, format: date-time }
+                state: { $ref: '#/components/schemas/OrderState' }
+                cancelledBy: { $ref: '#/components/schemas/CancelledBy' }
+                marketplaceStatus: { $ref: '#/components/schemas/MarketplaceStatus' }
+                source:
+                    type: string
+                    description: 'The contract part the change came from, e.g. `orders.new`, `orders.states`, `orders.feed`.'
+        OrderDetails:
+            type: object
+            additionalProperties: false
+            required: [order, events]
+            properties:
+                order: { $ref: '#/components/schemas/Order' }
+                events:
+                    type: array
+                    items: { $ref: '#/components/schemas/OrderEvent' }
+        OrderList:
+            type: object
+            additionalProperties: false
+            required: [orders, total, page, pageSize]
+            properties:
+                orders:
+                    type: array
+                    items: { $ref: '#/components/schemas/Order' }
+                total: { type: integer }
+                page: { type: integer }
+                pageSize: { type: integer }
+        RefreshState:
+            type: object
+            additionalProperties: false
+            properties:
+                lastRefreshAt: { type: string, format: date-time }
+                nextAllowedAt:
+                    type: string
+                    format: date-time
+                    description: Absent when «Обновить» may be pressed now.
+        JournalOutcome:
+            type: string
+            enum: [done, limited, refused, server_error, no_connection, key_refused]
+            description: 'The text is `journal.outcome.<outcome>`.'
+        JournalEntry:
+            type: object
+            additionalProperties: false
+            required: [id, at, method, path, status, outcome, durationMs, job]
+            properties:
+                id: { type: integer, format: int64 }
+                at: { type: string, format: date-time }
+                accountId: { type: integer, format: int64 }
+                accountName: { type: string }
+                marketplace: { type: string }
+                method: { type: string }
+                path:
+                    type: string
+                    description: The path with placeholders in place of every number, e.g. `/api/v3/supplies/{supplyId}`.
+                status: { type: integer, description: The answer's status; 0 when no answer came. }
+                outcome: { $ref: '#/components/schemas/JournalOutcome' }
+                errorCode: { type: string }
+                errorText: { type: string, description: At most 500 characters, with anything secret blanked. }
+                durationMs: { type: integer }
+                job: { type: string, description: 'The job that sent it, e.g. `orders.new`, `key.check`, `refresh`.' }
+        JournalList:
+            type: object
+            additionalProperties: false
+            required: [entries, total, page, pageSize]
+            properties:
+                entries:
+                    type: array
+                    items: { $ref: '#/components/schemas/JournalEntry' }
+                total: { type: integer }
+                page: { type: integer }
+                pageSize: { type: integer }
+        MarketplacesOverview:
+            type: object
+            additionalProperties: false
+            required: [accounts, attention, newOrders, assembling, overdue, unknownStates]
+            properties:
+                accounts: { type: integer, description: Accounts that are not switched off. }
+                attention:
+                    type: integer
+                    description: Accounts in a state other than `working` and `disabled`.
+                newOrders: { type: integer }
+                assembling: { type: integer }
+                overdue: { type: integer, description: FBS orders past their deadline and not yet handed over. }
+                unknownStates: { type: integer, description: Orders whose marketplace state the table does not hold. }
+                lastSuccessAt: { type: string, format: date-time }
         Meta:
             type: object
             additionalProperties: false
@@ -350,7 +841,7 @@ components:
             required: [id, source, code, tone]
             properties:
                 id: { type: string, description: Stable while the cause lasts. }
-                source: { type: string, enum: [updates, certificate, backups] }
+                source: { type: string, enum: [updates, certificate, backups, accounts] }
                 code: { type: string, description: 'The text is `notices.<code>`.' }
                 tone: { type: string, enum: [ok, wait, warn, stop, info] }
                 params:

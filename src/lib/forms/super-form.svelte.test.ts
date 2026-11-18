@@ -211,6 +211,15 @@ describe('applyRefusal', () => {
         expect(form.message).toEqual({ error: 'errors.invalid', params: { max: 3 } });
     });
 
+    it('words the codes from the family of texts it is given, and the rest from the general texts', () => {
+        const form = fresh();
+
+        applyRefusal(form, { code: 'key_refused', issues: [{ path: 'name', code: 'required' }] }, 'accounts.refusal');
+
+        expect(form.errors.name).toEqual(['errors.required']);
+        expect(form.message).toEqual({ error: 'accounts.refusal.key_refused', params: undefined });
+    });
+
     it('makes a refusal with no issues an answer of the form and nothing else', () => {
         const form = fresh();
 

@@ -58,6 +58,21 @@ belonged to the other repository's subject is dropped, and the names, props and 
 sentence, an action), `SettingsSection` (one registry group drawn as a `SectionForm`), `UpdatesStatus`, `BackupsSection` and `ApiAction` (a press
 that is one call of the wyo server with its answer under the button).
 
+**Copied by Plan 3** (the order list and the journal), each with its test file, the colours turned into theme tokens and the words of the other
+repository's subject taken out:
+
+- `DataList` with `ColumnHeading` and `ColumnLegend` and the types `IDataListColumn`, `IDataListRow` (in `types.ts`) — one column definition
+  drawn as a table on a computer and as cards on a phone; the headings and the badge are in ordinary letters, as the theme asks. Its tick box of
+  the heading, `TickAllBox` with `tick-all.ts`, came with it. Their `<label>` around a row's tick box is an exception of `field-label-policy`.
+- `DateRangeFields` — the «from – to» pair of dates of a filter, with its test harness.
+- `src/lib/forms/search-form.ts` and `page-search.svelte.ts` — a list's filter as a search form: its values live in the page's address, a valid
+  press is a page change, and the boxes follow the address; `readSearch` is how the page's load reads the same values back. Each with its test
+  and harness.
+
+**New in this repository** (Plan 3): `FactList` — the facts of one record as names and values, each name with its «?» (an account's card, an
+order's and a journal row's details); and, outside the library, the components of the marketplaces (`src/lib/components/marketplaces/`), the
+orders (`orders/`) and the journal (`journal/`).
+
 **Policy tests copied with the components** (each allow-list emptied of the other repository's entries; a policy test reads the source files
 and fails the build when a rule is broken): `modal-window-policy`, `window-buttons-policy`, `note-box-policy`, `empty-state-policy`,
 `stack-policy`, `form-control-policy`, `field-label-policy`, `number-field-policy`, `form-buttons-policy`, `page-width-policy`,
@@ -76,17 +91,18 @@ files have nothing to post to.
 
 **The showcase page** `/showcase` draws every copied component in each of its states under the theme. It is how the maintainer judges the
 theme, and the page the browser tests measure at 390 pixels. It exists only in a wyo server built with the Go build tag `wyotest`; a
-released wyo server answers "not found" at its address, and a Go test of the release build proves it. The page is drawn by two sections, `src/routes/showcase/ShowcaseBasics.svelte` (buttons, help, notes, statuses, navigation) and
-`ShowcaseForms.svelte` (fields, windows, forms); `ShowcaseRealForm.svelte` is one real single-page form, sent to a stub
+released wyo server answers "not found" at its address, and a Go test of the release build proves it. The page is drawn by three sections:
+`src/routes/showcase/ShowcaseBasics.svelte` (buttons, help, notes, statuses, navigation), `ShowcaseForms.svelte` (fields, windows, forms)
+and `ShowcaseLists.svelte` (`DataList` with `ColumnHeading`, `ColumnLegend` and `TickAllBox`, an empty list, the heading's tick box in each
+state, `DateRangeFields` plain, refused and dimmed, `FactList`); `ShowcaseRealForm.svelte` is one real single-page form, sent to a stub
 (`showcase-stub.ts`) instead of a server.
 
 ## What waits
 
 **Not copied yet — copied by the plan that first needs one, with its test, never rewritten:**
 
-- the searchable picker `Combobox` (the only user of the package `bits-ui`), `FilePicker`, `CodeNameSelect`, `DateRangeFields`,
-  `TickAllBox`, `FileFormatButtons`, `StepsCard`, `RowButtonForm`, `ReasonDialog`;
-- the list component `DataList` with `ColumnHeading` and `ColumnLegend` — Plan 3 (the order list);
+- the searchable picker `Combobox` (the only user of the package `bits-ui`), `FilePicker`, `CodeNameSelect`, `FileFormatButtons`,
+  `StepsCard`, `RowButtonForm`, `ReasonDialog`;
 
 The same list is item 8 of the register (`.agents/backlog.md`). When a plan copies one, it moves the name from this section to the list
 above, with its test and its policy test if the other repository has one, and closes nothing else.

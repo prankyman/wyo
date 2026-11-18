@@ -32,6 +32,9 @@ Always a script of `package.json`, never an ad-hoc command, and never `--` befor
 - `pnpm generate:check` — fails when a committed generated file differs from a fresh one.
 - `pnpm test:headless [file]` — Vitest once, both projects, or one file.
 - `pnpm go:test [package]` — `go test -race -shuffle=on -count=1` for one package, or for `./cmd/... ./internal/... ./tools/...`.
+- `pnpm go:measure` — the memory of the wyo server with three accounts and 10 000 orders, reading the fake Wildberries at the
+  synchronisation's periods for a made-up day; it prints one line that starts with `wyo-memory:` (the peak memory of the test process,
+  which also holds the fake, so it is an upper bound). The pipeline runs it after the browser tests.
 - `pnpm test:coverage` — both sides with coverage.
 - `pnpm coverage:enforce` — the two coverage floors: `scripts/coverage-check.cjs` (interface) and `tools/covercheck` (Go).
 - `pnpm test:e2e [file]` — Playwright against the built wyo server started in test mode with the fakes; one data folder and one port per
@@ -73,10 +76,18 @@ cmd/wyofakes/                 both fakes for development and browser tests; neve
 internal/webui/               the embedded interface (dist/ is built, not committed) and the handler that serves it
 internal/httpapi/             the wyo server's own API (the access table, the handlers); gen/ is generated from api/wyo.yaml
 internal/cli/                 the wyo server's commands (commands.go is their one table; texts are cli.* of messages/ru.json)
-internal/server/              the parts joined: the data folder, the services, the handler, the daily copy
+internal/server/              the parts joined: the data folder, the services, the handler, the daily copy, the engine;
+                              adapters.go is the one list of the marketplace adapters
 internal/store/               the database: migrations/ (numbered, never edited once released), queries/, db/ (sqlc), testdata/
 internal/secretbox/           the secret store (AES-256-GCM with secret.key)
 internal/auth/, settings/, notices/, schedule/, backup/, datadir/, datalock/, issue/
+internal/marketplace/         the one adapter contract, the registry; contracttest/ is the contract's one test suite
+internal/marketplace/wildberries/  the Wildberries adapter (the only package that knows Wildberries)
+internal/sync/                the synchronisation engine: the one caller, the request budget, the jobs, the marks, the intake
+internal/journal/             the journal of every request sent to a marketplace (inserts only; 30 days)
+internal/accounts/            the seller's marketplace accounts and their notices behind the bell
+internal/testkit/             test helpers: apikit (the API), storekit (a database), synckit (the caller), daykit (a made-up day),
+                              memadapter (an adapter in memory), httpkit
 internal/outbound/            the one gate of every outgoing call, by purpose (the only maker of HTTP clients)
 internal/release/             the release keys (keys/*.pem), the checking order, the updater
 internal/updatestate/         the files the wyo server and the updater exchange (update-request, update-state.json)
@@ -146,15 +157,18 @@ test a key of its own.
   answers it.
 - `/__control/reset` — empties the fake's state (for the key the call carries).
 - `/__control/calls` — lists every call the fake received, without its key: how a test proves what the program sent and what it did not.
-- `/__control/orders` — (fake Wildberries) makes test orders.
+- `/__control/orders` — (fake Wildberries) makes test orders. An order may carry the buyer's `address` and `comment`, which a test
+  sends to prove that the wyo server drops them.
 - orders of the fake fulfilment centre — a test moves an order through reserved, packed with marking codes, reopened and cancelled, asks for
   hand-over documents and has a signed notification sent, through calls under `/__control/…`.
 - faults — ordered faults a test queues (`POST /__control/faults`): answer 429 with the limit headers, answer 500, answer slowly (the
   answer waits on the injected clock, never on a sleep). A fault meets the first call of its key, in queue order, that it matches
   (`method`, `path_prefix`); `count` repeats it.
 - `/__control/setup`, `/__control/products` (fake fulfilment centre), `/__control/verdicts`, `/__control/feed` (fake Wildberries) —
-  the account, the products, the verdict of a marking code, the rows of the orders feed. The packages `internal/fakes/fulfilment`
-  and `internal/fakes/wildberries` list every control call in the comment above the function that registers it.
+  the account, the products, the verdict of a marking code, the rows of the orders feed. The fake Wildberries' `setup` takes
+  `token_refused` (`expired` or `invalid`: every call of that token answers 401 as Wildberries does; `""` lifts it); a row of its `feed`
+  may carry the buyer's `region_name`, which the wyo server must drop. The packages `internal/fakes/fulfilment` and
+  `internal/fakes/wildberries` list every control call in the comment above the function that registers it.
 
 **Pointing a generated Wildberries client at the fake.** The real API lives on several hosts; the fake serves every path on one
 listener. A test gives the generated client the fake's address as its server (`http://127.0.0.1:8791`). To give each client the host it
@@ -162,6 +176,12 @@ would really call, put the host's name after the address: `http://127.0.0.1:8791
 `…/common-api.wildberries.ru`, `…/marketplace-api.wildberries.ru`. Only `/ping` (one budget for each host) and the areas a test
 denies (`/__control/setup`, `denied`) depend on the host. The token is the key: `Authorization: <token>`, as Wildberries has it. The
 neutral fulfilment-centre API is the generated client at `http://127.0.0.1:8792/api/v1` with `Authorization: Bearer <key>`.
+
+**Pointing the wyo server at the fake.** A wyo server built with the `wyotest` tag reads `WYO_MARKETPLACE_URL` (a released one refuses
+to start with it): every adapter then puts its hosts' names after that address, and the outbound gate allows it. `pnpm dev` and the
+browser tests' start of the wyo server (`e2e/support/wyo-server.ts`) set it to the fake Wildberries, `http://127.0.0.1:8791`, so no
+development run and no test reaches a real marketplace. The gate of a `wyotest` build lists no real marketplace host at all: started
+without `WYO_MARKETPLACE_URL`, it refuses every marketplace call before anything leaves.
 
 **The request budget of the fake Wildberries** is Wildberries' own: for the Marketplace category a burst of 20 calls refilled one every
 200 ms (300 a minute when spread evenly), a call that meets a 4xx costing 10, `X-Ratelimit-Remaining` on every answer but 429 and

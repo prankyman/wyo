@@ -36,6 +36,25 @@ describe('noticeLines', () => {
             'wyo получает сертификат для адреса shop.example.ru. Это занимает несколько минут.'
         ],
         [
+            'a marketplace key ends in 3 days',
+            notice({
+                source: 'accounts',
+                code: 'account_key_expiring',
+                tone: 'warn',
+                params: { days: 3, account: 'Магазин одежды' }
+            }),
+            'attention',
+            '/marketplaces',
+            'Ключ аккаунта «Магазин одежды» истекает через 3 дня. Создайте новый ключ в кабинете маркетплейса и замените его в разделе «Маркетплейсы» кнопкой «Заменить ключ».'
+        ],
+        [
+            'a marketplace key was not accepted',
+            notice({ source: 'accounts', code: 'account_key_refused', tone: 'stop', params: { account: 'Магазин' } }),
+            'urgent',
+            '/marketplaces',
+            'Маркетплейс не принял ключ аккаунта «Магазин», поэтому wyo не читает его заказы. Проверьте ключ в кабинете маркетплейса и замените его в разделе «Маркетплейсы» кнопкой «Заменить ключ».'
+        ],
+        [
             'the last copy is old',
             notice({ source: 'backups', code: 'backup_old', tone: 'warn', params: { days: 3 } }),
             'attention',

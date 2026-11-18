@@ -13,6 +13,7 @@ import (
 	"github.com/prankyman/wyo/internal/config"
 	"github.com/prankyman/wyo/internal/httpapi"
 	"github.com/prankyman/wyo/internal/httpapi/gen"
+	"github.com/prankyman/wyo/internal/store"
 	"github.com/prankyman/wyo/internal/testkit/apikit"
 	"github.com/prankyman/wyo/internal/testkit/httpkit"
 )
@@ -145,14 +146,17 @@ func TestWalkEveryPathWithEveryMethod(t *testing.T) {
 			}
 		}
 
-		// A path with a parameter is walked with a value in it.
-		target := strings.ReplaceAll(path, "{group}", "updates")
+		// A path with a parameter is walked with a value in it: a settings group, and the account and the order the
+		// fixture holds (an id that names nothing would be answered 404, which the walk refuses).
+		target := strings.NewReplacer("{group}", "updates", "{id}", "1").Replace(path)
 
 		for _, method := range methods {
 			t.Run(method+" "+path, func(t *testing.T) {
 				t.Parallel()
 
 				f := apikit.New(t).WithOwner(t)
+				withAccountAndOrder(t, f)
+
 				signedOut := apikit.Do(t, f.Handler, apikit.Request{Method: method, Path: target})
 
 				access, isAllowed := allowed[method]
@@ -339,4 +343,16 @@ func TestBadRequestIsACode(t *testing.T) {
 	if got.Status != http.StatusBadRequest || got.Body != `{"error":{"code":"bad_request"}}` {
 		t.Fatalf("status %d, body %q", got.Status, got.Body)
 	}
+}
+
+// withAccountAndOrder gives the fixture the account 1 and its order 1.
+func withAccountAndOrder(t *testing.T, f *apikit.Fixture) {
+	t.Helper()
+
+	account, err := f.Accounts.Create(t.Context(), "memory", "Склад", map[string]string{"token": "mem-seller"})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	insertOrder(t, f.Store, store.Order{AccountID: account.ID, Number: "1", Scheme: "fbs", CreatedAt: apikit.Noon(), State: "new", UpdatedAt: apikit.Noon()})
 }

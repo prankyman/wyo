@@ -869,6 +869,19 @@ export async function expectInsidePhone(locator: Locator, label: string): Promis
     expect(box!.x + box!.width, `${label} ends inside the screen`).toBeLessThanOrEqual(PHONE.width);
 }
 
+/** The side padding of a phone's page and panel: Tailwind's `p-4`, as the panel's heading has it. */
+export const PHONE_GUTTER = 16;
+
+/** An element's text keeps the side padding: it lies at least `PHONE_GUTTER` px from either edge of the phone's screen. */
+export async function expectInsidePhoneGutter(locator: Locator, label: string): Promise<void> {
+    await expectInsidePhone(locator, label);
+    const box = (await locator.boundingBox())!;
+    expect(box.x, `${label} keeps ${PHONE_GUTTER} px from the left edge`).toBeGreaterThanOrEqual(PHONE_GUTTER);
+    expect(box.x + box.width, `${label} keeps ${PHONE_GUTTER} px from the right edge`).toBeLessThanOrEqual(
+        PHONE.width - PHONE_GUTTER
+    );
+}
+
 /**
  * A control the finger presses is at least 44 x 44 px (the constitution's mobile-first rule) and inside the screen. The box
  * that counts is the one that takes the tap: a `StretchedLink` is measured as its card, a checkbox or radio as its label.
