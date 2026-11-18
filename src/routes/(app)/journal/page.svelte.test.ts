@@ -14,7 +14,7 @@ vi.mock('$app/navigation', async () => (await import('$test/support/navigation')
 
 import Page from './+page.svelte';
 
-const NO_FILTER: TJournalFilter = { account: '', outcome: '', from: '', to: '' };
+const NO_FILTER: TJournalFilter = { account: '', outcome: '', target: '', from: '', to: '' };
 const FAILED = journalEntryOf({
     id: 502,
     outcome: 'server_error',
@@ -74,6 +74,40 @@ describe('«Журнал запросов»', () => {
         expect(screen.getByTestId('journal-empty-filtered')).toHaveTextContent(
             'По фильтру ничего не найдено: «Итог: Ключ не принят», «С 01 нояб. 2026 г.».'
         );
+    });
+
+    it('names a request to the fulfilment centre so instead of a marketplace, and keeps the marketplace’s mark for the others', () => {
+        renderPageWith(
+            Page,
+            pageData({
+                entries: [
+                    journalEntryOf(),
+                    journalEntryOf({
+                        id: 503,
+                        marketplace: 'fulfilment',
+                        accountId: undefined,
+                        accountName: undefined,
+                        path: '/api/v1/orders'
+                    })
+                ]
+            })
+        );
+
+        const rows = within(screen.getByTestId('journal-list-table')).getAllByTestId('journal-list-row');
+        expect(within(rows[0]).queryByTestId('journal-list-target')).toBeNull();
+        expect(within(rows[1]).getByTestId('journal-list-target')).toHaveTextContent('Фулфилмент-центр');
+        expect(within(rows[1]).queryByTestId('journal-list-mark')).toBeNull();
+    });
+
+    it('filters by where a request went: each marketplace and the fulfilment centre, with a chip kept in the address', () => {
+        setPageUrl('/journal?target=fulfilment');
+        renderPageWith(Page, pageData({ filter: { target: 'fulfilment' }, entries: [] }));
+
+        const options = within(screen.getByTestId('journal-filter-target')).getAllByRole('option');
+        expect(options.map((option) => option.textContent)).toEqual(['Все', MARKETPLACE_NAME, 'Фулфилмент-центр']);
+        expect(screen.getByTestId('journal-filter-target')).toHaveValue('fulfilment');
+        expect(screen.getByTestId('journal-filter-chip-target')).toHaveTextContent('Куда: Фулфилмент-центр');
+        expect(screen.getByTestId('journal-filter-chip-target')).toHaveAttribute('href', '/journal');
     });
 
     it('opens the whole row the address names beside the list, its error text with it', () => {

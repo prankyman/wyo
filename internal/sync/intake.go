@@ -22,6 +22,7 @@ func storedOrder(accountID int64, o marketplace.Order, now time.Time) store.Orde
 		WarehouseNumber: o.WarehouseNumber, WarehouseName: o.WarehouseName, Article: o.Article, Barcodes: o.Barcodes,
 		ProductID: o.ProductID, Kind: o.Kind, Brand: o.Brand, Size: o.Size, CreatedAt: o.CreatedAt, State: string(o.Status.State),
 		CancelledBy: o.Status.CancelledBy, SellerStatus: o.Status.Seller, MarketplaceStatus: o.Status.Marketplace, UpdatedAt: now,
+		Group: o.Group, ItemID: o.ItemID, Required: o.Required, Optional: o.Optional,
 	}
 }
 

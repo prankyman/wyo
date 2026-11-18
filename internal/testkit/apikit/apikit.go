@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
+	gosync "sync"
 	"testing"
 	"time"
 
@@ -21,6 +22,8 @@ import (
 	"github.com/prankyman/wyo/internal/clock"
 	"github.com/prankyman/wyo/internal/config"
 	"github.com/prankyman/wyo/internal/datadir"
+	"github.com/prankyman/wyo/internal/exchange"
+	"github.com/prankyman/wyo/internal/fulfilment"
 	"github.com/prankyman/wyo/internal/httpapi"
 	"github.com/prankyman/wyo/internal/logging"
 	"github.com/prankyman/wyo/internal/notices"
@@ -61,6 +64,59 @@ type Fixture struct {
 	Engine   *sync.Engine
 	Accounts *accounts.Service
 	Sync     *synckit.Kit
+
+	// The exchange with a fulfilment centre: every request to it is answered by the handler UseFulfilment gives (a fake
+	// fulfilment centre, which a test starts itself), in the same process, at any address; Gate records what the outbound
+	// gate was told.
+	Exchange *exchange.Service
+	Gate     *Gate
+	fc       *switchDoer
+}
+
+// Gate records the fulfilment centre's address the exchange lists in the outbound gate.
+type Gate struct {
+	mu      gosync.Mutex
+	Address string
+}
+
+// SetFulfilment implements exchange.Gate.
+func (g *Gate) SetFulfilment(address string) error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	g.Address = address
+
+	return nil
+}
+
+// Listed is the address the gate lists now.
+func (g *Gate) Listed() string {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	return g.Address
+}
+
+// switchDoer hands every request to the handler a test chose.
+type switchDoer struct {
+	mu      gosync.Mutex
+	handler http.Handler
+}
+
+func (d *switchDoer) Do(req *http.Request) (*http.Response, error) {
+	d.mu.Lock()
+	h := d.handler
+	d.mu.Unlock()
+
+	return synckit.HandlerDoer{Handler: h}.Do(req)
+}
+
+// UseFulfilment makes the handler answer every request to the fulfilment centre.
+func (f *Fixture) UseFulfilment(h http.Handler) {
+	f.fc.mu.Lock()
+	defer f.fc.mu.Unlock()
+
+	f.fc.handler = h
 }
 
 // Noon is the moment every fixture's clock starts at: midday in Moscow.
@@ -98,6 +154,12 @@ func New(t *testing.T) *Fixture {
 		Store: st, Keys: kit.Vault, Engine: engine, Registry: registry, Clock: clk, Log: log,
 	})
 
+	gate, fc := &Gate{}, &switchDoer{handler: http.NotFoundHandler()}
+	exchangeService := exchange.New(exchange.Options{
+		Store: st, Keys: kit.Vault, Engine: engine, Registry: registry, Gate: gate, Clock: clk, Log: log, Location: Noon().Location(),
+		Dialer: fulfilment.Dialer{Caller: kit.Caller, HTTP: fc, AllowHTTP: true},
+	})
+
 	deps := httpapi.Deps{
 		Info:         httpapi.Info{Version: "1.2.3", Mode: config.ModeRelease},
 		Auth:         signIn,
@@ -110,6 +172,7 @@ func New(t *testing.T) *Fixture {
 		Marketplaces: registry,
 		Accounts:     marketplaceAccounts,
 		Refresher:    engine,
+		Exchange:     exchangeService,
 		Lifetime:     t.Context(),
 		Location:     Noon().Location(),
 		Clock:        clk,
@@ -125,7 +188,7 @@ func New(t *testing.T) *Fixture {
 
 	return &Fixture{
 		Handler: handler, Deps: deps, Store: st, Auth: signIn, Settings: prefs, Backups: copies, Clock: clk, Layout: layout, Logs: logs,
-		Memory: memory, Engine: engine, Accounts: marketplaceAccounts, Sync: kit,
+		Memory: memory, Engine: engine, Accounts: marketplaceAccounts, Sync: kit, Exchange: exchangeService, Gate: gate, fc: fc,
 	}
 }
 
@@ -219,3 +282,12 @@ func Do(t testing.TB, h http.Handler, req Request) Response {
 
 // ByPerson is the header that marks a call as made by a person's own action.
 var ByPerson = map[string]string{"X-Wyo-Person": "1"}
+
+// FulfilmentHandler is the handler that answers the fulfilment centre's requests now: a test plays the fulfilment centre's
+// control calls through it.
+func (f *Fixture) FulfilmentHandler() http.Handler {
+	f.fc.mu.Lock()
+	defer f.fc.mu.Unlock()
+
+	return f.fc.handler
+}

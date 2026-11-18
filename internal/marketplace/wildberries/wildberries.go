@@ -13,6 +13,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -77,21 +78,24 @@ func (a *Adapter) Describe() marketplace.Description {
 		Code: Code, Mark: "plum", KeyFields: []marketplace.KeyField{{Name: fieldToken, Secret: true}},
 		Capabilities: []marketplace.Capability{
 			marketplace.KeyCheck, marketplace.WarehousesRead, marketplace.OrdersNew, marketplace.OrdersStates, marketplace.OrdersFeed,
+			marketplace.OrdersConfirm, marketplace.LabelsFetch, marketplace.CodesReport, marketplace.CodesVerdict,
+			marketplace.HandoverGroup, marketplace.HandoverClose, marketplace.HandoverDocuments,
 		},
+		HandoverSettings: handoverSettings(),
 	}
 }
 
-// Routes implements marketplace.Adapter: only reading requests. POST /api/v3/orders/status reads (x-readonly-method:
-// true in 03-orders-fbs.yaml).
+// Routes implements marketplace.Adapter: the reading requests, then the ones of the writing parts (writing.go).
+// POST /api/v3/orders/status reads (x-readonly-method: true in 03-orders-fbs.yaml).
 func (a *Adapter) Routes() []marketplace.Route {
-	return []marketplace.Route{
+	return append([]marketplace.Route{
 		{Method: http.MethodGet, Template: pathPing, Group: groupPing},
 		{Method: http.MethodGet, Template: pathSellerInfo, Group: groupSellerInfo},
 		{Method: http.MethodGet, Template: pathWarehouses, Group: groupMarketplace, Category: categoryMarketplace},
 		{Method: http.MethodGet, Template: pathOrdersNew, Group: groupMarketplace, Category: categoryMarketplace},
 		{Method: http.MethodPost, Template: pathOrderStates, Group: groupMarketplace, Category: categoryMarketplace},
 		{Method: http.MethodGet, Template: pathFeed, Group: groupStatistics, Category: categoryStatistics},
-	}
+	}, writingRoutes()...)
 }
 
 // limits are WBC §2's tables for a Personal token: «1 мин | 300 запросов | 200 мс | 20 запросов» for the
@@ -121,10 +125,17 @@ func (a *Adapter) Limit(group string, test bool) (marketplace.LimitGroup, bool) 
 	return l, ok
 }
 
-// Capable implements marketplace.Adapter: a test token talks only to the sandbox, which has no orders feed (WBC §2,
-// column S), so a test account reads no feed.
+// sandboxLacks are the parts a test token cannot do. The sandbox has no orders feed, no shipping-point method and no
+// shipping-method method (WBC §2, column S is "–" for them). A supply is not closed without its shipping («Specify
+// shipping point, type and date to close the supply»), so a test token cannot close one, and its code and its boxes'
+// stickers exist only for a closed supply: handover.group, handover.close and handover.documents are out with them.
+var sandboxLacks = []marketplace.Capability{
+	marketplace.OrdersFeed, marketplace.HandoverGroup, marketplace.HandoverClose, marketplace.HandoverDocuments,
+}
+
+// Capable implements marketplace.Adapter: a test token talks only to the sandbox, which lacks the parts of sandboxLacks.
 func (a *Adapter) Capable(c marketplace.Capability, test bool) bool {
-	if test && c == marketplace.OrdersFeed {
+	if test && slices.Contains(sandboxLacks, c) {
 		return false
 	}
 

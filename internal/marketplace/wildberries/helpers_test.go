@@ -1,8 +1,11 @@
 package wildberries_test
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -90,8 +93,8 @@ func (r *rig) newOrder(t *testing.T, token string, spec map[string]any) string {
 	return fmt.Sprint(made.ID)
 }
 
-// calls lists the paths the fake received for a token, in order.
-func (r *rig) calls(t *testing.T, token string) []string {
+// callList lists the calls the fake received for a token, in order, with their queries and bodies.
+func (r *rig) callList(t *testing.T, token string) []fakekit.Call {
 	t.Helper()
 
 	list, err := fakekit.NewControl(r.kit.URL, token, r.kit.HTTP).Calls(t.Context())
@@ -99,12 +102,100 @@ func (r *rig) calls(t *testing.T, token string) []string {
 		t.Fatalf("Calls: %v", err)
 	}
 
+	return list
+}
+
+// calls lists the paths the fake received for a token, in order.
+func (r *rig) calls(t *testing.T, token string) []string {
+	t.Helper()
+
+	list := r.callList(t, token)
 	paths := make([]string, 0, len(list))
+
 	for _, c := range list {
 		paths = append(paths, c.Method+" "+c.Path)
 	}
 
 	return paths
+}
+
+// callsTo lists the calls of one method to the paths that end with the suffix.
+func (r *rig) callsTo(t *testing.T, token, method, suffix string) []fakekit.Call {
+	t.Helper()
+
+	var found []fakekit.Call
+
+	for _, c := range r.callList(t, token) {
+		if c.Method == method && strings.HasSuffix(c.Path, suffix) {
+			found = append(found, c)
+		}
+	}
+
+	return found
+}
+
+// newOrders makes n assembly orders at the fake and returns their numbers.
+func (r *rig) newOrders(t *testing.T, token string, n int, spec map[string]any) []string {
+	t.Helper()
+
+	numbers := make([]string, n)
+	for i := range numbers {
+		numbers[i] = r.newOrder(t, token, spec)
+	}
+
+	return numbers
+}
+
+// confirmed makes n assembly orders and puts them into a new batch, which is how an order is confirmed; it returns the
+// batch and the numbers.
+func (r *rig) confirmed(t *testing.T, token string, conn marketplace.Conn, n int, spec map[string]any) (string, []string) {
+	t.Helper()
+
+	numbers := r.newOrders(t, token, n, spec)
+
+	batch, err := r.adapter.NewBatch(t.Context(), conn, "wyo test")
+	if err != nil {
+		t.Fatalf("NewBatch: %v", err)
+	}
+
+	if err := r.adapter.PutInBatch(t.Context(), conn, batch, numbers); err != nil {
+		t.Fatalf("PutInBatch: %v", err)
+	}
+
+	return batch, numbers
+}
+
+// verdict makes Wildberries give an order's data of one kind (sgtin, imei, ...) a decision word.
+func (r *rig) verdict(t *testing.T, token, number, key, decision string) {
+	t.Helper()
+
+	id, err := strconv.ParseInt(number, 10, 64)
+	if err != nil {
+		t.Fatalf("order number %q: %v", number, err)
+	}
+
+	r.control(t, token, http.MethodPost, "/__control/verdicts", map[string]any{"order": id, "key": key, "decision": decision}, nil)
+}
+
+// refusalOf says the error is a refusal of the marketplace and returns it.
+func refusalOf(t *testing.T, err error) *marketplace.Refusal {
+	t.Helper()
+
+	var refusal *marketplace.Refusal
+	if !errors.As(err, &refusal) {
+		t.Fatalf("the error %v is no refusal of the marketplace", err)
+	}
+
+	return refusal
+}
+
+// newStubRig is the adapter in front of a handler of the test's own, which answers in a shape the fake never makes.
+func newStubRig(t *testing.T, handler http.Handler) *rig {
+	t.Helper()
+
+	kit := synckit.New(t, handler)
+
+	return &rig{kit: kit, adapter: wildberries.New(wildberries.Options{TestBase: kit.URL})}
 }
 
 func fields(token string) map[string]string { return map[string]string{"token": token} }

@@ -31,10 +31,12 @@ type JournalEntry struct {
 type JournalFilter struct {
 	AccountID int64
 	Outcome   string
-	From      time.Time
-	Before    time.Time
-	Page      int
-	PageSize  int
+	// Target keeps the requests that went to one place: a marketplace's code, or "fulfilment".
+	Target   string
+	From     time.Time
+	Before   time.Time
+	Page     int
+	PageSize int
 }
 
 // InsertJournalEntry adds a row; the table takes inserts only.
@@ -53,7 +55,7 @@ func (q *Queries) JournalEntries(ctx context.Context, f JournalFilter) ([]Journa
 	size, offset := page(f.Page, f.PageSize)
 
 	rows, err := q.q.ListJournalEntries(ctx, db.ListJournalEntriesParams{
-		AccountID: nullable(f.AccountID), Outcome: nullable(f.Outcome), AtFrom: nullableSeconds(f.From),
+		AccountID: nullable(f.AccountID), Outcome: nullable(f.Outcome), Target: nullable(f.Target), AtFrom: nullableSeconds(f.From),
 		AtBefore: nullableSeconds(f.Before), PageSize: size, PageOffset: offset,
 	})
 	if err != nil {
@@ -75,7 +77,7 @@ func (q *Queries) JournalEntries(ctx context.Context, f JournalFilter) ([]Journa
 // CountJournalEntries counts the rows the filter keeps, on every page.
 func (q *Queries) CountJournalEntries(ctx context.Context, f JournalFilter) (int64, error) {
 	n, err := q.q.CountJournalEntries(ctx, db.CountJournalEntriesParams{
-		AccountID: nullable(f.AccountID), Outcome: nullable(f.Outcome), AtFrom: nullableSeconds(f.From),
+		AccountID: nullable(f.AccountID), Outcome: nullable(f.Outcome), Target: nullable(f.Target), AtFrom: nullableSeconds(f.From),
 		AtBefore: nullableSeconds(f.Before),
 	})
 

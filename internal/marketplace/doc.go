@@ -9,8 +9,11 @@
 //     the key category it needs and whether it writes), its limits, how it puts a key into a request and how it reads a
 //     refusal's code and text.
 //   - Each part of the contract is an interface of its own: KeyChecker (key.check), WarehouseReader (warehouses.read),
-//     NewOrderReader (orders.new), StateReader (orders.states), FeedReader (orders.feed). AllCapabilities names the
-//     later parts too; Supported says which ones the engine drives today.
+//     NewOrderReader (orders.new), StateReader (orders.states), FeedReader (orders.feed), and the writing parts of
+//     Plan 4 (writing.go): OrderConfirmer (orders.confirm), LabelFetcher (labels.fetch), CodeReporter (codes.report),
+//     VerdictReader (codes.verdict), HandoverGrouper (handover.group), HandoverCloser (handover.close) and
+//     HandoverDocumenter (handover.documents). AllCapabilities names the later parts too; Supported says which ones the
+//     engine drives today.
 //   - An adapter never makes a request itself. It is given a Conn by the synchronisation engine (internal/sync), whose
 //     Doer adds the key, keeps the budget, repeats what may be repeated and writes the journal.
 //   - A refusal of the marketplace reaches the caller as a *Refusal: a code of the adapter's refusals (with its params

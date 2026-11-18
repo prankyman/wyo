@@ -8,6 +8,114 @@ import (
 	"database/sql"
 )
 
+type ExchangeHistory struct {
+	ID      int64
+	OrderID int64
+	At      int64
+	State   string
+	Code    string
+}
+
+type ExchangeOrder struct {
+	OrderID       int64
+	FcID          string
+	FcNumber      string
+	FcHeldID      string
+	State         string
+	HeldReasons   string
+	Attention     string
+	ProblemCode   string
+	ProblemParams string
+	ProblemMpCode string
+	ProblemWords  string
+	ProblemAt     sql.NullInt64
+	ProblemSent   int64
+	FailedStep    string
+	SupplyID      sql.NullInt64
+	ConfirmedAt   sql.NullInt64
+	LabelPrint    string
+	LabelSentAt   sql.NullInt64
+	CodesState    string
+	CodesSentAt   sql.NullInt64
+	NextCheckAt   sql.NullInt64
+	CancelAnswer  string
+	HandedOverAt  sql.NullInt64
+	SentAt        int64
+	UpdatedAt     int64
+}
+
+type FcConnection struct {
+	ID                 int64
+	Address            string
+	SecretName         string
+	KeyLast4           string
+	State              string
+	SellerName         string
+	Marketplaces       string
+	CheckedAt          int64
+	EventsMode         string
+	HookText           string
+	HookSecretName     string
+	EventsMark         int64
+	LastEventAt        sql.NullInt64
+	LastNotificationAt sql.NullInt64
+	LastPingAt         sql.NullInt64
+}
+
+type FcEvent struct {
+	ID         string
+	Sequence   int64
+	Type       string
+	Body       string
+	ReceivedAt int64
+	AppliedAt  sql.NullInt64
+}
+
+type FcMarketplaceMap struct {
+	AccountID     int64
+	FcMarketplace string
+}
+
+type FcWarehouseMap struct {
+	AccountID       int64
+	WarehouseNumber string
+	FcWarehouse     string
+}
+
+type Handover struct {
+	ID            int64
+	FcID          string
+	Number        string
+	Day           string
+	FcWarehouse   string
+	FcMarketplace string
+	Boxes         int64
+	State         string
+	Step          string
+	Closed        int64
+	ProblemCode   string
+	ProblemParams string
+	ProblemMpCode string
+	ProblemWords  string
+	ProblemAt     sql.NullInt64
+	ProblemSent   int64
+	RequestedAt   int64
+	UpdatedAt     int64
+}
+
+type HandoverOrder struct {
+	HandoverID int64
+	OrderID    int64
+}
+
+type HandoverStep struct {
+	HandoverID int64
+	AccountID  int64
+	Grp        string
+	Step       string
+	DoneAt     int64
+}
+
 type MarketplaceAccount struct {
 	ID                int64
 	Marketplace       string
@@ -32,6 +140,20 @@ type MarketplaceAccount struct {
 	LastRefusalAt     sql.NullInt64
 	FailuresInRow     int64
 	CreatedAt         int64
+	HandoverSettings  string
+	ShippingPoint     string
+}
+
+type MarketplaceSupply struct {
+	ID         int64
+	AccountID  int64
+	Number     string
+	Grp        string
+	Role       string
+	HandoverID sql.NullInt64
+	Open       int64
+	Deleted    int64
+	CreatedAt  int64
 }
 
 type MarketplaceWarehouse struct {
@@ -62,6 +184,20 @@ type Order struct {
 	SellerStatus      string
 	MarketplaceStatus string
 	UpdatedAt         int64
+	Grp               string
+	ItemID            string
+	RequiredIds       string
+	OptionalIds       string
+}
+
+type OrderCode struct {
+	OrderID    int64
+	Unit       int64
+	Identifier string
+	Code       string
+	SentAt     sql.NullInt64
+	Verdict    string
+	Words      string
 }
 
 type OrderEvent struct {

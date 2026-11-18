@@ -28,7 +28,9 @@ export interface IScreen {
 export const SCREENS: readonly IScreen[] = [
     { route: '/', ready: 'overview-cards', sweptBy: 'overview.spec.ts' },
     { route: '/orders', ready: 'orders', sweptBy: 'orders.spec.ts' },
+    { route: '/handovers', ready: 'handovers', sweptBy: 'handovers.spec.ts' },
     { route: '/marketplaces', ready: 'marketplaces-loaded', sweptBy: 'marketplaces.spec.ts' },
+    { route: '/external-api', ready: 'external-api-connection', sweptBy: 'external-api.spec.ts' },
     { route: '/journal', ready: 'journal', sweptBy: 'journal.spec.ts' },
     { route: '/settings', ready: 'settings-sections', sweptBy: 'settings.spec.ts' },
     { route: '/account', ready: 'account-login', sweptBy: 'account.spec.ts' },

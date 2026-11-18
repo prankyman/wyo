@@ -24,6 +24,7 @@ func TestABadControlCallIsRefused(t *testing.T) {
 		{name: "setup: a category that does not exist", method: http.MethodPost, path: "/__control/setup", body: map[string]any{"denied": []string{"colour"}}},
 		{name: "a status of an order that is not there", method: http.MethodPost, path: "/__control/orders/999/wb-status", body: map[string]any{"wb_status": "sold"}},
 		{name: "a status that does not exist", method: http.MethodPost, path: "/__control/orders/1/wb-status", body: map[string]any{"wb_status": "flying"}},
+		{name: "a new sticker of an order that is not there", method: http.MethodPost, path: "/__control/orders/999/new-sticker"},
 		{name: "a reshipment of an order that is not there", method: http.MethodPost, path: "/__control/orders/999/reshipment"},
 		{name: "a scan of a supply that is not there", method: http.MethodPost, path: "/__control/supplies/WB-GI-9999999/scan"},
 		{name: "a feed row with an unknown field", method: http.MethodPost, path: "/__control/feed", body: map[string]any{"rows": []map[string]any{{"colour": "red"}}}},
@@ -87,4 +88,38 @@ func TestResetEmptiesEverythingOfTheKey(t *testing.T) {
 
 	r.rawJSON(http.MethodGet, "/api/v3/orders/new", "", http.StatusOK, &out)
 	same(t, "orders", len(out.Orders), 0)
+}
+
+func TestANewStickerCommandGivesTheOrderAnotherStickerWhileTheOthersKeepTheirs(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(t)
+	first, second := r.newOrder(map[string]any{}), r.newOrder(map[string]any{})
+	r.supplyWith(first, second)
+
+	type stickers struct {
+		Stickers []struct {
+			Barcode string `json:"barcode"`
+			File    string `json:"file"`
+		} `json:"stickers"`
+	}
+
+	read := func() stickers {
+		var out stickers
+
+		r.rawJSON(http.MethodPost, "/api/v3/orders/stickers?type=png&width=58&height=40", ids(first, second), http.StatusOK, &out)
+
+		return out
+	}
+
+	before := read()
+	r.control(http.MethodPost, "/__control/orders/"+itoa(first)+"/new-sticker", nil, nil)
+	after := read()
+
+	same(t, "the other order's sticker", after.Stickers[1], before.Stickers[1])
+	same(t, "the number of the changed sticker", after.Stickers[0].Barcode, "$WBMP:1:"+itoa(first)+":1000000003")
+
+	if after.Stickers[0].File == before.Stickers[0].File {
+		t.Fatal("the picture did not change with the sticker's number")
+	}
 }

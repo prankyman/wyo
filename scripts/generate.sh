@@ -36,6 +36,7 @@ GENERATED=(
     src/lib/api/wyo-api.d.ts
     internal/store/db/accounts.sql.go
     internal/store/db/db.go
+    internal/store/db/exchange.sql.go
     internal/store/db/journal.sql.go
     internal/store/db/models.go
     internal/store/db/migrations.sql.go

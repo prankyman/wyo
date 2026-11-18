@@ -36,13 +36,22 @@ describe('the load of «Журнал запросов»', () => {
 
         expect(get).toHaveBeenCalledWith('/api/v1/journal?outcome=server_error&from=2026-11-01&to=2026-11-18');
         expect(data).toEqual({
-            filter: { account: '', outcome: 'server_error', from: '2026-11-01', to: '2026-11-18' },
+            filter: { account: '', outcome: 'server_error', target: '', from: '2026-11-01', to: '2026-11-18' },
             list: LIST,
             refusal: null,
             accounts: [accountOf()],
             marketplaces: [MARKETPLACE],
             opened: null
         });
+    });
+
+    it('asks for the requests that went to one place when the address names it', async () => {
+        answers();
+
+        const data = await loadAt('/journal?target=fulfilment');
+
+        expect(get).toHaveBeenCalledWith('/api/v1/journal?target=fulfilment');
+        expect(data.filter).toMatchObject({ target: 'fulfilment' });
     });
 
     it('opens the row the address names from the page it read, and nothing for a row not on it', async () => {

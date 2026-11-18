@@ -225,6 +225,19 @@ supply is closed, and a closed supply takes no more orders. So the **fulfilment 
 - The hand-over itself is done by the fulfilment centre: each parcel is scanned, the hand-over is closed, and `handover.completed`
   is reported.
 
+## Who installs the sender, and who holds the marketplace's key
+
+The sender is installed by the seller, on a server the seller owns or rents, and the seller alone types the marketplaces' keys into it.
+**A fulfilment centre's staff never install the sender for a seller and never hold a seller's marketplace key**, and this API has no
+place for one: an order carries the marketplace's code, never its key, and the fulfilment centre's key is the only key the sender
+sends here.
+
+The reason is the marketplaces' own rule. The first marketplace the connector supports says it in its knowledge-base article
+«Облачный сервис или локальное решение: как отличить и какой токен выбрать» (updated 16.09.2026): «Персональный токен нельзя
+передавать третьим лицам и использовать с облачными сервисами.» Its personal token is meant «только вашим собственным программам — в
+том числе корпоративным системам (on-premise), развёрнутым на собственной или арендованной инфраструктуре». A sender installed and run
+by the fulfilment centre would be a third party holding the seller's key.
+
 ## What is not here yet
 
 Products, stock, announced deliveries, returns, delivery of the seller's own-shop orders by delivery services, and supplies to

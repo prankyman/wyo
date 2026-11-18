@@ -146,9 +146,10 @@ func TestWalkEveryPathWithEveryMethod(t *testing.T) {
 			}
 		}
 
-		// A path with a parameter is walked with a value in it: a settings group, and the account and the order the
-		// fixture holds (an id that names nothing would be answered 404, which the walk refuses).
-		target := strings.NewReplacer("{group}", "updates", "{id}", "1").Replace(path)
+		// A path with a parameter is walked with a value in it: a settings group, and the account, the order and the
+		// hand-over the fixture holds (an id that names nothing would be answered 404, which the walk refuses), and a
+		// notification address text nobody made.
+		target := strings.NewReplacer("{group}", "updates", "{id}", "1", "{text}", "nobody-made-this").Replace(path)
 
 		for _, method := range methods {
 			t.Run(method+" "+path, func(t *testing.T) {
@@ -188,6 +189,13 @@ func TestWalkEveryPathWithEveryMethod(t *testing.T) {
 
 					if got := signedIn; got.Status == http.StatusUnauthorized || got.Status == http.StatusForbidden || got.Status == http.StatusNotFound || got.Status == http.StatusMethodNotAllowed || got.Status >= 500 {
 						t.Fatalf("signed in: an owner's call was refused with %d: %s", got.Status, got.Body)
+					}
+				case httpapi.AccessSigned:
+					// A session changes nothing: an unsigned notification to an address text nobody made is refused.
+					for who, got := range map[string]apikit.Response{"signed out": signedOut, "signed in": signedIn} {
+						if got.Status != http.StatusNotFound || got.Body != `{"error":{"code":"not_found"}}` {
+							t.Fatalf("%s: status %d, body %q; an unsigned notification must be refused with 404 not_found", who, got.Status, got.Body)
+						}
 					}
 				default:
 					t.Fatalf("the route has the access %q, which this walk does not know how to check", access)
@@ -355,4 +363,13 @@ func withAccountAndOrder(t *testing.T, f *apikit.Fixture) {
 	}
 
 	insertOrder(t, f.Store, store.Order{AccountID: account.ID, Number: "1", Scheme: "fbs", CreatedAt: apikit.Noon(), State: "new", UpdatedAt: apikit.Noon()})
+
+	err = f.Store.Do(t.Context(), func(q *store.Queries) error {
+		_, err := q.InsertHandover(t.Context(), store.Handover{FcID: "ho_1", Number: "1", Day: "2026-11-18", RequestedAt: apikit.Noon(), UpdatedAt: apikit.Noon()})
+
+		return err
+	})
+	if err != nil {
+		t.Fatalf("InsertHandover: %v", err)
+	}
 }

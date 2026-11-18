@@ -105,7 +105,7 @@ func NewInProcess(t testing.TB, build func(clk *clock.Fixed) http.Handler) *Kit 
 
 	clk := clock.NewFixed(Noon())
 
-	doer := handlerDoer{handler: build(clk)}
+	doer := HandlerDoer{Handler: build(clk)}
 
 	k := newKit(t, "http://in-process.test", doer, clk)
 	k.HTTP = &http.Client{Transport: doer}
@@ -113,13 +113,15 @@ func NewInProcess(t testing.TB, build func(clk *clock.Fixed) http.Handler) *Kit 
 	return k
 }
 
-// handlerDoer answers a request with a handler, in the same process.
-type handlerDoer struct{ handler http.Handler }
+// HandlerDoer answers a request with a handler, in the same process: a test that sends many thousands of requests leaves
+// the network out.
+type HandlerDoer struct{ Handler http.Handler }
 
 // RoundTrip lets the same handler stand behind an *http.Client.
-func (d handlerDoer) RoundTrip(req *http.Request) (*http.Response, error) { return d.Do(req) }
+func (d HandlerDoer) RoundTrip(req *http.Request) (*http.Response, error) { return d.Do(req) }
 
-func (d handlerDoer) Do(req *http.Request) (*http.Response, error) {
+// Do answers the request with the handler.
+func (d HandlerDoer) Do(req *http.Request) (*http.Response, error) {
 	if err := req.Context().Err(); err != nil {
 		return nil, err
 	}
@@ -131,7 +133,7 @@ func (d handlerDoer) Do(req *http.Request) (*http.Response, error) {
 	}
 
 	recorder := httptest.NewRecorder()
-	d.handler.ServeHTTP(recorder, served)
+	d.Handler.ServeHTTP(recorder, served)
 
 	return recorder.Result(), nil
 }
@@ -148,7 +150,7 @@ func NewWithClient(t testing.TB, url string, client marketplace.Doer, clk *clock
 func NewOn(t testing.TB, st *store.Store, clk *clock.Fixed, handler http.Handler) *Kit {
 	t.Helper()
 
-	doer := handlerDoer{handler: handler}
+	doer := HandlerDoer{Handler: handler}
 
 	k := newKitOn(t, st, "http://in-process.test", doer, clk)
 	k.HTTP = &http.Client{Transport: doer}

@@ -2,6 +2,7 @@
     import MarketplaceMark from '$lib/components/marketplaces/MarketplaceMark.svelte';
     import type { TMarketplace } from '$lib/components/marketplaces/types';
     import FactList from '$lib/components/ui/FactList.svelte';
+    import OrderExchangeDetails from '$lib/components/exchange/OrderExchangeDetails.svelte';
     import HeadingWithHelp from '$lib/components/ui/HeadingWithHelp.svelte';
     import Stack from '$lib/components/ui/Stack.svelte';
     import { formatDateTime } from '$lib/i18n/format-date';
@@ -17,16 +18,19 @@
      * One order's details beside the order list (`GET /api/v1/orders/{id}`): the marketplace, the scheme and the state; the
      * deadline of an FBS order while it waits to be handed over (new or assembling); every field the order has — the field it lacks is left out, not drawn empty; the marketplace's
      * own words for the state as received; and the history of states, oldest first, each in the list's words (with who
-     * cancelled) and with where the change came from.
+     * cancelled) and with where the change came from. An FBS order that has an exchange with a fulfilment centre draws it last
+     * (`OrderExchangeDetails`); the page is told (`onExchangeRetried`) when «Передать заново» was pressed, to read the order again.
      */
     interface IProps {
         lang: TLocale;
         details: TOrderDetails;
         /** The order's adapter, for its colour mark. */
         marketplace?: TMarketplace;
+        /** «Передать заново» was pressed and accepted: the page reads the order again. */
+        onExchangeRetried?: () => void;
     }
 
-    let { lang, details, marketplace }: IProps = $props();
+    let { lang, details, marketplace, onExchangeRetried }: IProps = $props();
 
     const order = $derived(details.order);
 
@@ -100,5 +104,8 @@
                 {/each}
             </ol>
         </div>
+    {/if}
+    {#if details.exchange}
+        <OrderExchangeDetails {lang} orderId={order.id} details={details.exchange} onRetried={onExchangeRetried} />
     {/if}
 </Stack>

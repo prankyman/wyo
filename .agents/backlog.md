@@ -12,6 +12,56 @@ This file exists because a request the maintainer makes while testing one plan m
 
 ## Open
 
+### 27. Several fulfilment centres at once (2026-11-18)
+
+Left out of Plan 4 (`.agents/plans/wyo-external-api-wildberries-fbs-exchange-with-a-fulfilment-centre-orders-stickers-codes-hand-over.md`,
+«Not in this plan»): «Внешний API» holds one fulfilment centre, because the high-level plan names one setting. To be taken up if a
+seller works with two.
+
+### 26. Packing without a fulfilment centre (2026-11-18)
+
+Left out of Plan 4: printing the marketplace's stickers from wyo itself for a seller who packs alone. The high-level plan
+(`.agents/plans/Marketplace_connector_plan.md`, «Not in this plan») leaves it out; to be taken up if sellers ask.
+
+### 25. What the owner still does in the Wildberries cabinet (2026-11-18)
+
+Left out of Plan 4: cancelling an order at Wildberries from wyo (the wyo server never cancels: a cancellation by the seller is fined —
+an architecture test forbids the call), moving an order back from a closed supply, orders Wildberries wants shipped again, passes to
+Wildberries' warehouses, days off. The README (section 10) names each; to be taken up only on the maintainer's request.
+
+### 24. Identifiers other than marking codes (2026-11-18)
+
+Left out of Plan 4: a jewellery item's number (УИН), a phone's IMEI, the goods' GTIN, an expiry date and a customs declaration, which
+Wildberries may require for an order. The order gets a problem that names the identifier and says it must be entered in the
+Wildberries cabinet. A later plan sends them, once the neutral fulfilment-centre API carries them.
+
+### 23. The checks of Plan 4 on the first real Wildberries account and the first real fulfilment centre (2026-11-18)
+
+Plan 4 is built against the two fakes only. To check (the plan's «After the release»): a real order printed at 58 × 40 mm from the
+sticker the wyo server attached, and the text its code gives to a scanner (then the scan text can be sent with the label); whether a
+sticker changes when its order moves between two open supplies (the cautious choice: the labels are read again after the move and
+compared); whether a second sending of codes replaces the first (the cautious choice: the earlier ones are removed first); how long a
+verdict stays unfinished; which supplies Wildberries refuses without a transport box; the shipping points' list and the closing of a
+supply on a real account (the sandbox has neither, so a test token is not capable of the hand-over's parts); the time between a
+hand-over's request and its documents; notifications received at a real address behind a real certificate. Register item 5's points 1
+to 6 and 8 are the same checks. What they find becomes the next plan's premises.
+
+### 22. A fulfilment centre that names transport boxes (2026-11-18)
+
+Found while implementing Plan 4: the fake fulfilment centre never names a number of transport boxes in a hand-over (`transport_boxes`
+is empty), so the step «Добавление коробов» is proven through the hand-over's runner with a recorded hand-over, not through the fake's
+own `handover.requested`. Likewise the fake Wildberries cannot refuse putting an order into a supply, or closing a supply for missing
+shipping, on command: the exchange's tests wrap it with scripted refusals in Wildberries' own error shape
+(`internal/exchange/rig_test.go`, `refuse`). To decide: a control that names boxes and a fault kind «refuse with this code», in the
+plan that next touches the fakes.
+
+### 28. The new orders are rewritten every minute while «Внешний API» is filled (2026-11-18)
+
+Found by Plan 4's budget test: with the exchange on, the engine reads the new orders every minute and writes every order that is still
+new at the marketplace again, and every reading of the states writes every open order again. Correct, but slow with many open orders
+(about 1.5 ms a query under the race detector), so the test of a whole hour runs with 50 orders and the test of 500 orders runs for its
+six busiest minutes. To decide: write an order only when something of it changed.
+
 ### 21. The phone's menu strip cuts long labels (2026-11-18)
 
 Found by the smoke test of Plan 3: at 390 × 844 the strip at the bottom holds five items and «Ещё», so «Маркетплейсы» and «Журнал

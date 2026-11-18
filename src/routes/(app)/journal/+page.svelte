@@ -86,6 +86,19 @@
         }))
     );
 
+    /** The place a request went to that is no marketplace: the fulfilment centre (`GET /api/v1/journal?target=fulfilment`). */
+    const FULFILMENT = 'fulfilment';
+    const targetName = (code: string) =>
+        code === FULFILMENT
+            ? t('journal.target.fulfilment', lang)
+            : hasMessage(`marketplace.${code}.name`, lang)
+              ? t(`marketplace.${code}.name`, lang)
+              : code;
+    const targetOptions = $derived([
+        ...data.marketplaces.map((marketplace) => ({ value: marketplace.code, label: targetName(marketplace.code) })),
+        { value: FULFILMENT, label: targetName(FULFILMENT) }
+    ]);
+
     const markOf = (code: string) => data.marketplaces.find((marketplace) => marketplace.code === code)?.mark;
 
     const chips = $derived(
@@ -100,6 +113,12 @@
                 key: 'outcome',
                 label: data.filter.outcome
                     ? t('journal.chip.outcome', lang, { value: t(`journal.outcome.${data.filter.outcome}`, lang) })
+                    : null
+            },
+            {
+                key: 'target',
+                label: data.filter.target
+                    ? t('journal.chip.target', lang, { value: targetName(data.filter.target) })
                     : null
             },
             {
@@ -120,6 +139,11 @@
         const facts = [
             { key: 'at', label: t('journal.column.at', lang), value: formatDateTime(entry.at, lang) },
             { key: 'account', label: t('journal.column.account', lang), value: entry.accountName ?? '' },
+            {
+                key: 'target',
+                label: t('journal.field.target', lang),
+                value: entry.marketplace ? targetName(entry.marketplace) : ''
+            },
             { key: 'job', label: t('journal.column.job', lang), value: jobText(entry.job) },
             {
                 key: 'request',
@@ -203,6 +227,20 @@
                                 dataTest="journal-filter-outcome"
                             />
                         </Field>
+                        <Field
+                            label={t('journal.filter.target', lang)}
+                            help={t('journal.filter.target.help', lang)}
+                            for="journal-filter-target"
+                        >
+                            <SelectBox
+                                id="journal-filter-target"
+                                name="target"
+                                bind:value={$filters.target}
+                                blank={any}
+                                options={targetOptions}
+                                dataTest="journal-filter-target"
+                            />
+                        </Field>
                         <DateRangeFields
                             bind:from={$filters.from}
                             bind:to={$filters.to}
@@ -236,7 +274,9 @@
                 {#snippet cell(row: IEntryRow, column: IDataListColumn<IEntryRow>)}
                     {#if column.key === 'account'}
                         <span class="inline-flex flex-col">
-                            {#if row.entry.marketplace}
+                            {#if row.entry.marketplace === FULFILMENT}
+                                <span data-test="journal-list-target">{targetName(FULFILMENT)}</span>
+                            {:else if row.entry.marketplace}
                                 <MarketplaceMark
                                     {lang}
                                     code={row.entry.marketplace}

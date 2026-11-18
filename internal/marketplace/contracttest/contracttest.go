@@ -31,12 +31,28 @@ type Fixture struct {
 	CancelOrder func(t *testing.T, key map[string]string, number string)
 	// NewFeedOrder makes an order of the marketplace's own warehouse appear in the orders feed and returns its number.
 	NewFeedOrder func(t *testing.T, key map[string]string) string
+
+	// The functions below are for the parts that write (plan 4); an adapter that claims none of them needs none.
+
+	// NewMarkedOrder makes a new order of the seller-warehouse scheme for which the marketplace requires a marking code,
+	// and returns its number.
+	NewMarkedOrder func(t *testing.T, key map[string]string) string
+	// ChangeLabel makes the marketplace give that order another label, with another code.
+	ChangeLabel func(t *testing.T, key map[string]string, number string)
+	// SetVerdict makes the marketplace give the order's marking code a verdict of that kind.
+	SetVerdict func(t *testing.T, key map[string]string, number string, kind marketplace.VerdictKind)
+	// HandoverSettings are the account's hand-over settings that make the fake offer a shipping point.
+	HandoverSettings map[string]string
 }
 
 // maxFeedReadings bounds the readings of a feed in one case: a feed that never ends is a defect.
 const maxFeedReadings = 10
 
-var codePattern = regexp.MustCompile(`^[a-z]+$`)
+var (
+	codePattern = regexp.MustCompile(`^[a-z]+$`)
+	// namePattern is a name of a setting: lower-case words joined by underscores.
+	namePattern = regexp.MustCompile(`^[a-z]+(_[a-z]+)*$`)
+)
 
 // RunAdapterContract runs the cases of every part the adapter claims.
 func RunAdapterContract(t *testing.T, f Fixture) {
@@ -52,6 +68,10 @@ func RunAdapterContract(t *testing.T, f Fixture) {
 		marketplace.OrdersNew:      ordersNew,
 		marketplace.OrdersStates:   ordersStates,
 		marketplace.OrdersFeed:     ordersFeed,
+	}
+
+	for c, run := range writingCases() {
+		cases[c] = run
 	}
 
 	for _, c := range desc.Capabilities {
@@ -84,6 +104,18 @@ func checkDescription(t *testing.T, a marketplace.Adapter, desc marketplace.Desc
 	for _, field := range desc.KeyFields {
 		expect(t, codePattern.MatchString(field.Name), "the key field %q is not a name of lower-case letters", field.Name)
 	}
+
+	names := map[string]bool{}
+
+	for _, setting := range desc.HandoverSettings {
+		expect(t, namePattern.MatchString(setting.Name) && !names[setting.Name], "the hand-over setting %q is not a name of lower-case words, or is there twice", setting.Name)
+		expect(t, !slices.Contains(setting.Choices, ""), "the hand-over setting %q has an empty choice", setting.Name)
+
+		names[setting.Name] = true
+	}
+
+	expect(t, !desc.Supports(marketplace.HandoverGroup) || desc.Supports(marketplace.OrdersConfirm),
+		"the adapter claims handover.group and not orders.confirm: a hand-over's batch is made and filled by orders.confirm")
 
 	writes := false
 

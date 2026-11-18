@@ -56,6 +56,10 @@ type Status struct {
 
 // Order is an order as an adapter gives it. It never carries anything about the buyer but the basket's number: no
 // address, no comment, no region.
+//
+// Group, ItemID, Required and Optional are given by the list of new orders (orders.new) for the exchange with a
+// fulfilment centre: the group of orders that may travel together (a text the engine only compares), the marketplace's
+// own number of the goods' size, and the identifiers (Identifier*) the marketplace requires or accepts for the order.
 type Order struct {
 	Number          string
 	Scheme          Scheme
@@ -71,6 +75,10 @@ type Order struct {
 	Size            string
 	CreatedAt       time.Time
 	Status          Status
+	Group           string
+	ItemID          string
+	Required        []string
+	Optional        []string
 }
 
 // OrderStatus is the present state of one known order.

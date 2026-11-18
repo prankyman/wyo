@@ -419,6 +419,25 @@ func TestShippingPointsAreOfferedForASupply(t *testing.T) {
 	}
 }
 
+func TestShippingPointsOfSeveralKindsAreAskedForWithAComma(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(t).slow()
+	supply := r.supplyWith(r.newOrder(map[string]any{"cargo_type": 2}))
+
+	var out struct {
+		ShippingPoints []struct {
+			ID int64 `json:"id"`
+		} `json:"shippingPoints"`
+	}
+
+	r.rawJSON(http.MethodGet, "/api/marketplace/v3/fbs/supplies/"+supply+"/shipping-points?city=Moscow&officeType=sc,pp", "", http.StatusOK, &out)
+	same(t, "a pickup point and a sorting centre", len(out.ShippingPoints), 2)
+
+	r.rawJSON(http.MethodGet, "/api/marketplace/v3/fbs/supplies/"+supply+"/shipping-points?city=Moscow&officeType=sw,gpp", "", http.StatusOK, &out)
+	same(t, "kinds no point has", len(out.ShippingPoints), 0)
+}
+
 func TestTheShippingMethodIsSetSupplyBySupplyWithEachRefusalInItsOwnResult(t *testing.T) {
 	t.Parallel()
 

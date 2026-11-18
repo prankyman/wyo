@@ -34,7 +34,17 @@ const HOMES: Record<string, string> = {
     marketplaceNamesIn: 'src/test/support/marketplace-names.ts',
     accountOf: 'src/test/support/marketplaces.ts',
     orderOf: 'src/test/support/marketplaces.ts',
-    journalEntryOf: 'src/test/support/marketplaces.ts'
+    journalEntryOf: 'src/test/support/marketplaces.ts',
+    // The data of «Внешний API», the exchange and the hand-overs.
+    connectionOf: 'src/test/support/external-api.ts',
+    emptyConnection: 'src/test/support/external-api.ts',
+    warehouseMatchesOf: 'src/test/support/external-api.ts',
+    marketplaceMatchesOf: 'src/test/support/external-api.ts',
+    eventsOf: 'src/test/support/external-api.ts',
+    exchangeProblemOf: 'src/test/support/external-api.ts',
+    exchangeDetailsOf: 'src/test/support/external-api.ts',
+    handoverOf: 'src/test/support/external-api.ts',
+    handoverDetailsOf: 'src/test/support/external-api.ts'
 };
 
 const NAMES = Object.keys(HOMES).join('|');

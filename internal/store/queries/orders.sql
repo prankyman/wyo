@@ -1,8 +1,9 @@
 -- name: InsertOrder :one
 INSERT INTO orders (
     account_id, number, scheme, join_key, basket, warehouse_number, warehouse_name, article, barcodes, product_id, kind,
-    brand, size, created_at, state, cancelled_by, seller_status, marketplace_status, updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    brand, size, created_at, state, cancelled_by, seller_status, marketplace_status, updated_at, grp, item_id, required_ids,
+    optional_ids
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT (account_id, number) DO NOTHING
 RETURNING id;
 
@@ -52,18 +53,27 @@ WHERE (sqlc.narg(account_id) IS NULL OR o.account_id = sqlc.narg(account_id))
   AND (sqlc.narg(created_before) IS NULL OR o.created_at < sqlc.narg(created_before))
   AND (sqlc.narg(search) IS NULL OR instr(o.number, sqlc.narg(search)) > 0 OR instr(o.article, sqlc.narg(search)) > 0
        OR instr(o.barcodes, sqlc.narg(search)) > 0)
+  AND (sqlc.narg(attention_now) IS NULL OR EXISTS (
+       SELECT 1 FROM exchange_orders x
+       WHERE x.order_id = o.id
+         AND (x.attention <> '' OR (x.state = 'sent' AND o.created_at + a.deadline_hours * 900 <= sqlc.narg(attention_now)))))
 ORDER BY o.created_at DESC, o.id DESC
 LIMIT sqlc.arg(page_size) OFFSET sqlc.arg(page_offset);
 
 -- name: CountOrderViews :one
 SELECT count(*) FROM orders o
+JOIN marketplace_accounts a ON a.id = o.account_id
 WHERE (sqlc.narg(account_id) IS NULL OR o.account_id = sqlc.narg(account_id))
   AND (sqlc.narg(scheme) IS NULL OR o.scheme = sqlc.narg(scheme))
   AND (sqlc.narg(state) IS NULL OR o.state = sqlc.narg(state))
   AND (sqlc.narg(created_from) IS NULL OR o.created_at >= sqlc.narg(created_from))
   AND (sqlc.narg(created_before) IS NULL OR o.created_at < sqlc.narg(created_before))
   AND (sqlc.narg(search) IS NULL OR instr(o.number, sqlc.narg(search)) > 0 OR instr(o.article, sqlc.narg(search)) > 0
-       OR instr(o.barcodes, sqlc.narg(search)) > 0);
+       OR instr(o.barcodes, sqlc.narg(search)) > 0)
+  AND (sqlc.narg(attention_now) IS NULL OR EXISTS (
+       SELECT 1 FROM exchange_orders x
+       WHERE x.order_id = o.id
+         AND (x.attention <> '' OR (x.state = 'sent' AND o.created_at + a.deadline_hours * 900 <= sqlc.narg(attention_now)))));
 
 -- name: CountOrdersByState :many
 SELECT o.state, count(*) AS orders FROM orders o

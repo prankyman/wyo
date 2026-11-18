@@ -43,4 +43,20 @@ describe('InstallationStateCard', () => {
 
         expect(screen.queryByTestId('card-version-action')).toBeNull();
     });
+
+    it('draws the further actions of a card after its first action, each as a link of its own', () => {
+        render(InstallationStateCard, {
+            props: {
+                ...BASE,
+                action: { label: 'Открыть раздел', href: '/external-api' },
+                moreActions: [
+                    { label: 'Показать заказы', href: '/orders?attention=true' },
+                    { label: 'Открыть передачи', href: '/handovers' }
+                ]
+            }
+        });
+
+        expect(screen.getByTestId('card-version-more-0')).toHaveAttribute('href', '/orders?attention=true');
+        expect(screen.getByTestId('card-version-more-1')).toHaveTextContent('Открыть передачи');
+    });
 });

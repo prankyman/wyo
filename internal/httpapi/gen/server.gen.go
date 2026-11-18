@@ -52,6 +52,36 @@ func (e AccountState) Valid() bool {
 	}
 }
 
+// Defines values for Attention.
+const (
+	AttentionCancelledByWarehouse Attention = "cancelled_by_warehouse"
+	AttentionChangeWaits          Attention = "change_waits"
+	AttentionCodesRefused         Attention = "codes_refused"
+	AttentionHeld                 Attention = "held"
+	AttentionNotReservedInTime    Attention = "not_reserved_in_time"
+	AttentionProblem              Attention = "problem"
+)
+
+// Valid indicates whether the value is a known member of the Attention enum.
+func (e Attention) Valid() bool {
+	switch e {
+	case AttentionCancelledByWarehouse:
+		return true
+	case AttentionChangeWaits:
+		return true
+	case AttentionCodesRefused:
+		return true
+	case AttentionHeld:
+		return true
+	case AttentionNotReservedInTime:
+		return true
+	case AttentionProblem:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for CancelledBy.
 const (
 	CancelledByBuyer       CancelledBy = "buyer"
@@ -67,6 +97,252 @@ func (e CancelledBy) Valid() bool {
 	case CancelledByMarketplace:
 		return true
 	case CancelledBySeller:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CodeVerdictVerdict.
+const (
+	CodeVerdictVerdictAccepted    CodeVerdictVerdict = "accepted"
+	CodeVerdictVerdictMissing     CodeVerdictVerdict = "missing"
+	CodeVerdictVerdictNotRequired CodeVerdictVerdict = "not_required"
+	CodeVerdictVerdictPending     CodeVerdictVerdict = "pending"
+	CodeVerdictVerdictRefused     CodeVerdictVerdict = "refused"
+	CodeVerdictVerdictUnfinished  CodeVerdictVerdict = "unfinished"
+)
+
+// Valid indicates whether the value is a known member of the CodeVerdictVerdict enum.
+func (e CodeVerdictVerdict) Valid() bool {
+	switch e {
+	case CodeVerdictVerdictAccepted:
+		return true
+	case CodeVerdictVerdictMissing:
+		return true
+	case CodeVerdictVerdictNotRequired:
+		return true
+	case CodeVerdictVerdictPending:
+		return true
+	case CodeVerdictVerdictRefused:
+		return true
+	case CodeVerdictVerdictUnfinished:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EventsMode.
+const (
+	Notify EventsMode = "notify"
+	Poll   EventsMode = "poll"
+)
+
+// Valid indicates whether the value is a known member of the EventsMode enum.
+func (e EventsMode) Valid() bool {
+	switch e {
+	case Notify:
+		return true
+	case Poll:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExchangeReason.
+const (
+	AlreadyOnAssembly     ExchangeReason = "already_on_assembly"
+	ExternalApiEmpty      ExchangeReason = "external_api_empty"
+	KeyReadOnly           ExchangeReason = "key_read_only"
+	MarketplaceNotMatched ExchangeReason = "marketplace_not_matched"
+	NotSellerWarehouse    ExchangeReason = "not_seller_warehouse"
+	WarehouseNotMatched   ExchangeReason = "warehouse_not_matched"
+)
+
+// Valid indicates whether the value is a known member of the ExchangeReason enum.
+func (e ExchangeReason) Valid() bool {
+	switch e {
+	case AlreadyOnAssembly:
+		return true
+	case ExternalApiEmpty:
+		return true
+	case KeyReadOnly:
+		return true
+	case MarketplaceNotMatched:
+		return true
+	case NotSellerWarehouse:
+		return true
+	case WarehouseNotMatched:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExchangeState.
+const (
+	ExchangeStateCancelled     ExchangeState = "cancelled"
+	ExchangeStateCodesAccepted ExchangeState = "codes_accepted"
+	ExchangeStateCodesChecking ExchangeState = "codes_checking"
+	ExchangeStateHandedOver    ExchangeState = "handed_over"
+	ExchangeStateHeld          ExchangeState = "held"
+	ExchangeStateLabelSent     ExchangeState = "label_sent"
+	ExchangeStateNotSent       ExchangeState = "not_sent"
+	ExchangeStatePacked        ExchangeState = "packed"
+	ExchangeStateReserved      ExchangeState = "reserved"
+	ExchangeStateSent          ExchangeState = "sent"
+)
+
+// Valid indicates whether the value is a known member of the ExchangeState enum.
+func (e ExchangeState) Valid() bool {
+	switch e {
+	case ExchangeStateCancelled:
+		return true
+	case ExchangeStateCodesAccepted:
+		return true
+	case ExchangeStateCodesChecking:
+		return true
+	case ExchangeStateHandedOver:
+		return true
+	case ExchangeStateHeld:
+		return true
+	case ExchangeStateLabelSent:
+		return true
+	case ExchangeStateNotSent:
+		return true
+	case ExchangeStatePacked:
+		return true
+	case ExchangeStateReserved:
+		return true
+	case ExchangeStateSent:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ExternalApiState.
+const (
+	ExternalApiStateApiOff       ExternalApiState = "api_off"
+	ExternalApiStateEmpty        ExternalApiState = "empty"
+	ExternalApiStateForbidden    ExternalApiState = "forbidden"
+	ExternalApiStateKeyRefused   ExternalApiState = "key_refused"
+	ExternalApiStateNoConnection ExternalApiState = "no_connection"
+	ExternalApiStateReadOnlyKey  ExternalApiState = "read_only_key"
+	ExternalApiStateUnavailable  ExternalApiState = "unavailable"
+	ExternalApiStateUnreadable   ExternalApiState = "unreadable"
+	ExternalApiStateWorking      ExternalApiState = "working"
+)
+
+// Valid indicates whether the value is a known member of the ExternalApiState enum.
+func (e ExternalApiState) Valid() bool {
+	switch e {
+	case ExternalApiStateApiOff:
+		return true
+	case ExternalApiStateEmpty:
+		return true
+	case ExternalApiStateForbidden:
+		return true
+	case ExternalApiStateKeyRefused:
+		return true
+	case ExternalApiStateNoConnection:
+		return true
+	case ExternalApiStateReadOnlyKey:
+		return true
+	case ExternalApiStateUnavailable:
+		return true
+	case ExternalApiStateUnreadable:
+		return true
+	case ExternalApiStateWorking:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HandoverState.
+const (
+	HandoverStateCompleted     HandoverState = "completed"
+	HandoverStateDocumentsSent HandoverState = "documents_sent"
+	HandoverStateProblem       HandoverState = "problem"
+	HandoverStateWaiting       HandoverState = "waiting"
+	HandoverStateWithdrawn     HandoverState = "withdrawn"
+	HandoverStateWorking       HandoverState = "working"
+)
+
+// Valid indicates whether the value is a known member of the HandoverState enum.
+func (e HandoverState) Valid() bool {
+	switch e {
+	case HandoverStateCompleted:
+		return true
+	case HandoverStateDocumentsSent:
+		return true
+	case HandoverStateProblem:
+		return true
+	case HandoverStateWaiting:
+		return true
+	case HandoverStateWithdrawn:
+		return true
+	case HandoverStateWorking:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HandoverStep.
+const (
+	Batch     HandoverStep = "batch"
+	Boxes     HandoverStep = "boxes"
+	Close     HandoverStep = "close"
+	Documents HandoverStep = "documents"
+	Move      HandoverStep = "move"
+	Shipping  HandoverStep = "shipping"
+)
+
+// Valid indicates whether the value is a known member of the HandoverStep enum.
+func (e HandoverStep) Valid() bool {
+	switch e {
+	case Batch:
+		return true
+	case Boxes:
+		return true
+	case Close:
+		return true
+	case Documents:
+		return true
+	case Move:
+		return true
+	case Shipping:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HandoverStepStateState.
+const (
+	HandoverStepStateStateDone    HandoverStepStateState = "done"
+	HandoverStepStateStateFailed  HandoverStepStateState = "failed"
+	HandoverStepStateStateNow     HandoverStepStateState = "now"
+	HandoverStepStateStateTodo    HandoverStepStateState = "todo"
+	HandoverStepStateStateWaiting HandoverStepStateState = "waiting"
+)
+
+// Valid indicates whether the value is a known member of the HandoverStepStateState enum.
+func (e HandoverStepStateState) Valid() bool {
+	switch e {
+	case HandoverStepStateStateDone:
+		return true
+	case HandoverStepStateStateFailed:
+		return true
+	case HandoverStepStateStateNow:
+		return true
+	case HandoverStepStateStateTodo:
+		return true
+	case HandoverStepStateStateWaiting:
 		return true
 	default:
 		return false
@@ -195,22 +471,25 @@ func (e MetaMode) Valid() bool {
 
 // Defines values for NoticeSource.
 const (
-	Accounts    NoticeSource = "accounts"
-	Backups     NoticeSource = "backups"
-	Certificate NoticeSource = "certificate"
-	Updates     NoticeSource = "updates"
+	NoticeSourceAccounts    NoticeSource = "accounts"
+	NoticeSourceBackups     NoticeSource = "backups"
+	NoticeSourceCertificate NoticeSource = "certificate"
+	NoticeSourceExternalApi NoticeSource = "external_api"
+	NoticeSourceUpdates     NoticeSource = "updates"
 )
 
 // Valid indicates whether the value is a known member of the NoticeSource enum.
 func (e NoticeSource) Valid() bool {
 	switch e {
-	case Accounts:
+	case NoticeSourceAccounts:
 		return true
-	case Backups:
+	case NoticeSourceBackups:
 		return true
-	case Certificate:
+	case NoticeSourceCertificate:
 		return true
-	case Updates:
+	case NoticeSourceExternalApi:
+		return true
+	case NoticeSourceUpdates:
 		return true
 	default:
 		return false
@@ -244,6 +523,30 @@ func (e NoticeTone) Valid() bool {
 	}
 }
 
+// Defines values for OrderExchangeDetailsCancelAnswer.
+const (
+	OrderExchangeDetailsCancelAnswerCancelled   OrderExchangeDetailsCancelAnswer = "cancelled"
+	OrderExchangeDetailsCancelAnswerHandedOver  OrderExchangeDetailsCancelAnswer = "handed_over"
+	OrderExchangeDetailsCancelAnswerNeedsPerson OrderExchangeDetailsCancelAnswer = "needs_person"
+	OrderExchangeDetailsCancelAnswerWaiting     OrderExchangeDetailsCancelAnswer = "waiting"
+)
+
+// Valid indicates whether the value is a known member of the OrderExchangeDetailsCancelAnswer enum.
+func (e OrderExchangeDetailsCancelAnswer) Valid() bool {
+	switch e {
+	case OrderExchangeDetailsCancelAnswerCancelled:
+		return true
+	case OrderExchangeDetailsCancelAnswerHandedOver:
+		return true
+	case OrderExchangeDetailsCancelAnswerNeedsPerson:
+		return true
+	case OrderExchangeDetailsCancelAnswerWaiting:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for OrderScheme.
 const (
 	Fbo OrderScheme = "fbo"
@@ -264,28 +567,28 @@ func (e OrderScheme) Valid() bool {
 
 // Defines values for OrderState.
 const (
-	Assembling OrderState = "assembling"
-	Cancelled  OrderState = "cancelled"
-	InDelivery OrderState = "in_delivery"
-	New        OrderState = "new"
-	Received   OrderState = "received"
-	Unknown    OrderState = "unknown"
+	OrderStateAssembling OrderState = "assembling"
+	OrderStateCancelled  OrderState = "cancelled"
+	OrderStateInDelivery OrderState = "in_delivery"
+	OrderStateNew        OrderState = "new"
+	OrderStateReceived   OrderState = "received"
+	OrderStateUnknown    OrderState = "unknown"
 )
 
 // Valid indicates whether the value is a known member of the OrderState enum.
 func (e OrderState) Valid() bool {
 	switch e {
-	case Assembling:
+	case OrderStateAssembling:
 		return true
-	case Cancelled:
+	case OrderStateCancelled:
 		return true
-	case InDelivery:
+	case OrderStateInDelivery:
 		return true
-	case New:
+	case OrderStateNew:
 		return true
-	case Received:
+	case OrderStateReceived:
 		return true
-	case Unknown:
+	case OrderStateUnknown:
 		return true
 	default:
 		return false
@@ -412,6 +715,9 @@ type AccountRefusal struct {
 // AccountState The texts are `accounts.state.<state>` and `accounts.state.<state>.help`.
 type AccountState string
 
+// Attention Why an order needs the owner; the text is `exchange.attention.<code>`.
+type Attention string
+
 // Backup defines model for Backup.
 type Backup struct {
 	CreatedAt time.Time `json:"createdAt"`
@@ -430,6 +736,201 @@ type BackupList struct {
 
 // CancelledBy Who cancelled a cancelled order; the text is `orders.state.cancelled.<cancelledBy>`.
 type CancelledBy string
+
+// CodeVerdict The verdict on one identifier of an order. The code itself is never sent to the browser.
+type CodeVerdict struct {
+	// Identifier The text is `exchange.identifier.<identifier>`.
+	Identifier string `json:"identifier"`
+
+	// Units How many units' codes were sent.
+	Units *int `json:"units,omitempty"`
+
+	// Verdict The text is `exchange.verdict.<verdict>`.
+	Verdict CodeVerdictVerdict `json:"verdict"`
+
+	// Words The marketplace's own word for the verdict, as received.
+	Words *string `json:"words,omitempty"`
+}
+
+// CodeVerdictVerdict The text is `exchange.verdict.<verdict>`.
+type CodeVerdictVerdict string
+
+// EventsMode `poll` - the wyo server asks once a minute; `notify` - it receives notifications and asks every 10 minutes.
+type EventsMode string
+
+// EventsSetting defines model for EventsSetting.
+type EventsSetting struct {
+	// HookUrl The wyo server's own address to copy into the fulfilment centre's system (notifications only).
+	HookUrl            *string    `json:"hookUrl,omitempty"`
+	LastEventAt        *time.Time `json:"lastEventAt,omitempty"`
+	LastNotificationAt *time.Time `json:"lastNotificationAt,omitempty"`
+
+	// LastPingAt The last test notification received.
+	LastPingAt *time.Time `json:"lastPingAt,omitempty"`
+
+	// Mode `poll` - the wyo server asks once a minute; `notify` - it receives notifications and asks every 10 minutes.
+	Mode EventsMode `json:"mode"`
+
+	// SecretSaved The signing secret is saved; it is never sent back.
+	SecretSaved *bool `json:"secretSaved,omitempty"`
+}
+
+// EventsSettingChange defines model for EventsSettingChange.
+type EventsSettingChange struct {
+	// Mode `poll` - the wyo server asks once a minute; `notify` - it receives notifications and asks every 10 minutes.
+	Mode   EventsMode `json:"mode"`
+	Secret *string    `json:"secret,omitempty"`
+}
+
+// ExchangeEvent defines model for ExchangeEvent.
+type ExchangeEvent struct {
+	At time.Time `json:"at"`
+
+	// Code What happened, e.g. `sent`, `held`, `label_sent`, `codes_refused`; the text is `exchange.event.<code>`.
+	Code *string `json:"code,omitempty"`
+
+	// State The exchange's own state of an order; the text is `exchange.state.<state>`.
+	State ExchangeState `json:"state"`
+}
+
+// ExchangeReason Why an order is not sent; the text is `exchange.reason.<reason>`.
+type ExchangeReason string
+
+// ExchangeState The exchange's own state of an order; the text is `exchange.state.<state>`.
+type ExchangeState string
+
+// ExternalApi defines model for ExternalApi.
+type ExternalApi struct {
+	// Address The address of the fulfilment centre's API, `https://…`.
+	Address   *string    `json:"address,omitempty"`
+	CheckedAt *time.Time `json:"checkedAt,omitempty"`
+
+	// EventsMode `poll` - the wyo server asks once a minute; `notify` - it receives notifications and asks every 10 minutes.
+	EventsMode EventsMode `json:"eventsMode"`
+
+	// KeyLast4 The last four characters of the key; the key itself is never sent.
+	KeyLast4    *string    `json:"keyLast4,omitempty"`
+	LastEventAt *time.Time `json:"lastEventAt,omitempty"`
+
+	// Marketplaces The marketplaces the fulfilment centre accepts orders of, as its last answer listed them.
+	Marketplaces *[]FcMarketplace `json:"marketplaces,omitempty"`
+
+	// SellerName The name the fulfilment centre gives this seller.
+	SellerName *string `json:"sellerName,omitempty"`
+
+	// State The state of «Внешний API» after its last check or call; the text is `externalApi.state.<state>`. `empty` - not filled; the exchange works only in `working`.
+	State ExternalApiState `json:"state"`
+}
+
+// ExternalApiConnect defines model for ExternalApiConnect.
+type ExternalApiConnect struct {
+	Address string `json:"address"`
+	Key     string `json:"key"`
+}
+
+// ExternalApiOverview defines model for ExternalApiOverview.
+type ExternalApiOverview struct {
+	// Attention Orders that need the owner (the filter «Требуют внимания»).
+	Attention int `json:"attention"`
+
+	// HandoversWaiting Hand-overs that wait or have a problem.
+	HandoversWaiting int        `json:"handoversWaiting"`
+	LastEventAt      *time.Time `json:"lastEventAt,omitempty"`
+
+	// State The state of «Внешний API» after its last check or call; the text is `externalApi.state.<state>`. `empty` - not filled; the exchange works only in `working`.
+	State ExternalApiState `json:"state"`
+}
+
+// ExternalApiState The state of «Внешний API» after its last check or call; the text is `externalApi.state.<state>`. `empty` - not filled; the exchange works only in `working`.
+type ExternalApiState string
+
+// FcMarketplace defines model for FcMarketplace.
+type FcMarketplace struct {
+	// Code The fulfilment centre's own code of a marketplace.
+	Code string `json:"code"`
+
+	// Name The name the fulfilment centre gives it.
+	Name string `json:"name"`
+}
+
+// FcWarehouse defines model for FcWarehouse.
+type FcWarehouse struct {
+	City *string `json:"city,omitempty"`
+	Code string  `json:"code"`
+	Name string  `json:"name"`
+}
+
+// Handover defines model for Handover.
+type Handover struct {
+	// Batches The marketplace's numbers of the hand-over's batches (Wildberries' supplies).
+	Batches []string `json:"batches"`
+
+	// Boxes Transport boxes the fulfilment centre named.
+	Boxes int                `json:"boxes"`
+	Day   openapi_types.Date `json:"day"`
+	Id    int64              `json:"id"`
+
+	// Marketplace The adapter's code, when the hand-over's orders are known.
+	Marketplace *string `json:"marketplace,omitempty"`
+
+	// Number The fulfilment centre's number of the hand-over.
+	Number      string    `json:"number"`
+	Orders      int       `json:"orders"`
+	Problem     *Problem  `json:"problem,omitempty"`
+	RequestedAt time.Time `json:"requestedAt"`
+
+	// State The text is `handovers.state.<state>`.
+	State HandoverState `json:"state"`
+
+	// Step The text is `handovers.step.<step>`.
+	Step      HandoverStep `json:"step"`
+	UpdatedAt *time.Time   `json:"updatedAt,omitempty"`
+}
+
+// HandoverDetails defines model for HandoverDetails.
+type HandoverDetails struct {
+	// Closed The batch is closed at the marketplace; nothing can be undone.
+	Closed   bool     `json:"closed"`
+	Handover Handover `json:"handover"`
+
+	// NeedsShippingPoint The owner must pick the shipping point.
+	NeedsShippingPoint bool `json:"needsShippingPoint"`
+	OrderList          []struct {
+		Id     int64  `json:"id"`
+		Number string `json:"number"`
+	} `json:"orderList"`
+	Retryable bool                `json:"retryable"`
+	Steps     []HandoverStepState `json:"steps"`
+}
+
+// HandoverList defines model for HandoverList.
+type HandoverList struct {
+	Handovers []Handover `json:"handovers"`
+}
+
+// HandoverState The text is `handovers.state.<state>`.
+type HandoverState string
+
+// HandoverStep The text is `handovers.step.<step>`.
+type HandoverStep string
+
+// HandoverStepState defines model for HandoverStepState.
+type HandoverStepState struct {
+	State HandoverStepStateState `json:"state"`
+
+	// Step The text is `handovers.step.<step>`.
+	Step HandoverStep `json:"step"`
+}
+
+// HandoverStepStateState defines model for HandoverStepState.State.
+type HandoverStepStateState string
+
+// HeldReason defines model for HeldReason.
+type HeldReason struct {
+	// Code The fulfilment centre's reason code; the text is `exchange.held.<code>`.
+	Code   string                  `json:"code"`
+	Params *map[string]interface{} `json:"params,omitempty"`
+}
 
 // Installation defines model for Installation.
 type Installation struct {
@@ -489,7 +990,9 @@ type JournalEntry struct {
 	Id        int64   `json:"id"`
 
 	// Job The job that sent it, e.g. `orders.new`, `key.check`, `refresh`.
-	Job         string  `json:"job"`
+	Job string `json:"job"`
+
+	// Marketplace The adapter's code, or `fulfilment` for a request to the fulfilment centre.
 	Marketplace *string `json:"marketplace,omitempty"`
 	Method      string  `json:"method"`
 
@@ -529,8 +1032,11 @@ type Marketplace struct {
 	Capabilities []string `json:"capabilities"`
 
 	// Code The adapter's code, e.g. `wildberries`; its texts are `marketplace.<code>.name` and `.help`.
-	Code      string     `json:"code"`
-	KeyFields []KeyField `json:"keyFields"`
+	Code string `json:"code"`
+
+	// HandoverSettings The adapter's hand-over settings (Plan 4, «Внешний API»): a choice among `choices`, or a text when there are none. Texts - `marketplace.<code>.handover.<name>.label`, `.help` and `.choice.<value>`.
+	HandoverSettings []SettingField `json:"handoverSettings"`
+	KeyFields        []KeyField     `json:"keyFields"`
 
 	// Mark The name of the colour mark of the theme.
 	Mark string `json:"mark"`
@@ -539,6 +1045,40 @@ type Marketplace struct {
 // MarketplaceList defines model for MarketplaceList.
 type MarketplaceList struct {
 	Marketplaces []Marketplace `json:"marketplaces"`
+}
+
+// MarketplaceMatch defines model for MarketplaceMatch.
+type MarketplaceMatch struct {
+	AccountId   int64  `json:"accountId"`
+	AccountName string `json:"accountName"`
+
+	// FcMarketplace The marketplace's code in the fulfilment centre's list.
+	FcMarketplace *string `json:"fcMarketplace,omitempty"`
+
+	// HandoverSettings The adapter's hand-over settings (`Marketplace.handoverSettings`) by name.
+	HandoverSettings map[string]string `json:"handoverSettings"`
+	Marketplace      string            `json:"marketplace"`
+
+	// Proposed A code of the fulfilment centre's list that equals the adapter's, offered when none is chosen.
+	Proposed *string `json:"proposed,omitempty"`
+
+	// ReadOnly The account's key may only read; the exchange cannot write with it.
+	ReadOnly bool `json:"readOnly"`
+}
+
+// MarketplaceMatches defines model for MarketplaceMatches.
+type MarketplaceMatches struct {
+	FcMarketplaces []FcMarketplace    `json:"fcMarketplaces"`
+	Rows           []MarketplaceMatch `json:"rows"`
+}
+
+// MarketplaceMatchesChange defines model for MarketplaceMatchesChange.
+type MarketplaceMatchesChange struct {
+	Rows []struct {
+		AccountId        int64              `json:"accountId"`
+		FcMarketplace    *string            `json:"fcMarketplace,omitempty"`
+		HandoverSettings *map[string]string `json:"handoverSettings,omitempty"`
+	} `json:"rows"`
 }
 
 // MarketplaceStatus The marketplace's own words for the state, as received.
@@ -622,7 +1162,10 @@ type Order struct {
 
 	// DeadlineAt Only for `fbs`.
 	DeadlineAt *time.Time `json:"deadlineAt,omitempty"`
-	Id         int64      `json:"id"`
+
+	// Exchange The exchange with the fulfilment centre; only for `fbs` orders.
+	Exchange *OrderExchange `json:"exchange,omitempty"`
+	Id       int64          `json:"id"`
 
 	// Kind The product's kind
 	Kind        *string `json:"kind,omitempty"`
@@ -649,8 +1192,9 @@ type Order struct {
 
 // OrderDetails defines model for OrderDetails.
 type OrderDetails struct {
-	Events []OrderEvent `json:"events"`
-	Order  Order        `json:"order"`
+	Events   []OrderEvent          `json:"events"`
+	Exchange *OrderExchangeDetails `json:"exchange,omitempty"`
+	Order    Order                 `json:"order"`
 }
 
 // OrderEvent defines model for OrderEvent.
@@ -670,6 +1214,47 @@ type OrderEvent struct {
 	State OrderState `json:"state"`
 }
 
+// OrderExchange defines model for OrderExchange.
+type OrderExchange struct {
+	// Attention Why an order needs the owner; the text is `exchange.attention.<code>`.
+	Attention *Attention `json:"attention,omitempty"`
+	Problem   *Problem   `json:"problem,omitempty"`
+
+	// Reason Why an order is not sent; the text is `exchange.reason.<reason>`.
+	Reason *ExchangeReason `json:"reason,omitempty"`
+
+	// State The exchange's own state of an order; the text is `exchange.state.<state>`.
+	State ExchangeState `json:"state"`
+}
+
+// OrderExchangeDetails defines model for OrderExchangeDetails.
+type OrderExchangeDetails struct {
+	// Attention Why an order needs the owner; the text is `exchange.attention.<code>`.
+	Attention *Attention `json:"attention,omitempty"`
+
+	// CancelAnswer The fulfilment centre's answer to a cancellation passed on; the text is `exchange.cancel.<answer>`.
+	CancelAnswer *OrderExchangeDetailsCancelAnswer `json:"cancelAnswer,omitempty"`
+
+	// FcNumber The order's number at the fulfilment centre.
+	FcNumber    *string         `json:"fcNumber,omitempty"`
+	HeldReasons []HeldReason    `json:"heldReasons"`
+	History     []ExchangeEvent `json:"history"`
+	Problem     *Problem        `json:"problem,omitempty"`
+
+	// Reason Why an order is not sent; the text is `exchange.reason.<reason>`.
+	Reason *ExchangeReason `json:"reason,omitempty"`
+
+	// Retryable «Передать заново» may be pressed.
+	Retryable bool `json:"retryable"`
+
+	// State The exchange's own state of an order; the text is `exchange.state.<state>`.
+	State    ExchangeState `json:"state"`
+	Verdicts []CodeVerdict `json:"verdicts"`
+}
+
+// OrderExchangeDetailsCancelAnswer The fulfilment centre's answer to a cancellation passed on; the text is `exchange.cancel.<answer>`.
+type OrderExchangeDetailsCancelAnswer string
+
 // OrderList defines model for OrderList.
 type OrderList struct {
 	Orders   []Order `json:"orders"`
@@ -688,6 +1273,21 @@ type OrderState string
 type PasswordChange struct {
 	CurrentPassword string `json:"currentPassword"`
 	NewPassword     string `json:"newPassword"`
+}
+
+// Problem defines model for Problem.
+type Problem struct {
+	At time.Time `json:"at"`
+
+	// Code The wyo server's code of the problem; the text is `problem.<code>`.
+	Code string `json:"code"`
+
+	// MarketplaceCode The marketplace's own code of its refusal, as received.
+	MarketplaceCode *string                 `json:"marketplaceCode,omitempty"`
+	Params          *map[string]interface{} `json:"params,omitempty"`
+
+	// Words The marketplace's or the fulfilment centre's own words, as received (at most 300 characters).
+	Words *string `json:"words,omitempty"`
 }
 
 // RefreshState defines model for RefreshState.
@@ -736,6 +1336,12 @@ type Setting struct {
 // SettingKind defines model for Setting.Kind.
 type SettingKind string
 
+// SettingField defines model for SettingField.
+type SettingField struct {
+	Choices []string `json:"choices"`
+	Name    string   `json:"name"`
+}
+
 // SettingsGroup defines model for SettingsGroup.
 type SettingsGroup struct {
 	Id       string    `json:"id"`
@@ -753,6 +1359,25 @@ type SettingsValues struct {
 	Values map[string]interface{} `json:"values"`
 }
 
+// ShippingPoint defines model for ShippingPoint.
+type ShippingPoint struct {
+	Address *string `json:"address,omitempty"`
+	Id      string  `json:"id"`
+	Name    string  `json:"name"`
+}
+
+// ShippingPointChoice defines model for ShippingPointChoice.
+type ShippingPointChoice struct {
+	// Chosen The point remembered for the account.
+	Chosen *string         `json:"chosen,omitempty"`
+	Points []ShippingPoint `json:"points"`
+}
+
+// ShippingPointPick defines model for ShippingPointPick.
+type ShippingPointPick struct {
+	Point string `json:"point"`
+}
+
 // SignIn defines model for SignIn.
 type SignIn struct {
 	Login    string `json:"login"`
@@ -767,13 +1392,46 @@ type UpdateRequest struct {
 // UpdateRequestRequested defines model for UpdateRequest.Requested.
 type UpdateRequestRequested string
 
+// WarehouseMatch defines model for WarehouseMatch.
+type WarehouseMatch struct {
+	AccountId   int64  `json:"accountId"`
+	AccountName string `json:"accountName"`
+
+	// FcWarehouse The fulfilment centre's warehouse code; absent - not matched.
+	FcWarehouse   *string `json:"fcWarehouse,omitempty"`
+	Marketplace   string  `json:"marketplace"`
+	WarehouseName string  `json:"warehouseName"`
+
+	// WarehouseNumber The marketplace's own number of the seller's warehouse.
+	WarehouseNumber string `json:"warehouseNumber"`
+}
+
+// WarehouseMatches defines model for WarehouseMatches.
+type WarehouseMatches struct {
+	// FcWarehouses The fulfilment centre's working warehouses, asked of it now; empty when it does not answer.
+	FcWarehouses []FcWarehouse    `json:"fcWarehouses"`
+	Rows         []WarehouseMatch `json:"rows"`
+}
+
+// WarehouseMatchesChange defines model for WarehouseMatchesChange.
+type WarehouseMatchesChange struct {
+	Rows []struct {
+		AccountId       int64   `json:"accountId"`
+		FcWarehouse     *string `json:"fcWarehouse,omitempty"`
+		WarehouseNumber string  `json:"warehouseNumber"`
+	} `json:"rows"`
+}
+
 // ListJournalParams defines parameters for ListJournal.
 type ListJournalParams struct {
-	Account *int64              `form:"account,omitempty" json:"account,omitempty"`
-	Outcome *JournalOutcome     `form:"outcome,omitempty" json:"outcome,omitempty"`
-	From    *openapi_types.Date `form:"from,omitempty" json:"from,omitempty"`
-	To      *openapi_types.Date `form:"to,omitempty" json:"to,omitempty"`
-	Page    *int                `form:"page,omitempty" json:"page,omitempty"`
+	Account *int64          `form:"account,omitempty" json:"account,omitempty"`
+	Outcome *JournalOutcome `form:"outcome,omitempty" json:"outcome,omitempty"`
+
+	// Target Where a request went - a marketplace's code, or `fulfilment` for the fulfilment centre.
+	Target *string             `form:"target,omitempty" json:"target,omitempty"`
+	From   *openapi_types.Date `form:"from,omitempty" json:"from,omitempty"`
+	To     *openapi_types.Date `form:"to,omitempty" json:"to,omitempty"`
+	Page   *int                `form:"page,omitempty" json:"page,omitempty"`
 }
 
 // ListOrdersParams defines parameters for ListOrders.
@@ -784,8 +1442,14 @@ type ListOrdersParams struct {
 	From    *openapi_types.Date `form:"from,omitempty" json:"from,omitempty"`
 	To      *openapi_types.Date `form:"to,omitempty" json:"to,omitempty"`
 	Q       *string             `form:"q,omitempty" json:"q,omitempty"`
-	Page    *int                `form:"page,omitempty" json:"page,omitempty"`
+
+	// Attention Only the orders that need the owner.
+	Attention *bool `form:"attention,omitempty" json:"attention,omitempty"`
+	Page      *int  `form:"page,omitempty" json:"page,omitempty"`
 }
+
+// ReceiveFulfilmentNotificationJSONBody defines parameters for ReceiveFulfilmentNotification.
+type ReceiveFulfilmentNotificationJSONBody map[string]interface{}
 
 // ChangePasswordJSONRequestBody defines body for ChangePassword for application/json ContentType.
 type ChangePasswordJSONRequestBody = PasswordChange
@@ -799,11 +1463,29 @@ type UpdateAccountJSONRequestBody = AccountChange
 // ReplaceAccountKeyJSONRequestBody defines body for ReplaceAccountKey for application/json ContentType.
 type ReplaceAccountKeyJSONRequestBody = AccountKey
 
+// PutExternalApiJSONRequestBody defines body for PutExternalApi for application/json ContentType.
+type PutExternalApiJSONRequestBody = ExternalApiConnect
+
+// PutExternalApiEventsJSONRequestBody defines body for PutExternalApiEvents for application/json ContentType.
+type PutExternalApiEventsJSONRequestBody = EventsSettingChange
+
+// PutExternalApiMarketplacesJSONRequestBody defines body for PutExternalApiMarketplaces for application/json ContentType.
+type PutExternalApiMarketplacesJSONRequestBody = MarketplaceMatchesChange
+
+// PutExternalApiWarehousesJSONRequestBody defines body for PutExternalApiWarehouses for application/json ContentType.
+type PutExternalApiWarehousesJSONRequestBody = WarehouseMatchesChange
+
+// PutHandoverShippingPointJSONRequestBody defines body for PutHandoverShippingPoint for application/json ContentType.
+type PutHandoverShippingPointJSONRequestBody = ShippingPointPick
+
 // SignInJSONRequestBody defines body for SignIn for application/json ContentType.
 type SignInJSONRequestBody = SignIn
 
 // SaveSettingsGroupJSONRequestBody defines body for SaveSettingsGroup for application/json ContentType.
 type SaveSettingsGroupJSONRequestBody = SettingsValues
+
+// ReceiveFulfilmentNotificationJSONRequestBody defines body for ReceiveFulfilmentNotification for application/json ContentType.
+type ReceiveFulfilmentNotificationJSONRequestBody ReceiveFulfilmentNotificationJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -843,10 +1525,55 @@ type ServerInterface interface {
 	// CreateBackup Writes a copy of the database now and keeps the newest seven.
 	// (POST /api/v1/backups)
 	CreateBackup(w http.ResponseWriter, r *http.Request)
+	// DeleteExternalApi «Отключить»: empties the setting. From this moment nothing is sent anywhere but to the marketplaces; the matches, the orders' exchange states and the hand-overs are kept for when it is filled again.
+	// (DELETE /api/v1/external-api)
+	DeleteExternalApi(w http.ResponseWriter, r *http.Request)
+	// GetExternalApi The setting «Внешний API» - the address of a fulfilment centre's system and the last four characters of its key, the state of the last check and what the fulfilment centre answered. Empty by default.
+	// (GET /api/v1/external-api)
+	GetExternalApi(w http.ResponseWriter, r *http.Request)
+	// PutExternalApi «Проверить и сохранить»: asks the fulfilment centre's system `GET /api/v1/account` with the key and saves the address and the key only when it answers and the key may write. Refusals - `invalid_address`, `fc_key_refused`, `fc_read_only_key`, `fc_api_off`, `fc_forbidden`, `fc_unavailable`, `fc_no_connection`, `fc_unreadable`.
+	// (PUT /api/v1/external-api)
+	PutExternalApi(w http.ResponseWriter, r *http.Request)
+	// CheckExternalApi Checks the saved setting again; the answer is the setting with the new state.
+	// (POST /api/v1/external-api/check)
+	CheckExternalApi(w http.ResponseWriter, r *http.Request)
+	// GetExternalApiEvents How the wyo server learns what the fulfilment centre did - by asking once a minute, or by notifications.
+	// (GET /api/v1/external-api/events)
+	GetExternalApiEvents(w http.ResponseWriter, r *http.Request)
+	// PutExternalApiEvents Switches between asking and notifications. Switching notifications on makes the address to copy; the signing secret the fulfilment centre's system shows is sent with `secret` (`whsec_` and base64). Refusals - `invalid_secret`, `external_api_empty`.
+	// (PUT /api/v1/external-api/events)
+	PutExternalApiEvents(w http.ResponseWriter, r *http.Request)
+	// GetExternalApiMarketplaces For each account, the marketplace's code in the fulfilment centre's own list (with a proposal when a code equals the adapter's), whether its key may write, and the adapter's hand-over settings.
+	// (GET /api/v1/external-api/marketplaces)
+	GetExternalApiMarketplaces(w http.ResponseWriter, r *http.Request)
+	// PutExternalApiMarketplaces Saves the rows sent: a row's `fcMarketplace` (absent - unchanged, empty - no match) and its `handoverSettings` (absent - unchanged).
+	// (PUT /api/v1/external-api/marketplaces)
+	PutExternalApiMarketplaces(w http.ResponseWriter, r *http.Request)
+	// GetExternalApiWarehouses Each warehouse of the seller on a marketplace beside the fulfilment centre's warehouse that stands for it, and the fulfilment centre's warehouses to choose from.
+	// (GET /api/v1/external-api/warehouses)
+	GetExternalApiWarehouses(w http.ResponseWriter, r *http.Request)
+	// PutExternalApiWarehouses Saves the matches sent; a row with no `fcWarehouse` removes its match.
+	// (PUT /api/v1/external-api/warehouses)
+	PutExternalApiWarehouses(w http.ResponseWriter, r *http.Request)
+	// ListHandovers The hand-overs the fulfilment centre asked documents for, newest first.
+	// (GET /api/v1/handovers)
+	ListHandovers(w http.ResponseWriter, r *http.Request)
+	// GetHandover One hand-over with the strip of its steps, its orders and its problem.
+	// (GET /api/v1/handovers/{id})
+	GetHandover(w http.ResponseWriter, r *http.Request, id int64)
+	// RetryHandover «Повторить» - goes on from the step that failed or waited. Refusal - `handover_not_retryable`.
+	// (POST /api/v1/handovers/{id}/retry)
+	RetryHandover(w http.ResponseWriter, r *http.Request, id int64)
+	// GetHandoverShippingPoints The points the marketplace offers for this hand-over's batch, asked of the marketplace now, and the point remembered for the account. Refusal - `shipping_points_unavailable` (the batch is not made yet).
+	// (GET /api/v1/handovers/{id}/shipping-point)
+	GetHandoverShippingPoints(w http.ResponseWriter, r *http.Request, id int64)
+	// PutHandoverShippingPoint Remembers the point for the account (for this and the next hand-overs) and goes on with the steps. Refusal - `shipping_point_unknown`.
+	// (PUT /api/v1/handovers/{id}/shipping-point)
+	PutHandoverShippingPoint(w http.ResponseWriter, r *http.Request, id int64)
 	// GetInstallation The state of the installation shown on «Обзор» - version, updates, certificate, the last copy.
 	// (GET /api/v1/installation)
 	GetInstallation(w http.ResponseWriter, r *http.Request)
-	// ListJournal The journal of every request the wyo server sent to a marketplace, newest first, 50 a page. Never a key, a query or a body.
+	// ListJournal The journal of every request the wyo server sent to a marketplace or to the fulfilment centre, newest first, 50 a page. Never a key, a query or a body.
 	// (GET /api/v1/journal)
 	ListJournal(w http.ResponseWriter, r *http.Request, params ListJournalParams)
 	// ListMarketplaces Every marketplace adapter the wyo server holds - its code, colour mark, the fields of its key form and the parts of the adapter contract it supports. The interface draws the key form, the marks and the columns that exist only for some capability from this list, never from a marketplace's name.
@@ -864,6 +1591,12 @@ type ServerInterface interface {
 	// GetOrder One order with the history of its states.
 	// (GET /api/v1/orders/{id})
 	GetOrder(w http.ResponseWriter, r *http.Request, id int64)
+	// RetryOrderExchange «Передать заново» - repeats the order's step that failed, for a reason the owner has removed. Refusal - `exchange_not_retryable`.
+	// (POST /api/v1/orders/{id}/exchange/retry)
+	RetryOrderExchange(w http.ResponseWriter, r *http.Request, id int64)
+	// GetExternalApiOverview The card «Внешний API» of «Обзор».
+	// (GET /api/v1/overview/external-api)
+	GetExternalApiOverview(w http.ResponseWriter, r *http.Request)
 	// GetMarketplacesOverview The cards of «Обзор» about accounts and orders.
 	// (GET /api/v1/overview/marketplaces)
 	GetMarketplacesOverview(w http.ResponseWriter, r *http.Request)
@@ -897,6 +1630,9 @@ type ServerInterface interface {
 	// RequestUpdateInstall Asks the updater to install a newer release now, even with automatic updates off and even a version that failed before.
 	// (POST /api/v1/updates/install)
 	RequestUpdateInstall(w http.ResponseWriter, r *http.Request)
+	// ReceiveFulfilmentNotification A signed notification of the fulfilment centre (the Standard Webhooks scheme of docs/fulfilment-centre-api.md). The only address open without signing in that changes anything; it carries no cookie, and the signature stands in its place. Accepted only with the right address text, a right signature and a time no more than five minutes away; at most 256 KB. Refusals - `not_found`, `bad_signature`, `too_large`.
+	// (POST /hooks/fulfilment/{text})
+	ReceiveFulfilmentNotification(w http.ResponseWriter, r *http.Request, text string)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -1160,6 +1896,264 @@ func (siw *ServerInterfaceWrapper) CreateBackup(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteExternalApi operation middleware
+func (siw *ServerInterfaceWrapper) DeleteExternalApi(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteExternalApi(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetExternalApi operation middleware
+func (siw *ServerInterfaceWrapper) GetExternalApi(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetExternalApi(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutExternalApi operation middleware
+func (siw *ServerInterfaceWrapper) PutExternalApi(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutExternalApi(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CheckExternalApi operation middleware
+func (siw *ServerInterfaceWrapper) CheckExternalApi(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CheckExternalApi(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetExternalApiEvents operation middleware
+func (siw *ServerInterfaceWrapper) GetExternalApiEvents(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetExternalApiEvents(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutExternalApiEvents operation middleware
+func (siw *ServerInterfaceWrapper) PutExternalApiEvents(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutExternalApiEvents(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetExternalApiMarketplaces operation middleware
+func (siw *ServerInterfaceWrapper) GetExternalApiMarketplaces(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetExternalApiMarketplaces(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutExternalApiMarketplaces operation middleware
+func (siw *ServerInterfaceWrapper) PutExternalApiMarketplaces(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutExternalApiMarketplaces(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetExternalApiWarehouses operation middleware
+func (siw *ServerInterfaceWrapper) GetExternalApiWarehouses(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetExternalApiWarehouses(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutExternalApiWarehouses operation middleware
+func (siw *ServerInterfaceWrapper) PutExternalApiWarehouses(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutExternalApiWarehouses(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListHandovers operation middleware
+func (siw *ServerInterfaceWrapper) ListHandovers(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListHandovers(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetHandover operation middleware
+func (siw *ServerInterfaceWrapper) GetHandover(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetHandover(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RetryHandover operation middleware
+func (siw *ServerInterfaceWrapper) RetryHandover(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RetryHandover(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetHandoverShippingPoints operation middleware
+func (siw *ServerInterfaceWrapper) GetHandoverShippingPoints(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetHandoverShippingPoints(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutHandoverShippingPoint operation middleware
+func (siw *ServerInterfaceWrapper) PutHandoverShippingPoint(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutHandoverShippingPoint(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetInstallation operation middleware
 func (siw *ServerInterfaceWrapper) GetInstallation(w http.ResponseWriter, r *http.Request) {
 
@@ -1205,6 +2199,19 @@ func (siw *ServerInterfaceWrapper) ListJournal(w http.ResponseWriter, r *http.Re
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "outcome"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "outcome", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "target" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "target", r.URL.Query(), &params.Target, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "target"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "target", Err: err})
 		}
 		return
 	}
@@ -1388,6 +2395,19 @@ func (siw *ServerInterfaceWrapper) ListOrders(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// ------------- Optional query parameter "attention" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "attention", r.URL.Query(), &params.Attention, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "attention"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "attention", Err: err})
+		}
+		return
+	}
+
 	// ------------- Optional query parameter "page" -------------
 
 	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
@@ -1429,6 +2449,46 @@ func (siw *ServerInterfaceWrapper) GetOrder(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetOrder(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RetryOrderExchange operation middleware
+func (siw *ServerInterfaceWrapper) RetryOrderExchange(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RetryOrderExchange(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetExternalApiOverview operation middleware
+func (siw *ServerInterfaceWrapper) GetExternalApiOverview(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetExternalApiOverview(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1604,6 +2664,32 @@ func (siw *ServerInterfaceWrapper) RequestUpdateInstall(w http.ResponseWriter, r
 	handler.ServeHTTP(w, r)
 }
 
+// ReceiveFulfilmentNotification operation middleware
+func (siw *ServerInterfaceWrapper) ReceiveFulfilmentNotification(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "text" -------------
+	var text string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "text", r.PathValue("text"), &text, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "text", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReceiveFulfilmentNotification(w, r, text)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -1754,6 +2840,24 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/sync/refresh", wrapper.RefreshOrders)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/journal", wrapper.ListJournal)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/overview/marketplaces", wrapper.GetMarketplacesOverview)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/external-api", wrapper.DeleteExternalApi)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/external-api", wrapper.GetExternalApi)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/external-api", wrapper.PutExternalApi)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/external-api/check", wrapper.CheckExternalApi)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/external-api/warehouses", wrapper.GetExternalApiWarehouses)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/external-api/warehouses", wrapper.PutExternalApiWarehouses)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/external-api/marketplaces", wrapper.GetExternalApiMarketplaces)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/external-api/marketplaces", wrapper.PutExternalApiMarketplaces)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/external-api/events", wrapper.GetExternalApiEvents)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/external-api/events", wrapper.PutExternalApiEvents)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/handovers", wrapper.ListHandovers)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/handovers/{id}", wrapper.GetHandover)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/handovers/{id}/retry", wrapper.RetryHandover)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/handovers/{id}/shipping-point", wrapper.GetHandoverShippingPoints)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/handovers/{id}/shipping-point", wrapper.PutHandoverShippingPoint)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/orders/{id}/exchange/retry", wrapper.RetryOrderExchange)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/overview/external-api", wrapper.GetExternalApiOverview)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/hooks/fulfilment/{text}", wrapper.ReceiveFulfilmentNotification)
 
 	return m
 }
@@ -1763,105 +2867,168 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

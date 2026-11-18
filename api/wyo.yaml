@@ -324,6 +324,7 @@ paths:
                 - { name: from, in: query, schema: { type: string, format: date } }
                 - { name: to, in: query, schema: { type: string, format: date } }
                 - { name: q, in: query, schema: { type: string } }
+                - { name: attention, in: query, schema: { type: boolean }, description: Only the orders that need the owner. }
                 - { name: page, in: query, schema: { type: integer, minimum: 1 } }
             responses:
                 '200':
@@ -372,11 +373,17 @@ paths:
         get:
             operationId: listJournal
             summary: >-
-                The journal of every request the wyo server sent to a marketplace, newest first, 50 a page. Never a key,
+                The journal of every request the wyo server sent to a marketplace or to the fulfilment centre, newest first, 50 a page. Never a key,
                 a query or a body.
             parameters:
                 - { name: account, in: query, schema: { type: integer, format: int64 } }
                 - { name: outcome, in: query, schema: { $ref: '#/components/schemas/JournalOutcome' } }
+                - {
+                      name: target,
+                      in: query,
+                      schema: { type: string },
+                      description: 'Where a request went - a marketplace''s code, or `fulfilment` for the fulfilment centre.'
+                  }
                 - { name: from, in: query, schema: { type: string, format: date } }
                 - { name: to, in: query, schema: { type: string, format: date } }
                 - { name: page, in: query, schema: { type: integer, minimum: 1 } }
@@ -398,6 +405,246 @@ paths:
                         content: { application/json: { schema: { $ref: '#/components/schemas/MarketplacesOverview' } } }
                     }
                 default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/external-api:
+        get:
+            operationId: getExternalApi
+            summary: >-
+                The setting «Внешний API» - the address of a fulfilment centre's system and the last four characters of
+                its key, the state of the last check and what the fulfilment centre answered. Empty by default.
+            responses:
+                '200':
+                    {
+                        description: The setting.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/ExternalApi' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+        put:
+            operationId: putExternalApi
+            summary: >-
+                «Проверить и сохранить»: asks the fulfilment centre's system `GET /api/v1/account` with the key and saves
+                the address and the key only when it answers and the key may write. Refusals - `invalid_address`,
+                `fc_key_refused`, `fc_read_only_key`, `fc_api_off`, `fc_forbidden`, `fc_unavailable`, `fc_no_connection`,
+                `fc_unreadable`.
+            requestBody:
+                required: true
+                content: { application/json: { schema: { $ref: '#/components/schemas/ExternalApiConnect' } } }
+            responses:
+                '200':
+                    {
+                        description: Saved and checked.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/ExternalApi' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+        delete:
+            operationId: deleteExternalApi
+            summary: >-
+                «Отключить»: empties the setting. From this moment nothing is sent anywhere but to the marketplaces; the
+                matches, the orders' exchange states and the hand-overs are kept for when it is filled again.
+            responses:
+                '204': { description: Emptied. }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/external-api/check:
+        post:
+            operationId: checkExternalApi
+            summary: Checks the saved setting again; the answer is the setting with the new state.
+            responses:
+                '200':
+                    {
+                        description: Checked.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/ExternalApi' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/external-api/warehouses:
+        get:
+            operationId: getExternalApiWarehouses
+            summary: >-
+                Each warehouse of the seller on a marketplace beside the fulfilment centre's warehouse that stands for it,
+                and the fulfilment centre's warehouses to choose from.
+            responses:
+                '200':
+                    {
+                        description: The matches.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/WarehouseMatches' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+        put:
+            operationId: putExternalApiWarehouses
+            summary: Saves the matches sent; a row with no `fcWarehouse` removes its match.
+            requestBody:
+                required: true
+                content: { application/json: { schema: { $ref: '#/components/schemas/WarehouseMatchesChange' } } }
+            responses:
+                '200':
+                    {
+                        description: The matches as saved.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/WarehouseMatches' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/external-api/marketplaces:
+        get:
+            operationId: getExternalApiMarketplaces
+            summary: >-
+                For each account, the marketplace's code in the fulfilment centre's own list (with a proposal when a code
+                equals the adapter's), whether its key may write, and the adapter's hand-over settings.
+            responses:
+                '200':
+                    {
+                        description: The accounts.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/MarketplaceMatches' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+        put:
+            operationId: putExternalApiMarketplaces
+            summary: >-
+                Saves the rows sent: a row's `fcMarketplace` (absent - unchanged, empty - no match) and its
+                `handoverSettings` (absent - unchanged).
+            requestBody:
+                required: true
+                content: { application/json: { schema: { $ref: '#/components/schemas/MarketplaceMatchesChange' } } }
+            responses:
+                '200':
+                    {
+                        description: The accounts as saved.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/MarketplaceMatches' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/external-api/events:
+        get:
+            operationId: getExternalApiEvents
+            summary: How the wyo server learns what the fulfilment centre did - by asking once a minute, or by notifications.
+            responses:
+                '200':
+                    {
+                        description: The events' setting.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/EventsSetting' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+        put:
+            operationId: putExternalApiEvents
+            summary: >-
+                Switches between asking and notifications. Switching notifications on makes the address to copy; the
+                signing secret the fulfilment centre's system shows is sent with `secret` (`whsec_` and base64). Refusals
+                - `invalid_secret`, `external_api_empty`.
+            requestBody:
+                required: true
+                content: { application/json: { schema: { $ref: '#/components/schemas/EventsSettingChange' } } }
+            responses:
+                '200':
+                    {
+                        description: Saved.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/EventsSetting' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/handovers:
+        get:
+            operationId: listHandovers
+            summary: The hand-overs the fulfilment centre asked documents for, newest first.
+            responses:
+                '200':
+                    {
+                        description: The hand-overs.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/HandoverList' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/handovers/{id}:
+        parameters:
+            - { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
+        get:
+            operationId: getHandover
+            summary: One hand-over with the strip of its steps, its orders and its problem.
+            responses:
+                '200':
+                    {
+                        description: The hand-over.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/HandoverDetails' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/handovers/{id}/retry:
+        parameters:
+            - { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
+        post:
+            operationId: retryHandover
+            summary: «Повторить» - goes on from the step that failed or waited. Refusal - `handover_not_retryable`.
+            responses:
+                '202':
+                    {
+                        description: Started.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/HandoverDetails' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/handovers/{id}/shipping-point:
+        parameters:
+            - { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
+        get:
+            operationId: getHandoverShippingPoints
+            summary: >-
+                The points the marketplace offers for this hand-over's batch, asked of the marketplace now, and the point
+                remembered for the account. Refusal - `shipping_points_unavailable` (the batch is not made yet).
+            responses:
+                '200':
+                    {
+                        description: The points.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/ShippingPointChoice' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+        put:
+            operationId: putHandoverShippingPoint
+            summary: >-
+                Remembers the point for the account (for this and the next hand-overs) and goes on with the steps.
+                Refusal - `shipping_point_unknown`.
+            requestBody:
+                required: true
+                content: { application/json: { schema: { $ref: '#/components/schemas/ShippingPointPick' } } }
+            responses:
+                '202':
+                    {
+                        description: Saved; the steps go on.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/HandoverDetails' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/orders/{id}/exchange/retry:
+        parameters:
+            - { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
+        post:
+            operationId: retryOrderExchange
+            summary: >-
+                «Передать заново» - repeats the order's step that failed, for a reason the owner has removed. Refusal -
+                `exchange_not_retryable`.
+            responses:
+                '202':
+                    {
+                        description: Started.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/OrderDetails' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/overview/external-api:
+        get:
+            operationId: getExternalApiOverview
+            summary: The card «Внешний API» of «Обзор».
+            responses:
+                '200':
+                    {
+                        description: The card.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/ExternalApiOverview' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /hooks/fulfilment/{text}:
+        parameters:
+            - { name: text, in: path, required: true, schema: { type: string } }
+        post:
+            operationId: receiveFulfilmentNotification
+            summary: >-
+                A signed notification of the fulfilment centre (the Standard Webhooks scheme of
+                docs/fulfilment-centre-api.md). The only address open without signing in that changes anything; it carries
+                no cookie, and the signature stands in its place. Accepted only with the right address text, a right
+                signature and a time no more than five minutes away; at most 256 KB. Refusals - `not_found`,
+                `bad_signature`, `too_large`.
+            requestBody:
+                required: true
+                content: { application/json: { schema: { type: object, additionalProperties: true } } }
+            responses:
+                '204': { description: Stored; applied afterwards. }
+                default: { $ref: '#/components/responses/Refusal' }
 components:
     schemas:
         KeyField:
@@ -412,7 +659,7 @@ components:
         Marketplace:
             type: object
             additionalProperties: false
-            required: [code, mark, keyFields, capabilities]
+            required: [code, mark, keyFields, capabilities, handoverSettings]
             properties:
                 code:
                     type: string
@@ -424,6 +671,22 @@ components:
                 capabilities:
                     type: array
                     description: The parts of the adapter contract this adapter supports, e.g. `orders.new`.
+                    items: { type: string }
+                handoverSettings:
+                    type: array
+                    description: >-
+                        The adapter's hand-over settings (Plan 4, «Внешний API»): a choice among `choices`, or a text when
+                        there are none. Texts - `marketplace.<code>.handover.<name>.label`, `.help` and
+                        `.choice.<value>`.
+                    items: { $ref: '#/components/schemas/SettingField' }
+        SettingField:
+            type: object
+            additionalProperties: false
+            required: [name, choices]
+            properties:
+                name: { type: string }
+                choices:
+                    type: array
                     items: { type: string }
         MarketplaceList:
             type: object
@@ -576,6 +839,9 @@ components:
                 cancelledBy: { $ref: '#/components/schemas/CancelledBy' }
                 marketplaceStatus: { $ref: '#/components/schemas/MarketplaceStatus' }
                 updatedAt: { type: string, format: date-time }
+                exchange:
+                    $ref: '#/components/schemas/OrderExchange'
+                    description: The exchange with the fulfilment centre; only for `fbs` orders.
         OrderEvent:
             type: object
             additionalProperties: false
@@ -597,6 +863,7 @@ components:
                 events:
                     type: array
                     items: { $ref: '#/components/schemas/OrderEvent' }
+                exchange: { $ref: '#/components/schemas/OrderExchangeDetails' }
         OrderList:
             type: object
             additionalProperties: false
@@ -630,7 +897,9 @@ components:
                 at: { type: string, format: date-time }
                 accountId: { type: integer, format: int64 }
                 accountName: { type: string }
-                marketplace: { type: string }
+                marketplace:
+                    type: string
+                    description: The adapter's code, or `fulfilment` for a request to the fulfilment centre.
                 method: { type: string }
                 path:
                     type: string
@@ -666,6 +935,378 @@ components:
                 overdue: { type: integer, description: FBS orders past their deadline and not yet handed over. }
                 unknownStates: { type: integer, description: Orders whose marketplace state the table does not hold. }
                 lastSuccessAt: { type: string, format: date-time }
+        ExternalApiState:
+            type: string
+            enum:
+                [
+                    empty,
+                    working,
+                    key_refused,
+                    read_only_key,
+                    api_off,
+                    forbidden,
+                    unavailable,
+                    no_connection,
+                    unreadable
+                ]
+            description: >-
+                The state of «Внешний API» after its last check or call; the text is `externalApi.state.<state>`. `empty`
+                - not filled; the exchange works only in `working`.
+        FcMarketplace:
+            type: object
+            additionalProperties: false
+            required: [code, name]
+            properties:
+                code: { type: string, description: The fulfilment centre's own code of a marketplace. }
+                name: { type: string, description: The name the fulfilment centre gives it. }
+        ExternalApi:
+            type: object
+            additionalProperties: false
+            required: [state, eventsMode]
+            properties:
+                state: { $ref: '#/components/schemas/ExternalApiState' }
+                address: { type: string, description: 'The address of the fulfilment centre''s API, `https://…`.' }
+                keyLast4: { type: string, description: The last four characters of the key; the key itself is never sent. }
+                sellerName: { type: string, description: The name the fulfilment centre gives this seller. }
+                marketplaces:
+                    type: array
+                    description: The marketplaces the fulfilment centre accepts orders of, as its last answer listed them.
+                    items: { $ref: '#/components/schemas/FcMarketplace' }
+                checkedAt: { type: string, format: date-time }
+                eventsMode: { $ref: '#/components/schemas/EventsMode' }
+                lastEventAt: { type: string, format: date-time }
+        ExternalApiConnect:
+            type: object
+            additionalProperties: false
+            required: [address, key]
+            properties:
+                address: { type: string, minLength: 1, maxLength: 500 }
+                key: { type: string, minLength: 1, maxLength: 500 }
+        FcWarehouse:
+            type: object
+            additionalProperties: false
+            required: [code, name]
+            properties:
+                code: { type: string }
+                name: { type: string }
+                city: { type: string }
+        WarehouseMatch:
+            type: object
+            additionalProperties: false
+            required: [accountId, accountName, marketplace, warehouseNumber, warehouseName]
+            properties:
+                accountId: { type: integer, format: int64 }
+                accountName: { type: string }
+                marketplace: { type: string }
+                warehouseNumber: { type: string, description: "The marketplace's own number of the seller's warehouse." }
+                warehouseName: { type: string }
+                fcWarehouse: { type: string, description: "The fulfilment centre's warehouse code; absent - not matched." }
+        WarehouseMatches:
+            type: object
+            additionalProperties: false
+            required: [fcWarehouses, rows]
+            properties:
+                fcWarehouses:
+                    type: array
+                    description: The fulfilment centre's working warehouses, asked of it now; empty when it does not answer.
+                    items: { $ref: '#/components/schemas/FcWarehouse' }
+                rows:
+                    type: array
+                    items: { $ref: '#/components/schemas/WarehouseMatch' }
+        WarehouseMatchesChange:
+            type: object
+            additionalProperties: false
+            required: [rows]
+            properties:
+                rows:
+                    type: array
+                    items:
+                        type: object
+                        additionalProperties: false
+                        required: [accountId, warehouseNumber]
+                        properties:
+                            accountId: { type: integer, format: int64 }
+                            warehouseNumber: { type: string }
+                            fcWarehouse: { type: string }
+        MarketplaceMatch:
+            type: object
+            additionalProperties: false
+            required: [accountId, accountName, marketplace, readOnly, handoverSettings]
+            properties:
+                accountId: { type: integer, format: int64 }
+                accountName: { type: string }
+                marketplace: { type: string }
+                fcMarketplace: { type: string, description: "The marketplace's code in the fulfilment centre's list." }
+                proposed:
+                    type: string
+                    description: A code of the fulfilment centre's list that equals the adapter's, offered when none is chosen.
+                readOnly: { type: boolean, description: The account's key may only read; the exchange cannot write with it. }
+                handoverSettings:
+                    type: object
+                    description: The adapter's hand-over settings (`Marketplace.handoverSettings`) by name.
+                    additionalProperties: { type: string }
+        MarketplaceMatches:
+            type: object
+            additionalProperties: false
+            required: [fcMarketplaces, rows]
+            properties:
+                fcMarketplaces:
+                    type: array
+                    items: { $ref: '#/components/schemas/FcMarketplace' }
+                rows:
+                    type: array
+                    items: { $ref: '#/components/schemas/MarketplaceMatch' }
+        MarketplaceMatchesChange:
+            type: object
+            additionalProperties: false
+            required: [rows]
+            properties:
+                rows:
+                    type: array
+                    items:
+                        type: object
+                        additionalProperties: false
+                        required: [accountId]
+                        properties:
+                            accountId: { type: integer, format: int64 }
+                            fcMarketplace: { type: string }
+                            handoverSettings:
+                                type: object
+                                additionalProperties: { type: string }
+        EventsMode:
+            type: string
+            enum: [poll, notify]
+            description: '`poll` - the wyo server asks once a minute; `notify` - it receives notifications and asks every 10 minutes.'
+        EventsSetting:
+            type: object
+            additionalProperties: false
+            required: [mode]
+            properties:
+                mode: { $ref: '#/components/schemas/EventsMode' }
+                hookUrl:
+                    type: string
+                    description: The wyo server's own address to copy into the fulfilment centre's system (notifications only).
+                secretSaved: { type: boolean, description: The signing secret is saved; it is never sent back. }
+                lastNotificationAt: { type: string, format: date-time }
+                lastPingAt: { type: string, format: date-time, description: The last test notification received. }
+                lastEventAt: { type: string, format: date-time }
+        EventsSettingChange:
+            type: object
+            additionalProperties: false
+            required: [mode]
+            properties:
+                mode: { $ref: '#/components/schemas/EventsMode' }
+                secret: { type: string, maxLength: 200 }
+        ExchangeState:
+            type: string
+            enum:
+                [
+                    not_sent,
+                    sent,
+                    held,
+                    reserved,
+                    label_sent,
+                    packed,
+                    codes_checking,
+                    codes_accepted,
+                    handed_over,
+                    cancelled
+                ]
+            description: "The exchange's own state of an order; the text is `exchange.state.<state>`."
+        ExchangeReason:
+            type: string
+            enum:
+                [
+                    external_api_empty,
+                    marketplace_not_matched,
+                    warehouse_not_matched,
+                    already_on_assembly,
+                    not_seller_warehouse,
+                    key_read_only
+                ]
+            description: "Why an order is not sent; the text is `exchange.reason.<reason>`."
+        Attention:
+            type: string
+            enum:
+                [held, not_reserved_in_time, problem, codes_refused, cancelled_by_warehouse, change_waits]
+            description: "Why an order needs the owner; the text is `exchange.attention.<code>`."
+        Problem:
+            type: object
+            additionalProperties: false
+            required: [code, at]
+            properties:
+                code: { type: string, description: "The wyo server's code of the problem; the text is `problem.<code>`." }
+                params:
+                    type: object
+                    additionalProperties: true
+                marketplaceCode: { type: string, description: "The marketplace's own code of its refusal, as received." }
+                words:
+                    type: string
+                    description: "The marketplace's or the fulfilment centre's own words, as received (at most 300 characters)."
+                at: { type: string, format: date-time }
+        OrderExchange:
+            type: object
+            additionalProperties: false
+            required: [state]
+            properties:
+                state: { $ref: '#/components/schemas/ExchangeState' }
+                reason: { $ref: '#/components/schemas/ExchangeReason' }
+                attention: { $ref: '#/components/schemas/Attention' }
+                problem: { $ref: '#/components/schemas/Problem' }
+        HeldReason:
+            type: object
+            additionalProperties: false
+            required: [code]
+            properties:
+                code:
+                    type: string
+                    description: "The fulfilment centre's reason code; the text is `exchange.held.<code>`."
+                params:
+                    type: object
+                    additionalProperties: true
+        CodeVerdict:
+            type: object
+            additionalProperties: false
+            required: [identifier, verdict]
+            description: The verdict on one identifier of an order. The code itself is never sent to the browser.
+            properties:
+                identifier: { type: string, description: "The text is `exchange.identifier.<identifier>`." }
+                verdict:
+                    type: string
+                    enum: [accepted, not_required, pending, unfinished, missing, refused]
+                    description: "The text is `exchange.verdict.<verdict>`."
+                words: { type: string, description: "The marketplace's own word for the verdict, as received." }
+                units: { type: integer, description: How many units' codes were sent. }
+        ExchangeEvent:
+            type: object
+            additionalProperties: false
+            required: [at, state]
+            properties:
+                at: { type: string, format: date-time }
+                state: { $ref: '#/components/schemas/ExchangeState' }
+                code:
+                    type: string
+                    description: "What happened, e.g. `sent`, `held`, `label_sent`, `codes_refused`; the text is `exchange.event.<code>`."
+        OrderExchangeDetails:
+            type: object
+            additionalProperties: false
+            required: [state, heldReasons, verdicts, history, retryable]
+            properties:
+                state: { $ref: '#/components/schemas/ExchangeState' }
+                reason: { $ref: '#/components/schemas/ExchangeReason' }
+                attention: { $ref: '#/components/schemas/Attention' }
+                problem: { $ref: '#/components/schemas/Problem' }
+                fcNumber: { type: string, description: "The order's number at the fulfilment centre." }
+                heldReasons:
+                    type: array
+                    items: { $ref: '#/components/schemas/HeldReason' }
+                verdicts:
+                    type: array
+                    items: { $ref: '#/components/schemas/CodeVerdict' }
+                cancelAnswer:
+                    type: string
+                    enum: [cancelled, waiting, needs_person, handed_over]
+                    description: "The fulfilment centre's answer to a cancellation passed on; the text is `exchange.cancel.<answer>`."
+                history:
+                    type: array
+                    items: { $ref: '#/components/schemas/ExchangeEvent' }
+                retryable: { type: boolean, description: «Передать заново» may be pressed. }
+        HandoverState:
+            type: string
+            enum: [working, waiting, problem, documents_sent, withdrawn, completed]
+            description: "The text is `handovers.state.<state>`."
+        HandoverStep:
+            type: string
+            enum: [batch, move, boxes, shipping, close, documents]
+            description: "The text is `handovers.step.<step>`."
+        Handover:
+            type: object
+            additionalProperties: false
+            required: [id, number, day, state, step, batches, orders, boxes, requestedAt]
+            properties:
+                id: { type: integer, format: int64 }
+                number: { type: string, description: "The fulfilment centre's number of the hand-over." }
+                day: { type: string, format: date }
+                marketplace: { type: string, description: "The adapter's code, when the hand-over's orders are known." }
+                state: { $ref: '#/components/schemas/HandoverState' }
+                step: { $ref: '#/components/schemas/HandoverStep' }
+                batches:
+                    type: array
+                    description: "The marketplace's numbers of the hand-over's batches (Wildberries' supplies)."
+                    items: { type: string }
+                orders: { type: integer }
+                boxes: { type: integer, description: Transport boxes the fulfilment centre named. }
+                problem: { $ref: '#/components/schemas/Problem' }
+                requestedAt: { type: string, format: date-time }
+                updatedAt: { type: string, format: date-time }
+        HandoverList:
+            type: object
+            additionalProperties: false
+            required: [handovers]
+            properties:
+                handovers:
+                    type: array
+                    items: { $ref: '#/components/schemas/Handover' }
+        HandoverStepState:
+            type: object
+            additionalProperties: false
+            required: [step, state]
+            properties:
+                step: { $ref: '#/components/schemas/HandoverStep' }
+                state: { type: string, enum: [done, now, waiting, failed, todo] }
+        HandoverDetails:
+            type: object
+            additionalProperties: false
+            required: [handover, steps, orderList, retryable, needsShippingPoint, closed]
+            properties:
+                handover: { $ref: '#/components/schemas/Handover' }
+                steps:
+                    type: array
+                    items: { $ref: '#/components/schemas/HandoverStepState' }
+                orderList:
+                    type: array
+                    items:
+                        type: object
+                        additionalProperties: false
+                        required: [id, number]
+                        properties:
+                            id: { type: integer, format: int64 }
+                            number: { type: string }
+                retryable: { type: boolean }
+                needsShippingPoint: { type: boolean, description: The owner must pick the shipping point. }
+                closed: { type: boolean, description: The batch is closed at the marketplace; nothing can be undone. }
+        ShippingPoint:
+            type: object
+            additionalProperties: false
+            required: [id, name]
+            properties:
+                id: { type: string }
+                name: { type: string }
+                address: { type: string }
+        ShippingPointChoice:
+            type: object
+            additionalProperties: false
+            required: [points]
+            properties:
+                points:
+                    type: array
+                    items: { $ref: '#/components/schemas/ShippingPoint' }
+                chosen: { type: string, description: The point remembered for the account. }
+        ShippingPointPick:
+            type: object
+            additionalProperties: false
+            required: [point]
+            properties:
+                point: { type: string, minLength: 1 }
+        ExternalApiOverview:
+            type: object
+            additionalProperties: false
+            required: [state, attention, handoversWaiting]
+            properties:
+                state: { $ref: '#/components/schemas/ExternalApiState' }
+                lastEventAt: { type: string, format: date-time }
+                attention: { type: integer, description: Orders that need the owner (the filter «Требуют внимания»). }
+                handoversWaiting: { type: integer, description: Hand-overs that wait or have a problem. }
         Meta:
             type: object
             additionalProperties: false
@@ -841,7 +1482,7 @@ components:
             required: [id, source, code, tone]
             properties:
                 id: { type: string, description: Stable while the cause lasts. }
-                source: { type: string, enum: [updates, certificate, backups, accounts] }
+                source: { type: string, enum: [updates, certificate, backups, accounts, external_api] }
                 code: { type: string, description: 'The text is `notices.<code>`.' }
                 tone: { type: string, enum: [ok, wait, warn, stop, info] }
                 params:

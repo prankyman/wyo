@@ -17,7 +17,12 @@ export const MARKETPLACE: TMarketplace = {
     code: MARKETPLACE_CODE,
     mark: 'plum',
     keyFields: [{ name: 'token', secret: true }],
-    capabilities: ['key.check', 'warehouses.read', 'orders.new', 'orders.states', 'orders.feed']
+    capabilities: ['key.check', 'warehouses.read', 'orders.new', 'orders.states', 'orders.feed'],
+    handoverSettings: [
+        { name: 'shipping_type', choices: ['selfShipping', 'transportCompany'] },
+        { name: 'city', choices: [] },
+        { name: 'office_type', choices: ['sc', 'sw', 'pp', 'pfc', 'gpp'] }
+    ]
 };
 
 /** A working account with a Personal key that ends in 180 days; `overrides` change what a test needs. */

@@ -14,13 +14,15 @@ const countJournalEntries = `-- name: CountJournalEntries :one
 SELECT count(*) FROM request_journal j
 WHERE (?1 IS NULL OR j.account_id = ?1)
   AND (?2 IS NULL OR j.outcome = ?2)
-  AND (?3 IS NULL OR j.at >= ?3)
-  AND (?4 IS NULL OR j.at < ?4)
+  AND (?3 IS NULL OR j.marketplace = ?3)
+  AND (?4 IS NULL OR j.at >= ?4)
+  AND (?5 IS NULL OR j.at < ?5)
 `
 
 type CountJournalEntriesParams struct {
 	AccountID interface{}
 	Outcome   interface{}
+	Target    interface{}
 	AtFrom    interface{}
 	AtBefore  interface{}
 }
@@ -29,6 +31,7 @@ func (q *Queries) CountJournalEntries(ctx context.Context, arg CountJournalEntri
 	row := q.db.QueryRowContext(ctx, countJournalEntries,
 		arg.AccountID,
 		arg.Outcome,
+		arg.Target,
 		arg.AtFrom,
 		arg.AtBefore,
 	)
@@ -92,15 +95,17 @@ FROM request_journal j
 LEFT JOIN marketplace_accounts a ON a.id = j.account_id
 WHERE (?1 IS NULL OR j.account_id = ?1)
   AND (?2 IS NULL OR j.outcome = ?2)
-  AND (?3 IS NULL OR j.at >= ?3)
-  AND (?4 IS NULL OR j.at < ?4)
+  AND (?3 IS NULL OR j.marketplace = ?3)
+  AND (?4 IS NULL OR j.at >= ?4)
+  AND (?5 IS NULL OR j.at < ?5)
 ORDER BY j.at DESC, j.id DESC
-LIMIT ?6 OFFSET ?5
+LIMIT ?7 OFFSET ?6
 `
 
 type ListJournalEntriesParams struct {
 	AccountID  interface{}
 	Outcome    interface{}
+	Target     interface{}
 	AtFrom     interface{}
 	AtBefore   interface{}
 	PageOffset int64
@@ -127,6 +132,7 @@ func (q *Queries) ListJournalEntries(ctx context.Context, arg ListJournalEntries
 	rows, err := q.db.QueryContext(ctx, listJournalEntries,
 		arg.AccountID,
 		arg.Outcome,
+		arg.Target,
 		arg.AtFrom,
 		arg.AtBefore,
 		arg.PageOffset,

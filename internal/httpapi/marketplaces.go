@@ -28,7 +28,13 @@ func words(list []string) []string {
 }
 
 func marketplaceBody(d marketplace.Description) gen.Marketplace {
-	body := gen.Marketplace{Code: d.Code, Mark: d.Mark, KeyFields: []gen.KeyField{}, Capabilities: []string{}}
+	body := gen.Marketplace{
+		Code: d.Code, Mark: d.Mark, KeyFields: []gen.KeyField{}, Capabilities: []string{}, HandoverSettings: []gen.SettingField{},
+	}
+
+	for _, f := range d.HandoverSettings {
+		body.HandoverSettings = append(body.HandoverSettings, gen.SettingField{Name: f.Name, Choices: append([]string{}, f.Choices...)})
+	}
 
 	for _, f := range d.KeyFields {
 		body.KeyFields = append(body.KeyFields, gen.KeyField{Name: f.Name, Secret: f.Secret})

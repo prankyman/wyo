@@ -57,3 +57,38 @@ func Refusal(status int, body []byte, category string) *marketplace.Refusal {
 		return &marketplace.Refusal{Code: codeRequestRefused, Status: status, Params: map[string]any{"status": status}}
 	}
 }
+
+// maxRefusalText is how much of Wildberries' message a refusal keeps.
+const maxRefusalText = 300
+
+// cut keeps the first maxRefusalText characters of a text.
+func cut(text string) string {
+	if runes := []rune(text); len(runes) > maxRefusalText {
+		return string(runes[:maxRefusalText])
+	}
+
+	return text
+}
+
+// WriteRefusal is Refusal for a request of the writing parts, which are all in the category «Маркетплейс»: the effects on
+// the account are the same (a token not taken, a category missing, a cabinet without seller-warehouse sales). For any other
+// answer, the refusal carries Wildberries' own code («SupplyShippingRequired», «MetaValidationFail», ...) in Code and its
+// message, cut to 300 characters, in Params["text"]; an answer with no code keeps the code request_refused and its status. Of
+// the "data" Wildberries may add (the orders whose marking codes failed, with the codes) nothing is kept.
+func WriteRefusal(status int, body []byte) *marketplace.Refusal {
+	refusal := Refusal(status, body, categoryMarketplace)
+	if refusal.Code != codeRequestRefused {
+		return refusal
+	}
+
+	code, text := (&Adapter{}).ErrorOf(status, body)
+	if code == "" {
+		refusal.Params["text"] = cut(text)
+
+		return refusal
+	}
+
+	refusal.Code, refusal.Params = code, map[string]any{"text": cut(text)}
+
+	return refusal
+}

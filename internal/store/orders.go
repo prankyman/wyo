@@ -32,6 +32,12 @@ type Order struct {
 	SellerStatus      string
 	MarketplaceStatus string
 	UpdatedAt         time.Time
+	// Group, ItemID, Required and Optional are what the list of new orders gave for the exchange with a fulfilment
+	// centre (marketplace.Order).
+	Group    string
+	ItemID   string
+	Required []string
+	Optional []string
 }
 
 // OrderStatus is the connector's state of an order with the marketplace's own words beside it.
@@ -83,8 +89,10 @@ type OrderFilter struct {
 	CreatedFrom   time.Time
 	CreatedBefore time.Time
 	Search        string
-	Page          int
-	PageSize      int
+	// AttentionAt keeps only the orders that need the owner at that moment (the filter «Требуют внимания»).
+	AttentionAt time.Time
+	Page        int
+	PageSize    int
 }
 
 // OrderCounts are the numbers of «Обзор»: the orders of the accounts that are not switched off, by state, and the
@@ -106,7 +114,8 @@ func order(row db.Order) Order {
 		WarehouseNumber: row.WarehouseNumber, WarehouseName: row.WarehouseName, Article: row.Article, Barcodes: wordsOf(row.Barcodes),
 		ProductID: row.ProductID, Kind: row.Kind, Brand: row.Brand, Size: row.Size, CreatedAt: moment(row.CreatedAt),
 		State: row.State, CancelledBy: row.CancelledBy, SellerStatus: row.SellerStatus, MarketplaceStatus: row.MarketplaceStatus,
-		UpdatedAt: moment(row.UpdatedAt),
+		UpdatedAt: moment(row.UpdatedAt), Group: row.Grp, ItemID: row.ItemID, Required: wordsOf(row.RequiredIds),
+		Optional: wordsOf(row.OptionalIds),
 	}
 }
 
@@ -118,6 +127,7 @@ func (q *Queries) InsertOrder(ctx context.Context, o Order) (int64, bool, error)
 		WarehouseNumber: o.WarehouseNumber, WarehouseName: o.WarehouseName, Article: o.Article, Barcodes: words(o.Barcodes),
 		ProductID: o.ProductID, Kind: o.Kind, Brand: o.Brand, Size: o.Size, CreatedAt: seconds(o.CreatedAt), State: o.State,
 		CancelledBy: o.CancelledBy, SellerStatus: o.SellerStatus, MarketplaceStatus: o.MarketplaceStatus, UpdatedAt: seconds(o.UpdatedAt),
+		Grp: o.Group, ItemID: o.ItemID, RequiredIds: words(o.Required), OptionalIds: words(o.Optional),
 	})
 	if errors.Is(err, sql.ErrNoRows) {
 		existing, err := q.OrderByNumber(ctx, o.AccountID, o.Number)
@@ -234,6 +244,7 @@ func (q *Queries) OrderView(ctx context.Context, id int64) (OrderView, error) {
 		WarehouseNumber: r.WarehouseNumber, WarehouseName: r.WarehouseName, Article: r.Article, Barcodes: r.Barcodes,
 		ProductID: r.ProductID, Kind: r.Kind, Brand: r.Brand, Size: r.Size, CreatedAt: r.CreatedAt, State: r.State,
 		CancelledBy: r.CancelledBy, SellerStatus: r.SellerStatus, MarketplaceStatus: r.MarketplaceStatus, UpdatedAt: r.UpdatedAt,
+		Grp: r.Grp, ItemID: r.ItemID, RequiredIds: r.RequiredIds, OptionalIds: r.OptionalIds,
 	}
 
 	return viewOf(o, r.AccountName, r.Marketplace, r.DeadlineHours, r.KnownWarehouseName), nil
@@ -277,7 +288,7 @@ func (q *Queries) OrderViews(ctx context.Context, f OrderFilter) ([]OrderView, e
 	rows, err := q.q.ListOrderViews(ctx, db.ListOrderViewsParams{
 		AccountID: nullable(f.AccountID), Scheme: nullable(f.Scheme), State: nullable(f.State),
 		CreatedFrom: nullableSeconds(f.CreatedFrom), CreatedBefore: nullableSeconds(f.CreatedBefore), Search: nullable(f.Search),
-		PageSize: size, PageOffset: offset,
+		AttentionNow: nullableSeconds(f.AttentionAt), PageSize: size, PageOffset: offset,
 	})
 	if err != nil {
 		return nil, kind(err)
@@ -291,6 +302,7 @@ func (q *Queries) OrderViews(ctx context.Context, f OrderFilter) ([]OrderView, e
 			WarehouseNumber: r.WarehouseNumber, WarehouseName: r.WarehouseName, Article: r.Article, Barcodes: r.Barcodes,
 			ProductID: r.ProductID, Kind: r.Kind, Brand: r.Brand, Size: r.Size, CreatedAt: r.CreatedAt, State: r.State,
 			CancelledBy: r.CancelledBy, SellerStatus: r.SellerStatus, MarketplaceStatus: r.MarketplaceStatus, UpdatedAt: r.UpdatedAt,
+			Grp: r.Grp, ItemID: r.ItemID, RequiredIds: r.RequiredIds, OptionalIds: r.OptionalIds,
 		}
 		list = append(list, viewOf(o, r.AccountName, r.Marketplace, r.DeadlineHours, r.KnownWarehouseName))
 	}
@@ -303,6 +315,7 @@ func (q *Queries) CountOrderViews(ctx context.Context, f OrderFilter) (int64, er
 	n, err := q.q.CountOrderViews(ctx, db.CountOrderViewsParams{
 		AccountID: nullable(f.AccountID), Scheme: nullable(f.Scheme), State: nullable(f.State),
 		CreatedFrom: nullableSeconds(f.CreatedFrom), CreatedBefore: nullableSeconds(f.CreatedBefore), Search: nullable(f.Search),
+		AttentionNow: nullableSeconds(f.AttentionAt),
 	})
 
 	return n, kind(err)

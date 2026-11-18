@@ -35,4 +35,17 @@ regexes = [
     # internal/fulfilment/fcapi/fcapi.gen.go: a line of the compressed API description the generator embeds (it follows a
     # line ending in "key"). It changes when api/fulfilment-centre.yaml changes; read the new value before replacing it.
     '''^3f2iZIsFfaufYJeoyXOHVnYOsT8utxxQqzHx0zf4dXruRGb5mNsHdpJbYSy53CAXYkVZGqeVgnfXmmIN$''',
+    # Plan 4's tests: made-up keys of the fake fulfilment centre and made-up signing secrets, none of them a secret.
+    # internal/server/canary_exchange_wyotest_test.go: the fulfilment centre's canary key a test proves stays on its side.
+    '''^FC-CANARY-0b9d4e7a61c3f258$''',
+    # internal/httpapi/external_test.go: a made-up key answered only by its last four characters, and a made-up secret.
+    '''^fc-key-of-the-seller-0123456789-wxyz$''',
+    '''^whsec_MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=$''',
+    # src/lib/components/external-api/ConnectionSection.svelte.test.ts: a made-up key the form must empty after a save.
+    '''^fck_live_9f8e7d6c5b4a3210z9z2$''',
+    # internal/fulfilment/signature_test.go: texts a test proves are refused as signing secrets (no whsec_ prefix).
+    '''^MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw$''',
+    '''^MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=$''',
+    # The same made-up text as the scan decodes it from base64.
+    '''^0123456789abcdef0123456789abcdef$''',
 ]

@@ -14,7 +14,7 @@ vi.mock('$app/navigation', async () => (await import('$test/support/navigation')
 
 import Page from './+page.svelte';
 
-const NO_FILTER: TOrderFilter = { account: '', scheme: '', state: '', from: '', to: '', q: '' };
+const NO_FILTER: TOrderFilter = { account: '', scheme: '', state: '', from: '', to: '', q: '', attention: '' };
 
 /** The data the page's load hands it; each test changes only what it is about. */
 function pageData(
@@ -89,6 +89,37 @@ describe('«Заказы»', () => {
         expect(screen.getByTestId('orders-empty-filtered')).toHaveTextContent(
             'По фильтру ничего не найдено: «Аккаунт: Магазин одежды», «Состояние: Новый», «Поиск: DRESS».'
         );
+    });
+
+    it('draws the exchange’s state in its own column for an FBS order that has one, and nothing for an order that has none', () => {
+        renderPageWith(
+            Page,
+            pageData({
+                orders: [
+                    orderOf({ exchange: { state: 'held', attention: 'held' } }),
+                    orderOf({ id: 102, number: '4455667799', scheme: 'fbo' }),
+                    orderOf({ id: 103, number: '4455667800', exchange: { state: 'sent' } })
+                ]
+            })
+        );
+
+        const rows = within(screen.getByTestId('orders-list-table')).getAllByTestId('orders-list-row');
+        expect(within(rows[0]).getByTestId('orders-list-exchange-state')).toHaveTextContent('ждёт у фулфилмент-центра');
+        expect(within(rows[1]).queryByTestId('orders-list-exchange-state')).toBeNull();
+        expect(within(rows[2]).getByTestId('orders-list-exchange-state')).toHaveTextContent('передан');
+        expect(
+            within(screen.getByTestId('orders-list-table')).getAllByTestId('orders-list-exchange-help-button')
+        ).toHaveLength(1);
+    });
+
+    it('offers «Требуют внимания» as a filter kept in the address, with a chip that removes it', () => {
+        setPageUrl('/orders?attention=true&q=DRESS');
+        renderPageWith(Page, pageData({ filter: { attention: 'true', q: 'DRESS' }, orders: [] }));
+
+        expect(screen.getByTestId('orders-filter-attention')).toBeChecked();
+        expect(screen.getByTestId('orders-filter-chip-attention')).toHaveTextContent('Требуют внимания');
+        expect(screen.getByTestId('orders-filter-chip-attention')).toHaveAttribute('href', '/orders?q=DRESS');
+        expect(screen.getByTestId('orders-empty-filtered')).toHaveTextContent('«Требуют внимания»');
     });
 
     it('opens the details of the order the address names beside the list', () => {

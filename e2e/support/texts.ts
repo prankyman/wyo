@@ -15,13 +15,18 @@ function messageOf(key: string): string {
     return text;
 }
 
+/** The id of a menu item as its label key writes it: `external-api` is `externalApi`. */
+function camelCase(id: string): string {
+    return id.replace(/-([a-z])/g, (_dash, letter: string) => letter.toUpperCase());
+}
+
 /**
  * A menu place written out the way the interface writes it (`src/lib/i18n/menu-places.ts`): `{menu:nav-settings}` is the menu item
  * `nav.settings` set in the quotes of `menu.place.top`. Only items above the menu's groups exist today.
  */
 function writeMenuPlaces(text: string): string {
     return text.replace(/\{menu:nav-([A-Za-z0-9-]+)\}/g, (_token, item: string) =>
-        messageOf('menu.place.top').replace('{item}', messageOf(`nav.${item}`))
+        messageOf('menu.place.top').replace('{item}', messageOf(`nav.${camelCase(item)}`))
     );
 }
 

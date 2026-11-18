@@ -39,7 +39,7 @@ describe('the load of «Заказы»', () => {
 
         expect(get).toHaveBeenCalledWith('/api/v1/orders?account=7&state=new&q=DRESS&page=2');
         expect(data).toEqual({
-            filter: { account: '7', scheme: '', state: 'new', from: '', to: '', q: 'DRESS' },
+            filter: { account: '7', scheme: '', state: 'new', from: '', to: '', q: 'DRESS', attention: '' },
             list: LIST,
             refusal: null,
             accounts: [accountOf()],
@@ -48,6 +48,15 @@ describe('the load of «Заказы»', () => {
             opened: null
         });
         expect(get).toHaveBeenCalledTimes(4);
+    });
+
+    it('asks only for the orders that need the owner when the address says so', async () => {
+        answers();
+
+        const data = await loadAt('/orders?attention=true');
+
+        expect(get).toHaveBeenCalledWith('/api/v1/orders?attention=true');
+        expect(data.filter).toMatchObject({ attention: 'true' });
     });
 
     it('reads the order the address opens, for its details beside the list', async () => {

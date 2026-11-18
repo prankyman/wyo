@@ -66,9 +66,7 @@ function screenNamesIn(text: string): string[] {
  * Names in «…» that are not on any screen of this release, each with its reason. The list starts empty and holds exceptions
  * only (constitution, principle IV).
  */
-const NOT_ON_A_SCREEN_YET: Record<string, string> = {
-    'External API': 'the setting is built by Plan 4; the README describes what the program will do and says so'
-};
+const NOT_ON_A_SCREEN_YET: Record<string, string> = {};
 
 const COMMAND_GROUPS = ['owner'];
 

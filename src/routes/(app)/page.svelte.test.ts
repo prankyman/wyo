@@ -8,6 +8,7 @@ vi.mock('$lib/api/api', async (original) => ({
 
 import { api, type TApiResult } from '$lib/api/api';
 import type { TInstallation } from '$lib/overview/installation-cards';
+import type { TExternalApiOverview } from '$lib/overview/external-api-card';
 import type { TMarketplacesOverview } from '$lib/overview/marketplace-cards';
 import Page from './+page.svelte';
 
@@ -27,14 +28,19 @@ const NO_ACCOUNTS: TMarketplacesOverview = {
     unknownStates: 0
 };
 
-/** The wyo server's answers to the page's two calls: the installation and the marketplaces' counts. */
+const EXTERNAL_API_EMPTY: TExternalApiOverview = { state: 'empty', attention: 0, handoversWaiting: 0 };
+
+/** The wyo server's answers to the page's three calls: the installation, the marketplaces' counts and the external API's card. */
 function answers(
     installation: TApiResult<unknown> = { ok: true, data: INSTALLATION },
-    marketplaces: TApiResult<unknown> = { ok: true, data: NO_ACCOUNTS }
+    marketplaces: TApiResult<unknown> = { ok: true, data: NO_ACCOUNTS },
+    externalApi: TApiResult<unknown> = { ok: true, data: EXTERNAL_API_EMPTY }
 ): void {
-    get.mockImplementation(
-        async (path: string) => (path === '/api/v1/installation' ? installation : marketplaces) as never
-    );
+    get.mockImplementation(async (path: string) => {
+        if (path === '/api/v1/installation') return installation as never;
+        if (path === '/api/v1/overview/external-api') return externalApi as never;
+        return marketplaces as never;
+    });
 }
 
 afterEach(() => {
@@ -56,7 +62,7 @@ describe('«Обзор»', () => {
         expect(await screen.findByTestId('overview-cards')).toBeInTheDocument();
     });
 
-    it('asks for the installation and the marketplaces once each, and draws a card for each part they tell', async () => {
+    it('asks for the installation, the marketplaces and the external API once each, and draws a card for each part they tell', async () => {
         answers();
 
         render(Page);
@@ -70,7 +76,9 @@ describe('«Обзор»', () => {
         expect(screen.getByTestId('overview-card-reading')).toBeInTheDocument();
         expect(get).toHaveBeenCalledWith('/api/v1/installation');
         expect(get).toHaveBeenCalledWith('/api/v1/overview/marketplaces');
-        expect(get).toHaveBeenCalledTimes(2);
+        expect(get).toHaveBeenCalledWith('/api/v1/overview/external-api');
+        expect(get).toHaveBeenCalledTimes(3);
+        expect(await screen.findByTestId('overview-card-externalApi')).toHaveTextContent('Не заполнено');
         expect(screen.queryByTestId('overview-loading')).toBeNull();
     });
 
@@ -83,6 +91,31 @@ describe('«Обзор»', () => {
             expect(screen.getByTestId('overview-steps-now')).toHaveTextContent('Сейчас: шаг 3 — заказы.')
         );
         expect(screen.getByTestId('overview-next')).toHaveTextContent('следить за заказами в разделе «Заказы»');
+    });
+
+    it('moves the strip of steps on to the external API once it is filled, and says what to do next', async () => {
+        answers(
+            undefined,
+            { ok: true, data: { ...NO_ACCOUNTS, accounts: 1 } },
+            { ok: true, data: { ...EXTERNAL_API_EMPTY, state: 'working' } }
+        );
+
+        render(Page);
+
+        await waitFor(() =>
+            expect(screen.getByTestId('overview-steps-now')).toHaveTextContent('Сейчас: шаг 4 — внешний API.')
+        );
+        expect(screen.getByTestId('overview-next')).toHaveTextContent('Внешний API заполнен');
+    });
+
+    it('keeps the other cards and words the refusal when the external API’s card cannot be read', async () => {
+        answers(undefined, undefined, { ok: false, status: 500, refusal: { code: 'internal' } });
+
+        render(Page);
+
+        expect(await screen.findByTestId('overview-external-api-refusal')).toHaveTextContent('произошла ошибка');
+        expect(screen.getByTestId('overview-card-version')).toBeInTheDocument();
+        expect(screen.queryByTestId('overview-card-externalApi')).toBeNull();
     });
 
     it('keeps the installation’s cards and words the refusal when the marketplaces cannot be read', async () => {

@@ -24,11 +24,13 @@ const GROUPED: INavItem[] = [
 ];
 
 describe('NAV_ITEMS, the one list the menu is drawn from', () => {
-    it('holds «Обзор», «Заказы», «Маркетплейсы», «Журнал запросов» and «Настройки» in this order, each with an address, a label key, a test id and an icon', () => {
+    it('holds «Обзор», «Заказы», «Передачи», «Маркетплейсы», «Внешний API», «Журнал запросов» and «Настройки» in this order, each with an address, a label key, a test id and an icon', () => {
         expect(NAV_ITEMS.map((entry) => [entry.testId, entry.href, entry.labelKey])).toEqual([
             ['nav-overview', '/', 'nav.overview'],
             ['nav-orders', '/orders', 'nav.orders'],
+            ['nav-handovers', '/handovers', 'nav.handovers'],
             ['nav-marketplaces', '/marketplaces', 'nav.marketplaces'],
+            ['nav-external-api', '/external-api', 'nav.externalApi'],
             ['nav-journal', '/journal', 'nav.journal'],
             ['nav-settings', '/settings', 'nav.settings']
         ]);
@@ -37,11 +39,20 @@ describe('NAV_ITEMS, the one list the menu is drawn from', () => {
         );
     });
 
-    it('gives every entry a distinct address, test id and label key, and offers all five to the phone strip', () => {
+    it('gives every entry a distinct address, test id and label key, and offers the first five pages to the phone strip while «Передачи» and «Внешний API» wait in the «Ещё» sheet', () => {
         for (const field of ['href', 'testId', 'labelKey'] as const) {
             expect(new Set(NAV_ITEM_DATA.map((entry) => entry[field])).size).toBe(NAV_ITEM_DATA.length);
         }
-        expect(NAV_ITEMS.map((entry) => entry.phoneTab)).toEqual([1, 2, 3, 4, 5]);
+        expect(NAV_ITEMS.map((entry) => entry.phoneTab)).toEqual([1, 2, undefined, 3, undefined, 4, 5]);
+        const { strip, secondary } = phoneStrip(NAV_ITEMS);
+        expect(strip.map((entry) => entry.testId)).toEqual([
+            'nav-overview',
+            'nav-orders',
+            'nav-marketplaces',
+            'nav-journal',
+            'nav-settings'
+        ]);
+        expect(secondary.map((entry) => entry.testId)).toEqual(['nav-handovers', 'nav-external-api']);
     });
 });
 

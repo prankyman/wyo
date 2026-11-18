@@ -2,7 +2,9 @@ import ClockCounterClockwiseIcon from 'phosphor-svelte/lib/ClockCounterClockwise
 import GearSixIcon from 'phosphor-svelte/lib/GearSixIcon';
 import GaugeIcon from 'phosphor-svelte/lib/GaugeIcon';
 import PackageIcon from 'phosphor-svelte/lib/PackageIcon';
+import PlugsConnectedIcon from 'phosphor-svelte/lib/PlugsConnectedIcon';
 import StorefrontIcon from 'phosphor-svelte/lib/StorefrontIcon';
+import TruckIcon from 'phosphor-svelte/lib/TruckIcon';
 import { NAV_ITEM_DATA, NAV_SECTIONS } from './nav-items-data';
 import type { INavItem, TIconComponent, TNavSection } from './types';
 
@@ -16,7 +18,9 @@ export const PHONE_TAB_LIMIT = 5;
 const NAV_ICONS: Record<(typeof NAV_ITEM_DATA)[number]['testId'], TIconComponent> = {
     'nav-overview': GaugeIcon,
     'nav-orders': PackageIcon,
+    'nav-handovers': TruckIcon,
     'nav-marketplaces': StorefrontIcon,
+    'nav-external-api': PlugsConnectedIcon,
     'nav-journal': ClockCounterClockwiseIcon,
     'nav-settings': GearSixIcon
 };

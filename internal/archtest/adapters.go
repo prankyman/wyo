@@ -2,6 +2,7 @@ package archtest
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -62,18 +63,34 @@ func AdaptersStandAlone(pkgs []Package) []string {
 // NamedOnlyIn lists the source files (Go that is neither a test nor generated, and SQL) under cmd/ and internal/ that
 // hold the word, as a whole word in any case, outside the allowed folders.
 func NamedOnlyIn(root fs.FS, word string, allowed []string) ([]string, error) {
+	files, err := filesNaming(root, []string{"cmd", "internal"}, word, allowed)
+	if err != nil {
+		return nil, err
+	}
+
+	found := make([]string, len(files))
+	for i, name := range files {
+		found[i] = fmt.Sprintf("%s names %q; only %s may", name, word, strings.Join(allowed, ", "))
+	}
+
+	return found, nil
+}
+
+// filesNaming lists the source files under the top folders, outside the skipped ones, that hold the word as a whole word in
+// any case. A top folder that does not exist holds nothing.
+func filesNaming(root fs.FS, tops []string, word string, skipped []string) ([]string, error) {
 	pattern := regexp.MustCompile(`(?i)\b` + regexp.QuoteMeta(word) + `\b`)
 
 	var found []string
 
-	for _, top := range []string{"cmd", "internal"} {
+	for _, top := range tops {
 		err := fs.WalkDir(root, top, func(name string, d fs.DirEntry, err error) error {
 			switch {
 			case err != nil:
 				return err
 			case d.IsDir() && skippedFolders[d.Name()]:
 				return fs.SkipDir
-			case d.IsDir() || anyWithin(name, allowed) || !isSource(name):
+			case d.IsDir() || anyWithin(name, skipped) || !isSource(name):
 				return nil
 			}
 
@@ -83,7 +100,7 @@ func NamedOnlyIn(root fs.FS, word string, allowed []string) ([]string, error) {
 			}
 
 			if !IsGenerated(source) && pattern.Match(source) {
-				found = append(found, fmt.Sprintf("%s names %q; only %s may", name, word, strings.Join(allowed, ", ")))
+				found = append(found, name)
 			}
 
 			return nil
@@ -98,11 +115,56 @@ func NamedOnlyIn(root fs.FS, word string, allowed []string) ([]string, error) {
 	return found, nil
 }
 
+// AdapterCodes are the codes of the adapters in the folder tree: each folder right below internal/marketplace is one
+// adapter, named by its code (the contract's test suite is no adapter).
+func AdapterCodes(root fs.FS) ([]string, error) {
+	entries, err := fs.ReadDir(root, marketplaceRoot)
+	if err != nil {
+		if isMissingRoot(err) {
+			return nil, nil
+		}
+
+		return nil, fmt.Errorf("read %s: %w", marketplaceRoot, err)
+	}
+
+	var codes []string
+
+	for _, e := range entries {
+		if e.IsDir() && marketplaceRoot+"/"+e.Name() != contractSuite {
+			codes = append(codes, e.Name())
+		}
+	}
+
+	return codes, nil
+}
+
+// NamedNowhereIn lists the source files (Go that is neither a test nor generated, and SQL) in the folders dirs that hold
+// any of the words, as a whole word in any case. A folder that does not exist yet holds nothing.
+func NamedNowhereIn(root fs.FS, words, dirs []string) ([]string, error) {
+	var found []string
+
+	for _, word := range words {
+		files, err := filesNaming(root, dirs, word, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, name := range files {
+			found = append(found, fmt.Sprintf("%s names %q; a marketplace is named only by its adapter", name, word))
+		}
+	}
+
+	sort.Strings(found)
+
+	return found, nil
+}
+
 func isSource(name string) bool {
 	return (strings.HasSuffix(name, ".go") && !strings.HasSuffix(name, "_test.go")) || strings.HasSuffix(name, ".sql")
 }
 
-func isMissingRoot(err error) bool { return strings.Contains(err.Error(), "file does not exist") }
+// isMissingRoot says a folder is not there (yet).
+func isMissingRoot(err error) bool { return errors.Is(err, fs.ErrNotExist) }
 
 // ClientsOnTheConn lists every call of a generated client's constructor (a function whose name begins with NewClient)
 // in the adapters' own source under dir that is not given the engine's Conn through WithHTTPClient: a client made
