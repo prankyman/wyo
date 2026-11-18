@@ -1,5 +1,5 @@
 import { refusalParams, type TApiResult } from '$lib/api/api';
-import { refusalKey } from '$lib/api/refusal-key';
+import { refusalKey, type TFamily } from '$lib/api/refusal-key';
 import { getLocale, t } from '$lib/i18n/i18n';
 
 /**
@@ -21,7 +21,7 @@ export class ApiAction {
     async run<T>(
         call: () => Promise<TApiResult<T>>,
         savedKey?: string,
-        family?: string
+        family?: TFamily
     ): Promise<TApiResult<T> | null> {
         if (this.pending) return null;
         this.pending = true;

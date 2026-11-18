@@ -1,6 +1,6 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { FAKE_WILDBERRIES_ADDRESS } from './fakes.js';
+import { FAKE_MARKETPLACES_ADDRESS } from './fakes.js';
 import { TEST_OWNER, type IOwner } from './owner.js';
 import { runProgram, startProgram, waitForAnswer, type IProgram } from './process.js';
 
@@ -57,8 +57,8 @@ async function createOwner(dataDir: string, owner: IOwner): Promise<void> {
 
 /**
  * Starts one wyo server in test mode on `port`, in the empty folder `dataDir`, with the owner already made, and returns when
- * `GET /api/v1/meta` answers. The server is given no settings but its flags and the address of the fake Wildberries
- * (`WYO_MARKETPLACE_URL`), so it asks the fake and never a real marketplace.
+ * `GET /api/v1/meta` answers. The server is given no settings but its flags and the address of the fake marketplaces
+ * (`WYO_MARKETPLACE_URL`), so it asks the fakes and never a real marketplace.
  */
 export async function startWyoServer(port: number, dataDir: string, owner: IOwner = TEST_OWNER): Promise<IWyoServer> {
     rmSync(dataDir, { recursive: true, force: true });
@@ -76,7 +76,7 @@ async function runWyoServer(port: number, dataDir: string): Promise<IProgram> {
         `the wyo server of port ${port}`,
         WYO_TEST_BINARY,
         ['--listen', `${HOST}:${port}`, '--mode', 'test', '--data', dataDir],
-        { cwd: dataDir, env: { ...cleanEnvironment(), WYO_MARKETPLACE_URL: `http://${FAKE_WILDBERRIES_ADDRESS}` } }
+        { cwd: dataDir, env: { ...cleanEnvironment(), WYO_MARKETPLACE_URL: `http://${FAKE_MARKETPLACES_ADDRESS}` } }
     );
     await waitForAnswer(program, `http://${HOST}:${port}/api/v1/meta`);
     return program;

@@ -82,7 +82,7 @@ type Endpoint interface {
 	Describe() marketplace.Description
 	Routes() []marketplace.Route
 	Limit(group string, test bool) (marketplace.LimitGroup, bool)
-	Authorize(h http.Header, secret string)
+	Authorize(h http.Header, key marketplace.Key)
 	ErrorOf(status int, body []byte) (code, text string)
 }
 
@@ -98,11 +98,13 @@ type Target struct {
 	SecretName string
 	Key        logging.Secret
 	Client     marketplace.Doer
+	// Missing are the categories the account's key lacked at its last check (marketplace.Conn.Missing).
+	Missing []string
 }
 
 // Conn gives an adapter the caller for one target.
 func (c *Caller) Conn(t Target) marketplace.Conn {
-	return marketplace.Conn{Doer: &doer{caller: c, target: t}, Test: t.Test}
+	return marketplace.Conn{Doer: &doer{caller: c, target: t}, Test: t.Test, Missing: t.Missing}
 }
 
 type doer struct {
@@ -239,7 +241,13 @@ func (d *doer) send(req *http.Request, route marketplace.Route, key BudgetKey, l
 		return attempt{}, err
 	}
 
-	d.target.Adapter.Authorize(out.Header, secret)
+	// The secret store keeps one text per key; the adapter is given the key's fields (marketplace.UnpackKey), and the
+	// journal is told every secret field, so that none of them is ever written.
+	fields := d.target.Adapter.Describe().KeyFields
+	unpacked := marketplace.UnpackKey(fields, secret)
+	secrets := unpacked.Secrets(fields)
+
+	d.target.Adapter.Authorize(out.Header, unpacked)
 
 	clk := d.caller.opts.Clock
 	started := clk.Now()
@@ -260,7 +268,7 @@ func (d *doer) send(req *http.Request, route marketplace.Route, key BudgetKey, l
 		cancel()
 
 		entry.Outcome, entry.ErrorText = journal.NoConnection, err.Error()
-		d.caller.opts.Journal.Record(req.Context(), entry, secret)
+		d.caller.opts.Journal.Record(req.Context(), entry, secrets...)
 
 		if ctxErr := req.Context().Err(); ctxErr != nil {
 			return attempt{}, ctxErr
@@ -273,7 +281,7 @@ func (d *doer) send(req *http.Request, route marketplace.Route, key BudgetKey, l
 	a.retry429 = d.caller.budget.Observe(key, limit, clk.Now(), res.StatusCode, res.Header)
 
 	entry.Status, entry.Outcome, entry.ErrorCode, entry.ErrorText = a.status, a.outcome, a.code, a.text
-	d.caller.opts.Journal.Record(req.Context(), entry, secret)
+	d.caller.opts.Journal.Record(req.Context(), entry, secrets...)
 
 	if a.outcome == journal.ServerError || a.outcome == journal.Limited || a.code == redirectCode {
 		_ = res.Body.Close()

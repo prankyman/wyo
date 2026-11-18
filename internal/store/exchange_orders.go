@@ -57,10 +57,10 @@ type OrderToSend struct {
 	AccountID     int64
 	Number        string
 	Basket        string
-	Article       string
-	Barcodes      []string
+	Lines         []OrderLine
 	ItemID        string
 	CreatedAt     time.Time
+	ShipBy        time.Time
 	DeadlineHours int64
 	FcMarketplace string
 	FcWarehouse   string
@@ -259,19 +259,34 @@ func (q *Queries) AttentionCounts(ctx context.Context, now time.Time) (map[strin
 	return out, nil
 }
 
-// OrdersToSend lists up to limit orders the exchange may send now: of the seller's warehouses, new, of an account that
-// is read and may write, with the account's marketplace and the warehouse matched, never sent before.
-func (q *Queries) OrdersToSend(ctx context.Context, limit int) ([]OrderToSend, error) {
-	rows, err := q.q.OrdersToSend(ctx, int64(limit))
+// OrdersToSend lists up to limit orders the exchange may send now: of the seller's warehouses, new, of an account of one
+// of the marketplaces given that is read and may write, with the account's marketplace and the warehouse matched, never
+// sent before; each with its lines.
+func (q *Queries) OrdersToSend(ctx context.Context, limit int, marketplaces []string) ([]OrderToSend, error) {
+	if len(marketplaces) == 0 {
+		return nil, nil
+	}
+
+	rows, err := q.q.OrdersToSend(ctx, db.OrdersToSendParams{Marketplaces: marketplaces, Batch: int64(limit)})
 	if err != nil {
 		return nil, kind(err)
+	}
+
+	ids := make([]int64, 0, len(rows))
+	for _, r := range rows {
+		ids = append(ids, r.ID)
+	}
+
+	lines, err := q.linesOf(ctx, ids)
+	if err != nil {
+		return nil, err
 	}
 
 	list := make([]OrderToSend, 0, len(rows))
 	for _, r := range rows {
 		list = append(list, OrderToSend{
-			OrderID: r.ID, AccountID: r.AccountID, Number: r.Number, Basket: r.Basket, Article: r.Article,
-			Barcodes: wordsOf(r.Barcodes), ItemID: r.ItemID, CreatedAt: moment(r.CreatedAt), DeadlineHours: r.DeadlineHours,
+			OrderID: r.ID, AccountID: r.AccountID, Number: r.Number, Basket: r.Basket, Lines: lines[r.ID], ItemID: r.ItemID,
+			CreatedAt: moment(r.CreatedAt), ShipBy: optionalMoment(r.ShipBy), DeadlineHours: r.DeadlineHours,
 			FcMarketplace: r.FcMarketplace, FcWarehouse: r.FcWarehouse,
 		})
 	}

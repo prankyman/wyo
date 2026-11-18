@@ -15,19 +15,30 @@ import (
 	"github.com/prankyman/wyo/internal/testkit/synckit"
 )
 
-// Rule R3, alone by default (plan 3, section F): the wyo server's scheduler runs through a made-up day with «External
-// API» empty, behind an outbound gate that records every address its clients are asked to call. With accounts, only the
-// marketplaces' hosts appear (here through the fake Wildberries), besides the release address and the certificate
-// authority; with no account, no marketplace host appears at all.
+// Rule R3, alone by default (plan 3, section F; plan 5, section F): the wyo server's scheduler runs through a made-up day
+// with «External API» empty, behind an outbound gate that records every address its clients are asked to call. With
+// accounts, only the hosts of their marketplaces appear (here through the fakes on one address), besides the release
+// address and the certificate authority; a marketplace with no account is never reached; with no account, no
+// marketplace host appears at all.
 func TestAMadeUpDayReachesOnlyTheMarketplacesOfTheAccounts(t *testing.T) {
 	t.Parallel()
 
-	for _, accounts := range []int{0, 2} {
-		t.Run(map[int]string{0: "no account", 2: "two accounts"}[accounts], func(t *testing.T) {
+	cases := []struct {
+		name        string
+		wildberries int
+		ozon        int
+	}{
+		{name: "no account"},
+		{name: "two Wildberries accounts", wildberries: 2},
+		{name: "a Wildberries and an Ozon account", wildberries: 1, ozon: 1},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			clk := clock.NewFixed(synckit.Noon())
-			fake := fakeWildberries(t, clk)
+			fake := fakeMarketplaces(t, clk)
 			gate, record := recordingGate(t, fake.URL)
 
 			var day *daykit.Day
@@ -37,9 +48,13 @@ func TestAMadeUpDayReachesOnlyTheMarketplacesOfTheAccounts(t *testing.T) {
 				Wait: func(ctx context.Context, d time.Duration) error { return day.Wait(ctx, d) },
 			})
 
-			for i := range accounts {
+			for i := range tc.wildberries {
 				name := []string{"north", "south"}[i]
 				addAccount(t, app, name, token(t.Name()+name, clk.Now()), clk.Now())
+			}
+
+			for range tc.ozon {
+				addOzonAccount(t, app, fake.URL, "east", clk.Now())
 			}
 
 			// One party per job: the copy's, the engine's and the exchange's (which do nothing while «Внешний API» is empty).
@@ -57,14 +72,14 @@ func TestAMadeUpDayReachesOnlyTheMarketplacesOfTheAccounts(t *testing.T) {
 			}
 
 			recorded := record.all()
-			onlyWildberriesThroughTheFake(t, recorded, fake.URL)
+			onlyMarketplacesThroughTheFake(t, recorded, fake.URL)
 
 			rows, err := app.Store.Read().JournalEntries(t.Context(), store.JournalFilter{PageSize: 100000})
 			if err != nil {
 				t.Fatalf("JournalEntries: %v", err)
 			}
 
-			if accounts == 0 {
+			if tc.wildberries+tc.ozon == 0 {
 				if len(recorded) != 0 || len(rows) != 0 {
 					t.Fatalf("with no account the wyo server reached %v and journaled %d requests", recorded, len(rows))
 				}
@@ -81,6 +96,10 @@ func TestAMadeUpDayReachesOnlyTheMarketplacesOfTheAccounts(t *testing.T) {
 
 			if !reached["marketplace-api.wildberries.ru"] || !reached["statistics-api.wildberries.ru"] || len(rows) < 2*48 {
 				t.Fatalf("hosts %v, %d journal rows, %d recorded addresses: the day's readings did not happen", reached, len(rows), len(recorded))
+			}
+
+			if reached[ozonHost] != (tc.ozon > 0) {
+				t.Fatalf("Ozon's host reached: %v, with %d Ozon accounts; hosts %v", reached[ozonHost], tc.ozon, reached)
 			}
 		})
 	}

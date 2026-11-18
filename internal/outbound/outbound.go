@@ -3,8 +3,8 @@
 // anything leaves, a call to an address outside its purpose's list, and follows a redirect only inside that list.
 //
 // The purposes: the release address (and the hosts GitHub sends release downloads to), the certificate authority, the
-// wyo server's own address on this machine, the marketplaces (Plan 3), and the fulfilment centre's address, listed only
-// while «Внешний API» is filled (Plan 4, SetFulfilment).
+// wyo server's own address on this machine, the marketplaces (Plan 3; the hosts of the registered adapters, Plan 5), and
+// the fulfilment centre's address, listed only while «Внешний API» is filled (Plan 4, SetFulfilment).
 package outbound
 
 import (
@@ -98,15 +98,11 @@ var purposes = map[Purpose]allowance{
 		timeout:     10 * time.Second,
 		sendVersion: false,
 	},
-	// The Wildberries hosts the connector's methods live on (.agents/research/wildberries-official-description-files-
-	// check-2026-11-17.md, section 2): the seller-warehouse methods on marketplace-api and its sandbox (column S), the
-	// seller's information on common-api, the orders feed on statistics-api. A call lasts at most 30 seconds, and a
-	// redirect is never followed: the caller refuses it.
+	// The marketplaces' hosts are not written here: every adapter names the hosts it calls (marketplace.Adapter.Hosts),
+	// and the wyo server gives the gate the hosts of its registered adapters (Options.MarketplaceHosts), so the one list
+	// is built in one place at start. A call lasts at most 30 seconds, and a redirect is never followed: the caller
+	// refuses it.
 	PurposeMarketplace: {
-		origins: []string{
-			"https://marketplace-api.wildberries.ru", "https://marketplace-api-sandbox.wildberries.ru",
-			"https://common-api.wildberries.ru", "https://statistics-api.wildberries.ru",
-		},
 		timeout:     30 * time.Second,
 		sendVersion: true,
 		sendAddress: true,
@@ -138,6 +134,9 @@ type Options struct {
 	LocalOrigin        string
 	// MarketplaceURL is a fake marketplace's address; the marketplaces' adapters put each host's name after it.
 	MarketplaceURL string
+	// MarketplaceHosts are the hosts of the registered marketplace adapters, each called over https. A test build lists
+	// none of them (rule R3).
+	MarketplaceHosts []string
 	// Observe is told every address a client of the gate is asked to call, before the check, with its purpose; only a
 	// test build takes it (the tests of rule R3 record where the wyo server reaches).
 	Observe func(purpose Purpose, address *url.URL)
@@ -202,6 +201,15 @@ func New(opts Options) (*Gate, error) {
 		}
 
 		gate.origins[PurposeLocal] = append(gate.origins[PurposeLocal], origin)
+	}
+
+	for _, host := range opts.MarketplaceHosts {
+		origin, err := originOfAddress("https://" + host)
+		if err != nil || strings.ContainsAny(host, "/:@?#") {
+			return nil, fmt.Errorf("the marketplace host %q is not a host name", host)
+		}
+
+		gate.origins[PurposeMarketplace] = append(gate.origins[PurposeMarketplace], origin)
 	}
 
 	// Rule R3: a test or development run never calls a real marketplace. A test build lists no real marketplace host, so

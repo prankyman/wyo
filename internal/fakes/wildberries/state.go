@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/prankyman/wyo/internal/clock"
+	"github.com/prankyman/wyo/internal/fakes/fakekit"
 )
 
 // moscow is the zone Wildberries' statistics speak in: «Время передаётся в часовом поясе Москва (UTC+3)».
@@ -122,7 +123,7 @@ type feedRow struct {
 type state struct {
 	now func() time.Time
 
-	buckets map[string]*bucket
+	buckets map[string]*fakekit.Bucket
 
 	seller         seller
 	warehouses     []warehouse
@@ -145,7 +146,7 @@ type state struct {
 func newState(c clock.Clock) *state {
 	return &state{
 		now:     func() time.Time { return c.Now().UTC() },
-		buckets: map[string]*bucket{},
+		buckets: map[string]*fakekit.Bucket{},
 		seller: seller{
 			Name: "Test seller", SID: "00000000-0000-0000-0000-000000000001", TIN: "0000000000", TradeMark: "Test mark", Country: "RU",
 		},

@@ -13,7 +13,9 @@ import (
 	"sync"
 
 	"github.com/prankyman/wyo/internal/clock"
+	"github.com/prankyman/wyo/internal/fakes/fakekit"
 	"github.com/prankyman/wyo/internal/fakes/fulfilment"
+	"github.com/prankyman/wyo/internal/fakes/ozon"
 	"github.com/prankyman/wyo/internal/fakes/wildberries"
 	"github.com/prankyman/wyo/internal/logging"
 	"github.com/prankyman/wyo/internal/server"
@@ -24,8 +26,8 @@ const (
 	exitFailure  = 1
 	exitBadInput = 2
 
-	defaultWildberries = "127.0.0.1:8791"
-	defaultFulfilment  = "127.0.0.1:8792"
+	defaultMarketplaces = "127.0.0.1:8791"
+	defaultFulfilment   = "127.0.0.1:8792"
 )
 
 func listen(addr string) (net.Listener, error) {
@@ -56,7 +58,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, listenOn 
 	flags := flag.NewFlagSet("wyofakes", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 
-	wb := flags.String("wildberries", defaultWildberries, "address of the fake Wildberries (127.0.0.1:0 picks a free port)")
+	mp := flags.String("marketplaces", defaultMarketplaces, "address of the fake marketplaces, wildberries and ozon, on one address (127.0.0.1:0 picks a free port)")
 	fc := flags.String("fulfilment", defaultFulfilment, "address of the fake fulfilment centre (127.0.0.1:0 picks a free port)")
 
 	if err := flags.Parse(args); err != nil {
@@ -73,7 +75,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, listenOn 
 		return exitBadInput
 	}
 
-	for name, addr := range map[string]string{"wildberries": *wb, "fulfilment": *fc} {
+	for name, addr := range map[string]string{"marketplaces": *mp, "fulfilment": *fc} {
 		if err := checkAddress(name, addr); err != nil {
 			_, _ = fmt.Fprintf(stderr, "wyofakes: %v\n", err)
 
@@ -81,8 +83,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, listenOn 
 		}
 	}
 
-	if *wb == *fc && *wb != "127.0.0.1:0" {
-		_, _ = fmt.Fprintln(stderr, "wyofakes: --wildberries and --fulfilment are the same address")
+	if *mp == *fc && *mp != "127.0.0.1:0" {
+		_, _ = fmt.Fprintln(stderr, "wyofakes: --marketplaces and --fulfilment are the same address")
 
 		return exitBadInput
 	}
@@ -91,16 +93,16 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, listenOn 
 
 	log := logging.New(stderr, slog.LevelInfo)
 
-	wbLn, err := listenOn(*wb)
+	mpLn, err := listenOn(*mp)
 	if err != nil {
-		_, _ = fmt.Fprintf(stderr, "wyofakes: cannot listen on %s: %v\n", *wb, err)
+		_, _ = fmt.Fprintf(stderr, "wyofakes: cannot listen on %s: %v\n", *mp, err)
 
 		return exitFailure
 	}
 
 	fcLn, err := listenOn(*fc)
 	if err != nil {
-		_ = wbLn.Close()
+		_ = mpLn.Close()
 
 		_, _ = fmt.Fprintf(stderr, "wyofakes: cannot listen on %s: %v\n", *fc, err)
 
@@ -111,9 +113,10 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, listenOn 
 	defer fulfilmentFake.Close()
 
 	wildberriesFake := wildberries.New(wildberries.Options{Clock: clock.Real{}})
+	ozonFake := ozon.New(ozon.Options{Clock: clock.Real{}})
 
 	return serveBoth(ctx, log, []fake{
-		{name: "wildberries", ln: wbLn, handler: wildberriesFake.Handler()},
+		{name: "marketplaces", ln: mpLn, handler: fakekit.HostRouter(wildberriesFake.Handler(), ozonFake)},
 		{name: "fulfilment", ln: fcLn, handler: fulfilmentFake.Handler()},
 	})
 }

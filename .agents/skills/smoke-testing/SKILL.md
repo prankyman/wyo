@@ -41,7 +41,7 @@ A smoke test that passed is not repeated without a reason.
 Each plan that adds a screen adds its rows here and its steps to Phase 2, in the same plan. Plan 2 added sign-in and the three pages;
 Plan 3 adds the keys and the order list; Plan 4 «External API».
 
-The fakes (`cmd/wyofakes`): the fake Wildberries on `127.0.0.1:8791`, the fake fulfilment centre on `127.0.0.1:8792`. Both answer
+The fakes (`cmd/wyofakes`): the fake Wildberries and the fake Ozon on one address, `127.0.0.1:8791` (the fake Ozon under `/api-seller.ozon.ru/`), the fake fulfilment centre on `127.0.0.1:8792`. Both answer
 `/__control/health` when up, `/__control/reset` empties their state, `/__control/calls` lists the calls they received (without keys).
 
 ## Where the smoke test runs
@@ -98,7 +98,7 @@ so use `data-test` selectors or set the test-id attribute as in the script above
 
 ```bash
 pnpm build                                   # the interface into internal/webui/dist/, then the wyo server into bin/wyo
-go run -tags wyotest ./cmd/wyofakes          # the two fakes, on 127.0.0.1:8791 and :8792
+go run -tags wyotest ./cmd/wyofakes          # the fakes: both marketplaces on 127.0.0.1:8791, the fulfilment centre on :8792
 # then the wyo server in test mode, started as scripts/e2e/ starts it for the browser tests (read it: flags, data folder, port)
 ```
 

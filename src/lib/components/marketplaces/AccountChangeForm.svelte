@@ -15,27 +15,32 @@
     import { t } from '$lib/i18n/i18n';
     import type { TLocale } from '$lib/i18n/types';
     import { accountChangePayload, accountChangeSchema, DEADLINE_HOURS } from '$lib/validation/account';
-    import { ACCOUNT_REFUSALS } from '$lib/marketplaces/refusals';
+    import { accountRefusalLookup } from '$lib/marketplaces/refusals';
     import type { TAccount } from './types';
 
     /**
      * «Изменить» on an account's card: the account's own name and its hours to hand an order over («Срок передачи заказа, часов»,
      * 48 by default), saved with `PATCH /api/v1/accounts/{id}`. The hours are checked in the browser against the bounds the wyo
-     * server holds too. The form keeps the saved values: it changes a record, it does not add one.
+     * server holds too. A marketplace that gives each order its own deadline (`givesDeadline`) has no use for the hours, so the
+     * form asks only the name and sends only the name. The form keeps the saved values: it changes a record, it does not add one.
      */
     interface IProps {
         lang: TLocale;
         account: TAccount;
+        /** The account's marketplace gives each order its own deadline: the hours are not asked. */
+        givesDeadline?: boolean;
         /** The form's id and the prefix of every `data-test` in it. */
         id: string;
         /** Told the account as the wyo server stored it, after a save. */
         onSaved: (account: TAccount) => void;
     }
 
-    let { lang, account, id, onSaved }: IProps = $props();
+    let { lang, account, givesDeadline = false, id, onSaved }: IProps = $props();
 
     // svelte-ignore state_referenced_locally
     const changed = account;
+    // svelte-ignore state_referenced_locally
+    const withHours = !givesDeadline;
 
     // svelte-ignore state_referenced_locally
     const formId = id;
@@ -46,11 +51,11 @@
         {
             id: formId,
             resetForm: false,
-            refusals: ACCOUNT_REFUSALS,
+            refusals: accountRefusalLookup(changed.marketplace),
             send: async (values) => {
                 const result = await api.patch<TAccount>(
                     `/api/v1/accounts/${changed.id}`,
-                    accountChangePayload(values)
+                    withHours ? accountChangePayload(values) : { name: values.name }
                 );
                 if (result.ok) onSaved(result.data);
                 return result;
@@ -81,24 +86,26 @@
                 dataTest="{id}-name"
             />
         </Field>
-        <Field
-            label={t('accounts.form.deadlineHours', lang)}
-            help={t('accounts.form.deadlineHours.help', lang, { min: DEADLINE_HOURS.min, max: DEADLINE_HOURS.max })}
-            for="{id}-hours-box"
-            testId="{id}-hours"
-            dataTest="{id}-hours-field"
-            error={tError($errors.deadlineHours, lang)}
-        >
-            <NumberField
-                id="{id}-hours-box"
-                name="deadlineHours"
-                {lang}
-                decimals={0}
-                bind:value={$form.deadlineHours}
-                class="sm:max-w-xs"
-                dataTest="{id}-hours"
-            />
-        </Field>
+        {#if withHours}
+            <Field
+                label={t('accounts.form.deadlineHours', lang)}
+                help={t('accounts.form.deadlineHours.help', lang, { min: DEADLINE_HOURS.min, max: DEADLINE_HOURS.max })}
+                for="{id}-hours-box"
+                testId="{id}-hours"
+                dataTest="{id}-hours-field"
+                error={tError($errors.deadlineHours, lang)}
+            >
+                <NumberField
+                    id="{id}-hours-box"
+                    name="deadlineHours"
+                    {lang}
+                    decimals={0}
+                    bind:value={$form.deadlineHours}
+                    class="sm:max-w-xs"
+                    dataTest="{id}-hours"
+                />
+            </Field>
+        {/if}
         <FormButtons>
             <Button type="submit" dataTest="{id}-send">{t('app.common.save', lang)}</Button>
             <DisclosureClose />

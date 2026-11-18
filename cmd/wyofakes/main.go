@@ -1,4 +1,4 @@
-// Command wyofakes starts the fake Wildberries and the fake fulfilment centre, for `pnpm dev`, the browser tests and the
+// Command wyofakes starts the fake Wildberries and the fake Ozon (on one address) and the fake fulfilment centre, for `pnpm dev`, the browser tests and the
 // smoke test. It is never part of a release: only the scripts of development and tests build it.
 package main
 

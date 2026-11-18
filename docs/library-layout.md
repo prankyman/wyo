@@ -71,7 +71,9 @@ repository's subject taken out:
 
 **New in this repository** (Plan 3): `FactList` — the facts of one record as names and values, each name with its «?» (an account's card, an
 order's and a journal row's details); and, outside the library, the components of the marketplaces (`src/lib/components/marketplaces/`), the
-orders (`orders/`) and the journal (`journal/`).
+orders (`orders/`) and the journal (`journal/`). Plan 5 added to the orders' components `ProductCell` (the list's product cell: the
+first product, its quantity above one, and how many more products the order holds) and `OrderLines` (every product of an order with its
+quantity, for the details; the exchange's details reuse it).
 
 **Policy tests copied with the components** (each allow-list emptied of the other repository's entries; a policy test reads the source files
 and fails the build when a rule is broken): `modal-window-policy`, `window-buttons-policy`, `note-box-policy`, `empty-state-policy`,

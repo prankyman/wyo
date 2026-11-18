@@ -18,4 +18,13 @@ describe('the words of a refusal', () => {
         expect(fieldRefusalKey('invalid')).toBe('errors.invalid');
         expect(fieldRefusalKey('never_heard_of_it')).toBe('errors.invalid');
     });
+
+    it('words a code from the lookup of the place when it is given one, and from the general texts when the lookup has none', () => {
+        const lookup = (code: string) => (code === 'key_refused' ? 'accounts.refusal.key_refused' : null);
+
+        expect(refusalKey('key_refused', lookup)).toBe('accounts.refusal.key_refused');
+        expect(fieldRefusalKey('key_refused', lookup)).toBe('accounts.refusal.key_refused');
+        expect(refusalKey('network', lookup)).toBe('errors.network');
+        expect(fieldRefusalKey('never_heard_of_it', lookup)).toBe('errors.invalid');
+    });
 });

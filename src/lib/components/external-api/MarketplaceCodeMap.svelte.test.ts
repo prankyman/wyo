@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { marketplaceMatchesOf } from '$test/support/external-api';
 import MarketplaceMapHarness from '$test/harnesses/external-api/MarketplaceMapHarness.svelte';
+import MarketplaceCodeMap from './MarketplaceCodeMap.svelte';
 
 function draw(
     start: string[],
@@ -66,5 +67,29 @@ describe('MarketplaceCodeMap', () => {
         draw(['mp-a', 'mp-b'], {}, [undefined, 'Такого маркетплейса у фулфилмент-центра нет.']);
 
         expect(screen.getByTestId('codes-1-field')).toHaveTextContent('Такого маркетплейса у фулфилмент-центра нет.');
+    });
+
+    it('says the exchange is not supported for the marketplace of an account, instead of its box, and leaves the other rows as they are', () => {
+        const matches = marketplaceMatchesOf();
+        render(MarketplaceCodeMap, {
+            props: {
+                lang: 'ru',
+                rows: matches.rows,
+                fcMarketplaces: matches.fcMarketplaces,
+                selected: ['mp-a', 'mp-b'],
+                onSelect: () => {},
+                unsupported: [true, false],
+                idPrefix: 'codes'
+            }
+        });
+
+        expect(screen.getByTestId('codes-0-unsupported')).toHaveTextContent(
+            'Обмен с фулфилмент-центром для этого маркетплейса пока не поддерживается'
+        );
+        expect(screen.getByTestId('codes-0-unsupported')).toHaveTextContent('«Магазин одежды»');
+        expect(screen.queryByTestId('codes-0-box')).toBeNull();
+        expect(screen.queryByTestId('codes-0-unmatched')).toBeNull();
+        expect(screen.getByTestId('codes-1-box')).toHaveValue('mp-b');
+        expect(screen.queryByTestId('codes-1-unsupported')).toBeNull();
     });
 });

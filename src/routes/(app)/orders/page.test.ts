@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { accountOf, MARKETPLACE, orderOf } from '$test/support/marketplaces';
+import { accountOf, MARKETPLACE, orderDetailsOf, orderOf } from '$test/support/marketplaces';
 
 vi.mock('$lib/api/api', async (original) => ({
     ...(await original<typeof import('$lib/api/api')>()),
@@ -11,7 +11,7 @@ import { load } from './+page';
 
 const get = vi.mocked(api.get);
 const LIST = { orders: [orderOf()], total: 1, page: 2, pageSize: 50 };
-const DETAILS = { order: orderOf(), events: [] };
+const DETAILS = orderDetailsOf();
 
 /** The wyo server's answer to each call of the page's load. */
 function answers(list: unknown = { ok: true, data: LIST }): void {

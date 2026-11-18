@@ -59,11 +59,13 @@ type Service struct {
 // New returns the service.
 func New(o Options) *Service { return &Service{opts: o} }
 
-// View is an account as the wyo server's API shows it: the row, and whether an order came from it.
+// View is an account as the wyo server's API shows it: the row, whether an order came from it, and how many of its
+// warehouses the seller delivers from itself (their orders are never read).
 type View struct {
 	store.Account
 
-	HasOrders bool
+	HasOrders      bool
+	SellerDelivers int
 }
 
 // Change is what the owner may change of an account; a nil field stays as it is.
@@ -72,24 +74,47 @@ type Change struct {
 	DeadlineHours *int
 }
 
-// LastFour is the last four characters of a key, the only part of it ever shown.
+// LastFour is the last four characters of a key of one field, the only part of it ever shown.
 func LastFour(key string) string {
-	runes := []rune(key)
-	if len(runes) <= 4 {
-		return key
-	}
-
-	return string(runes[len(runes)-4:])
+	return marketplace.LastFour([]marketplace.KeyField{{Secret: true}}, marketplace.Key{"": key})
 }
 
-// view adds to a row whether an order came from it.
+// keyFieldsOf is what a key needs kept: the one text of the secret store (marketplace.PackKey), its last four characters
+// and its shown fields.
+func (s *Service) keyFieldsOf(code string, key marketplace.Key) (string, string, []store.KeyField) {
+	var fields []marketplace.KeyField
+	if adapter, known := s.opts.Registry.Get(code); known {
+		fields = adapter.Describe().KeyFields
+	}
+
+	var shown []store.KeyField
+	for _, f := range key.Shown(fields) {
+		shown = append(shown, store.KeyField{Name: f.Name, Value: f.Value})
+	}
+
+	return marketplace.PackKey(fields, key), marketplace.LastFour(fields, key), shown
+}
+
+// view adds to a row whether an order came from it and how many warehouses the seller delivers from.
 func (s *Service) view(ctx context.Context, row store.Account) (View, error) {
 	n, err := s.opts.Store.Read().CountOrdersOfAccount(ctx, row.ID)
 	if err != nil {
 		return View{}, fmt.Errorf("count the account's orders: %w", err)
 	}
 
-	return View{Account: row, HasOrders: n > 0}, nil
+	warehouses, err := s.opts.Store.Read().Warehouses(ctx, row.ID)
+	if err != nil {
+		return View{}, fmt.Errorf("read the account's warehouses: %w", err)
+	}
+
+	delivers := 0
+	for _, w := range warehouses {
+		if w.SellerDelivers {
+			delivers++
+		}
+	}
+
+	return View{Account: row, HasOrders: n > 0, SellerDelivers: delivers}, nil
 }
 
 // Get finds one account; store.ErrNotFound when there is none.
@@ -146,16 +171,18 @@ func secretName() (string, error) {
 // Create adds an account after its key passed the check. A refused name is an *issue.Error; a refused key a
 // *marketplace.Refusal; no connection a *marketplace.CallError; a code no adapter has sync.ErrUnknownMarketplace.
 // Nothing is kept unless the account is added.
-func (s *Service) Create(ctx context.Context, code, name string, key map[string]string) (View, error) {
+func (s *Service) Create(ctx context.Context, code, name string, key marketplace.Key) (View, error) {
 	trimmed, refused := requiredName(name)
 	if refused != nil {
 		return View{}, &issue.Error{Issues: []issue.Issue{*refused}}
 	}
 
-	checked, secret, err := s.opts.Engine.CheckNewKey(ctx, code, 0, key)
+	checked, fields, err := s.opts.Engine.CheckNewKey(ctx, code, 0, key)
 	if err != nil {
 		return View{}, err
 	}
+
+	secret, last4, shown := s.keyFieldsOf(code, fields)
 
 	secretAt, err := secretName()
 	if err != nil {
@@ -175,7 +202,7 @@ func (s *Service) Create(ctx context.Context, code, name string, key map[string]
 
 		row, insertErr = q.InsertAccount(ctx, store.Account{
 			Marketplace: code, Name: trimmed, State: string(sync.KeyState(checked.ExpiresAt, now)), Test: checked.Test,
-			SellerName: checked.SellerName, SellerProfileID: checked.ProfileID, SecretName: secretAt, KeyLast4: LastFour(secret),
+			SellerName: checked.SellerName, SellerProfileID: checked.ProfileID, SecretName: secretAt, KeyLast4: last4, KeyFields: shown,
 			KeyType: checked.Type, KeyExpiresAt: checked.ExpiresAt, Categories: checked.Categories,
 			MissingCategories: checked.MissingCategories, ReadOnly: checked.ReadOnly, DeadlineHours: DefaultDeadlineHours,
 			LastCheckAt: now, LastCheckOutcome: journal.Done, LastSuccessAt: now, CreatedAt: now,
@@ -241,16 +268,18 @@ func (s *Service) Update(ctx context.Context, id int64, c Change) (View, error) 
 // ReplaceKey replaces an account's key after the same check as an added one. A key of another seller profile is refused
 // with CodeOtherSeller on the key form's first field, so an account's orders never change owner. An account switched
 // off stays so.
-func (s *Service) ReplaceKey(ctx context.Context, id int64, key map[string]string) (View, error) {
+func (s *Service) ReplaceKey(ctx context.Context, id int64, key marketplace.Key) (View, error) {
 	row, err := s.opts.Store.Read().Account(ctx, id)
 	if err != nil {
 		return View{}, err
 	}
 
-	checked, secret, err := s.opts.Engine.CheckNewKey(ctx, row.Marketplace, id, key)
+	checked, fields, err := s.opts.Engine.CheckNewKey(ctx, row.Marketplace, id, key)
 	if err != nil {
 		return View{}, err
 	}
+
+	secret, last4, shown := s.keyFieldsOf(row.Marketplace, fields)
 
 	if checked.ProfileID != row.SellerProfileID {
 		return View{}, &marketplace.Refusal{Code: CodeOtherSeller, Field: s.firstKeyField(row.Marketplace)}
@@ -269,7 +298,7 @@ func (s *Service) ReplaceKey(ctx context.Context, id int64, key map[string]strin
 
 	k := store.AccountKey{
 		State: string(state), Test: checked.Test, SellerName: checked.SellerName, SellerProfileID: checked.ProfileID,
-		KeyLast4: LastFour(secret), KeyType: checked.Type, KeyExpiresAt: checked.ExpiresAt, Categories: checked.Categories,
+		KeyLast4: last4, KeyFields: shown, KeyType: checked.Type, KeyExpiresAt: checked.ExpiresAt, Categories: checked.Categories,
 		MissingCategories: checked.MissingCategories, ReadOnly: checked.ReadOnly, CheckedAt: now, CheckOutcome: journal.Done,
 	}
 

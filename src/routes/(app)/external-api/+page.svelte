@@ -174,6 +174,7 @@
                 <MarketplacesSection
                     {lang}
                     matches={marketplaceMatches}
+                    marketplaces={adapters}
                     onSaved={(next) => (marketplaceMatches = next)}
                 />
             {:else}

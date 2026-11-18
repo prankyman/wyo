@@ -21,16 +21,19 @@ func (o owner) orders(t *testing.T) (int64, []int64) {
 	noon := apikit.Noon()
 
 	fresh := insertOrder(t, o.f.Store, store.Order{
-		AccountID: account, Number: "5001", Scheme: "fbs", Basket: "B-1", WarehouseName: "Москва", Article: "ART-7",
-		Barcodes: []string{"4600000000017", "4600000000024"}, ProductID: "777", Kind: "Футболки", Brand: "Север", Size: "M",
+		AccountID: account, Number: "5001", Scheme: "fbs", Basket: "B-1", WarehouseName: "Москва",
+		Lines: []store.OrderLine{{
+			Article: "ART-7", Barcodes: []string{"4600000000017", "4600000000024"}, ProductID: "777", Kind: "Футболки", Brand: "Север",
+			Size: "M", Quantity: 1,
+		}},
 		CreatedAt: noon.Add(-2 * time.Hour), State: "new", SellerStatus: "new", MarketplaceStatus: "waiting", UpdatedAt: noon,
 	})
 	assembling := insertOrder(t, o.f.Store, store.Order{
-		AccountID: account, Number: "5002", Scheme: "fbs", Article: "ART-8", CreatedAt: noon.Add(-24 * time.Hour),
+		AccountID: account, Number: "5002", Scheme: "fbs", Lines: []store.OrderLine{{Article: "ART-8", Quantity: 1}}, CreatedAt: noon.Add(-24 * time.Hour),
 		State: "assembling", UpdatedAt: noon,
 	})
 	stored := insertOrder(t, o.f.Store, store.Order{
-		AccountID: account, Number: "9001", Scheme: "fbo", Article: "ART-9", Barcodes: []string{"4600000000031"},
+		AccountID: account, Number: "9001", Scheme: "fbo", Lines: []store.OrderLine{{Article: "ART-9", Barcodes: []string{"4600000000031"}, Quantity: 1}},
 		CreatedAt: noon.Add(-72 * time.Hour), State: "cancelled", CancelledBy: "buyer", MarketplaceStatus: "canceled_by_client",
 		UpdatedAt: noon,
 	})
@@ -128,11 +131,12 @@ func TestAnOrderIsShownWithEveryFieldAndItsHistory(t *testing.T) {
 		`{"at":%q,"marketplaceStatus":{"marketplace":"waiting","seller":"new"},"source":"orders.new","state":"new"},`+
 		`{"at":%q,"marketplaceStatus":{"seller":"new"},"source":"orders.states","state":"new"}],`+
 		`"exchange":{"heldReasons":[],"history":[],"reason":"external_api_empty","retryable":false,"state":"not_sent","verdicts":[]},`+
-		`"order":{"accountId":%d,"accountName":"Склад","article":"ART-7","barcodes":["4600000000017","4600000000024"],"basket":"B-1",`+
-		`"brand":"Север","createdAt":%q,"deadlineAt":%q,`+
-		`"exchange":{"reason":"external_api_empty","state":"not_sent"},"id":%d,"kind":"Футболки","marketplace":"memory",`+
-		`"marketplaceStatus":{"marketplace":"waiting","seller":"new"},"number":"5001","productId":"777","scheme":"fbs","size":"M",`+
-		`"state":"new","updatedAt":%q,"warehouse":"Москва"}}`,
+		`"order":{"accountId":%d,"accountName":"Склад","basket":"B-1","createdAt":%q,"deadlineAt":%q,`+
+		`"exchange":{"reason":"external_api_empty","state":"not_sent"},"id":%d,`+
+		`"lines":[{"article":"ART-7","barcodes":["4600000000017","4600000000024"],"brand":"Север","kind":"Футболки","productId":"777",`+
+		`"quantity":1,"size":"M"}],"marketplace":"memory",`+
+		`"marketplaceStatus":{"marketplace":"waiting","seller":"new"},"number":"5001","scheme":"fbs",`+
+		`"state":"new","updatedAt":%q,"warehouse":"Москва"},"parts":[]}`,
 		created, hourAgo, account, created, deadline, ids[0], noon)
 	if got.Body != want {
 		t.Fatalf("got  %s\nwant %s", got.Body, want)
@@ -145,6 +149,41 @@ func TestAnOrderIsShownWithEveryFieldAndItsHistory(t *testing.T) {
 
 	if missing := o.call(t, http.MethodGet, "/api/v1/orders/99", ""); missing.Status != http.StatusNotFound || missing.Body != `{"error":{"code":"not_found"}}` {
 		t.Fatalf("an order that does not exist: %d %s", missing.Status, missing.Body)
+	}
+}
+
+func TestAnOrderOfSeveralProductsShowsThemTheMarketplacesDeadlineAndItsSplit(t *testing.T) {
+	t.Parallel()
+
+	o := signedIn(t)
+	account := o.added(t, "Склад", "mem-seller").Id
+	noon := apikit.Noon()
+	shipBy := noon.Add(5 * time.Hour)
+
+	original := insertOrder(t, o.f.Store, store.Order{
+		AccountID: account, Number: "70-1", Scheme: "fbs", CreatedAt: noon.Add(-time.Hour), ShipBy: shipBy, State: "cancelled",
+		UpdatedAt: noon, Lines: []store.OrderLine{
+			{ProductID: "1", Article: "SHIRT", Name: "Рубашка", Barcodes: []string{"4601"}, Quantity: 2},
+			{ProductID: "2", Article: "SOCKS", Quantity: 1},
+		},
+	})
+	insertOrder(t, o.f.Store, store.Order{
+		AccountID: account, Number: "70-2", Scheme: "fbs", Parent: "70-1", CreatedAt: noon, ShipBy: shipBy, State: "new", UpdatedAt: noon,
+		Lines: []store.OrderLine{{ProductID: "2", Article: "SOCKS", Quantity: 1}},
+	})
+
+	details := decodeAs[gen.OrderDetails](t, o.call(t, http.MethodGet, fmt.Sprintf("/api/v1/orders/%d", original), "").Body)
+	order := details.Order
+
+	if len(order.Lines) != 2 || order.Lines[0].Quantity != 2 || *order.Lines[0].Name != "Рубашка" || *order.Lines[1].Article != "SOCKS" ||
+		order.ShipBy == nil || !order.ShipBy.Equal(shipBy) || order.DeadlineAt == nil || !order.DeadlineAt.Equal(shipBy) ||
+		fmt.Sprint(details.Parts) != "[70-2]" || order.ParentNumber != nil {
+		t.Fatalf("the split order: %+v", details)
+	}
+
+	list := decodeAs[gen.OrderList](t, o.call(t, http.MethodGet, "/api/v1/orders?q=SOCKS", "").Body)
+	if fmt.Sprint(numbersOf(list)) != "[70-2 70-1]" || list.Orders[0].ParentNumber == nil || *list.Orders[0].ParentNumber != "70-1" {
+		t.Fatalf("a search by the second product's article: %+v", list)
 	}
 }
 

@@ -12,6 +12,39 @@ This file exists because a request the maintainer makes while testing one plan m
 
 ## Open
 
+### 33. The fulfilment-centre client ignores the neutral API's `Retry-After` (2026-11-18)
+
+Found by Plan 5 (`.agents/plans/wyo-ozon-key-reading-adapter-orders-with-several-products-fake-ozon.md`) when every adapter came to
+name its own limit headers: the neutral API answers `429 rate_limited` with `Retry-After` (`api/fulfilment-centre.yaml`), but the
+fulfilment-centre client's limit group names no header, so after a 429 the caller waits one second, doubling, as it always did. Plan 5
+kept that behaviour unchanged. To decide: name `Retry-After` in the group of `internal/fulfilment/endpoint.go`, with its test.
+
+### 32. Ozon's notifications to a public address (2026-11-18)
+
+Left out of Plan 5: Ozon's «пуш-уведомления». Ozon itself says the notice of a new order may come late and the lists must be read
+regularly (`#tag/push_types` of `api/ozon/seller-api.json`); wyo reads the lists. To be taken up if the reading proves too slow.
+
+### 31. Ozon's FBO orders older than 30 days (2026-11-18)
+
+Left out of Plan 5: the FBO list is read for the last 30 days at each reading, because what its `since` compares is not sourced; an
+older FBO order keeps the last state read. Revisited after the check of `since` on a real account (item 30). Plan 5 also did not build the sentence in an
+older FBO order's details that says its state is no longer read (plan section B): the adapter's window is its own, and the wyo
+interface has no way yet to know it; to be built with that revisit.
+
+### 30. The checks of Plan 5 on the first real Ozon account (2026-11-18)
+
+Plan 5 is built against the fake Ozon only; Ozon has no sandbox. Only reading calls are made, so the checks are safe on a working shop
+(`.agents/research/ozon-official-seller-api-check-2026-11-18.md`, section 10, points 1, 2, 4, 5): the format of `/v1/roles`' list of
+methods and which role opens each method Plan 5 calls; the HTTP status of each key error; what `since` and `to` of the FBO list
+compare (then the FBO window may become a mark); whether the unprocessed list holds a posting the buyer cancelled before packing; how a
+split made in the cabinet shows (the parts' numbers, the original's status); the real limit headers and the budget's agreement with
+them. What they find becomes Plan 6's premises.
+
+### 29. Stock (2026-11-18)
+
+Register item 1's second half, left out of Plan 5: what lies in each marketplace's warehouses and the fulfilment centre's free stock
+sent to every marketplace. A plan of its own after Яндекс Маркет, with the stock part of the neutral fulfilment-centre API first.
+
 ### 27. Several fulfilment centres at once (2026-11-18)
 
 Left out of Plan 4 (`.agents/plans/wyo-external-api-wildberries-fbs-exchange-with-a-fulfilment-centre-orders-stickers-codes-hand-over.md`,
@@ -27,7 +60,7 @@ Left out of Plan 4: printing the marketplace's stickers from wyo itself for a se
 
 Left out of Plan 4: cancelling an order at Wildberries from wyo (the wyo server never cancels: a cancellation by the seller is fined —
 an architecture test forbids the call), moving an order back from a closed supply, orders Wildberries wants shipped again, passes to
-Wildberries' warehouses, days off. The README (section 10) names each; to be taken up only on the maintainer's request.
+Wildberries' warehouses, days off. The README (section 11) names each; to be taken up only on the maintainer's request.
 
 ### 24. Identifiers other than marking codes (2026-11-18)
 
@@ -55,12 +88,9 @@ shipping, on command: the exchange's tests wrap it with scripted refusals in Wil
 (`internal/exchange/rig_test.go`, `refuse`). To decide: a control that names boxes and a fault kind «refuse with this code», in the
 plan that next touches the fakes.
 
-### 28. The new orders are rewritten every minute while «Внешний API» is filled (2026-11-18)
-
-Found by Plan 4's budget test: with the exchange on, the engine reads the new orders every minute and writes every order that is still
-new at the marketplace again, and every reading of the states writes every open order again. Correct, but slow with many open orders
-(about 1.5 ms a query under the race detector), so the test of a whole hour runs with 50 orders and the test of 500 orders runs for its
-six busiest minutes. To decide: write an order only when something of it changed.
+Half done by Plan 5 (2026-11-18): the fake kit has the fault kind `refuse` (a given status and body, a given number of times,
+`internal/fakes/fakekit/faults.go`), used by the fake Ozon's and the Ozon adapter's tests; the boxes named by the fake fulfilment centre
+and the end of the exchange tests' own scripted refusals are Plan 6's.
 
 ### 21. The phone's menu strip cuts long labels (2026-11-18)
 
@@ -71,6 +101,9 @@ items, a label cut to its width), so Plan 3 did not change it. To decide: a shor
 
 ### 20. Wildberries' product cards, prices of orders, old orders (2026-11-18)
 
+Widened by Plan 5 (2026-11-18): Ozon's product cards and prices; an Ozon order's lines show the name and the barcodes, the cards are the
+contract part `products.read` of a later stage.
+
 Left out of Plan 3 (`.agents/plans/wyo-wildberries-keys-adapter-synchronisation-engine-order-list-request-journal.md`, «Not in this
 plan»): the order list shows the product's kind, brand and size the orders feed gives — photographs and full names need reading the
 product cards (the contract part `products.read`, a later stage); the prices of orders are read with the money (Stage 3 of the
@@ -78,6 +111,9 @@ high-level plan); orders older than 90 days and Wildberries' archive are not rea
 installation was not asked for.
 
 ### 19. Orders the seller delivers to the buyer itself; tokens «Базовый» and «Сервисный» (2026-11-18)
+
+Widened by Plan 5 (2026-11-18): Ozon's rFBS warehouses (`is_rfbs`) are stored with the mark «доставляет продавец» and their orders are
+never read, for the same reason; the account's card counts them.
 
 Left out of Plan 3: Wildberries' seller-warehouse schemes where the seller delivers to the buyer need the buyer's address, which wyo does
 not store (rule R4 and the plan's «no buyer data»). A token of the type «Базовый» is refused, because its limits are too low for this work
@@ -221,4 +257,14 @@ offer. Needs the stock part of the neutral fulfilment-centre API, which Plan 1 d
 
 ## Closed
 
-Nothing is closed yet.
+### 28. The new orders are rewritten every minute while «Внешний API» is filled (2026-11-18)
+
+Found by Plan 4's budget test: with the exchange on, the engine reads the new orders every minute and writes every order that is still
+new at the marketplace again, and every reading of the states writes every open order again. Correct, but slow with many open orders
+(about 1.5 ms a query under the race detector), so the test of a whole hour runs with 50 orders and the test of 500 orders runs for its
+six busiest minutes. To decide: write an order only when something of it changed.
+
+Closed by Plan 5 (`.agents/plans/wyo-ozon-key-reading-adapter-orders-with-several-products-fake-ozon.md`, section C), 2026-11-18: a
+reading compares what it read with the stored order (its state, its deadline, its lines) and writes nothing when they are equal
+(`TestAReadingThatChangedNothingWritesNothingButItsRecordOfTheReading`, `internal/sync`).
+

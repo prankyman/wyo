@@ -316,7 +316,7 @@ paths:
             summary: >-
                 The orders of every account and scheme, newest first, 50 a page. Filters: account, scheme, state, the
                 period of creation (dates in the installation's time zone, both ends included) and a search by the order's
-                number, the article or a barcode.
+                number, or any of its products' article, barcode or product number.
             parameters:
                 - { name: account, in: query, schema: { type: integer, format: int64 } }
                 - { name: scheme, in: query, schema: { $ref: '#/components/schemas/OrderScheme' } }
@@ -338,7 +338,7 @@ paths:
             - { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
         get:
             operationId: getOrder
-            summary: One order with the history of its states.
+            summary: One order with the history of its states and the orders the marketplace split it into.
             responses:
                 '200':
                     {
@@ -659,7 +659,7 @@ components:
         Marketplace:
             type: object
             additionalProperties: false
-            required: [code, mark, keyFields, capabilities, handoverSettings]
+            required: [code, mark, keyFields, capabilities, handoverSettings, givesDeadline]
             properties:
                 code:
                     type: string
@@ -679,6 +679,11 @@ components:
                         there are none. Texts - `marketplace.<code>.handover.<name>.label`, `.help` and
                         `.choice.<value>`.
                     items: { $ref: '#/components/schemas/SettingField' }
+                givesDeadline:
+                    type: boolean
+                    description: >-
+                        The marketplace gives each order the moment it must be handed over by; when it does not, the deadline
+                        is the order's creation plus the account's `deadlineHours`, which the owner sets.
         SettingField:
             type: object
             additionalProperties: false
@@ -739,6 +744,17 @@ components:
                     description: A test key - the account talks only to the marketplace's sandbox.
                 sellerName: { type: string, description: The seller's name as the marketplace gives it. }
                 keyLast4: { type: string, description: The last four characters of the key - never more. }
+                keyFields:
+                    type: array
+                    description: >-
+                        The fields of the key that are not secret, shown in full (e.g. a client's number that tells two
+                        accounts of one marketplace apart); their texts are `marketplace.<code>.key.<name>.label`.
+                    items: { $ref: '#/components/schemas/ShownKeyField' }
+                sellerDeliversWarehouses:
+                    type: integer
+                    description: >-
+                        How many of the account's warehouses the seller delivers from to the buyer itself; their orders
+                        are never read, because they need the buyer's address.
                 keyType:
                     { type: string, description: "The key's type as the adapter names it, e.g. `personal`, `test`." }
                 keyExpiresAt: { type: string, format: date-time }
@@ -757,6 +773,13 @@ components:
                 hasOrders:
                     { type: boolean, description: An order came from the account; it can then only be switched off. }
                 createdAt: { type: string, format: date-time }
+        ShownKeyField:
+            type: object
+            additionalProperties: false
+            required: [name, value]
+            properties:
+                name: { type: string }
+                value: { type: string }
         AccountList:
             type: object
             additionalProperties: false
@@ -814,8 +837,7 @@ components:
         Order:
             type: object
             additionalProperties: false
-            required:
-                [id, accountId, accountName, marketplace, scheme, number, barcodes, createdAt, state, marketplaceStatus]
+            required: [id, accountId, accountName, marketplace, scheme, number, lines, createdAt, state, marketplaceStatus]
             properties:
                 id: { type: integer, format: int64 }
                 accountId: { type: integer, format: int64 }
@@ -825,16 +847,24 @@ components:
                 number: { type: string, description: The marketplace's own number of the order. }
                 basket: { type: string, description: The buyer's basket number. }
                 warehouse: { type: string }
-                article: { type: string }
-                barcodes:
+                lines:
                     type: array
-                    items: { type: string }
-                productId: { type: string, description: The marketplace's own product number. }
-                kind: { type: string, description: The product's kind, when the marketplace gave it. }
-                brand: { type: string }
-                size: { type: string }
+                    description: The order's products, each with how many units; at least one.
+                    items: { $ref: '#/components/schemas/OrderLine' }
                 createdAt: { type: string, format: date-time }
-                deadlineAt: { type: string, format: date-time, description: Only for `fbs`. }
+                deadlineAt:
+                    type: string
+                    format: date-time
+                    description: >-
+                        Only for `fbs`: `shipBy` when the marketplace gave it, otherwise the creation plus the account's
+                        `deadlineHours`.
+                shipBy:
+                    type: string
+                    format: date-time
+                    description: The moment the marketplace itself says the order must be handed over by.
+                parentNumber:
+                    type: string
+                    description: The number of the order the marketplace split this one from.
                 state: { $ref: '#/components/schemas/OrderState' }
                 cancelledBy: { $ref: '#/components/schemas/CancelledBy' }
                 marketplaceStatus: { $ref: '#/components/schemas/MarketplaceStatus' }
@@ -842,6 +872,21 @@ components:
                 exchange:
                     $ref: '#/components/schemas/OrderExchange'
                     description: The exchange with the fulfilment centre; only for `fbs` orders.
+        OrderLine:
+            type: object
+            additionalProperties: false
+            required: [barcodes, quantity]
+            properties:
+                productId: { type: string, description: The marketplace's own product number. }
+                article: { type: string, description: The seller's own code of the product. }
+                name: { type: string, description: The product's name, when the marketplace gave it. }
+                barcodes:
+                    type: array
+                    items: { type: string }
+                kind: { type: string, description: The product's kind, when the marketplace gave it. }
+                brand: { type: string }
+                size: { type: string }
+                quantity: { type: integer, minimum: 1, description: How many units of the product. }
         OrderEvent:
             type: object
             additionalProperties: false
@@ -857,12 +902,16 @@ components:
         OrderDetails:
             type: object
             additionalProperties: false
-            required: [order, events]
+            required: [order, events, parts]
             properties:
                 order: { $ref: '#/components/schemas/Order' }
                 events:
                     type: array
                     items: { $ref: '#/components/schemas/OrderEvent' }
+                parts:
+                    type: array
+                    description: The numbers of the orders the marketplace split this one into.
+                    items: { type: string }
                 exchange: { $ref: '#/components/schemas/OrderExchangeDetails' }
         OrderList:
             type: object

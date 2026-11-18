@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/prankyman/wyo/internal/adapterkit"
 	"github.com/prankyman/wyo/internal/marketplace"
 	"github.com/prankyman/wyo/internal/marketplace/wildberries/wbapi/orders"
 )
@@ -92,11 +93,6 @@ func notAnOrder(n string) error {
 	return fmt.Errorf("wildberries: %q is not the number of an assembly order", n)
 }
 
-// succeeded says whether an answer without a body is a success.
-func succeeded(status int) bool {
-	return status >= http.StatusOK && status < http.StatusMultipleChoices
-}
-
 // eachHundred calls fn with the numbers of orders in parts of at most a hundred, and stops at the first error.
 func eachHundred[T int | int64](numbers []string, fn func(ids []T) error) error {
 	ids, err := wholeNumbers[T](numbers)
@@ -104,11 +100,5 @@ func eachHundred[T int | int64](numbers []string, fn func(ids []T) error) error 
 		return err
 	}
 
-	for start := 0; start < len(ids); start += maxPerCall {
-		if err := fn(ids[start:min(start+maxPerCall, len(ids))]); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return adapterkit.EachPart(ids, maxPerCall, fn)
 }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/prankyman/wyo/internal/adapterkit"
 	"github.com/prankyman/wyo/internal/marketplace"
 	"github.com/prankyman/wyo/internal/marketplace/wildberries/wbapi/orders"
 )
@@ -22,7 +23,7 @@ func (a *Adapter) NewBatch(ctx context.Context, conn marketplace.Conn, name stri
 		return "", err
 	}
 
-	if res.JSON201 == nil || value(res.JSON201.Id) == "" {
+	if res.JSON201 == nil || adapterkit.Value(res.JSON201.Id) == "" {
 		return "", WriteRefusal(res.StatusCode(), res.Body)
 	}
 
@@ -67,20 +68,20 @@ func (a *Adapter) Batch(ctx context.Context, conn marketplace.Conn, number strin
 
 	s := supply.JSON200
 	state := marketplace.BatchState{
-		Number: number, Closed: value(s.Done),
-		ShippingSet: value(s.ShippingType) != "" && value(s.ShippingDt) != "" && s.ShippingPointId != nil,
+		Number: number, Closed: adapterkit.Value(s.Done),
+		ShippingSet: adapterkit.Value(s.ShippingType) != "" && adapterkit.Value(s.ShippingDt) != "" && s.ShippingPointId != nil,
 	}
 
 	if s.ShippingPointId != nil {
 		state.ShippingPoint = strconv.Itoa(*s.ShippingPointId)
 	}
 
-	for _, id := range value(ids.JSON200.OrderIds) {
+	for _, id := range adapterkit.Value(ids.JSON200.OrderIds) {
 		state.Orders = append(state.Orders, strconv.Itoa(id))
 	}
 
-	for _, box := range value(boxes.JSON200.Trbxes) {
-		state.Boxes = append(state.Boxes, value(box.Id))
+	for _, box := range adapterkit.Value(boxes.JSON200.Trbxes) {
+		state.Boxes = append(state.Boxes, adapterkit.Value(box.Id))
 	}
 
 	return state, nil

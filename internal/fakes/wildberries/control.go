@@ -2,7 +2,6 @@ package wildberries
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"slices"
 	"strconv"
@@ -37,31 +36,7 @@ func (s *Server) controlRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /__control/feed", s.controlFeed)
 }
 
-// controlBody reads a control call's body, refusing fields it does not know: a test that misspells one learns it at once.
-func controlBody(w http.ResponseWriter, r *http.Request, dst any) bool {
-	raw, err := io.ReadAll(r.Body)
-	if err != nil {
-		fakekit.ControlError(w, http.StatusBadRequest, "unreadable body")
-
-		return false
-	}
-
-	if len(raw) == 0 {
-		return true
-	}
-
-	if err := strictJSON(raw, dst); err != nil {
-		fakekit.ControlError(w, http.StatusBadRequest, "the body is not valid: "+err.Error())
-
-		return false
-	}
-
-	return true
-}
-
 func (s *Server) use(r *http.Request, fn func(st *state)) { s.kit.Use(s.kit.KeyOf(r), fn) }
-
-func done(w http.ResponseWriter) { fakekit.JSON(w, http.StatusOK, map[string]string{"status": "ok"}) }
 
 func (s *Server) controlSetup(w http.ResponseWriter, r *http.Request) {
 	var in struct {
@@ -74,7 +49,7 @@ func (s *Server) controlSetup(w http.ResponseWriter, r *http.Request) {
 		TokenRefused     *string          `json:"token_refused"`
 	}
 
-	if !controlBody(w, r, &in) {
+	if !fakekit.ControlBody(w, r, &in) {
 		return
 	}
 
@@ -137,7 +112,7 @@ func (s *Server) controlSetup(w http.ResponseWriter, r *http.Request) {
 		}
 	})
 
-	done(w)
+	fakekit.ControlOK(w)
 }
 
 func merge(dst *string, value string) {
@@ -159,7 +134,7 @@ func (s *Server) controlOrder(w http.ResponseWriter, r *http.Request) {
 		Comment      string   `json:"comment"`
 	}
 
-	if !controlBody(w, r, &in) {
+	if !fakekit.ControlBody(w, r, &in) {
 		return
 	}
 
@@ -245,7 +220,7 @@ func (s *Server) controlWBStatus(w http.ResponseWriter, r *http.Request) {
 		WBStatus string `json:"wb_status"`
 	}
 
-	if !controlBody(w, r, &in) {
+	if !fakekit.ControlBody(w, r, &in) {
 		return
 	}
 
@@ -263,7 +238,7 @@ func (s *Server) controlWBStatus(w http.ResponseWriter, r *http.Request) {
 
 		o.wbStatus = in.WBStatus
 		st.touchFeed(o, slices.Contains(cancelledByWildberries, in.WBStatus))
-		done(w)
+		fakekit.ControlOK(w)
 	})
 }
 
@@ -281,7 +256,7 @@ func (s *Server) controlReshipment(w http.ResponseWriter, r *http.Request) {
 		}
 
 		o.reshipment = true
-		done(w)
+		fakekit.ControlOK(w)
 	})
 }
 
@@ -294,7 +269,7 @@ func (s *Server) controlNewSticker(w http.ResponseWriter, r *http.Request) {
 
 		st.nextSticker++
 		o.stickerID = st.nextSticker
-		done(w)
+		fakekit.ControlOK(w)
 	})
 }
 
@@ -305,7 +280,7 @@ func (s *Server) controlVerdict(w http.ResponseWriter, r *http.Request) {
 		Decision string `json:"decision"`
 	}
 
-	if !controlBody(w, r, &in) {
+	if !fakekit.ControlBody(w, r, &in) {
 		return
 	}
 
@@ -321,7 +296,7 @@ func (s *Server) controlVerdict(w http.ResponseWriter, r *http.Request) {
 			fakekit.ControlError(w, http.StatusConflict, "the order does not take that kind of marking code")
 		default:
 			o.verdicts[in.Key] = in.Decision
-			done(w)
+			fakekit.ControlOK(w)
 		}
 	})
 }
@@ -337,7 +312,7 @@ func (s *Server) controlScan(w http.ResponseWriter, r *http.Request) {
 
 		now := st.now()
 		sp.scanDt = &now
-		done(w)
+		fakekit.ControlOK(w)
 	})
 }
 
@@ -358,7 +333,7 @@ func (s *Server) controlFeed(w http.ResponseWriter, r *http.Request) {
 		} `json:"rows"`
 	}
 
-	if !controlBody(w, r, &in) {
+	if !fakekit.ControlBody(w, r, &in) {
 		return
 	}
 
@@ -394,5 +369,5 @@ func (s *Server) controlFeed(w http.ResponseWriter, r *http.Request) {
 		}
 	})
 
-	done(w)
+	fakekit.ControlOK(w)
 }

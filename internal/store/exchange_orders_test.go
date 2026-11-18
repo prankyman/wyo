@@ -66,14 +66,14 @@ func TestAnOrderToSendIsANewFbsOrderOfAMatchedWarehouseOfAnAccountThatMayWriteNo
 		return q.SaveExchangeOrder(ctx, store.ExchangeOrder{OrderID: sent, State: "sent", SentAt: noon(), UpdatedAt: noon()})
 	}))
 
-	list, err := f.s.Read().OrdersToSend(ctx, 10)
+	list, err := f.s.Read().OrdersToSend(ctx, 10, []string{"wildberries"})
 	if err != nil || len(list) != 1 {
 		t.Fatalf("OrdersToSend: %+v, %v", list, err)
 	}
 
 	want := store.OrderToSend{
-		OrderID: eligible, AccountID: f.account.ID, Number: "100", Basket: "basket-100", Article: "ART-100",
-		Barcodes: []string{"460100", "461100"}, ItemID: "item-100", CreatedAt: noon().UTC(), DeadlineHours: 48,
+		OrderID: eligible, AccountID: f.account.ID, Number: "100", Basket: "basket-100",
+		Lines: []store.OrderLine{{Article: "ART-100", Barcodes: []string{"460100", "461100"}, ProductID: "123", Quantity: 1}}, ItemID: "item-100", CreatedAt: noon().UTC(), DeadlineHours: 48,
 		FcMarketplace: "wildberries", FcWarehouse: "main",
 	}
 
@@ -81,16 +81,25 @@ func TestAnOrderToSendIsANewFbsOrderOfAMatchedWarehouseOfAnAccountThatMayWriteNo
 		t.Fatalf("OrdersToSend:\n got  %+v\n want %+v", list[0], want)
 	}
 
+	// The orders of a marketplace whose adapter hands no order over are never sent.
+	if others, err := f.s.Read().OrdersToSend(ctx, 10, []string{"another"}); err != nil || len(others) != 0 {
+		t.Fatalf("OrdersToSend of another marketplace: %+v, %v", others, err)
+	}
+
+	if none, err := f.s.Read().OrdersToSend(ctx, 10, nil); err != nil || len(none) != 0 {
+		t.Fatalf("OrdersToSend of no marketplace: %+v, %v", none, err)
+	}
+
 	// An account whose key may only read, or no more matched, has nothing to send.
 	must(t, f.s.Do(ctx, func(q *store.Queries) error {
 		return q.UpdateAccountKey(ctx, f.account.ID, store.AccountKey{State: "working", ReadOnly: true, KeyType: "personal", CheckedAt: noon()})
 	}))
 
-	if list, _ = f.s.Read().OrdersToSend(ctx, 10); len(list) != 0 {
+	if list, _ = f.s.Read().OrdersToSend(ctx, 10, []string{"wildberries"}); len(list) != 0 {
 		t.Fatalf("OrdersToSend of a read-only account: %+v", list)
 	}
 
-	if limited, _ := newExchangeFixture(t).s.Read().OrdersToSend(ctx, 1); len(limited) != 0 {
+	if limited, _ := newExchangeFixture(t).s.Read().OrdersToSend(ctx, 1, []string{"wildberries"}); len(limited) != 0 {
 		t.Fatalf("OrdersToSend of no order: %+v", limited)
 	}
 }

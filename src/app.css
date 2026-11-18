@@ -103,6 +103,7 @@
      * (`GET /api/v1/marketplaces`, `mark`); a mark the theme does not hold is drawn in the neutral grey.
      */
     --color-mark-plum: oklch(48% 0.2 330);
+    --color-mark-azure: oklch(52% 0.17 235);
 
     --breakpoint-xs: 30rem;
 

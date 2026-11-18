@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/prankyman/wyo/internal/fakes/fakekit"
 )
 
 // Wildberries' request budgets (api/wildberries/01-general.yaml, the section on limits). A budget is a burst of calls that
@@ -62,36 +64,11 @@ func limitOf(category string) limit {
 	return limits[name]
 }
 
-// bucket holds how much credit a budget has, as a length of time: a call costs one interval, and the credit grows with
-// the clock up to burst intervals.
-type bucket struct {
-	credit time.Duration
-	at     time.Time
-}
-
-func (b *bucket) refill(now time.Time, l limit) {
-	capacity := time.Duration(l.burst) * l.interval
-
-	if b.at.IsZero() {
-		b.credit = capacity
-	} else if elapsed := now.Sub(b.at); elapsed > 0 {
-		b.credit = min(capacity, b.credit+elapsed)
-	}
-
-	b.at = now
-}
-
-func (b *bucket) remaining(l limit) int { return int(b.credit / l.interval) }
-
-func ceilSeconds(d time.Duration) int {
-	return int((d + time.Second - 1) / time.Second)
-}
-
 // budgetWriter charges the 4xx surcharge and adds X-Ratelimit-Remaining just before the status line is sent.
 type budgetWriter struct {
 	http.ResponseWriter
 
-	b     *bucket
+	b     *fakekit.Bucket
 	l     limit
 	wrote bool
 }
@@ -101,10 +78,10 @@ func (w *budgetWriter) WriteHeader(status int) {
 		w.wrote = true
 
 		if status >= 400 && status < 500 && status != http.StatusTooManyRequests && w.l.errorCost > 1 {
-			w.b.credit = max(0, w.b.credit-time.Duration(w.l.errorCost-1)*w.l.interval)
+			w.b.Spend(time.Duration(w.l.errorCost-1) * w.l.interval)
 		}
 
-		w.Header().Set("X-Ratelimit-Remaining", strconv.Itoa(w.b.remaining(w.l)))
+		w.Header().Set("X-Ratelimit-Remaining", strconv.Itoa(w.b.Remaining(w.l.interval)))
 	}
 
 	w.ResponseWriter.WriteHeader(status)
@@ -129,20 +106,15 @@ func (s *Server) admit(st *state, w http.ResponseWriter, r *http.Request) (http.
 
 	b := st.buckets[category]
 	if b == nil {
-		b = &bucket{}
+		b = &fakekit.Bucket{}
 		st.buckets[category] = b
 	}
 
-	b.refill(st.now(), l)
-
-	if b.credit < l.interval {
-		capacity := time.Duration(l.burst) * l.interval
-		s.tooManyRequests(w, l.interval-b.credit, l.burst, capacity-b.credit)
+	if wait, ok := b.Take(st.now(), l.interval, l.burst); !ok {
+		s.tooManyRequests(w, wait, l.burst, b.UntilFull(l.interval, l.burst))
 
 		return w, false
 	}
-
-	b.credit -= l.interval
 
 	return &budgetWriter{ResponseWriter: w, b: b, l: l}, true
 }

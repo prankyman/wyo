@@ -43,7 +43,7 @@ func (q *Queries) DeleteWarehousesOfAccount(ctx context.Context, accountID int64
 }
 
 const getAccount = `-- name: GetAccount :one
-SELECT id, marketplace, name, state, test, seller_name, seller_profile_id, secret_name, key_last4, key_type, key_expires_at, categories, missing_categories, read_only, deadline_hours, last_check_at, last_check_outcome, last_success_at, last_refusal_code, last_refusal_status, last_refusal_at, failures_in_row, created_at, handover_settings, shipping_point FROM marketplace_accounts WHERE id = ?
+SELECT id, marketplace, name, state, test, seller_name, seller_profile_id, secret_name, key_last4, key_type, key_expires_at, categories, missing_categories, read_only, deadline_hours, last_check_at, last_check_outcome, last_success_at, last_refusal_code, last_refusal_status, last_refusal_at, failures_in_row, created_at, handover_settings, shipping_point, key_fields FROM marketplace_accounts WHERE id = ?
 `
 
 func (q *Queries) GetAccount(ctx context.Context, id int64) (MarketplaceAccount, error) {
@@ -75,6 +75,7 @@ func (q *Queries) GetAccount(ctx context.Context, id int64) (MarketplaceAccount,
 		&i.CreatedAt,
 		&i.HandoverSettings,
 		&i.ShippingPoint,
+		&i.KeyFields,
 	)
 	return i, err
 }
@@ -99,9 +100,9 @@ const insertAccount = `-- name: InsertAccount :one
 INSERT INTO marketplace_accounts (
     marketplace, name, state, test, seller_name, seller_profile_id, secret_name, key_last4, key_type, key_expires_at,
     categories, missing_categories, read_only, deadline_hours, last_check_at, last_check_outcome, last_success_at,
-    created_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING id, marketplace, name, state, test, seller_name, seller_profile_id, secret_name, key_last4, key_type, key_expires_at, categories, missing_categories, read_only, deadline_hours, last_check_at, last_check_outcome, last_success_at, last_refusal_code, last_refusal_status, last_refusal_at, failures_in_row, created_at, handover_settings, shipping_point
+    created_at, key_fields
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, marketplace, name, state, test, seller_name, seller_profile_id, secret_name, key_last4, key_type, key_expires_at, categories, missing_categories, read_only, deadline_hours, last_check_at, last_check_outcome, last_success_at, last_refusal_code, last_refusal_status, last_refusal_at, failures_in_row, created_at, handover_settings, shipping_point, key_fields
 `
 
 type InsertAccountParams struct {
@@ -123,6 +124,7 @@ type InsertAccountParams struct {
 	LastCheckOutcome  string
 	LastSuccessAt     sql.NullInt64
 	CreatedAt         int64
+	KeyFields         string
 }
 
 func (q *Queries) InsertAccount(ctx context.Context, arg InsertAccountParams) (MarketplaceAccount, error) {
@@ -145,6 +147,7 @@ func (q *Queries) InsertAccount(ctx context.Context, arg InsertAccountParams) (M
 		arg.LastCheckOutcome,
 		arg.LastSuccessAt,
 		arg.CreatedAt,
+		arg.KeyFields,
 	)
 	var i MarketplaceAccount
 	err := row.Scan(
@@ -173,19 +176,21 @@ func (q *Queries) InsertAccount(ctx context.Context, arg InsertAccountParams) (M
 		&i.CreatedAt,
 		&i.HandoverSettings,
 		&i.ShippingPoint,
+		&i.KeyFields,
 	)
 	return i, err
 }
 
 const insertWarehouse = `-- name: InsertWarehouse :exec
-INSERT INTO marketplace_warehouses (account_id, number, name, updated_at) VALUES (?, ?, ?, ?)
+INSERT INTO marketplace_warehouses (account_id, number, name, seller_delivers, updated_at) VALUES (?, ?, ?, ?, ?)
 `
 
 type InsertWarehouseParams struct {
-	AccountID int64
-	Number    string
-	Name      string
-	UpdatedAt int64
+	AccountID      int64
+	Number         string
+	Name           string
+	SellerDelivers int64
+	UpdatedAt      int64
 }
 
 func (q *Queries) InsertWarehouse(ctx context.Context, arg InsertWarehouseParams) error {
@@ -193,13 +198,14 @@ func (q *Queries) InsertWarehouse(ctx context.Context, arg InsertWarehouseParams
 		arg.AccountID,
 		arg.Number,
 		arg.Name,
+		arg.SellerDelivers,
 		arg.UpdatedAt,
 	)
 	return err
 }
 
 const listAccounts = `-- name: ListAccounts :many
-SELECT id, marketplace, name, state, test, seller_name, seller_profile_id, secret_name, key_last4, key_type, key_expires_at, categories, missing_categories, read_only, deadline_hours, last_check_at, last_check_outcome, last_success_at, last_refusal_code, last_refusal_status, last_refusal_at, failures_in_row, created_at, handover_settings, shipping_point FROM marketplace_accounts ORDER BY id
+SELECT id, marketplace, name, state, test, seller_name, seller_profile_id, secret_name, key_last4, key_type, key_expires_at, categories, missing_categories, read_only, deadline_hours, last_check_at, last_check_outcome, last_success_at, last_refusal_code, last_refusal_status, last_refusal_at, failures_in_row, created_at, handover_settings, shipping_point, key_fields FROM marketplace_accounts ORDER BY id
 `
 
 func (q *Queries) ListAccounts(ctx context.Context) ([]MarketplaceAccount, error) {
@@ -237,6 +243,7 @@ func (q *Queries) ListAccounts(ctx context.Context) ([]MarketplaceAccount, error
 			&i.CreatedAt,
 			&i.HandoverSettings,
 			&i.ShippingPoint,
+			&i.KeyFields,
 		); err != nil {
 			return nil, err
 		}
@@ -252,7 +259,7 @@ func (q *Queries) ListAccounts(ctx context.Context) ([]MarketplaceAccount, error
 }
 
 const listWarehouses = `-- name: ListWarehouses :many
-SELECT account_id, number, name, updated_at FROM marketplace_warehouses WHERE account_id = ? ORDER BY name, number
+SELECT account_id, number, name, updated_at, seller_delivers FROM marketplace_warehouses WHERE account_id = ? ORDER BY name, number
 `
 
 func (q *Queries) ListWarehouses(ctx context.Context, accountID int64) ([]MarketplaceWarehouse, error) {
@@ -269,6 +276,7 @@ func (q *Queries) ListWarehouses(ctx context.Context, accountID int64) ([]Market
 			&i.Number,
 			&i.Name,
 			&i.UpdatedAt,
+			&i.SellerDelivers,
 		); err != nil {
 			return nil, err
 		}
@@ -401,8 +409,8 @@ func (q *Queries) RecordAccountSuccess(ctx context.Context, arg RecordAccountSuc
 
 const updateAccountKey = `-- name: UpdateAccountKey :execrows
 UPDATE marketplace_accounts
-SET state = ?, test = ?, seller_name = ?, seller_profile_id = ?, key_last4 = ?, key_type = ?, key_expires_at = ?,
-    categories = ?, missing_categories = ?, read_only = ?, last_check_at = ?, last_check_outcome = ?,
+SET state = ?, test = ?, seller_name = ?, seller_profile_id = ?, key_last4 = ?, key_fields = ?, key_type = ?,
+    key_expires_at = ?, categories = ?, missing_categories = ?, read_only = ?, last_check_at = ?, last_check_outcome = ?,
     last_success_at = ?, last_refusal_code = '', last_refusal_status = 0, last_refusal_at = NULL, failures_in_row = 0
 WHERE id = ?
 `
@@ -413,6 +421,7 @@ type UpdateAccountKeyParams struct {
 	SellerName        string
 	SellerProfileID   string
 	KeyLast4          string
+	KeyFields         string
 	KeyType           string
 	KeyExpiresAt      sql.NullInt64
 	Categories        string
@@ -431,6 +440,7 @@ func (q *Queries) UpdateAccountKey(ctx context.Context, arg UpdateAccountKeyPara
 		arg.SellerName,
 		arg.SellerProfileID,
 		arg.KeyLast4,
+		arg.KeyFields,
 		arg.KeyType,
 		arg.KeyExpiresAt,
 		arg.Categories,

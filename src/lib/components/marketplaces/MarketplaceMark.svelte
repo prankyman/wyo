@@ -20,7 +20,7 @@
     let { lang, code, mark, dataTest }: IProps = $props();
 
     /** The marks the theme holds, each a whole class so the styles find it. */
-    const MARK_DOT_CLASS: Readonly<Record<string, string>> = { plum: 'bg-mark-plum' };
+    const MARK_DOT_CLASS: Readonly<Record<string, string>> = { plum: 'bg-mark-plum', azure: 'bg-mark-azure' };
 
     const dotClass = $derived((mark !== undefined && MARK_DOT_CLASS[mark]) || 'bg-ink-400');
     const name = $derived(hasMessage(`marketplace.${code}.name`, lang) ? t(`marketplace.${code}.name`, lang) : code);

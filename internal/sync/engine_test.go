@@ -51,7 +51,8 @@ func TestOrdersArriveOnceJoinTheFeedAndBecomeReadOnlyFBORowsWithoutBuyerData(t *
 
 	for _, number := range []string{first, second} {
 		o := byNumber[number]
-		if o.Scheme != "fbs" || o.State != "new" || o.MarketplaceStatus != "waiting" || o.Kind != "Test subject" || o.Brand != "Test brand" ||
+		if o.Scheme != "fbs" || o.State != "new" || o.MarketplaceStatus != "waiting" || len(o.Lines) != 1 || o.Lines[0].Kind != "Test subject" ||
+			o.Lines[0].Brand != "Test brand" ||
 			o.Basket == "" || o.Warehouse != "Seller warehouse" || o.DeadlineAt.IsZero() {
 			t.Fatalf("an order of the seller's warehouse, its product filled from the feed: %+v", o)
 		}

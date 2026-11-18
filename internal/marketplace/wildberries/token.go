@@ -72,23 +72,23 @@ func refused(code string, params map[string]any) *marketplace.Refusal {
 
 // ReadKey implements marketplace.KeyChecker: the token's own fields, read without calling anybody («Токен представляет
 // собой JWT согласно RFC 7519 … вы можете декодировать его», WBT §2).
-func (a *Adapter) ReadKey(fields map[string]string, now time.Time) (marketplace.KeyFacts, string, error) {
+func (a *Adapter) ReadKey(fields marketplace.Key, now time.Time) (marketplace.KeyFacts, marketplace.Key, error) {
 	token := strings.TrimSpace(fields[fieldToken])
 	if token == "" {
-		return marketplace.KeyFacts{}, "", refused(codeRequired, nil)
+		return marketplace.KeyFacts{}, nil, refused(codeRequired, nil)
 	}
 
 	c, ok := decode(token)
 	if !ok {
-		return marketplace.KeyFacts{}, "", refused(codeKeyUnreadable, nil)
+		return marketplace.KeyFacts{}, nil, refused(codeKeyUnreadable, nil)
 	}
 
 	kind, known := tokenTypes[c.Acc]
 	switch {
 	case !known || c.Sid == "":
-		return marketplace.KeyFacts{}, "", refused(codeKeyUnreadable, nil)
+		return marketplace.KeyFacts{}, nil, refused(codeKeyUnreadable, nil)
 	case !accepted[kind]:
-		return marketplace.KeyFacts{}, "", refused(codeKeyTypeNotAccepted, map[string]any{"type": kind})
+		return marketplace.KeyFacts{}, nil, refused(codeKeyTypeNotAccepted, map[string]any{"type": kind})
 	}
 
 	facts := marketplace.KeyFacts{
@@ -99,25 +99,25 @@ func (a *Adapter) ReadKey(fields map[string]string, now time.Time) (marketplace.
 		facts.ExpiresAt = time.Unix(*c.Exp, 0).UTC()
 
 		if !now.Before(facts.ExpiresAt) {
-			return marketplace.KeyFacts{}, "", refused(codeKeyExpired, nil)
+			return marketplace.KeyFacts{}, nil, refused(codeKeyExpired, nil)
 		}
 	}
 
 	// A test token «автоматически открывает все категории, доступные в песочнице» (WBT §1.5); which bits its s holds is
 	// not sourced (WBT §4, point 5), so its categories are proven by /ping on the sandbox, not by its bits.
 	if facts.Test {
-		return facts, token, nil
+		return facts, marketplace.Key{fieldToken: token}, nil
 	}
 
 	if !slices.Contains(facts.Categories, categoryMarketplace) {
-		return marketplace.KeyFacts{}, "", refused(codeCategoryMissing, map[string]any{"category": categoryMarketplace})
+		return marketplace.KeyFacts{}, nil, refused(codeCategoryMissing, map[string]any{"category": categoryMarketplace})
 	}
 
 	if !slices.Contains(facts.Categories, categoryStatistics) {
 		facts.MissingCategories = []string{categoryStatistics}
 	}
 
-	return facts, token, nil
+	return facts, marketplace.Key{fieldToken: token}, nil
 }
 
 // decode reads the middle part of a JWT: three parts separated by dots, the middle one base64url-encoded JSON.

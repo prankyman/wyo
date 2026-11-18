@@ -76,7 +76,9 @@ type Endpoint struct {
 func NewEndpoint(a Address) *Endpoint { return &Endpoint{prefix: a.Prefix} }
 
 // Describe names the fulfilment centre in the journal.
-func (e *Endpoint) Describe() marketplace.Description { return marketplace.Description{Code: Code} }
+func (e *Endpoint) Describe() marketplace.Description {
+	return marketplace.Description{Code: Code, KeyFields: []marketplace.KeyField{{Name: keyField, Secret: true}}}
+}
 
 // calls are the requests of api/fulfilment-centre.yaml the wyo server sends, and whether each writes.
 var calls = []struct {
@@ -116,8 +118,13 @@ func (e *Endpoint) Limit(name string, _ bool) (marketplace.LimitGroup, bool) {
 	return group, name == Code
 }
 
+// keyField is the one field of the fulfilment centre's key: the secret store keeps its text as it is.
+const keyField = "key"
+
 // Authorize puts the key in «the header Authorization: Bearer <key>».
-func (e *Endpoint) Authorize(h http.Header, secret string) { h.Set("Authorization", "Bearer "+secret) }
+func (e *Endpoint) Authorize(h http.Header, key marketplace.Key) {
+	h.Set("Authorization", "Bearer "+key[keyField])
+}
 
 // ErrorOf reads a refusal { "error": { "code" } }; the neutral API sends no text.
 func (e *Endpoint) ErrorOf(_ int, body []byte) (string, string) {

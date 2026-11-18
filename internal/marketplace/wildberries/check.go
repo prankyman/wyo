@@ -2,10 +2,10 @@ package wildberries
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"slices"
 
+	"github.com/prankyman/wyo/internal/adapterkit"
 	"github.com/prankyman/wyo/internal/marketplace"
 	"github.com/prankyman/wyo/internal/marketplace/wildberries/wbapi/general"
 	"github.com/prankyman/wyo/internal/marketplace/wildberries/wbapi/items"
@@ -104,11 +104,11 @@ func (a *Adapter) seller(ctx context.Context, conn marketplace.Conn, profileID s
 		return "", Refusal(res.StatusCode(), res.Body, "")
 	}
 
-	if value(res.JSON200.Sid) != profileID {
+	if adapterkit.Value(res.JSON200.Sid) != profileID {
 		return "", &marketplace.Refusal{Code: codeProfileMismatch, Field: fieldPath, Status: res.StatusCode()}
 	}
 
-	return value(res.JSON200.Name), nil
+	return adapterkit.Value(res.JSON200.Name), nil
 }
 
 // Warehouses implements marketplace.WarehouseReader (GET /api/v3/warehouses, 02-items.yaml).
@@ -129,28 +129,10 @@ func (a *Adapter) Warehouses(ctx context.Context, conn marketplace.Conn) ([]mark
 
 	list := make([]marketplace.Warehouse, 0, len(*res.JSON200))
 	for _, w := range *res.JSON200 {
-		list = append(list, marketplace.Warehouse{Number: number(w.Id), Name: value(w.Name)})
+		list = append(list, marketplace.Warehouse{Number: adapterkit.Number(w.Id), Name: adapterkit.Value(w.Name)})
 	}
 
 	return list, nil
-}
-
-func value[T any](p *T) T {
-	var zero T
-	if p == nil {
-		return zero
-	}
-
-	return *p
-}
-
-// number writes a marketplace's number as text: the connector never counts with it.
-func number[T int | int64 | uint64](p *T) string {
-	if p == nil {
-		return ""
-	}
-
-	return fmt.Sprint(*p)
 }
 
 func appendOnce(list []string, code string) []string {

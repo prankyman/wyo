@@ -3,6 +3,8 @@
 package server_test
 
 import (
+	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
@@ -12,7 +14,9 @@ import (
 
 	"github.com/prankyman/wyo/internal/clock"
 	"github.com/prankyman/wyo/internal/fakes/fakekit"
+	fakeozon "github.com/prankyman/wyo/internal/fakes/ozon"
 	fakewb "github.com/prankyman/wyo/internal/fakes/wildberries"
+	"github.com/prankyman/wyo/internal/marketplace"
 	"github.com/prankyman/wyo/internal/outbound"
 	"github.com/prankyman/wyo/internal/server"
 	"github.com/prankyman/wyo/internal/store"
@@ -21,10 +25,13 @@ import (
 // The helpers of the tests that point a test build's wyo server at the fake Wildberries (only a build made with the
 // wyotest tag may be given a fake marketplace's address).
 
-// wildberriesHosts are the Wildberries hosts of the outbound gate's list (internal/outbound, the purpose marketplace).
+// wildberriesHosts are the hosts the Wildberries adapter calls.
 var wildberriesHosts = []string{
 	"marketplace-api.wildberries.ru", "marketplace-api-sandbox.wildberries.ru", "common-api.wildberries.ru", "statistics-api.wildberries.ru",
 }
+
+// ozonHost is the host the Ozon adapter calls.
+const ozonHost = "api-seller.ozon.ru"
 
 // fakeSeller is the profile id the fake Wildberries gives every seller.
 const fakeSeller = "00000000-0000-0000-0000-000000000001"
@@ -57,6 +64,63 @@ func (a *addresses) all() []string {
 	defer a.mu.Unlock()
 
 	return append([]string(nil), a.list...)
+}
+
+// fakeMarketplaces starts the fake Wildberries and the fake Ozon on one address, as the fakes program serves them, on the
+// test's clock.
+func fakeMarketplaces(t *testing.T, clk *clock.Fixed) *httptest.Server {
+	t.Helper()
+
+	wb := fakewb.New(fakewb.Options{Clock: clk, Delay: fakekit.ClockDelayer{Clock: clk}})
+	oz := fakeozon.New(fakeozon.Options{Clock: clk, Delay: fakekit.ClockDelayer{Clock: clk}})
+
+	fake := httptest.NewServer(fakekit.HostRouter(wb.Handler(), oz))
+	t.Cleanup(fake.Close)
+
+	return fake
+}
+
+// addOzonAccount sets a key up at the fake Ozon (the role Admin, one FBS warehouse, living 60 days) and saves its account
+// the way the accounts service does, without asking: the key's two fields packed in the secret store, the row as checked
+// now. It returns the account and the key.
+func addOzonAccount(t *testing.T, app *server.App, fakeURL, name string, now time.Time) (int64, marketplace.Key) {
+	t.Helper()
+
+	key := marketplace.Key{"client_id": fmt.Sprint(700000 + len(name)), "api_key": "ozon-" + name + "-" + strings.ReplaceAll(t.Name(), "/", "-")}
+	expires := now.Add(60 * 24 * time.Hour)
+
+	if err := fakekit.NewControl(fakeURL+"/"+ozonHost, key["api_key"], nil).Do(t.Context(), http.MethodPost, "/__control/setup", map[string]any{
+		"client_id": key["client_id"], "seller_name": "Продавец " + name, "expires_at": expires,
+		"roles": []map[string]any{{"name": "Admin", "methods": []string{}}}, "warehouses": []map[string]any{{"id": 1001, "name": "Склад FBS"}},
+		"products": []map[string]any{{"sku": 2001, "offer_id": "SHIRT", "name": "Рубашка", "barcodes": []string{"4600001"}}},
+	}, nil); err != nil {
+		t.Fatalf("set the key up at the fake Ozon: %v", err)
+	}
+
+	secret := "account." + name + ".key"
+	packed := marketplace.PackKey([]marketplace.KeyField{{Name: "client_id"}, {Name: "api_key", Secret: true}}, key)
+
+	if err := app.Vault.Put(t.Context(), secret, packed); err != nil {
+		t.Fatalf("Vault.Put: %v", err)
+	}
+
+	var id int64
+
+	if err := app.Store.Do(t.Context(), func(q *store.Queries) error {
+		row, err := q.InsertAccount(t.Context(), store.Account{
+			Marketplace: "ozon", Name: name, State: "working", SellerProfileID: key["client_id"], SecretName: secret,
+			KeyLast4: key["api_key"][len(key["api_key"])-4:], KeyFields: []store.KeyField{{Name: "client_id", Value: key["client_id"]}},
+			KeyExpiresAt: expires, Categories: []string{"posting_fbs", "warehouse", "posting_fbo", "product", "seller_info"},
+			DeadlineHours: 48, LastSuccessAt: now, CreatedAt: now,
+		})
+		id = row.ID
+
+		return err
+	}); err != nil {
+		t.Fatalf("InsertAccount: %v", err)
+	}
+
+	return id, key
 }
 
 // recordingGate is the outbound gate of a test build pointed at the fake marketplace, recording every address.
@@ -110,8 +174,8 @@ func addAccount(t *testing.T, app *server.App, name, tokenText string, now time.
 	return id
 }
 
-// onlyWildberriesThroughTheFake fails for an address that is not a Wildberries host reached through the fake.
-func onlyWildberriesThroughTheFake(t *testing.T, recorded []string, fakeURL string) {
+// onlyMarketplacesThroughTheFake fails for an address that is not a marketplace host reached through the fake.
+func onlyMarketplacesThroughTheFake(t *testing.T, recorded []string, fakeURL string) {
 	t.Helper()
 
 	for _, line := range recorded {
@@ -133,7 +197,7 @@ func onlyWildberriesThroughTheFake(t *testing.T, recorded []string, fakeURL stri
 	}
 }
 
-// hostOfFake is the Wildberries host an address reaches through the fake, or "".
+// hostOfFake is the marketplace host an address reaches through the fake, or "".
 func hostOfFake(address, fakeURL string) string {
 	rest, ok := strings.CutPrefix(address, fakeURL+"/")
 	if !ok {
@@ -141,7 +205,7 @@ func hostOfFake(address, fakeURL string) string {
 	}
 
 	host, _, _ := strings.Cut(rest, "/")
-	for _, known := range wildberriesHosts {
+	for _, known := range append([]string{ozonHost}, wildberriesHosts...) {
 		if host == known {
 			return host
 		}

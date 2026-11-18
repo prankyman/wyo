@@ -9,9 +9,11 @@
     import Stack from '$lib/components/ui/Stack.svelte';
     import { ApiAction } from '$lib/forms/api-action.svelte';
     import { formatDate, formatDateTime } from '$lib/i18n/format-date';
-    import { hasMessage, t } from '$lib/i18n/i18n';
+    import { t } from '$lib/i18n/i18n';
+    import { tPlural } from '$lib/i18n/plural';
     import type { TLocale } from '$lib/i18n/types';
-    import { ACCOUNT_REFUSALS } from '$lib/marketplaces/refusals';
+    import { exchangeSupported } from '$lib/marketplaces/exchange-support';
+    import { accountRefusalLookup, accountTextKey } from '$lib/marketplaces/refusals';
     import AccountChangeForm from './AccountChangeForm.svelte';
     import AccountStateBadge from './AccountStateBadge.svelte';
     import KeyForm from './KeyForm.svelte';
@@ -20,9 +22,11 @@
 
     /**
      * One marketplace account on «Маркетплейсы»: the marketplace's mark, the account's own name and state, and what its key and
-     * its readings say — the seller, the key's last four characters (never more), what the key allows, the day it ends, the last
-     * successful reading, the last refusal in words, the hours to hand an order over. A test key and a missing category each
-     * say in a note what they hide. Under them: «Заменить ключ» (`KeyForm`), «Изменить» (`AccountChangeForm`), «Проверить ключ
+     * its readings say — the seller, the fields of the key that are not secret in full (an account number), the key's last four
+     * characters (never more), what the key allows, the day it ends, the last successful reading, the last refusal in words, the
+     * hours to hand an order over (only for a marketplace that does not give each order its own deadline). A test key, a missing
+     * category and the warehouses the seller delivers from itself each say in a note what they hide. Every refusal and note is
+     * worded by the one lookup of the accounts' texts (`accountTextKey`): the marketplace's own words first. Under them: «Заменить ключ» (`KeyForm`), «Изменить» (`AccountChangeForm`), «Проверить ключ
      * сейчас», «Отключить» or «Включить», and «Удалить» for an account from which no order ever came, behind a window.
      *
      * Every answer is told to the page (`onChanged`, `onDeleted`), which holds the list; the card keeps nothing of its own.
@@ -40,11 +44,14 @@
 
     const action = new ApiAction();
     let asking = $state(false);
-    const ACCOUNTS = ACCOUNT_REFUSALS;
 
     /** A press that is one call about this account; the account as it now stands goes to the page. */
     async function press(path: string, savedKey?: string): Promise<void> {
-        const result = await action.run(() => api.post<TAccount>(path, {}), savedKey, ACCOUNTS);
+        const result = await action.run(
+            () => api.post<TAccount>(path, {}),
+            savedKey,
+            accountRefusalLookup(account.marketplace)
+        );
         if (result?.ok) onChanged(result.data);
     }
 
@@ -52,21 +59,22 @@
         const result: TApiResult<unknown> | null = await action.run(
             () => api.delete(`/api/v1/accounts/${account.id}`),
             undefined,
-            ACCOUNTS
+            accountRefusalLookup(account.marketplace)
         );
         if (result?.ok) onDeleted(account.id);
     }
 
     /**
-     * The last refusal in words: the accounts' own text of its code, or the general one that sends to the journal, with the
-     * marketplace's answer status when the refusal carries one.
+     * The last refusal in words: the marketplace's own text of its code, else the shared one, else the general one that sends to
+     * the journal, with the marketplace's answer status when the refusal carries one.
      */
     function refusalText(refusal: NonNullable<TAccount['lastRefusal']>): string {
-        const key = hasMessage(`${ACCOUNTS}.${refusal.code}`, lang)
-            ? `${ACCOUNTS}.${refusal.code}`
-            : `${ACCOUNTS}.unknown`;
+        const key = accountTextKey('refusal', refusal.code, account.marketplace, lang) ?? 'accounts.refusal.unknown';
         return t(key, lang, refusal.status === undefined ? {} : { status: refusal.status });
     }
+
+    /** The marketplace gives each order its own deadline, so the owner's hours to hand an order over mean nothing for it. */
+    const givesDeadline = $derived(marketplace?.givesDeadline === true);
 
     const facts = $derived.by(() => {
         const items: { key: string; label: string; value: string; help: string }[] = [];
@@ -78,8 +86,23 @@
                 help: t(`accounts.fact.${key}.help`, lang)
             });
         if (account.sellerName) fact('seller', account.sellerName);
+        // The fields of the key that are not secret, in full, each named and explained by the texts of the form that asks for it.
+        for (const shown of account.keyFields ?? []) {
+            items.push({
+                key: `key_${shown.name}`,
+                value: shown.value,
+                label: t(`marketplace.${account.marketplace}.key.${shown.name}.label`, lang),
+                help: t(`marketplace.${account.marketplace}.key.${shown.name}.help`, lang)
+            });
+        }
         fact('key', t('accounts.fact.key.value', lang, { last4: account.keyLast4 }));
-        fact('access', t(account.readOnly ? 'accounts.fact.access.readOnly' : 'accounts.fact.access.readWrite', lang));
+        // Whether a key may write matters only to a marketplace the exchange writes to; a marketplace that is only read says
+        // nothing of it, so the card claims nothing.
+        if (exchangeSupported(marketplace))
+            fact(
+                'access',
+                t(account.readOnly ? 'accounts.fact.access.readOnly' : 'accounts.fact.access.readWrite', lang)
+            );
         if (account.keyExpiresAt) fact('expires', formatDate(account.keyExpiresAt, lang));
         fact(
             'lastSuccess',
@@ -94,14 +117,20 @@
                 })
             );
         }
-        fact('deadlineHours', t('accounts.fact.deadlineHours.value', lang, { hours: account.deadlineHours }));
+        if (!givesDeadline) {
+            fact('deadlineHours', t('accounts.fact.deadlineHours.value', lang, { hours: account.deadlineHours }));
+        }
         return items;
     });
 
-    const missingNote = (category: string) =>
-        hasMessage(`accounts.note.missing.${category}`, lang)
-            ? t(`accounts.note.missing.${category}`, lang)
-            : t('accounts.note.missingCategory', lang, { category });
+    const testNote = $derived(accountTextKey('note', 'test', account.marketplace, lang));
+    const sellerDeliversNote = $derived(
+        account.sellerDeliversWarehouses ? accountTextKey('note', 'sellerDelivers', account.marketplace, lang) : null
+    );
+    const missingNote = (category: string) => {
+        const key = accountTextKey('note', `missing.${category}`, account.marketplace, lang);
+        return key ? t(key, lang) : t('accounts.note.missingCategory', lang, { category });
+    };
 </script>
 
 <article
@@ -124,8 +153,13 @@
             />
         </div>
         <FactList items={facts} dataTest="account-facts" />
-        {#if account.test}
-            <NoteBox tone="info" dataTest="account-note-test">{t('accounts.note.test', lang)}</NoteBox>
+        {#if account.test && testNote}
+            <NoteBox tone="info" dataTest="account-note-test">{t(testNote, lang)}</NoteBox>
+        {/if}
+        {#if sellerDeliversNote}
+            <NoteBox tone="info" dataTest="account-note-seller-delivers">
+                {tPlural(sellerDeliversNote, account.sellerDeliversWarehouses ?? 0, lang)}
+            </NoteBox>
         {/if}
         {#each account.missingCategories as category (category)}
             <NoteBox tone="warning" dataTest="account-note-missing-{category}">{missingNote(category)}</NoteBox>
@@ -146,7 +180,7 @@
             testId="account-change"
             openerTestId="account-change-open"
         >
-            <AccountChangeForm {lang} {account} id="account-{account.id}-change" onSaved={onChanged} />
+            <AccountChangeForm {lang} {account} {givesDeadline} id="account-{account.id}-change" onSaved={onChanged} />
         </DisclosureForm>
         <div>
             <div class="flex flex-wrap items-center gap-2">

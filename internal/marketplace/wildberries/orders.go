@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 
+	"github.com/prankyman/wyo/internal/adapterkit"
 	"github.com/prankyman/wyo/internal/marketplace"
 	"github.com/prankyman/wyo/internal/marketplace/wildberries/wbapi/orders"
 )
@@ -81,15 +82,18 @@ func (a *Adapter) NewOrders(ctx context.Context, conn marketplace.Conn) ([]marke
 
 	list := make([]marketplace.Order, 0)
 
-	for _, o := range value(res.JSON200.Orders) {
+	for _, o := range adapterkit.Value(res.JSON200.Orders) {
 		if o.Id == nil {
 			continue
 		}
 
 		list = append(list, marketplace.Order{
-			Number: number(o.Id), Scheme: marketplace.SchemeFBS, JoinKey: value(o.Rid), WarehouseNumber: number(o.WarehouseId),
-			Article: value(o.Article), Barcodes: value(o.Skus), ProductID: number(o.NmId), CreatedAt: value(o.CreatedAt).UTC(),
-			Group: groupOf(o), ItemID: number(o.ChrtId), Required: identifiersOf(value(o.RequiredMeta)), Optional: identifiersOf(value(o.OptionalMeta)),
+			Number: adapterkit.Number(o.Id), Scheme: marketplace.SchemeFBS, JoinKey: adapterkit.Value(o.Rid), WarehouseNumber: adapterkit.Number(o.WarehouseId),
+			Lines: []marketplace.Line{{
+				ProductID: adapterkit.Number(o.NmId), Article: adapterkit.Value(o.Article), Barcodes: adapterkit.Value(o.Skus), Quantity: 1,
+			}},
+			CreatedAt: adapterkit.Value(o.CreatedAt).UTC(),
+			Group:     groupOf(o), ItemID: adapterkit.Number(o.ChrtId), Required: identifiersOf(adapterkit.Value(o.RequiredMeta)), Optional: identifiersOf(adapterkit.Value(o.OptionalMeta)),
 			// The list of new orders gives no statuses; a new assembly order is «Новое сборочное задание».
 			Status: marketplace.Status{State: marketplace.StateNew, Seller: sellerNew},
 		})
@@ -103,11 +107,11 @@ func (a *Adapter) NewOrders(ctx context.Context, conn marketplace.Conn) ([]marke
 // text is only ever compared. An absent value counts as 0.
 func groupOf(o orders.OrderNew) string {
 	b2b := 0
-	if o.Options != nil && value(o.Options.IsB2B) {
+	if o.Options != nil && adapterkit.Value(o.Options.IsB2B) {
 		b2b = 1
 	}
 
-	return fmt.Sprintf("w%s:c%d:x%d:b%d", number(o.WarehouseId), value(o.CargoType), value(o.CrossBorderType), b2b)
+	return fmt.Sprintf("w%s:c%d:x%d:b%d", adapterkit.Number(o.WarehouseId), adapterkit.Value(o.CargoType), adapterkit.Value(o.CrossBorderType), b2b)
 }
 
 // MaxStates implements marketplace.StateReader.
@@ -144,13 +148,13 @@ func (a *Adapter) States(ctx context.Context, conn marketplace.Conn, numbers []s
 
 	list := make([]marketplace.OrderStatus, 0, len(ids))
 
-	for _, o := range value(res.JSON200.Orders) {
+	for _, o := range adapterkit.Value(res.JSON200.Orders) {
 		if o.Id == nil {
 			continue
 		}
 
 		list = append(list, marketplace.OrderStatus{
-			Number: number(o.Id), Status: StatusOf(string(value(o.SupplierStatus)), string(value(o.WbStatus))),
+			Number: adapterkit.Number(o.Id), Status: StatusOf(string(adapterkit.Value(o.SupplierStatus)), string(adapterkit.Value(o.WbStatus))),
 		})
 	}
 

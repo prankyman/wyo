@@ -378,6 +378,82 @@ func TestAFaultOfAnUnknownKindIsRefused(t *testing.T) {
 	}
 }
 
+func TestARefuseFaultAnswersWithTheStatusAndTheBodyItWasGiven(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(t)
+
+	queue(t, r, "k", `{"kind":"refuse","status":403,"body":"{\"code\":7}","count":2,"path_prefix":"/api/echo"}`)
+
+	if got := r.call(http.MethodGet, "/api/count", "k", ""); got.status != http.StatusOK {
+		t.Fatalf("a call outside the fault's path answered %d", got.status)
+	}
+
+	for i := 1; i <= 2; i++ {
+		got := r.call(http.MethodGet, "/api/echo", "k", "")
+		if got.status != http.StatusForbidden || got.body != `{"code":7}` {
+			t.Fatalf("refused call %d answered %d %q, want 403 and the given body", i, got.status, got.body)
+		}
+
+		if got.header.Get("Content-Type") != "application/json" {
+			t.Fatalf("refused call %d answered with the content type %q", i, got.header.Get("Content-Type"))
+		}
+	}
+
+	if got := r.call(http.MethodGet, "/api/echo", "k", ""); got.status != http.StatusOK || got.body != "echo" {
+		t.Fatalf("after its count the fault still met a call: %d %q", got.status, got.body)
+	}
+
+	var logged struct {
+		Calls []fakekit.Call `json:"calls"`
+	}
+
+	mustDecode(t, r.call(http.MethodGet, "/__control/calls", "k", "").body, &logged)
+
+	if len(logged.Calls) != 4 || logged.Calls[1].Status != http.StatusForbidden {
+		t.Fatalf("the call log is %+v, want 4 calls and the status 403 for the first refused one", logged.Calls)
+	}
+}
+
+func TestARefuseFaultWithoutAStatusOfAnErrorIsRefused(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct{ name, spec string }{
+		{name: "no status", spec: `{"kind":"refuse","body":"x"}`},
+		{name: "a status that is not an error", spec: `{"kind":"refuse","status":200}`},
+		{name: "a status below 400", spec: `{"kind":"refuse","status":399}`},
+		{name: "a status above 599", spec: `{"kind":"refuse","status":600}`},
+		{name: "a status on a fault that does not use it", spec: `{"kind":"server_error","status":503}`},
+		{name: "a body on a fault that does not use it", spec: `{"kind":"rate_limited","body":"x"}`},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := newRig(t).call(http.MethodPost, "/__control/faults", "k", tc.spec); got.status != http.StatusBadRequest {
+				t.Fatalf("answered %d, want 400", got.status)
+			}
+		})
+	}
+}
+
+func TestARefuseFaultCanBeQueuedThroughTheControlClientAndWithAnEmptyBody(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(t)
+	ctl := fakekit.NewControl(r.srv.URL, "client-key", r.srv.Client())
+
+	if err := ctl.QueueFault(t.Context(), fakekit.Fault{Kind: fakekit.FaultRefuse, Status: http.StatusBadGateway}); err != nil {
+		t.Fatalf("queue: %v", err)
+	}
+
+	got := r.call(http.MethodGet, "/api/echo", "client-key", "")
+	if got.status != http.StatusBadGateway || got.body != "" {
+		t.Fatalf("answered %d %q, want 502 and nothing", got.status, got.body)
+	}
+}
+
 func TestOnlyTheKnownControlCallsMethods(t *testing.T) {
 	t.Parallel()
 

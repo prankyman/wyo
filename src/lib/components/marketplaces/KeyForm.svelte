@@ -8,13 +8,13 @@
     import GuardedForm from '$lib/components/ui/GuardedForm.svelte';
     import Stack from '$lib/components/ui/Stack.svelte';
     import TextBox from '$lib/components/ui/TextBox.svelte';
-    import { answerLines } from '$lib/forms/answer';
+    import { answerLines, answerOf } from '$lib/forms/answer';
     import { spaForm } from '$lib/forms/super-form';
     import { tError } from '$lib/i18n/form-error';
     import { t } from '$lib/i18n/i18n';
     import type { TLocale } from '$lib/i18n/types';
     import { accountCreateSchema, emptyKey, keyReplaceSchema } from '$lib/validation/account';
-    import { ACCOUNT_REFUSALS } from '$lib/marketplaces/refusals';
+    import { accountRefusalLookup } from '$lib/marketplaces/refusals';
     import KeyHelpSteps from './KeyHelpSteps.svelte';
     import type { TAccount, TMarketplace } from './types';
 
@@ -25,8 +25,11 @@
      * the stored key only by its last four characters. The steps of making the key stand above the boxes (`KeyHelpSteps`).
      *
      * A secret field is a secret box: what is typed is hidden, the browser is asked not to remember it, and the box empties after
-     * a save, because the wyo server never sends a key back. A refused save keeps everything typed and lays the refusal onto its
-     * box, worded from the accounts' own texts (`accounts.refusal.<code>`).
+     * a save, because the wyo server never sends a key back. A field that is not secret (an account number) is an ordinary text
+     * box with the digit keyboard: it is drawn in full everywhere, so nothing is hidden, and a form that replaces a key starts it
+     * with the value stored with the account and keeps that value after a save. A refused save keeps everything typed and lays the
+     * refusal onto its box, worded by the one lookup of the accounts' texts (`accountTextKey`): the marketplace's own sentence
+     * first, then the shared one; the values the refusal carries (the access level it names) go into the sentence.
      */
     interface IProps {
         lang: TLocale;
@@ -47,18 +50,28 @@
     // svelte-ignore state_referenced_locally
     const adapter = marketplace;
     const schema = replacing ? keyReplaceSchema(adapter.keyFields) : accountCreateSchema(adapter.keyFields);
+    // A form that replaces a key starts the boxes that are not secret with the values stored with the account, so only the secret
+    // one is typed anew; a save puts the boxes back to this, which empties the secret one.
+    const stored = Object.fromEntries(
+        adapter.keyFields
+            .filter((field) => !field.secret)
+            .flatMap((field) => {
+                const shown = replacing?.keyFields?.find((one) => one.name === field.name);
+                return shown ? [[field.name, shown.value]] : [];
+            })
+    );
 
     // svelte-ignore state_referenced_locally
     const formId = id;
 
     const made = spaForm(
         schema,
-        { name: '', key: emptyKey(adapter.keyFields) },
+        { name: '', key: { ...emptyKey(adapter.keyFields), ...stored } },
         {
             id: formId,
             resetForm: true,
             dataType: 'json',
-            refusals: ACCOUNT_REFUSALS,
+            refusals: accountRefusalLookup(adapter.code),
             send: async (values) => {
                 const result = replacing
                     ? await api.put<TAccount>(`/api/v1/accounts/${replacing.id}/key`, { key: values.key })
@@ -79,6 +92,8 @@
     );
     const keyText = (field: string, part: 'label' | 'help') =>
         t(`marketplace.${adapter.code}.key.${field}.${part}`, lang);
+    /** What the refusal carries (the access level it names), for the sentence of the box it lies on. */
+    const answerParams = $derived(answerOf($message)?.params);
 </script>
 
 <Stack>
@@ -116,12 +131,13 @@
                     for="{id}-key-{field.name}-box"
                     testId="{id}-key-{field.name}"
                     dataTest="{id}-key-{field.name}-field"
-                    error={tError($errors.key?.[field.name], lang)}
+                    error={tError($errors.key?.[field.name], lang, answerParams)}
                 >
                     <TextBox
                         id="{id}-key-{field.name}-box"
                         name="key.{field.name}"
                         type={field.secret ? 'password' : 'text'}
+                        inputmode={field.secret ? undefined : 'numeric'}
                         autocomplete="off"
                         spellcheck="false"
                         bind:value={$form.key[field.name]}

@@ -30,6 +30,7 @@ func words(list []string) []string {
 func marketplaceBody(d marketplace.Description) gen.Marketplace {
 	body := gen.Marketplace{
 		Code: d.Code, Mark: d.Mark, KeyFields: []gen.KeyField{}, Capabilities: []string{}, HandoverSettings: []gen.SettingField{},
+		GivesDeadline: d.GivesDeadline,
 	}
 
 	for _, f := range d.HandoverSettings {
@@ -57,6 +58,20 @@ func accountBody(v accounts.View) gen.Account {
 		MissingCategories: words(v.MissingCategories), ReadOnly: v.ReadOnly, DeadlineHours: v.DeadlineHours,
 		LastCheckAt: moment(v.LastCheckAt), LastSuccessAt: moment(v.LastSuccessAt), FailuresInRow: &failures,
 		HasOrders: v.HasOrders, CreatedAt: v.CreatedAt,
+	}
+
+	if len(v.KeyFields) > 0 {
+		shown := make([]gen.ShownKeyField, 0, len(v.KeyFields))
+		for _, f := range v.KeyFields {
+			shown = append(shown, gen.ShownKeyField{Name: f.Name, Value: f.Value})
+		}
+
+		body.KeyFields = &shown
+	}
+
+	if v.SellerDelivers > 0 {
+		count := v.SellerDelivers
+		body.SellerDeliversWarehouses = &count
 	}
 
 	if v.LastRefusal.Code != "" {

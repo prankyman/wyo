@@ -9,15 +9,8 @@ import (
 	"github.com/prankyman/wyo/internal/marketplace"
 )
 
-// The headers by which a marketplace tells its budget, as the first adapter's marketplace documents them (its research
-// file, section 5): X-Ratelimit-Remaining on every answer but 429; X-Ratelimit-Retry, the seconds until a call may be
-// repeated, on 429. An adapter whose marketplace speaks otherwise is a change of this file.
-const (
-	headerRemaining = "X-Ratelimit-Remaining"
-	headerRetry     = "X-Ratelimit-Retry"
-	// maxDoublings keeps a long run of 429 answers from growing the wait without end (2^10 times the header's seconds).
-	maxDoublings = 10
-)
+// maxDoublings keeps a long run of 429 answers from growing the wait without end (2^10 times the header's seconds).
+const maxDoublings = 10
 
 // BudgetKey names one budget: an account (0 for a key checked before it is saved), a limit group and a host.
 type BudgetKey struct {
@@ -87,9 +80,10 @@ func (b *Budget) Take(key BudgetKey, l marketplace.LimitGroup, now time.Time) ti
 	return 0
 }
 
-// Observe corrects the budget by an answer: a client error costs ErrorCost calls in all, X-Ratelimit-Remaining lowers
-// the count to what the marketplace says, and a 429 stops the group for X-Ratelimit-Retry seconds (1 when it is not
-// given), twice as long for every 429 in a row. It returns the wait a 429 set, or 0.
+// Observe corrects the budget by an answer, reading the headers the limit group names (each marketplace names its own,
+// marketplace.LimitGroup): a client error costs ErrorCost calls in all, the remaining-calls header lowers the count to
+// what the marketplace says, and a 429 stops the group for the retry header's seconds (1 when it is not given or the
+// group names none), twice as long for every 429 in a row. It returns the wait a 429 set, or 0.
 func (b *Budget) Observe(key BudgetKey, l marketplace.LimitGroup, now time.Time, status int, h http.Header) time.Duration {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -100,7 +94,7 @@ func (b *Budget) Observe(key BudgetKey, l marketplace.LimitGroup, now time.Time,
 		bk.streak++
 		bk.credit = 0
 
-		wait := time.Duration(headerInt(h, headerRetry, 1)) * time.Second << min(bk.streak-1, maxDoublings)
+		wait := time.Duration(headerInt(h, l.RetryHeader, 1)) * time.Second << min(bk.streak-1, maxDoublings)
 		bk.blocked = now.Add(wait)
 
 		return wait
@@ -112,15 +106,19 @@ func (b *Budget) Observe(key BudgetKey, l marketplace.LimitGroup, now time.Time,
 		bk.credit -= time.Duration(l.ErrorCost-1) * l.Interval
 	}
 
-	if remaining := headerInt(h, headerRemaining, -1); remaining >= 0 {
+	if remaining := headerInt(h, l.RemainingHeader, -1); remaining >= 0 {
 		bk.credit = min(bk.credit, time.Duration(remaining)*l.Interval)
 	}
 
 	return 0
 }
 
-// headerInt reads a whole number from a header; fallback when it is missing or not a number.
+// headerInt reads a whole number from a header; fallback when the group names no header, or it is missing or not a number.
 func headerInt(h http.Header, name string, fallback int) int {
+	if name == "" {
+		return fallback
+	}
+
 	n, err := strconv.Atoi(h.Get(name))
 	if err != nil || n < 0 {
 		return fallback

@@ -10,7 +10,8 @@ import (
 )
 
 // Order is one order of one account, in the connector's own words. JoinKey is the marketplace's own text that ties a
-// row of its orders feed to the order.
+// row of its orders feed to the order. Lines are its products (order_lines). ShipBy is the moment the marketplace says
+// it must be handed over by (zero when it gives none); Parent the number of the order the marketplace split it from.
 type Order struct {
 	ID                int64
 	AccountID         int64
@@ -20,13 +21,10 @@ type Order struct {
 	Basket            string
 	WarehouseNumber   string
 	WarehouseName     string
-	Article           string
-	Barcodes          []string
-	ProductID         string
-	Kind              string
-	Brand             string
-	Size              string
+	Lines             []OrderLine
 	CreatedAt         time.Time
+	ShipBy            time.Time
+	Parent            string
 	State             string
 	CancelledBy       string
 	SellerStatus      string
@@ -48,12 +46,17 @@ type OrderStatus struct {
 	MarketplaceStatus string
 }
 
-// OrderProduct is what a marketplace's orders feed adds to an order it did not describe fully.
-type OrderProduct struct {
-	Basket string
-	Kind   string
-	Brand  string
-	Size   string
+// OrderLine is one product of an order with how many units of it: the marketplace's product number, the seller's
+// article, the name, the barcodes, the kind, the brand and the size when the marketplace gave them.
+type OrderLine struct {
+	ProductID string
+	Article   string
+	Name      string
+	Barcodes  []string
+	Kind      string
+	Brand     string
+	Size      string
+	Quantity  int
 }
 
 // OrderEvent is one change of an order's state or of who cancelled it, the marketplace's own words at that moment and
@@ -70,7 +73,8 @@ type OrderEvent struct {
 }
 
 // OrderView is an order as the list shows it: with its account, the warehouse's name and the deadline (zero for an order
-// that is not packed by the seller).
+// that is not packed by the seller): the marketplace's own when it gave one, otherwise the creation plus the account's
+// hours.
 type OrderView struct {
 	Order
 
@@ -81,7 +85,7 @@ type OrderView struct {
 }
 
 // OrderFilter narrows the order list; a zero field does not narrow it. CreatedFrom is included, CreatedBefore is not.
-// Search finds a part of the number, the article or a barcode. Page starts at 1; a PageSize of 0 means DefaultPageSize.
+// Search finds a part of the number, or of any line's article, barcode or product number. Page starts at 1; a PageSize of 0 means DefaultPageSize.
 type OrderFilter struct {
 	AccountID     int64
 	Scheme        string
@@ -111,23 +115,22 @@ const schemeOfSeller = "fbs"
 func order(row db.Order) Order {
 	return Order{
 		ID: row.ID, AccountID: row.AccountID, Number: row.Number, Scheme: row.Scheme, JoinKey: row.JoinKey, Basket: row.Basket,
-		WarehouseNumber: row.WarehouseNumber, WarehouseName: row.WarehouseName, Article: row.Article, Barcodes: wordsOf(row.Barcodes),
-		ProductID: row.ProductID, Kind: row.Kind, Brand: row.Brand, Size: row.Size, CreatedAt: moment(row.CreatedAt),
-		State: row.State, CancelledBy: row.CancelledBy, SellerStatus: row.SellerStatus, MarketplaceStatus: row.MarketplaceStatus,
-		UpdatedAt: moment(row.UpdatedAt), Group: row.Grp, ItemID: row.ItemID, Required: wordsOf(row.RequiredIds),
-		Optional: wordsOf(row.OptionalIds),
+		WarehouseNumber: row.WarehouseNumber, WarehouseName: row.WarehouseName, CreatedAt: moment(row.CreatedAt),
+		ShipBy: optionalMoment(row.ShipBy), Parent: row.ParentNumber, State: row.State, CancelledBy: row.CancelledBy,
+		SellerStatus: row.SellerStatus, MarketplaceStatus: row.MarketplaceStatus, UpdatedAt: moment(row.UpdatedAt), Group: row.Grp,
+		ItemID: row.ItemID, Required: wordsOf(row.RequiredIds), Optional: wordsOf(row.OptionalIds),
 	}
 }
 
-// InsertOrder adds an order and says whether it was new; an order that is there already keeps its row, and its id is
-// returned.
+// InsertOrder adds an order with its lines and says whether it was new; an order that is there already keeps its row and
+// its lines, and its id is returned.
 func (q *Queries) InsertOrder(ctx context.Context, o Order) (int64, bool, error) {
 	id, err := q.q.InsertOrder(ctx, db.InsertOrderParams{
 		AccountID: o.AccountID, Number: o.Number, Scheme: o.Scheme, JoinKey: o.JoinKey, Basket: o.Basket,
-		WarehouseNumber: o.WarehouseNumber, WarehouseName: o.WarehouseName, Article: o.Article, Barcodes: words(o.Barcodes),
-		ProductID: o.ProductID, Kind: o.Kind, Brand: o.Brand, Size: o.Size, CreatedAt: seconds(o.CreatedAt), State: o.State,
-		CancelledBy: o.CancelledBy, SellerStatus: o.SellerStatus, MarketplaceStatus: o.MarketplaceStatus, UpdatedAt: seconds(o.UpdatedAt),
-		Grp: o.Group, ItemID: o.ItemID, RequiredIds: words(o.Required), OptionalIds: words(o.Optional),
+		WarehouseNumber: o.WarehouseNumber, WarehouseName: o.WarehouseName, CreatedAt: seconds(o.CreatedAt),
+		ShipBy: optionalSeconds(o.ShipBy), ParentNumber: o.Parent, State: o.State, CancelledBy: o.CancelledBy,
+		SellerStatus: o.SellerStatus, MarketplaceStatus: o.MarketplaceStatus, UpdatedAt: seconds(o.UpdatedAt), Grp: o.Group,
+		ItemID: o.ItemID, RequiredIds: words(o.Required), OptionalIds: words(o.Optional),
 	})
 	if errors.Is(err, sql.ErrNoRows) {
 		existing, err := q.OrderByNumber(ctx, o.AccountID, o.Number)
@@ -139,27 +142,59 @@ func (q *Queries) InsertOrder(ctx context.Context, o Order) (int64, bool, error)
 		return 0, false, kind(err)
 	}
 
-	return id, true, nil
+	return id, true, q.insertLines(ctx, id, o.Lines)
 }
 
-// OrderByNumber finds an account's order by the marketplace's number; ErrNotFound when there is none.
+// OrderByNumber finds an account's order by the marketplace's number, with its lines; ErrNotFound when there is none.
 func (q *Queries) OrderByNumber(ctx context.Context, accountID int64, number string) (Order, error) {
 	row, err := q.q.GetOrderByNumber(ctx, db.GetOrderByNumberParams{AccountID: accountID, Number: number})
 	if err != nil {
 		return Order{}, kind(err)
 	}
 
-	return order(row), nil
+	return q.withLines(ctx, order(row))
 }
 
-// OrderByJoinKey finds the account's order a feed row belongs to; ErrNotFound when there is none.
+// OrderByJoinKey finds the account's order a feed row belongs to, with its lines; ErrNotFound when there is none.
 func (q *Queries) OrderByJoinKey(ctx context.Context, accountID int64, joinKey string) (Order, error) {
 	row, err := q.q.GetOrderByJoinKey(ctx, db.GetOrderByJoinKeyParams{AccountID: accountID, JoinKey: joinKey})
 	if err != nil {
 		return Order{}, kind(err)
 	}
 
-	return order(row), nil
+	return q.withLines(ctx, order(row))
+}
+
+// OrdersOfNumbers finds the account's orders of the numbers given, with their lines, by number; a number of no order is
+// not in the map.
+func (q *Queries) OrdersOfNumbers(ctx context.Context, accountID int64, numbers []string) (map[string]Order, error) {
+	found := map[string]Order{}
+	if len(numbers) == 0 {
+		return found, nil
+	}
+
+	rows, err := q.q.ListOrdersOfNumbers(ctx, db.ListOrdersOfNumbersParams{AccountID: accountID, Numbers: numbers})
+	if err != nil {
+		return nil, kind(err)
+	}
+
+	ids := make([]int64, 0, len(rows))
+	for _, row := range rows {
+		ids = append(ids, row.ID)
+	}
+
+	lines, err := q.linesOf(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, row := range rows {
+		o := order(row)
+		o.Lines = lines[o.ID]
+		found[o.Number] = o
+	}
+
+	return found, nil
 }
 
 // UpdateOrderStatus changes an order's state; ErrNotFound when there is no such order.
@@ -170,11 +205,21 @@ func (q *Queries) UpdateOrderStatus(ctx context.Context, id int64, s OrderStatus
 	}))
 }
 
-// UpdateOrderProduct writes what the feed tells about an order's product and basket.
-func (q *Queries) UpdateOrderProduct(ctx context.Context, id int64, p OrderProduct, at time.Time) error {
-	return changedOne(q.q.UpdateOrderProduct(ctx, db.UpdateOrderProductParams{
-		Basket: p.Basket, Kind: p.Kind, Brand: p.Brand, Size: p.Size, UpdatedAt: seconds(at), ID: id,
-	}))
+// UpdateOrderBasket writes the basket the feed tells of an order.
+func (q *Queries) UpdateOrderBasket(ctx context.Context, id int64, basket string, at time.Time) error {
+	return changedOne(q.q.UpdateOrderBasket(ctx, db.UpdateOrderBasketParams{Basket: basket, UpdatedAt: seconds(at), ID: id}))
+}
+
+// UpdateOrderShipBy writes the moment the marketplace now says an order must be handed over by.
+func (q *Queries) UpdateOrderShipBy(ctx context.Context, id int64, shipBy, at time.Time) error {
+	return changedOne(q.q.UpdateOrderShipBy(ctx, db.UpdateOrderShipByParams{ShipBy: optionalSeconds(shipBy), UpdatedAt: seconds(at), ID: id}))
+}
+
+// OrderParts lists the numbers of the account's orders the marketplace split off the order of this number.
+func (q *Queries) OrderParts(ctx context.Context, accountID int64, number string) ([]string, error) {
+	list, err := q.q.ListOrderParts(ctx, db.ListOrderPartsParams{AccountID: accountID, ParentNumber: number})
+
+	return list, kind(err)
 }
 
 // InsertOrderEvent records one change of an order's state.
@@ -225,7 +270,11 @@ func viewOf(o db.Order, accountName, marketplace string, deadlineHours int64, kn
 		view.Warehouse = o.WarehouseNumber
 	}
 
-	if o.Scheme == schemeOfSeller {
+	switch {
+	case o.Scheme != schemeOfSeller:
+	case !view.ShipBy.IsZero():
+		view.DeadlineAt = view.ShipBy
+	default:
 		view.DeadlineAt = view.CreatedAt.Add(time.Duration(deadlineHours) * time.Hour)
 	}
 
@@ -241,13 +290,18 @@ func (q *Queries) OrderView(ctx context.Context, id int64) (OrderView, error) {
 
 	o := db.Order{
 		ID: r.ID, AccountID: r.AccountID, Number: r.Number, Scheme: r.Scheme, JoinKey: r.JoinKey, Basket: r.Basket,
-		WarehouseNumber: r.WarehouseNumber, WarehouseName: r.WarehouseName, Article: r.Article, Barcodes: r.Barcodes,
-		ProductID: r.ProductID, Kind: r.Kind, Brand: r.Brand, Size: r.Size, CreatedAt: r.CreatedAt, State: r.State,
+		WarehouseNumber: r.WarehouseNumber, WarehouseName: r.WarehouseName, CreatedAt: r.CreatedAt, State: r.State,
 		CancelledBy: r.CancelledBy, SellerStatus: r.SellerStatus, MarketplaceStatus: r.MarketplaceStatus, UpdatedAt: r.UpdatedAt,
-		Grp: r.Grp, ItemID: r.ItemID, RequiredIds: r.RequiredIds, OptionalIds: r.OptionalIds,
+		Grp: r.Grp, ItemID: r.ItemID, RequiredIds: r.RequiredIds, OptionalIds: r.OptionalIds, ShipBy: r.ShipBy,
+		ParentNumber: r.ParentNumber,
 	}
 
-	return viewOf(o, r.AccountName, r.Marketplace, r.DeadlineHours, r.KnownWarehouseName), nil
+	view := viewOf(o, r.AccountName, r.Marketplace, r.DeadlineHours, r.KnownWarehouseName)
+
+	lines, err := q.linesOf(ctx, []int64{view.ID})
+	view.Lines = lines[view.ID]
+
+	return view, err
 }
 
 // nullable turns a zero value into NULL, which the list queries read as "not narrowed".
@@ -299,12 +353,26 @@ func (q *Queries) OrderViews(ctx context.Context, f OrderFilter) ([]OrderView, e
 	for _, r := range rows {
 		o := db.Order{
 			ID: r.ID, AccountID: r.AccountID, Number: r.Number, Scheme: r.Scheme, JoinKey: r.JoinKey, Basket: r.Basket,
-			WarehouseNumber: r.WarehouseNumber, WarehouseName: r.WarehouseName, Article: r.Article, Barcodes: r.Barcodes,
-			ProductID: r.ProductID, Kind: r.Kind, Brand: r.Brand, Size: r.Size, CreatedAt: r.CreatedAt, State: r.State,
+			WarehouseNumber: r.WarehouseNumber, WarehouseName: r.WarehouseName, CreatedAt: r.CreatedAt, State: r.State,
 			CancelledBy: r.CancelledBy, SellerStatus: r.SellerStatus, MarketplaceStatus: r.MarketplaceStatus, UpdatedAt: r.UpdatedAt,
-			Grp: r.Grp, ItemID: r.ItemID, RequiredIds: r.RequiredIds, OptionalIds: r.OptionalIds,
+			Grp: r.Grp, ItemID: r.ItemID, RequiredIds: r.RequiredIds, OptionalIds: r.OptionalIds, ShipBy: r.ShipBy,
+			ParentNumber: r.ParentNumber,
 		}
 		list = append(list, viewOf(o, r.AccountName, r.Marketplace, r.DeadlineHours, r.KnownWarehouseName))
+	}
+
+	ids := make([]int64, 0, len(list))
+	for _, v := range list {
+		ids = append(ids, v.ID)
+	}
+
+	lines, err := q.linesOf(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range list {
+		list[i].Lines = lines[list[i].ID]
 	}
 
 	return list, nil

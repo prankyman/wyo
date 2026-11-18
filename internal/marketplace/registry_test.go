@@ -31,7 +31,8 @@ func (stub) Limit(string, bool) (marketplace.LimitGroup, bool) {
 	return marketplace.LimitGroup{Name: "orders", Interval: time.Second, Burst: 1, ErrorCost: 1}, true
 }
 func (stub) Capable(c marketplace.Capability, _ bool) bool { return c == marketplace.KeyCheck }
-func (stub) Authorize(h http.Header, secret string)        { h.Set("Authorization", secret) }
+func (stub) Authorize(h http.Header, key marketplace.Key)  { h.Set("Authorization", key["token"]) }
+func (stub) Hosts() []string                               { return []string{"api.example.test"} }
 func (stub) ErrorOf(int, []byte) (string, string)          { return "", "" }
 
 func TestTheRegistryHoldsEachAdapterOnceInTheOrderOfItsCodes(t *testing.T) {

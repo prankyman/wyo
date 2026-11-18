@@ -112,7 +112,7 @@ func (s *started) addr(asked string) string {
 func TestBothFakesAnswerOnTheAddressesTheyWereAskedToListenOn(t *testing.T) {
 	t.Parallel()
 
-	s := start(t, []string{"--wildberries", "127.0.0.1:18791", "--fulfilment", "127.0.0.1:18792"}, nil)
+	s := start(t, []string{"--marketplaces", "127.0.0.1:18791", "--fulfilment", "127.0.0.1:18792"}, nil)
 	s.waitForTwoAddresses(t)
 
 	if got := httpkit.Get(t, s.addr("127.0.0.1:18791"), "/__control/health"); got.Status != http.StatusOK || got.Body != `{"status":"ok"}` {
@@ -134,7 +134,7 @@ func TestBothFakesAnswerOnTheAddressesTheyWereAskedToListenOn(t *testing.T) {
 		t.Fatalf("exit code %d: %s", code, s.stderr.String())
 	}
 
-	for _, fake := range []string{`"fake":"wildberries"`, `"fake":"fulfilment"`} {
+	for _, fake := range []string{`"fake":"marketplaces"`, `"fake":"fulfilment"`} {
 		if !strings.Contains(s.stderr.String(), fake) {
 			t.Errorf("the log does not name %s: %s", fake, s.stderr.String())
 		}
@@ -148,7 +148,7 @@ func TestBothFakesAnswerOnTheAddressesTheyWereAskedToListenOn(t *testing.T) {
 func TestPortZeroIsAllowedAndTheChosenAddressesAreLogged(t *testing.T) {
 	t.Parallel()
 
-	s := start(t, []string{"--wildberries", "127.0.0.1:0", "--fulfilment", "127.0.0.1:0"}, nil)
+	s := start(t, []string{"--marketplaces", "127.0.0.1:0", "--fulfilment", "127.0.0.1:0"}, nil)
 	s.waitForTwoAddresses(t)
 
 	s.stop()
@@ -186,10 +186,11 @@ func TestAnAddressThatIsNotThisMachineIsRefused(t *testing.T) {
 		want int
 		say  string
 	}{
-		{name: "every interface", args: []string{"--wildberries", "0.0.0.0:8791"}, want: 2, say: "127.0.0.1"},
+		{name: "every interface", args: []string{"--marketplaces", "0.0.0.0:8791"}, want: 2, say: "127.0.0.1"},
 		{name: "another machine", args: []string{"--fulfilment", "192.168.1.5:8792"}, want: 2, say: "127.0.0.1"},
-		{name: "no port", args: []string{"--wildberries", "127.0.0.1"}, want: 2, say: "port"},
-		{name: "the same address twice", args: []string{"--wildberries", "127.0.0.1:9000", "--fulfilment", "127.0.0.1:9000"}, want: 2, say: "same"},
+		{name: "no port", args: []string{"--marketplaces", "127.0.0.1"}, want: 2, say: "port"},
+		{name: "the same address twice", args: []string{"--marketplaces", "127.0.0.1:9000", "--fulfilment", "127.0.0.1:9000"}, want: 2, say: "same"},
+		{name: "the old flag of the fake Wildberries alone", args: []string{"--wildberries", "127.0.0.1:9000"}, want: 2, say: "wildberries"},
 		{name: "an unknown flag", args: []string{"--colour", "red"}, want: 2, say: "colour"},
 		{name: "an argument nobody asked for", args: []string{"extra"}, want: 2, say: "extra"},
 	}
@@ -253,4 +254,35 @@ func TestAnAddressThatCannotBeListenedOnEndsTheProgramAndFreesTheOther(t *testin
 			t.Errorf("the listener that was opened first still accepts connections")
 		}
 	}
+}
+
+func TestOneAddressServesTheFakeWildberriesAndTheFakeOzon(t *testing.T) {
+	t.Parallel()
+
+	s := start(t, []string{"--marketplaces", "127.0.0.1:18795", "--fulfilment", "127.0.0.1:18796"}, nil)
+	s.waitForTwoAddresses(t)
+
+	addr := s.addr("127.0.0.1:18795")
+
+	// The health of each: the fake Ozon takes its host off the front of the path, so its control calls answer with it.
+	for _, path := range []string{"/__control/health", "/api-seller.ozon.ru/__control/health"} {
+		if got := httpkit.Get(t, addr, path); got.Status != http.StatusOK || got.Body != `{"status":"ok"}` {
+			t.Fatalf("GET %s answered %d %s", path, got.Status, got.Body)
+		}
+	}
+
+	// A method the fake Wildberries answers, and the fake Ozon would not: without a key the fake Wildberries refuses with 401,
+	// and the fake Ozon would not know the path and answer 404.
+	if got := httpkit.Get(t, addr, "/api/v3/warehouses"); got.Status != http.StatusUnauthorized {
+		t.Fatalf("GET /api/v3/warehouses answered %d %s, want the fake Wildberries' 401", got.Status, got.Body)
+	}
+
+	// A call to the fake Ozon without a key: the kit refuses it before any method is looked at, in the fake Ozon's words;
+	// the fake Wildberries would refuse it in its own («token is missing»).
+	if got := httpkit.Get(t, addr, "/api-seller.ozon.ru/v1/roles"); got.Status != http.StatusUnauthorized || !strings.Contains(got.Body, "Invalid Api-Key") {
+		t.Fatalf("GET /api-seller.ozon.ru/v1/roles answered %d %s, want the fake Ozon's 401 for an invalid key", got.Status, got.Body)
+	}
+
+	s.stop()
+	<-s.done
 }

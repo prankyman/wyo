@@ -1,7 +1,6 @@
 package wildberries
 
 import (
-	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -140,12 +139,4 @@ func (s *Server) routes(mux *http.ServeMux) {
 	handle("POST /api/v3/supplies/{supplyId}/trbx/stickers", (*call).trbxStickers)
 
 	handle("GET /api/v1/supplier/orders", (*call).feedOrders)
-}
-
-// strictJSON decodes one JSON value into dst and refuses fields dst does not have.
-func strictJSON(raw []byte, dst any) error {
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.DisallowUnknownFields()
-
-	return decoder.Decode(dst)
 }

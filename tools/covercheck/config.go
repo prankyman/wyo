@@ -18,6 +18,10 @@ var exclusions = []covercheck.Exclusion{
 		Reason: "five lines that connect run to the process (signals, environment, streams, exit code); a test of it starts the program as a process, whose coverage the profile of this process cannot see (cmd/wyo/main_process_test.go)",
 	},
 	{
+		File:   "tools/specfix/main.go",
+		Reason: "one line that connects run to the process; run is tested end to end on description files (main_test.go)",
+	},
+	{
 		File:   "tools/covercheck/main.go",
 		Reason: "one line that connects run to the process; run is tested end to end on profile files (main_test.go)",
 	},

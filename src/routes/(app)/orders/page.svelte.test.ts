@@ -1,8 +1,18 @@
 import { screen, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { accountOf, MARKETPLACE, MARKETPLACE_NAME, orderOf } from '$test/support/marketplaces';
+import {
+    accountOf,
+    lineOf,
+    MARKETPLACE,
+    MARKETPLACE_NAME,
+    orderDetailsOf,
+    orderOf,
+    SECOND_MARKETPLACE,
+    SECOND_MARKETPLACE_CODE
+} from '$test/support/marketplaces';
 import { renderPageWith } from '$test/support/render-page';
 import { resetPage, setPageUrl } from '$test/support/page-state.svelte';
+import type { TMarketplace } from '$lib/components/marketplaces/types';
 import type { TOrder, TOrderDetails } from '$lib/components/orders/types';
 import type { TOrderFilter } from '$lib/validation/list-filters';
 
@@ -22,6 +32,7 @@ function pageData(
         filter?: Partial<TOrderFilter>;
         orders?: TOrder[];
         accounts?: ReturnType<typeof accountOf>[];
+        marketplaces?: TMarketplace[];
         opened?: TOrderDetails | null;
         refusal?: string | null;
         total?: number;
@@ -33,7 +44,7 @@ function pageData(
         list: change.refusal ? null : { orders, total: change.total ?? orders.length, page: 1, pageSize: 50 },
         refusal: change.refusal ?? null,
         accounts: change.accounts ?? [accountOf()],
-        marketplaces: [MARKETPLACE],
+        marketplaces: change.marketplaces ?? [MARKETPLACE],
         refresh: {},
         opened: change.opened ?? null
     };
@@ -60,6 +71,32 @@ describe('«Заказы»', () => {
         expect(within(rows[0]).getByTestId('orders-list-state')).toHaveTextContent('Новый');
         expect(within(table).getAllByTestId('orders-list-number-help-button')).toHaveLength(1);
         expect(screen.getByTestId('orders-pagination')).toHaveTextContent('Показано 1–50 из 120');
+    });
+
+    it('draws the product of each order with the product cell: the first product, its quantity, and the count of the rest', () => {
+        renderPageWith(
+            Page,
+            pageData({
+                orders: [
+                    orderOf(),
+                    orderOf({
+                        id: 103,
+                        number: '4455667800',
+                        lines: [
+                            lineOf({ quantity: 2 }),
+                            lineOf({ article: 'SHIRT-BLUE-M' }),
+                            lineOf({ article: 'HAT-GREY' })
+                        ]
+                    })
+                ]
+            })
+        );
+
+        const rows = within(screen.getByTestId('orders-list-table')).getAllByTestId('orders-list-row');
+        expect(within(rows[0]).getByTestId('orders-list-product-first')).toHaveTextContent('артикул DRESS-RED-42');
+        expect(within(rows[0]).queryByTestId('orders-list-product-more')).toBeNull();
+        expect(within(rows[1]).getByTestId('orders-list-product-quantity')).toHaveTextContent('× 2');
+        expect(within(rows[1]).getByTestId('orders-list-product-more')).toHaveTextContent('ещё товаров: 2');
     });
 
     it('teaches what to do when no account exists: a sentence and the way to «Маркетплейсы», and no filter', () => {
@@ -112,6 +149,32 @@ describe('«Заказы»', () => {
         ).toHaveLength(1);
     });
 
+    it('says «не передаётся» in the exchange column for an FBS order of a marketplace that cannot exchange yet, and for no other order', () => {
+        const stranger = (change: Partial<TOrder>) => orderOf({ marketplace: SECOND_MARKETPLACE_CODE, ...change });
+        renderPageWith(
+            Page,
+            pageData({
+                marketplaces: [MARKETPLACE, SECOND_MARKETPLACE],
+                orders: [
+                    orderOf(),
+                    stranger({ id: 102, number: '89491381-0072-1' }),
+                    stranger({ id: 103, number: '89491381-0073-1', scheme: 'fbo' }),
+                    stranger({ id: 104, number: '89491381-0074-1', exchange: { state: 'not_sent' } })
+                ]
+            })
+        );
+
+        const rows = within(screen.getByTestId('orders-list-table')).getAllByTestId('orders-list-row');
+        expect(within(rows[0]).queryByTestId('orders-list-exchange-unsupported')).toBeNull();
+        expect(within(rows[1]).getByTestId('orders-list-exchange-unsupported')).toHaveTextContent('не передаётся');
+        expect(within(rows[1]).getByTestId('orders-list-exchange-unsupported-help-button')).toBeInTheDocument();
+        expect(within(rows[2]).queryByTestId('orders-list-exchange-unsupported')).toBeNull();
+        // The wyo server gives every FBS order its exchange's state («не передан», «Внешний API» empty): the marketplace's lack
+        // of the exchange is the reason shown all the same.
+        expect(within(rows[3]).getByTestId('orders-list-exchange-unsupported')).toHaveTextContent('не передаётся');
+        expect(within(rows[3]).queryByTestId('orders-list-exchange-state')).toBeNull();
+    });
+
     it('offers «Требуют внимания» as a filter kept in the address, with a chip that removes it', () => {
         setPageUrl('/orders?attention=true&q=DRESS');
         renderPageWith(Page, pageData({ filter: { attention: 'true', q: 'DRESS' }, orders: [] }));
@@ -124,10 +187,11 @@ describe('«Заказы»', () => {
 
     it('opens the details of the order the address names beside the list', () => {
         setPageUrl('/orders?order=101');
-        renderPageWith(Page, pageData({ opened: { order: orderOf(), events: [] } }));
+        renderPageWith(Page, pageData({ opened: orderDetailsOf() }));
 
         expect(screen.getByTestId('order-details-panel')).toHaveTextContent('Заказ 4455667788');
         expect(screen.getByTestId('order-details')).toBeInTheDocument();
+        expect(screen.getByTestId('order-lines-1-article')).toHaveTextContent('DRESS-RED-42');
     });
 
     it('words the refusal when the list cannot be read', () => {

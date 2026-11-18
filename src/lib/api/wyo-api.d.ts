@@ -333,7 +333,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The orders of every account and scheme, newest first, 50 a page. Filters: account, scheme, state, the period of creation (dates in the installation's time zone, both ends included) and a search by the order's number, the article or a barcode. */
+        /** The orders of every account and scheme, newest first, 50 a page. Filters: account, scheme, state, the period of creation (dates in the installation's time zone, both ends included) and a search by the order's number, or any of its products' article, barcode or product number. */
         get: operations["listOrders"];
         put?: never;
         post?: never;
@@ -352,7 +352,7 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** One order with the history of its states. */
+        /** One order with the history of its states and the orders the marketplace split it into. */
         get: operations["getOrder"];
         put?: never;
         post?: never;
@@ -654,6 +654,8 @@ export interface components {
             capabilities: string[];
             /** @description The adapter's hand-over settings (Plan 4, «Внешний API»): a choice among `choices`, or a text when there are none. Texts - `marketplace.<code>.handover.<name>.label`, `.help` and `.choice.<value>`. */
             handoverSettings: components["schemas"]["SettingField"][];
+            /** @description The marketplace gives each order the moment it must be handed over by; when it does not, the deadline is the order's creation plus the account's `deadlineHours`, which the owner sets. */
+            givesDeadline: boolean;
         };
         SettingField: {
             name: string;
@@ -689,6 +691,10 @@ export interface components {
             sellerName?: string;
             /** @description The last four characters of the key - never more. */
             keyLast4: string;
+            /** @description The fields of the key that are not secret, shown in full (e.g. a client's number that tells two accounts of one marketplace apart); their texts are `marketplace.<code>.key.<name>.label`. */
+            keyFields?: components["schemas"]["ShownKeyField"][];
+            /** @description How many of the account's warehouses the seller delivers from to the buyer itself; their orders are never read, because they need the buyer's address. */
+            sellerDeliversWarehouses?: number;
             /** @description The key's type as the adapter names it, e.g. `personal`, `test`. */
             keyType?: string;
             /** Format: date-time */
@@ -712,6 +718,10 @@ export interface components {
             hasOrders: boolean;
             /** Format: date-time */
             createdAt: string;
+        };
+        ShownKeyField: {
+            name: string;
+            value: string;
         };
         AccountList: {
             accounts: components["schemas"]["Account"][];
@@ -766,21 +776,22 @@ export interface components {
             /** @description The buyer's basket number. */
             basket?: string;
             warehouse?: string;
-            article?: string;
-            barcodes: string[];
-            /** @description The marketplace's own product number. */
-            productId?: string;
-            /** @description The product's kind */
-            kind?: string;
-            brand?: string;
-            size?: string;
+            /** @description The order's products, each with how many units; at least one. */
+            lines: components["schemas"]["OrderLine"][];
             /** Format: date-time */
             createdAt: string;
             /**
              * Format: date-time
-             * @description Only for `fbs`.
+             * @description Only for `fbs`: `shipBy` when the marketplace gave it, otherwise the creation plus the account's `deadlineHours`.
              */
             deadlineAt?: string;
+            /**
+             * Format: date-time
+             * @description The moment the marketplace itself says the order must be handed over by.
+             */
+            shipBy?: string;
+            /** @description The number of the order the marketplace split this one from. */
+            parentNumber?: string;
             state: components["schemas"]["OrderState"];
             cancelledBy?: components["schemas"]["CancelledBy"];
             marketplaceStatus: components["schemas"]["MarketplaceStatus"];
@@ -788,6 +799,21 @@ export interface components {
             updatedAt?: string;
             /** @description The exchange with the fulfilment centre; only for `fbs` orders. */
             exchange?: components["schemas"]["OrderExchange"];
+        };
+        OrderLine: {
+            /** @description The marketplace's own product number. */
+            productId?: string;
+            /** @description The seller's own code of the product. */
+            article?: string;
+            /** @description The product's name */
+            name?: string;
+            barcodes: string[];
+            /** @description The product's kind */
+            kind?: string;
+            brand?: string;
+            size?: string;
+            /** @description How many units of the product. */
+            quantity: number;
         };
         OrderEvent: {
             /** Format: date-time */
@@ -801,6 +827,8 @@ export interface components {
         OrderDetails: {
             order: components["schemas"]["Order"];
             events: components["schemas"]["OrderEvent"][];
+            /** @description The numbers of the orders the marketplace split this one into. */
+            parts: string[];
             exchange?: components["schemas"]["OrderExchangeDetails"];
         };
         OrderList: {

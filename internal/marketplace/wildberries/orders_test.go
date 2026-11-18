@@ -67,13 +67,18 @@ func TestANewOrderIsReadWithoutTheBuyersAddressOrComment(t *testing.T) {
 	}
 
 	got := list[0]
-	if got.Number != number || got.JoinKey != "rid."+number || got.Article != "ART-7" || got.ProductID != "777" || got.WarehouseNumber != "1001" ||
-		!reflect.DeepEqual(got.Barcodes, []string{"4601", "4602"}) || !got.CreatedAt.Equal(synckit.Noon()) ||
+	if len(got.Lines) != 1 {
+		t.Fatalf("an assembly order is one unit of goods: %+v", got)
+	}
+
+	line := got.Lines[0]
+	if got.Number != number || got.JoinKey != "rid."+number || line.Article != "ART-7" || line.ProductID != "777" || got.WarehouseNumber != "1001" ||
+		!reflect.DeepEqual(line.Barcodes, []string{"4601", "4602"}) || line.Quantity != 1 || !got.CreatedAt.Equal(synckit.Noon()) ||
 		got.Status != (marketplace.Status{State: marketplace.StateNew, Seller: "new"}) {
 		t.Fatalf("the order %+v", got)
 	}
 
-	if text := strings.ToLower(strings.Join([]string{got.Article, got.Basket, got.WarehouseName, got.Kind}, " ")); strings.Contains(text, "улица") ||
+	if text := strings.ToLower(strings.Join([]string{line.Article, got.Basket, got.WarehouseName, line.Kind}, " ")); strings.Contains(text, "улица") ||
 		strings.Contains(text, "позвоните") {
 		t.Fatalf("the buyer's data reached the order: %+v", got)
 	}

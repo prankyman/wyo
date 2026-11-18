@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { request } from '@playwright/test';
-import { FAKE_WILDBERRIES_ADDRESS } from './fakes.js';
+import { FAKE_MARKETPLACES_ADDRESS } from './fakes.js';
 
 /**
  * The browser tests' side of the fake Wildberries (`internal/fakes/wildberries`, `docs/development.md`, «The fakes»): made-up
@@ -73,7 +73,7 @@ export function daysFromNow(days: number): Date {
  * requests stay the wyo server's only); throws with the fake's answer when it refuses.
  */
 async function control(token: string, path: string, body: unknown): Promise<unknown> {
-    const fake = await request.newContext({ baseURL: `http://${FAKE_WILDBERRIES_ADDRESS}` });
+    const fake = await request.newContext({ baseURL: `http://${FAKE_MARKETPLACES_ADDRESS}` });
     try {
         const response = await fake.post(`/__control/${path}`, { headers: { Authorization: token }, data: body });
         const answer: unknown = await response.json();

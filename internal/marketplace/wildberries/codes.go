@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/prankyman/wyo/internal/adapterkit"
 	"github.com/prankyman/wyo/internal/marketplace"
 	"github.com/prankyman/wyo/internal/marketplace/wildberries/wbapi/orders"
 )
@@ -69,7 +70,7 @@ func (a *Adapter) ReportCodes(ctx context.Context, conn marketplace.Conn, number
 		return err
 	}
 
-	if !succeeded(res.StatusCode()) {
+	if !adapterkit.Succeeded(res.StatusCode()) {
 		return WriteRefusal(res.StatusCode(), res.Body)
 	}
 
@@ -97,7 +98,7 @@ func (a *Adapter) RemoveCodes(ctx context.Context, conn marketplace.Conn, number
 		return err
 	}
 
-	if !succeeded(res.StatusCode()) {
+	if !adapterkit.Succeeded(res.StatusCode()) {
 		return WriteRefusal(res.StatusCode(), res.Body)
 	}
 
@@ -161,13 +162,13 @@ func (a *Adapter) Verdicts(ctx context.Context, conn marketplace.Conn, numbers [
 			return WriteRefusal(res.StatusCode(), res.Body)
 		}
 
-		for _, o := range value(res.JSON200.Orders) {
-			verdicts, err := verdictsOf(value(o.MetaDetails))
+		for _, o := range adapterkit.Value(res.JSON200.Orders) {
+			verdicts, err := verdictsOf(adapterkit.Value(o.MetaDetails))
 			if err != nil {
 				return err
 			}
 
-			list = append(list, marketplace.OrderVerdicts{Number: strconv.Itoa(value(o.Id)), Verdicts: verdicts})
+			list = append(list, marketplace.OrderVerdicts{Number: strconv.Itoa(adapterkit.Value(o.Id)), Verdicts: verdicts})
 		}
 
 		return nil

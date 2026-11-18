@@ -32,12 +32,14 @@ type Adapter struct {
 	fail       error
 	stuck      bool
 	feedCalls  int
+	keyEnd     time.Time
+	shipBy     map[string]time.Time
 }
 
 // New returns an adapter that answers at most maxStates numbers a call.
 func New(maxStates int) *Adapter {
 	return &Adapter{
-		maxStates: maxStates, states: map[string]marketplace.Status{},
+		maxStates: maxStates, states: map[string]marketplace.Status{}, shipBy: map[string]time.Time{},
 		warehouses: []marketplace.Warehouse{{Number: "1", Name: "Memory warehouse"}},
 	}
 }
@@ -64,7 +66,10 @@ func (a *Adapter) Limit(string, bool) (marketplace.LimitGroup, bool) {
 func (a *Adapter) Capable(c marketplace.Capability, _ bool) bool { return a.Describe().Supports(c) }
 
 // Authorize implements marketplace.Adapter.
-func (a *Adapter) Authorize(h http.Header, secret string) { h.Set("Authorization", secret) }
+func (a *Adapter) Authorize(h http.Header, key marketplace.Key) { h.Set("Authorization", key["token"]) }
+
+// Hosts implements marketplace.Adapter: the adapter calls nobody.
+func (a *Adapter) Hosts() []string { return nil }
 
 // ErrorOf implements marketplace.Adapter.
 func (a *Adapter) ErrorOf(_ int, body []byte) (string, string) { return "", string(body) }
@@ -88,10 +93,42 @@ func (a *Adapter) AddOrder(created time.Time) string {
 
 	a.orders = append(a.orders, marketplace.Order{
 		Number: number, Scheme: marketplace.SchemeFBS, JoinKey: "join-" + number, CreatedAt: created, Status: status,
+		Lines: []marketplace.Line{{ProductID: "mem-product", Article: "MEM-ARTICLE", Quantity: 1}},
 	})
 	a.states[number] = status
 
 	return number
+}
+
+// AddOrderOf adds a new order of the seller-warehouse scheme as given (its products, the deadline the marketplace gives,
+// the order it was split from), numbered by the adapter, and returns its number.
+func (a *Adapter) AddOrderOf(o marketplace.Order) string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	a.next++
+	o.Number, o.Scheme, o.Status = strconv.Itoa(a.next), marketplace.SchemeFBS, marketplace.Status{State: marketplace.StateNew, Seller: "new"}
+	o.JoinKey = "join-" + o.Number
+
+	a.orders = append(a.orders, o)
+	a.states[o.Number] = o.Status
+	a.shipBy[o.Number] = o.ShipBy
+
+	return o.Number
+}
+
+// SetShipBy makes the marketplace give an order a new deadline, in its list of new orders and in its states.
+func (a *Adapter) SetShipBy(number string, at time.Time) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	a.shipBy[number] = at
+
+	for i := range a.orders {
+		if a.orders[i].Number == number {
+			a.orders[i].ShipBy = at
+		}
+	}
 }
 
 // SetStatus changes an order's present state.
@@ -136,17 +173,26 @@ func (a *Adapter) Batches() [][]string {
 }
 
 // ReadKey implements marketplace.KeyChecker: a key is "mem-<profile>".
-func (a *Adapter) ReadKey(fields map[string]string, _ time.Time) (marketplace.KeyFacts, string, error) {
+func (a *Adapter) ReadKey(fields marketplace.Key, _ time.Time) (marketplace.KeyFacts, marketplace.Key, error) {
 	key := strings.TrimSpace(fields["token"])
 
 	switch profile, ok := strings.CutPrefix(key, keyPrefix); {
 	case key == "":
-		return marketplace.KeyFacts{}, "", &marketplace.Refusal{Code: "required", Field: "key.token"}
+		return marketplace.KeyFacts{}, nil, &marketplace.Refusal{Code: "required", Field: "key.token"}
 	case !ok || profile == "":
-		return marketplace.KeyFacts{}, "", &marketplace.Refusal{Code: "key_unreadable", Field: "key.token"}
+		return marketplace.KeyFacts{}, nil, &marketplace.Refusal{Code: "key_unreadable", Field: "key.token"}
 	default:
-		return marketplace.KeyFacts{Type: "personal", ProfileID: profile}, key, nil
+		return marketplace.KeyFacts{Type: "personal", ProfileID: profile}, marketplace.Key{"token": key}, nil
 	}
+}
+
+// EndKeyAt makes the check answer that every key ends at that moment, as a marketplace that gives the end in its answer
+// does.
+func (a *Adapter) EndKeyAt(end time.Time) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	a.keyEnd = end
 }
 
 // CheckKey implements marketplace.KeyChecker.
@@ -154,6 +200,12 @@ func (a *Adapter) CheckKey(_ context.Context, _ marketplace.Conn, facts marketpl
 	if err := a.failure(); err != nil {
 		return marketplace.CheckedKey{}, err
 	}
+
+	a.mu.Lock()
+	if !a.keyEnd.IsZero() {
+		facts.ExpiresAt = a.keyEnd
+	}
+	a.mu.Unlock()
 
 	return marketplace.CheckedKey{KeyFacts: facts, SellerName: "Memory seller"}, nil
 }
@@ -215,7 +267,7 @@ func (a *Adapter) States(_ context.Context, _ marketplace.Conn, numbers []string
 
 	for _, n := range numbers {
 		if s, known := a.states[n]; known {
-			list = append(list, marketplace.OrderStatus{Number: n, Status: s})
+			list = append(list, marketplace.OrderStatus{Number: n, Status: s, ShipBy: a.shipBy[n]})
 		}
 	}
 

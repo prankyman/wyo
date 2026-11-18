@@ -27,6 +27,7 @@ var generatedOwners = map[string][]string{
 	"internal/marketplace/wildberries/wbapi/items":   {"internal/marketplace/wildberries", "internal/fakes/wildberries"},
 	"internal/marketplace/wildberries/wbapi/orders":  {"internal/marketplace/wildberries", "internal/fakes/wildberries"},
 	"internal/marketplace/wildberries/wbapi/reports": {"internal/marketplace/wildberries", "internal/fakes/wildberries"},
+	"internal/marketplace/ozon/ozonapi":              {"internal/marketplace/ozon", "internal/fakes/ozon"},
 }
 
 func loadRepository(t *testing.T) []archtest.Package {
@@ -90,24 +91,41 @@ func TestEveryAdapterStandsAloneInThisRepository(t *testing.T) {
 	}
 }
 
-// wildberriesNamedIn are the only folders whose source may name Wildberries (rule R6): its adapter, the fakes and the
-// program that starts them, the outbound gate, which lists every address the wyo server may call in one place
-// (principle IX), and the one list of the adapters the wyo server is built with (internal/server/adapters.go), which must
-// import each adapter to hold it. Tests and generated code are not looked at.
-var wildberriesNamedIn = []string{
-	"internal/marketplace/wildberries", "internal/fakes", "cmd/wyofakes", "internal/outbound", "internal/server/adapters.go",
+// namedIn are, for each marketplace, the only folders whose source may name it (rule R6): its adapter, the fakes and the
+// program that starts them, and the one list of the adapters the wyo server is built with (internal/server/adapters.go),
+// which must import each adapter to hold it. The outbound gate names none: it lists the hosts the adapters declare
+// (principle IX). Tests and generated code are not looked at. Every adapter has a row: a new one without a row fails.
+var namedIn = map[string][]string{
+	"wildberries": {"internal/marketplace/wildberries", "internal/fakes", "cmd/wyofakes", "internal/server/adapters.go"},
+	"ozon":        {"internal/marketplace/ozon", "internal/fakes", "cmd/wyofakes", "internal/server/adapters.go"},
 }
 
-func TestWildberriesIsNamedOnlyByItsAdapterInThisRepository(t *testing.T) {
+func TestEveryMarketplaceIsNamedOnlyByItsAdapterInThisRepository(t *testing.T) {
 	t.Parallel()
 
-	found, err := archtest.NamedOnlyIn(os.DirFS(moduleRoot), "wildberries", wildberriesNamedIn)
-	if err != nil {
-		t.Fatalf("NamedOnlyIn: %v", err)
+	root := os.DirFS(moduleRoot)
+
+	codes, err := archtest.AdapterCodes(root)
+	if err != nil || len(codes) == 0 {
+		t.Fatalf("AdapterCodes = %v, %v: the rule would guard nothing", codes, err)
 	}
 
-	if len(found) > 0 {
-		t.Fatalf("a marketplace is named outside its adapter:\n%s", strings.Join(found, "\n"))
+	for _, code := range codes {
+		allowed, listed := namedIn[code]
+		if !listed {
+			t.Errorf("the adapter %q has no row of namedIn: say which folders may name it", code)
+
+			continue
+		}
+
+		found, err := archtest.NamedOnlyIn(root, code, allowed)
+		if err != nil {
+			t.Fatalf("NamedOnlyIn: %v", err)
+		}
+
+		if len(found) > 0 {
+			t.Errorf("a marketplace is named outside its adapter:\n%s", strings.Join(found, "\n"))
+		}
 	}
 }
 
@@ -125,7 +143,8 @@ func TestEveryClientOfAnAdapterIsBuiltOnTheEnginesConnInThisRepository(t *testin
 }
 
 // neverCalled are the names of the generated methods the wyo server must never call: it never cancels an order at
-// Wildberries, whatever the exchange finds (plan 4, section G). Their only place is the package that generated them.
+// Wildberries, whatever the exchange finds (plan 4, section G). Their only place is the package that generated them. Ozon's
+// cancel methods are never generated at all (TestTheCancelMethodsOfOzonAreNeverGeneratedInThisRepository).
 var neverCalled = []string{"PatchV3OrdersOrderIdCancel"}
 
 const generatedWildberriesOrders = "internal/marketplace/wildberries/wbapi/orders"
@@ -255,5 +274,37 @@ func TestAMarketplaceNamedInTheExchangeIsCaughtWhateverThePackage(t *testing.T) 
 				t.Fatalf("found %v, %v; want the planted name in %s only", found, err, dir)
 			}
 		})
+	}
+}
+
+// ozonCancels are the operations of Ozon's description file that cancel a posting (OZC §5): the wyo server never cancels
+// an order at a marketplace (principle XII), so the generator's list never names them and no generated code holds them.
+var ozonCancels = []string{"PostingAPI_CancelFbsPosting", "PostingAPI_CancelFbsPostingProduct"}
+
+func TestTheCancelMethodsOfOzonAreNeverGeneratedInThisRepository(t *testing.T) {
+	t.Parallel()
+
+	config, err := os.ReadFile(moduleRoot + "/api/codegen/ozon.cfg.yaml")
+	if err != nil {
+		t.Fatalf("read the generator's list: %v", err)
+	}
+
+	generated, err := os.ReadFile(moduleRoot + "/internal/marketplace/ozon/ozonapi/ozonapi.gen.go")
+	if err != nil {
+		t.Fatalf("read the generated client: %v", err)
+	}
+
+	if !strings.Contains(string(config), "include-operation-ids:") {
+		t.Fatal("the generator's list names no operation: every operation of Ozon's file would be generated")
+	}
+
+	for _, op := range ozonCancels {
+		if strings.Contains(string(config), op) {
+			t.Errorf("api/codegen/ozon.cfg.yaml lists %s, a method that cancels a posting at Ozon", op)
+		}
+
+		if goName := strings.ReplaceAll(op, "_", ""); strings.Contains(string(generated), goName) {
+			t.Errorf("the generated client holds %s, a method that cancels a posting at Ozon", goName)
+		}
 	}
 }

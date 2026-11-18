@@ -103,16 +103,30 @@ func (a *Adapter) Routes() []marketplace.Route {
 // запросов» for the seller's information and the orders feed. A 4xx counts as ten requests in the category
 // «Маркетплейс» (WBC §5); for the others the files say nothing of it, and one is counted.
 var limits = map[string]marketplace.LimitGroup{
-	groupMarketplace: {Name: groupMarketplace, Interval: 200 * time.Millisecond, Burst: 20, ErrorCost: 10},
-	groupPing:        {Name: groupPing, Interval: 10 * time.Second, Burst: 99, ErrorCost: 1},
-	groupSellerInfo:  {Name: groupSellerInfo, Interval: time.Minute, Burst: 10, ErrorCost: 1},
-	groupStatistics:  {Name: groupStatistics, Interval: time.Minute, Burst: 10, ErrorCost: 1},
+	groupMarketplace: withHeaders(marketplace.LimitGroup{Name: groupMarketplace, Interval: 200 * time.Millisecond, Burst: 20, ErrorCost: 10}),
+	groupPing:        withHeaders(marketplace.LimitGroup{Name: groupPing, Interval: 10 * time.Second, Burst: 99, ErrorCost: 1}),
+	groupSellerInfo:  withHeaders(marketplace.LimitGroup{Name: groupSellerInfo, Interval: time.Minute, Burst: 10, ErrorCost: 1}),
+	groupStatistics:  withHeaders(marketplace.LimitGroup{Name: groupStatistics, Interval: time.Minute, Burst: 10, ErrorCost: 1}),
+}
+
+// The headers by which Wildberries tells its budget (WBC §5): X-Ratelimit-Remaining on every answer but 429;
+// X-Ratelimit-Retry, the seconds until a call may be repeated, on 429.
+const (
+	headerRemaining = "X-Ratelimit-Remaining"
+	headerRetry     = "X-Ratelimit-Retry"
+)
+
+// withHeaders names Wildberries' two limit headers in a group.
+func withHeaders(l marketplace.LimitGroup) marketplace.LimitGroup {
+	l.RemainingHeader, l.RetryHeader = headerRemaining, headerRetry
+
+	return l
 }
 
 // sandboxMarketplace is the sandbox's limit: «максимум 1 запрос в секунду суммарно для всех методов Маркетплейса»
 // (03-orders-fbs.yaml, every seller-warehouse method). Which of this and the test token's «150 запросов | 200 мс | 10»
 // (WBC §5) the sandbox really keeps is a check of the first test token (WBC §7, point 7); the stricter one is kept.
-var sandboxMarketplace = marketplace.LimitGroup{Name: groupMarketplace, Interval: time.Second, Burst: 1, ErrorCost: 10}
+var sandboxMarketplace = withHeaders(marketplace.LimitGroup{Name: groupMarketplace, Interval: time.Second, Burst: 1, ErrorCost: 10})
 
 // Limit implements marketplace.Adapter.
 func (a *Adapter) Limit(group string, test bool) (marketplace.LimitGroup, bool) {
@@ -143,9 +157,11 @@ func (a *Adapter) Capable(c marketplace.Capability, test bool) bool {
 }
 
 // Authorize implements marketplace.Adapter: «Добавляйте токен в заголовок запроса Authorization» (WBT §1.9), as it is.
-func (a *Adapter) Authorize(h http.Header, secret string) { h.Set("Authorization", secret) }
+func (a *Adapter) Authorize(h http.Header, key marketplace.Key) {
+	h.Set("Authorization", key[fieldToken])
+}
 
-// Hosts lists every host the adapter calls; each is on the list of internal/outbound (a test).
+// Hosts implements marketplace.Adapter: every host the adapter calls; the outbound gate lists them.
 func (a *Adapter) Hosts() []string {
 	return []string{hostMarketplace, hostMarketplaceSandbox, hostCommon, hostStatistics}
 }

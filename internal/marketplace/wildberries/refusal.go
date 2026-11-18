@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/prankyman/wyo/internal/adapterkit"
 	"github.com/prankyman/wyo/internal/marketplace"
 )
 
@@ -58,18 +59,6 @@ func Refusal(status int, body []byte, category string) *marketplace.Refusal {
 	}
 }
 
-// maxRefusalText is how much of Wildberries' message a refusal keeps.
-const maxRefusalText = 300
-
-// cut keeps the first maxRefusalText characters of a text.
-func cut(text string) string {
-	if runes := []rune(text); len(runes) > maxRefusalText {
-		return string(runes[:maxRefusalText])
-	}
-
-	return text
-}
-
 // WriteRefusal is Refusal for a request of the writing parts, which are all in the category «Маркетплейс»: the effects on
 // the account are the same (a token not taken, a category missing, a cabinet without seller-warehouse sales). For any other
 // answer, the refusal carries Wildberries' own code («SupplyShippingRequired», «MetaValidationFail», ...) in Code and its
@@ -83,12 +72,12 @@ func WriteRefusal(status int, body []byte) *marketplace.Refusal {
 
 	code, text := (&Adapter{}).ErrorOf(status, body)
 	if code == "" {
-		refusal.Params["text"] = cut(text)
+		refusal.Params["text"] = adapterkit.Cut(text)
 
 		return refusal
 	}
 
-	refusal.Code, refusal.Params = code, map[string]any{"text": cut(text)}
+	refusal.Code, refusal.Params = code, map[string]any{"text": adapterkit.Cut(text)}
 
 	return refusal
 }

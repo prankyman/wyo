@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/prankyman/wyo/internal/adapterkit"
 	"github.com/prankyman/wyo/internal/marketplace"
 	"github.com/prankyman/wyo/internal/marketplace/wildberries/wbapi/reports"
 )
@@ -50,7 +51,7 @@ func (a *Adapter) Feed(ctx context.Context, conn marketplace.Conn, mark string, 
 		return marketplace.FeedPage{Mark: mark, Done: true}, nil
 	}
 
-	page := marketplace.FeedPage{Rows: make([]marketplace.FeedRow, 0, len(rows)), Mark: value(rows[len(rows)-1].LastChangeDate)}
+	page := marketplace.FeedPage{Rows: make([]marketplace.FeedRow, 0, len(rows)), Mark: adapterkit.Value(rows[len(rows)-1].LastChangeDate)}
 	page.Done = page.Mark == mark // only rows of the mark's own second: nothing later is left
 	for _, row := range rows {
 		page.Rows = append(page.Rows, feedRow(row))
@@ -64,22 +65,35 @@ func (a *Adapter) Feed(ctx context.Context, conn marketplace.Conn, mark string, 
 // buyer, «В доставке»; who cancelled a cancelled one is not said.
 func feedRow(row reports.OrdersItem) marketplace.FeedRow {
 	scheme := marketplace.SchemeFBS
-	if string(value(row.WarehouseType)) == warehouseOfWildberries {
+	if string(adapterkit.Value(row.WarehouseType)) == warehouseOfWildberries {
 		scheme = marketplace.SchemeFBO
 	}
 
 	status := marketplace.Status{State: marketplace.StateInDelivery}
-	if value(row.IsCancel) {
+	if adapterkit.Value(row.IsCancel) {
 		status.State = marketplace.StateCancelled
 	}
 
-	created, _ := time.ParseInLocation(feedLayout, value(row.Date), moscow) // a row without its date keeps the zero time
+	created, _ := time.ParseInLocation(feedLayout, adapterkit.Value(row.Date), moscow) // a row without its date keeps the zero time
 
 	return marketplace.FeedRow{
-		JoinKey: value(row.Srid), Scheme: scheme, Number: value(row.Srid), Basket: value(row.GNumber), Warehouse: value(row.WarehouseName),
-		Article: value(row.SupplierArticle), Barcode: value(row.Barcode), ProductID: number(row.NmId), Kind: value(row.Subject),
-		Brand: value(row.Brand), Size: value(row.TechSize), CreatedAt: created.UTC(), Status: status,
+		JoinKey: adapterkit.Value(row.Srid), Scheme: scheme, Number: adapterkit.Value(row.Srid), Basket: adapterkit.Value(row.GNumber),
+		Warehouse: adapterkit.Value(row.WarehouseName), CreatedAt: created.UTC(), Status: status,
+		// One row of the feed is one unit of goods.
+		Lines: []marketplace.Line{{
+			ProductID: adapterkit.Number(row.NmId), Article: adapterkit.Value(row.SupplierArticle), Barcodes: barcodesOf(adapterkit.Value(row.Barcode)),
+			Kind: adapterkit.Value(row.Subject), Brand: adapterkit.Value(row.Brand), Size: adapterkit.Value(row.TechSize), Quantity: 1,
+		}},
 	}
+}
+
+// barcodesOf is the feed row's one barcode as a list, empty when the row has none.
+func barcodesOf(barcode string) []string {
+	if barcode == "" {
+		return nil
+	}
+
+	return []string{barcode}
 }
 
 // askFrom is the dateFrom of a reading on from mark (or from since, when the feed was never read): one second earlier.

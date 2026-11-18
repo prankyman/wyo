@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/prankyman/wyo/internal/fakes/fakekit"
 )
 
 // messages are the texts Wildberries' files give for their error codes (the examples of 03-orders-fbs.yaml). A code the
@@ -65,8 +67,8 @@ func (s *Server) problem(w http.ResponseWriter, status int, detail string) {
 
 // tooManyRequests answers 429 with the three headers the general description names.
 func (s *Server) tooManyRequests(w http.ResponseWriter, retry time.Duration, burst int, reset time.Duration) {
-	w.Header().Set("X-Ratelimit-Retry", strconv.Itoa(max(1, ceilSeconds(retry))))
+	w.Header().Set("X-Ratelimit-Retry", strconv.Itoa(max(1, fakekit.CeilSeconds(retry))))
 	w.Header().Set("X-Ratelimit-Limit", strconv.Itoa(burst))
-	w.Header().Set("X-Ratelimit-Reset", strconv.Itoa(ceilSeconds(reset)))
+	w.Header().Set("X-Ratelimit-Reset", strconv.Itoa(fakekit.CeilSeconds(reset)))
 	s.problem(w, http.StatusTooManyRequests, "too many requests")
 }

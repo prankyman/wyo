@@ -2,8 +2,8 @@
 INSERT INTO marketplace_accounts (
     marketplace, name, state, test, seller_name, seller_profile_id, secret_name, key_last4, key_type, key_expires_at,
     categories, missing_categories, read_only, deadline_hours, last_check_at, last_check_outcome, last_success_at,
-    created_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    created_at, key_fields
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: GetAccount :one
@@ -17,8 +17,8 @@ UPDATE marketplace_accounts SET name = ?, deadline_hours = ? WHERE id = ?;
 
 -- name: UpdateAccountKey :execrows
 UPDATE marketplace_accounts
-SET state = ?, test = ?, seller_name = ?, seller_profile_id = ?, key_last4 = ?, key_type = ?, key_expires_at = ?,
-    categories = ?, missing_categories = ?, read_only = ?, last_check_at = ?, last_check_outcome = ?,
+SET state = ?, test = ?, seller_name = ?, seller_profile_id = ?, key_last4 = ?, key_fields = ?, key_type = ?,
+    key_expires_at = ?, categories = ?, missing_categories = ?, read_only = ?, last_check_at = ?, last_check_outcome = ?,
     last_success_at = ?, last_refusal_code = '', last_refusal_status = 0, last_refusal_at = NULL, failures_in_row = 0
 WHERE id = ?;
 
@@ -59,7 +59,7 @@ SELECT count(*) FROM orders WHERE account_id = ?;
 DELETE FROM marketplace_warehouses WHERE account_id = ?;
 
 -- name: InsertWarehouse :exec
-INSERT INTO marketplace_warehouses (account_id, number, name, updated_at) VALUES (?, ?, ?, ?);
+INSERT INTO marketplace_warehouses (account_id, number, name, seller_delivers, updated_at) VALUES (?, ?, ?, ?, ?);
 
 -- name: ListWarehouses :many
 SELECT * FROM marketplace_warehouses WHERE account_id = ? ORDER BY name, number;

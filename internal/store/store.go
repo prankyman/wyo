@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 
 	"modernc.org/sqlite" // the driver; registered under the name "sqlite"
 
@@ -54,6 +55,9 @@ type Store struct {
 
 	closeOnce sync.Once
 	closeErr  error
+
+	// writes counts the committed write transactions (Writes).
+	writes atomic.Int64
 }
 
 // Open opens the database at path, makes it when it does not exist, and applies the migrations it lacks.
@@ -187,8 +191,14 @@ func (s *Store) Do(ctx context.Context, fn func(*Queries) error) error {
 		return fmt.Errorf("commit a write: %w", err)
 	}
 
+	s.writes.Add(1)
+
 	return nil
 }
+
+// Writes is how many write transactions Do has committed since the database was opened: a test of a job that should
+// write nothing reads it before and after.
+func (s *Store) Writes() int64 { return s.writes.Load() }
 
 // rollback undoes a transaction; an error of the rollback itself is reported beside the one that caused it.
 func rollback(tx *sql.Tx) error {

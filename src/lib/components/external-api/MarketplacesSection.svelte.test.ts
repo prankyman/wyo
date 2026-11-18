@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { marketplaceMatchesOf } from '$test/support/external-api';
+import { MARKETPLACE, SECOND_MARKETPLACE, SECOND_MARKETPLACE_CODE } from '$test/support/marketplaces';
 import { flushTicks, sendForm } from '$test/support/superform-answer';
 
 vi.mock('$lib/api/api', async (original) => ({
@@ -17,8 +18,12 @@ afterEach(() => {
     put.mockReset();
 });
 
-function draw(matches = marketplaceMatchesOf(), onSaved = vi.fn()): typeof onSaved {
-    render(MarketplacesSection, { props: { lang: 'ru', matches, onSaved } });
+function draw(
+    matches = marketplaceMatchesOf(),
+    onSaved = vi.fn(),
+    marketplaces = [MARKETPLACE, SECOND_MARKETPLACE]
+): typeof onSaved {
+    render(MarketplacesSection, { props: { lang: 'ru', matches, marketplaces, onSaved } });
     return onSaved;
 }
 
@@ -111,5 +116,34 @@ describe('MarketplacesSection', () => {
         await openSection();
 
         expect(screen.getByTestId('codes-empty')).toHaveTextContent('Аккаунтов ещё нет');
+    });
+
+    it('says the exchange is not supported for an account whose marketplace cannot exchange yet, proposes no code for it, and saves its code as it was', async () => {
+        const base = marketplaceMatchesOf();
+        const matches = marketplaceMatchesOf({
+            rows: [
+                { ...base.rows[0], marketplace: SECOND_MARKETPLACE_CODE },
+                { ...base.rows[1], fcMarketplace: 'mp-b', readOnly: false }
+            ]
+        });
+        put.mockResolvedValue({ ok: true, data: matches });
+        draw(matches);
+        await openSection();
+
+        expect(screen.getByTestId('codes-0-unsupported')).toHaveTextContent('пока не поддерживается');
+        expect(screen.queryByTestId('codes-0-box')).toBeNull();
+        expect(screen.getByTestId('codes-1-box')).toHaveValue('mp-b');
+        expect(screen.queryByTestId('external-api-marketplaces-save')).toBeNull();
+
+        await fireEvent.change(screen.getByTestId('codes-1-box'), { target: { value: 'mp-a' } });
+        await sendForm(screen.getByTestId('external-api-marketplaces-form'));
+
+        await waitFor(() => expect(put).toHaveBeenCalledOnce());
+        expect(put).toHaveBeenCalledExactlyOnceWith('/api/v1/external-api/marketplaces', {
+            rows: [
+                { accountId: 7, fcMarketplace: '' },
+                { accountId: 8, fcMarketplace: 'mp-a' }
+            ]
+        });
     });
 });
