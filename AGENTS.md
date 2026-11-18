@@ -134,9 +134,12 @@ it empties `test-results/` under another run.
 
 ## Migrations
 
-NEVER edit a database migration that has already been applied. A schema change is always a NEW migration file in the folder Plan 2
-creates for them; the program records a migration once and never reads it again, so an edit would reach only databases built afterwards.
-A test that holds the checksum of the first migration fails the build if it changes. There is no database before Plan 2.
+NEVER edit a database migration that has already been released. A schema change is always a NEW numbered file in
+`internal/store/migrations/`. A seller's database is upgraded where it lies and never rebuilt: the wyo server records each applied
+migration's checksum and refuses to start when its own copy of an applied migration differs, so an edited migration stops every
+installation that applied it. `internal/store/migrations.sum` holds the checksums and a test fails when a listed file changes; the databases
+of released versions in `internal/store/testdata/` are upgraded by a test. Constitution, principle VIII; `docs/development.md`, «The
+database, the commands, the installer».
 
 ## Tooling and commands
 

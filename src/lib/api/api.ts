@@ -20,6 +20,30 @@ export type TApiResult<T> = { ok: true; data: T } | { ok: false; status: number;
 
 type TMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
+/** How a call is sent. */
+export interface IApiOptions {
+    /**
+     * A re-read the page makes by itself (the bell asking for notices every minute), not an action of the person. The wyo server
+     * counts only the person's own calls as activity, so a screen left open signs out after the idle minutes; a background call
+     * must not carry the mark, or it would keep the session alive for ever.
+     */
+    background?: boolean;
+}
+
+/** The header that tells the wyo server a call was made by the person (`X-Wyo-Person: 1`): only such a call prolongs the session. */
+const PERSON_HEADER = 'X-Wyo-Person';
+
+let signedOutHandler: (() => void) | null = null;
+
+/**
+ * Sets what happens when any call is answered `signed_out` (no session, or one ended by idleness or by another browser): the
+ * root layout sets it to send the person to the sign-in page. One handler for every call, so no page checks for it by itself.
+ * `null` removes it.
+ */
+export function setSignedOutHandler(handler: (() => void) | null): void {
+    signedOutHandler = handler;
+}
+
 function isRefusal(value: unknown): value is { error: TRefusal } {
     if (typeof value !== 'object' || value === null || !('error' in value)) return false;
     const error = (value as { error: unknown }).error;
@@ -27,8 +51,14 @@ function isRefusal(value: unknown): value is { error: TRefusal } {
 }
 
 /** Sends one call to the wyo server and returns what came back; see the note above for what "came back" can be. */
-export async function apiRequest<T>(method: TMethod, path: string, body?: unknown): Promise<TApiResult<T>> {
+export async function apiRequest<T>(
+    method: TMethod,
+    path: string,
+    body?: unknown,
+    options: IApiOptions = {}
+): Promise<TApiResult<T>> {
     const headers: Record<string, string> = { Accept: 'application/json' };
+    if (!options.background) headers[PERSON_HEADER] = '1';
     const init: RequestInit = { method, headers };
     if (body !== undefined) {
         headers['Content-Type'] = 'application/json';
@@ -51,26 +81,36 @@ export async function apiRequest<T>(method: TMethod, path: string, body?: unknow
     }
 
     if (response.ok) return { ok: true, data: parsed as T };
-    if (isRefusal(parsed)) return { ok: false, status: response.status, refusal: parsed.error };
+    if (isRefusal(parsed)) {
+        if (parsed.error.code === 'signed_out') signedOutHandler?.();
+        return { ok: false, status: response.status, refusal: parsed.error };
+    }
     return { ok: false, status: response.status, refusal: { code: 'bad_answer' } };
 }
 
 /** The wyo server's calls. A page uses these, never `fetch`. */
 export const api = {
     getMeta: () => apiRequest<TMeta>('GET', '/api/v1/meta'),
-    get: <T>(path: string) => apiRequest<T>('GET', path),
+    get: <T>(path: string, options?: IApiOptions) => apiRequest<T>('GET', path, undefined, options),
     post: <T>(path: string, body: unknown) => apiRequest<T>('POST', path, body),
     put: <T>(path: string, body: unknown) => apiRequest<T>('PUT', path, body),
     patch: <T>(path: string, body: unknown) => apiRequest<T>('PATCH', path, body),
     delete: <T>(path: string) => apiRequest<T>('DELETE', path)
 };
 
+/** The values of a call's parameters that a message can be filled with (texts and numbers); the rest is dropped. */
+export function messageParams(
+    params: Record<string, unknown> | undefined
+): Record<string, string | number> | undefined {
+    if (!params) return undefined;
+    const filled: Record<string, string | number> = {};
+    for (const [name, value] of Object.entries(params)) {
+        if (typeof value === 'string' || typeof value === 'number') filled[name] = value;
+    }
+    return filled;
+}
+
 /** The values of a refusal's parameters that a message can be filled with (texts and numbers); the rest is dropped. */
 export function refusalParams(refusal: TRefusal): Record<string, string | number> | undefined {
-    if (!refusal.params) return undefined;
-    const params: Record<string, string | number> = {};
-    for (const [name, value] of Object.entries(refusal.params)) {
-        if (typeof value === 'string' || typeof value === 'number') params[name] = value;
-    }
-    return params;
+    return messageParams(refusal.params);
 }

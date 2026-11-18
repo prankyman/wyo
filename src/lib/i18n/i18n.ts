@@ -1,6 +1,7 @@
 import { page } from '$app/state';
 import { DEFAULT_LOCALE, getActiveLocales, isLocale, messages } from './messages';
 import { splitLocale, withLocale } from './locale-path';
+import { resolveMenuPlaces } from './menu-places';
 import type { TLocale } from './types';
 export type { TLocale } from './types';
 export { DEFAULT_LOCALE, getActiveLocales, isLocale, messages };
@@ -42,7 +43,8 @@ export function t(key: string, lang?: TLocale, params?: Record<string, string | 
             message = message.replaceAll(`{${name}}`, String(value));
         }
     }
-    return message;
+    // A menu place is written out from the menu itself, in the same language.
+    return resolveMenuPlaces(message, (label) => messages[locale]?.[label] ?? messages[DEFAULT_LOCALE]?.[label]);
 }
 
 /**

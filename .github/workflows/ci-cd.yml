@@ -144,10 +144,54 @@ jobs:
                   if-no-files-found: ignore
                   retention-days: 14
 
+    # The installer and the updater of this commit, on clean machines with systemd, against a test certificate authority
+    # (Pebble) and a local server of release files signed with a key made for the run (Plan 2, section L). Nothing here
+    # calls the real Let's Encrypt, the real release address or a marketplace. It also records the wyo server's memory and
+    # the program's size in the job's summary.
+    installer:
+        runs-on: ${{ matrix.os }}
+        needs: check-skip-ci
+        if: needs.check-skip-ci.outputs.skip_ci == 'false'
+        timeout-minutes: 30
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-24.04, ubuntu-22.04, ubuntu-24.04-arm]
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+              with:
+                  ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+            - uses: pnpm/action-setup@v6
+            - uses: actions/setup-node@v7
+              with:
+                  node-version-file: .nvmrc
+                  cache: pnpm
+            - uses: actions/setup-go@v7
+              with:
+                  go-version-file: go.mod
+                  cache: true
+
+            - name: Install the interface's packages
+              run: pnpm install --frozen-lockfile
+
+            - name: Build the interface the wyo server carries
+              run: pnpm exec vite build
+
+            - name: Build the test programs
+              run: bash scripts/ci/installer-job.sh build
+
+            # As root: the installer writes system units and listens on ports 80 and 443. -E keeps the job's folders.
+            - name: Run the installer and check what it did
+              run: sudo -E env "PATH=$PATH" bash scripts/ci/installer-job.sh run
+
     release:
         runs-on: ubuntu-24.04
-        needs: [check-skip-ci, gate]
+        needs: [check-skip-ci, gate, installer]
         if: needs.check-skip-ci.outputs.should_release == 'true'
+        outputs:
+            version: ${{ steps.version.outputs.version }}
         concurrency:
             group: release
             cancel-in-progress: false
@@ -186,7 +230,46 @@ jobs:
                   ' CHANGELOG.md > release-notes.md
                   test -s release-notes.md || echo "Release $VERSION." > release-notes.md
 
-            # The gate job above ran every check; the hooks of .husky/ would only run them again, without the Go tools.
+            - name: Build the wyo server for linux/amd64 and linux/arm64
+              run: |
+                  VERSION="${{ steps.version.outputs.version }}"
+                  pnpm exec vite build
+                  mkdir -p release
+                  for ARCH in amd64 arm64; do
+                    CGO_ENABLED=0 GOOS=linux GOARCH="$ARCH" go build -trimpath \
+                      -ldflags "-s -w -X github.com/prankyman/wyo/internal/version.Version=${VERSION}" \
+                      -o "release/wyo_linux_${ARCH}" ./cmd/wyo
+                  done
+                  cp scripts/install.sh release/install.sh
+                  printf '%s\n' "$VERSION" > release/VERSION
+                  # The list covers the four files; it is signed in the next step.
+                  (cd release && sha256sum wyo_linux_amd64 wyo_linux_arm64 install.sh VERSION > checksums.txt)
+
+            # The signature of the list is what the installer and the updater check first. The private key is the
+            # repository's secret; it is written to a file only this step can read and never printed.
+            - name: Sign the list of checksums and check the signature with the committed public key
+              env:
+                  RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+              run: |
+                  test -n "$RELEASE_SIGNING_KEY" || { echo "The secret RELEASE_SIGNING_KEY is not set."; exit 1; }
+                  KEY_FILE="$(mktemp)"
+                  trap 'rm -f "$KEY_FILE"' EXIT
+                  (umask 077 && printf '%s\n' "$RELEASE_SIGNING_KEY" > "$KEY_FILE")
+                  openssl pkeyutl -sign -inkey "$KEY_FILE" -rawin -in release/checksums.txt -out release/checksums.txt.sig
+                  # The release must be accepted by a key the wyo server and the installer carry; if none accepts it,
+                  # nothing is published.
+                  VERIFIED=no
+                  for PUBLIC_KEY in internal/release/keys/*.pem; do
+                    if openssl pkeyutl -verify -pubin -inkey "$PUBLIC_KEY" -rawin -in release/checksums.txt \
+                         -sigfile release/checksums.txt.sig >/dev/null 2>&1; then
+                      VERIFIED=yes
+                    fi
+                  done
+                  test "$VERIFIED" = yes || { echo "The signature is not accepted by any committed public key."; exit 1; }
+                  echo "The signature is accepted by a committed public key."
+
+            # Only now, with the release built and signed, is the version committed and tagged: a missing secret stops the
+            # release before anything is pushed. The gate job above ran every check; the hooks of .husky/ would only run them again, without the Go tools.
             - name: Commit and tag the version
               env:
                   HUSKY: 0
@@ -199,22 +282,54 @@ jobs:
                   git push --no-verify origin HEAD:main
                   git push --no-verify origin "v${{ steps.version.outputs.version }}"
 
-            - name: Build the wyo server for linux/amd64 and linux/arm64
-              run: |
-                  VERSION="${{ steps.version.outputs.version }}"
-                  pnpm exec vite build
-                  mkdir -p release
-                  for ARCH in amd64 arm64; do
-                    CGO_ENABLED=0 GOOS=linux GOARCH="$ARCH" go build -trimpath \
-                      -ldflags "-s -w -X github.com/prankyman/wyo/internal/version.Version=${VERSION}" \
-                      -o "release/wyo_linux_${ARCH}" ./cmd/wyo
-                  done
-                  (cd release && sha256sum wyo_linux_amd64 wyo_linux_arm64 > checksums.txt)
-
             - name: Publish the GitHub Release
               env:
                   GH_TOKEN: ${{ github.token }}
               run: |
                   VERSION="${{ steps.version.outputs.version }}"
                   gh release create "v${VERSION}" --title "wyo ${VERSION}" --notes-file release-notes.md \
-                    release/wyo_linux_amd64 release/wyo_linux_arm64 release/checksums.txt
+                    release/wyo_linux_amd64 release/wyo_linux_arm64 release/install.sh release/VERSION \
+                    release/checksums.txt release/checksums.txt.sig
+
+    # The released installer and the released wyo server, unchanged, run once against the real release address. A clean
+    # machine of GitHub has no domain for a real certificate, so the installation is the one behind a web server
+    # (--behind-proxy): the download, the signature, the checksums, the units and the owner's sign-in are what it proves.
+    released-installer:
+        runs-on: ubuntu-24.04
+        needs: release
+        timeout-minutes: 15
+        steps:
+            - name: Install the released wyo from the real release address
+              env:
+                  VERSION: ${{ needs.release.outputs.version }}
+              run: |
+                  set -euo pipefail
+                  base=https://github.com/prankyman/wyo/releases/latest/download
+                  # The "latest" address may lag a published release by a moment; wait until it names this version.
+                  for _ in $(seq 1 30); do
+                    latest="$(curl -fsSL "$base/VERSION" || true)"
+                    [ "$latest" = "$VERSION" ] && break
+                    sleep 10
+                  done
+                  test "$latest" = "$VERSION" || { echo "The latest release is $latest, not $VERSION."; exit 1; }
+                  curl -fsSL -o install.sh "$base/install.sh"
+                  password_file="$(mktemp)"
+                  (umask 077 && printf '%s\n' 'released-check-password' > "$password_file")
+                  sudo bash install.sh --behind-proxy --domain wyo-check.example.org --login owner \
+                    --password-file "$password_file" --updates manual
+                  rm -f "$password_file"
+
+            - name: Check the installed wyo
+              env:
+                  VERSION: ${{ needs.release.outputs.version }}
+              run: |
+                  set -euo pipefail
+                  test "$(/usr/local/bin/wyo version)" = "$VERSION"
+                  test "$(systemctl show -p User --value wyo.service)" = wyo
+                  systemctl is-active wyo.service
+                  test "$(curl -fsS http://127.0.0.1:8484/healthz)" = ok
+                  curl -fsS http://127.0.0.1:8484/readyz
+                  status="$(curl -s -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' \
+                    -d '{"login":"owner","password":"released-check-password"}' http://127.0.0.1:8484/api/v1/session)"
+                  test "$status" = 200 || { echo "The owner's sign-in answered $status."; exit 1; }
+                  echo "The released installer installed wyo $VERSION; the owner signs in." >> "$GITHUB_STEP_SUMMARY"

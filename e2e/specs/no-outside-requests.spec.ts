@@ -1,15 +1,18 @@
 import { expect, test } from '../fixtures/test.js';
+import { visitScreen } from '../helpers/open-screen.js';
+import { openAllSections } from '../helpers/sections.js';
 import { SCREENS } from '../support/screens.js';
 
 /**
  * Rule R3 (alone by default): on every page, no request leaves for any address but the wyo server's own. The pages come from the
- * screens table (`e2e/support/screens.ts`), so a new page is covered by adding its row. The recorder sees the page's requests, its
- * frames', its workers' and its web sockets (`e2e/helpers/requests.ts`).
+ * screens table (`e2e/support/screens.ts`), so a new page is covered by adding its row; the pages of a signed-in owner are walked
+ * signed in, with their folded sections open. The recorder sees the page's requests, its frames', its workers' and its web sockets
+ * (`e2e/helpers/requests.ts`).
  */
 for (const row of SCREENS) {
-    test(`${row.route}: every request goes to the wyo server`, async ({ page, requests, baseURL }) => {
-        await page.goto(row.route);
-        await expect(page.getByTestId(row.ready)).toBeVisible();
+    test(`${row.route}: every request goes to the wyo server`, async ({ page, requests, baseURL, server }) => {
+        await visitScreen(page, server, row.route);
+        await openAllSections(page);
 
         const asked = requests.all();
         expect(asked.length, 'the page asked for at least its own files').toBeGreaterThan(0);

@@ -32,6 +32,8 @@ linters:
                   msg: never sleep to wait for something; wait on the event itself (a channel, a context, the injected clock)
                 - pattern: ^http\.(DefaultClient|Get|Head|Post|PostForm)$
                   msg: build an http.Client with a timeout and send a request that carries a context
+                - pattern: ^http\.(Client|Transport|DefaultTransport)$
+                  msg: take a client from internal/outbound (Gate.Client); only that package makes an HTTP client, so that no call can leave for an address outside the list of its purpose
                 - pattern: ^(fmt\.Print(|f|ln)|print|println)$
                   msg: log with the logger from internal/logging, or write to an io.Writer you were given
                 - pattern: ^os\.(Getenv|LookupEnv|Environ|ExpandEnv)$
@@ -54,5 +56,20 @@ linters:
             # The one package that reads the environment may do so.
             - path: ^internal/config/
               text: os\.(Getenv|LookupEnv|Environ|ExpandEnv)
+              linters:
+                  - forbidigo
+            # The one package that makes HTTP clients may do so.
+            - path: ^internal/outbound/
+              text: take a client from internal/outbound
+              linters:
+                  - forbidigo
+            # A test may call a test server of its own with a plain client; no test reaches another address (rule R3).
+            - path: _test\.go$
+              text: take a client from internal/outbound
+              linters:
+                  - forbidigo
+            # The fakes and the test kit are programs and helpers of the tests; they answer calls and call only each other.
+            - path: ^internal/(fakes|testkit)/
+              text: take a client from internal/outbound
               linters:
                   - forbidigo

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { api, apiRequest, refusalParams } from './api';
+import { api, apiRequest, messageParams, refusalParams, setSignedOutHandler } from './api';
 
 /** A fetch that answers with `body` as JSON (or as raw text when it is a string) and `status`. */
 function answering(status: number, body: unknown) {
@@ -15,6 +15,7 @@ function answering(status: number, body: unknown) {
 
 afterEach(() => {
     vi.unstubAllGlobals();
+    setSignedOutHandler(null);
 });
 
 describe('apiRequest', () => {
@@ -24,7 +25,7 @@ describe('apiRequest', () => {
         await expect(apiRequest('GET', '/api/v1/meta')).resolves.toEqual({ ok: true, data: { name: 'wyo' } });
         expect(stub).toHaveBeenCalledWith('/api/v1/meta', {
             method: 'GET',
-            headers: { Accept: 'application/json' }
+            headers: { Accept: 'application/json', 'X-Wyo-Person': '1' }
         });
     });
 
@@ -35,7 +36,7 @@ describe('apiRequest', () => {
 
         expect(stub).toHaveBeenCalledWith('/api/v1/things', {
             method: 'POST',
-            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+            headers: { Accept: 'application/json', 'X-Wyo-Person': '1', 'Content-Type': 'application/json' },
             body: '{"name":"a"}'
         });
     });
@@ -83,6 +84,49 @@ describe('apiRequest', () => {
     });
 });
 
+describe('the idle sign-out header', () => {
+    it('marks a call the person caused, and leaves the mark out of a background re-read', async () => {
+        const stub = answering(200, {});
+
+        await apiRequest('GET', '/api/v1/notices');
+        await apiRequest('GET', '/api/v1/notices', undefined, { background: true });
+        await api.get('/api/v1/notices', { background: true });
+
+        const sentHeaders = stub.mock.calls.map((call) => (call as unknown as [string, RequestInit])[1].headers);
+        expect(sentHeaders).toEqual([
+            { Accept: 'application/json', 'X-Wyo-Person': '1' },
+            { Accept: 'application/json' },
+            { Accept: 'application/json' }
+        ]);
+    });
+});
+
+describe('a signed-out answer', () => {
+    it('is handed to the one handler, a call by the person or a background one alike, and still returned', async () => {
+        const handler = vi.fn();
+        setSignedOutHandler(handler);
+        answering(401, { error: { code: 'signed_out' } });
+
+        const person = await apiRequest('GET', '/api/v1/settings');
+        await apiRequest('GET', '/api/v1/notices', undefined, { background: true });
+
+        expect(handler).toHaveBeenCalledTimes(2);
+        expect(person).toEqual({ ok: false, status: 401, refusal: { code: 'signed_out' } });
+    });
+
+    it('is not handed over for another refusal, and with no handler set nothing happens', async () => {
+        const handler = vi.fn();
+        setSignedOutHandler(handler);
+        answering(401, { error: { code: 'sign_in_refused' } });
+        await apiRequest('POST', '/api/v1/session', {});
+        expect(handler).not.toHaveBeenCalled();
+
+        setSignedOutHandler(null);
+        answering(401, { error: { code: 'signed_out' } });
+        await expect(apiRequest('GET', '/api/v1/session')).resolves.toMatchObject({ ok: false });
+    });
+});
+
 describe('api', () => {
     it('asks for the program meta', async () => {
         const stub = answering(200, { name: 'wyo', version: 'dev', mode: 'test' });
@@ -109,6 +153,13 @@ describe('api', () => {
         await api.delete('/api/v1/things/1');
 
         expect(stub).toHaveBeenCalledWith('/api/v1/things/1', expect.objectContaining({ method: 'DELETE' }));
+    });
+});
+
+describe('messageParams', () => {
+    it('keeps the texts and numbers of a notice’s parameters and says nothing for a notice that has none', () => {
+        expect(messageParams({ version: '1.3.0', days: 3, list: [1] })).toEqual({ version: '1.3.0', days: 3 });
+        expect(messageParams(undefined)).toBeUndefined();
     });
 });
 

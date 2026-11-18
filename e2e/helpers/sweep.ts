@@ -44,13 +44,22 @@ async function sidewaysFindings(page: Page, widths: readonly number[]): Promise<
     return findings;
 }
 
+export interface ISweepOptions {
+    /**
+     * Runs once the page is drawn, at the phone's size, before anything is measured: for a page that keeps parts folded (the sections
+     * of «Настройки»), so the sweep can measure what a person sees once they open them (`openAllSections`).
+     */
+    before?: (page: Page) => Promise<void>;
+}
+
 /** Opens `row` and measures it as described above. The test fails (softly, with every finding) when anything is wrong. */
-export async function sweepScreen(page: Page, row: IScreen): Promise<void> {
+export async function sweepScreen(page: Page, row: IScreen, options: ISweepOptions = {}): Promise<void> {
     const { route } = row;
     await page.setViewportSize(PHONE);
     const response = await page.goto(route);
     expect(response?.status(), `${route} was not opened`).toBeLessThan(400);
     await expect(page.getByTestId(row.ready), `${route} never drew its ready element ${row.ready}`).toBeVisible();
+    await options.before?.(page);
 
     const stats = {} as IMeasureStats;
     const findings: string[] = [];

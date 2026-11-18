@@ -2,6 +2,8 @@
 # Installs the pinned Go tools into .tools/bin (not committed).
 #  - golangci-lint: the official release archive, its sha256 checked against the release's own checksums file
 #    (https://golangci-lint.run/docs/welcome/install/#binaries).
+#  - sqlc and shellcheck: the official release archive, its sha256 checked against the value written in versions.sh
+#    (neither release publishes a checksum file). Linux only: the development machines and the pipeline are Linux.
 #  - gofumpt and oapi-codegen: `go install <module>@<version>`; Go checks the module against the public checksum database.
 set -euo pipefail
 
@@ -44,7 +46,7 @@ install_golangci_lint() {
     local base="https://github.com/golangci/golangci-lint/releases/download/v$GOLANGCI_LINT_VERSION"
     local tmp
     tmp="$(mktemp -d)"
-    trap 'rm -rf "$tmp"' RETURN
+    trap 'rm -rf "$tmp"; trap - RETURN' RETURN
     curl -fsSL -o "$tmp/$name.tar.gz" "$base/$name.tar.gz"
     curl -fsSL -o "$tmp/checksums.txt" "$base/golangci-lint-$GOLANGCI_LINT_VERSION-checksums.txt"
     (
@@ -75,6 +77,48 @@ install_go_tool() {
     echo "$1 $3 installed"
 }
 
+# install_archive <binary> <version text> <url> <sha256> <path of the binary inside the archive>
+install_archive() {
+    local name="$1" want="$2" url="$3" sum="$4" inside="$5"
+    if [ -x "$bin/$name" ] && "$bin/$name" --version 2>&1 | grep -q -F -- "$want"; then
+        echo "$name $want is installed"
+        return
+    fi
+    if [ "$os" != linux ]; then
+        echo "$name: only Linux archives are pinned in versions.sh" >&2
+        exit 1
+    fi
+    local tmp
+    tmp="$(mktemp -d)"
+    trap 'rm -rf "$tmp"; trap - RETURN' RETURN
+    curl -fsSL -o "$tmp/archive.tar.gz" "$url"
+    echo "$sum  $tmp/archive.tar.gz" | sha256sum -c - >/dev/null
+    tar -xzf "$tmp/archive.tar.gz" -C "$tmp"
+    install -m 0755 "$tmp/$inside" "$bin/$name"
+    echo "$name $want installed"
+}
+
+install_sqlc() {
+    local sum="$SQLC_SHA256_LINUX_AMD64"
+    [ "$arch" = arm64 ] && sum="$SQLC_SHA256_LINUX_ARM64"
+    install_archive sqlc "v$SQLC_VERSION" \
+        "https://github.com/sqlc-dev/sqlc/releases/download/v$SQLC_VERSION/sqlc_${SQLC_VERSION}_linux_$arch.tar.gz" \
+        "$sum" sqlc
+}
+
+install_shellcheck() {
+    local sum="$SHELLCHECK_SHA256_LINUX_AMD64" machine=x86_64
+    if [ "$arch" = arm64 ]; then
+        sum="$SHELLCHECK_SHA256_LINUX_ARM64"
+        machine=aarch64
+    fi
+    install_archive shellcheck "version: $SHELLCHECK_VERSION" \
+        "https://github.com/koalaman/shellcheck/releases/download/v$SHELLCHECK_VERSION/shellcheck-v$SHELLCHECK_VERSION.linux.$machine.tar.gz" \
+        "$sum" "shellcheck-v$SHELLCHECK_VERSION/shellcheck"
+}
+
 install_golangci_lint
+install_sqlc
+install_shellcheck
 install_go_tool gofumpt mvdan.cc/gofumpt "$GOFUMPT_VERSION" --version
 install_go_tool oapi-codegen github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen "$OAPI_CODEGEN_VERSION" --version

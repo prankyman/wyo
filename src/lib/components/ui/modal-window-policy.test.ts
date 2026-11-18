@@ -15,7 +15,12 @@ const ROOT = process.cwd();
 const ONE_COPY = 'src/lib/components/ui/ModalWindow.svelte';
 
 /** The files allowed to draw `role="dialog"` or to call the glue without `ModalWindow`, each with its reason. */
-const EXCEPTIONS: ReadonlyArray<[file: string, reason: string]> = [];
+const EXCEPTIONS: ReadonlyArray<[file: string, reason: string]> = [
+    [
+        'src/lib/components/shell/NotificationBell.svelte',
+        'the bell’s panel is a non-modal dialog anchored to the bell (no backdrop, nothing inert, the page stays usable; closed by a click outside), not a window; it moves the focus onto its first control with focusableElements when it opens'
+    ]
+];
 
 const GLUE = ['lockBodyScroll(', 'setBackgroundInert(', 'trapTabKey(', 'focusableElements('];
 

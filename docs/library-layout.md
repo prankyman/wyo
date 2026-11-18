@@ -38,13 +38,33 @@ word, comment or example that belonged to the other repository's subject.
   import from outside the library is brought inside) — the language comes from the page's address in the browser (constitution,
   principle I), no longer from a server.
 
+**The shell and the sign-in parts** (copied by Plan 2, `src/lib/components/shell/` and `src/lib/components/auth/`, each with its test file; what
+belonged to the other repository's subject is dropped, and the names, props and behaviour that still apply are kept):
+
+- `ShellHeader` (the bar of the top: the left side and the buttons in one row that never wraps), `ShellUserBlock` (the owner's login that opens
+  «Мой профиль», an avatar below 768 px), `AppNav` with its group state `NavGroupsState` (`src/lib/nav/nav-groups.svelte.ts`) and `CounterPill` — the
+  menu as a column at the left from 1024 px and a strip along the bottom of a phone, drawn from the ONE list `src/lib/nav/nav-items.ts`; the
+  menu has no group yet, the group machinery is kept for the plans that add items.
+- `NotificationBell` with `NotificationPanel` and `panel-rules.ts` — the bell and its panel. The wyo server's notices are lines only
+  (`src/lib/notifications/`): the other repository's short-lived events and its filter by place are not copied.
+- `AuthShell` (the frame of the pages before sign-in) and `NewPasswordFields` (the current, new and repeated password boxes).
+- `LanguageSwitcher` and `DocumentLanguage` — the switch draws nothing while one language exists; a language's name and writing direction
+  are texts of its own file (`language.nativeName`, `language.direction`), so a second file is a second language with no change in code.
+- The error page `src/routes/+error.svelte`, drawn with theme tokens.
+- **Menu places** (`src/lib/i18n/menu-places.ts`, `menu-place-policy.test.ts`): a text that says where something is in the menu writes
+  `{menu:<id>}` (for example `{menu:nav-settings}`), and the text system writes it out from the menu's own list. Constitution, help-text rule 9.
+
+**New in this repository, built on the pieces above** (Plan 2): `InstallationStateCard` (one card of «Обзор»: a title, a state with its tone, a
+sentence, an action), `SettingsSection` (one registry group drawn as a `SectionForm`), `UpdatesStatus`, `BackupsSection` and `ApiAction` (a press
+that is one call of the wyo server with its answer under the button).
+
 **Policy tests copied with the components** (each allow-list emptied of the other repository's entries; a policy test reads the source files
 and fails the build when a rule is broken): `modal-window-policy`, `window-buttons-policy`, `note-box-policy`, `empty-state-policy`,
 `stack-policy`, `form-control-policy`, `field-label-policy`, `number-field-policy`, `form-buttons-policy`, `page-width-policy`,
 `disclosure-form-policy`, `section-form-policy`, `collapsible-section-policy`, `press-feedback-policy`, `status-tones-policy`,
 `select-arrow-policy`, `page-help-policy`, `help-placement-policy`, `helper-duplication` (one home file per helper) and
 `test-helper-duplication` (one home per test fixture). New in this repository: `theme-policy`, `message-bundles`,
-`locale-argument-policy`, `reference-policy`.
+`locale-argument-policy`, `reference-policy`, `menu-place-policy` (Plan 2).
 
 **The test set-up copied:** the two Vitest projects chosen by file name (`*.svelte.test.ts` in a browser-like environment, everything else
 without one), the stand-ins for SvelteKit's `$app/*` modules, the `$test` alias, and the shared fixtures that are not about the other
@@ -67,7 +87,6 @@ released wyo server answers "not found" at its address, and a Go test of the rel
 - the searchable picker `Combobox` (the only user of the package `bits-ui`), `FilePicker`, `CodeNameSelect`, `DateRangeFields`,
   `TickAllBox`, `FileFormatButtons`, `StepsCard`, `RowButtonForm`, `ReasonDialog`;
 - the list component `DataList` with `ColumnHeading` and `ColumnLegend` — Plan 3 (the order list);
-- the shell parts (the header, the menu), the sign-in parts and the notification bell — Plan 2.
 
 The same list is item 8 of the register (`.agents/backlog.md`). When a plan copies one, it moves the name from this section to the list
 above, with its test and its policy test if the other repository has one, and closes nothing else.

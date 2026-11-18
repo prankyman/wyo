@@ -25,6 +25,154 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Refusal'
+    /api/v1/session:
+        get:
+            operationId: getSession
+            summary: Who is signed in on this browser.
+            responses:
+                '200':
+                    {
+                        description: The signed-in person.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+        post:
+            operationId: signIn
+            summary: >-
+                Signs in with the login and the password. Sets the cookie `wyo_session`. A wrong login and a wrong password
+                are refused alike (`sign_in_refused`); after 5 failures in 15 minutes for one login or one address the answer
+                is `too_many_attempts` with `params.minutes`.
+            requestBody:
+                required: true
+                content: { application/json: { schema: { $ref: '#/components/schemas/SignIn' } } }
+            responses:
+                '200':
+                    {
+                        description: Signed in.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+        delete:
+            operationId: signOut
+            summary: Ends the session of this browser.
+            responses:
+                '204': { description: Signed out. }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/sessions:
+        delete:
+            operationId: signOutEverywhere
+            summary: Ends every session of the owner, this browser's included.
+            responses:
+                '204': { description: Every session ended. }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/account/password:
+        put:
+            operationId: changePassword
+            summary: >-
+                Sets a new password after checking the current one, and ends every other session. Refusals lie on the fields:
+                `currentPassword` / `wrong`, `newPassword` / `too_short` (`params.min`), `newPassword` / `same_as_current`.
+            requestBody:
+                required: true
+                content: { application/json: { schema: { $ref: '#/components/schemas/PasswordChange' } } }
+            responses:
+                '204': { description: Changed. }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/settings:
+        get:
+            operationId: getSettings
+            summary: Every setting of the settings registry, by group, with its value, default and limits.
+            responses:
+                '200':
+                    {
+                        description: The settings.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/SettingsList' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/settings/{group}:
+        put:
+            operationId: saveSettingsGroup
+            summary: >-
+                Saves the values of one group. A value outside its limits is refused with an issue whose path is the
+                setting's key (`out_of_range` with `params.min` and `params.max`, or `wrong_kind`).
+            parameters:
+                - { name: group, in: path, required: true, schema: { type: string } }
+            requestBody:
+                required: true
+                content: { application/json: { schema: { $ref: '#/components/schemas/SettingsValues' } } }
+            responses:
+                '200':
+                    {
+                        description: The group as saved.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/SettingsGroup' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/installation:
+        get:
+            operationId: getInstallation
+            summary: The state of the installation shown on «Обзор» - version, updates, certificate, the last copy.
+            responses:
+                '200':
+                    {
+                        description: The state.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/Installation' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/updates/check:
+        post:
+            operationId: requestUpdateCheck
+            summary: Asks the updater to look for a newer release now (it installs nothing).
+            responses:
+                '202':
+                    {
+                        description: Asked.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/UpdateRequest' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/updates/install:
+        post:
+            operationId: requestUpdateInstall
+            summary: >-
+                Asks the updater to install a newer release now, even with automatic updates off and even a version that
+                failed before.
+            responses:
+                '202':
+                    {
+                        description: Asked.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/UpdateRequest' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/backups:
+        get:
+            operationId: listBackups
+            summary: The copies of the database kept on the server, newest first.
+            responses:
+                '200':
+                    {
+                        description: The copies.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/BackupList' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+        post:
+            operationId: createBackup
+            summary: Writes a copy of the database now and keeps the newest seven.
+            responses:
+                '201':
+                    {
+                        description: The copy written.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/Backup' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /api/v1/notices:
+        get:
+            operationId: listNotices
+            summary: What needs the owner's attention now, from every notice source (the bell).
+            responses:
+                '200':
+                    {
+                        description: The notices.,
+                        content: { application/json: { schema: { $ref: '#/components/schemas/NoticeList' } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
 components:
     schemas:
         Meta:
@@ -70,3 +218,157 @@ components:
                                         type: string
                                     code:
                                         type: string
+        SignIn:
+            type: object
+            additionalProperties: false
+            required: [login, password]
+            properties:
+                login: { type: string }
+                password: { type: string }
+        Session:
+            type: object
+            additionalProperties: false
+            required: [login, mustChangePassword, idleMinutes]
+            properties:
+                login: { type: string }
+                mustChangePassword: { type: boolean }
+                idleMinutes:
+                    type: integer
+                    description: After how many minutes without the person's own action the session ends.
+        PasswordChange:
+            type: object
+            additionalProperties: false
+            required: [currentPassword, newPassword]
+            properties:
+                currentPassword: { type: string }
+                newPassword: { type: string }
+        Setting:
+            type: object
+            additionalProperties: false
+            required: [key, kind, value, defaultValue]
+            properties:
+                key:
+                    type: string
+                    description: '`<group>.<name>`; the texts are `settings.<key>.label` and `settings.<key>.help`.'
+                kind: { type: string, enum: [boolean, integer] }
+                value: { description: A boolean or an integer, by `kind`. }
+                defaultValue: { description: A boolean or an integer, by `kind`. }
+                min: { type: integer }
+                max: { type: integer }
+        SettingsGroup:
+            type: object
+            additionalProperties: false
+            required: [id, settings]
+            properties:
+                id: { type: string }
+                settings:
+                    type: array
+                    items: { $ref: '#/components/schemas/Setting' }
+        SettingsList:
+            type: object
+            additionalProperties: false
+            required: [groups]
+            properties:
+                groups:
+                    type: array
+                    items: { $ref: '#/components/schemas/SettingsGroup' }
+        SettingsValues:
+            type: object
+            additionalProperties: false
+            required: [values]
+            properties:
+                values:
+                    type: object
+                    description: Setting keys of the group with their new values.
+                    additionalProperties: true
+        Backup:
+            type: object
+            additionalProperties: false
+            required: [name, size, createdAt]
+            properties:
+                name: { type: string, description: 'The file name in `backups/`, e.g. `wyo-2026-11-17.db`.' }
+                size: { type: integer, format: int64, description: The size in bytes. }
+                createdAt: { type: string, format: date-time }
+        BackupList:
+            type: object
+            additionalProperties: false
+            required: [backups]
+            properties:
+                backups:
+                    type: array
+                    items: { $ref: '#/components/schemas/Backup' }
+        Installation:
+            type: object
+            additionalProperties: false
+            required: [version, updates, certificate, backups]
+            properties:
+                version: { type: string }
+                updates:
+                    type: object
+                    additionalProperties: false
+                    required: [auto, requested]
+                    properties:
+                        auto: { type: boolean }
+                        lastCheckAt: { type: string, format: date-time }
+                        latestVersion: { type: string, description: The newest version the last look found. }
+                        waitingVersion: { type: string, description: A newer version that waits to be installed. }
+                        failedVersion: { type: string, description: A version whose update failed and was put back. }
+                        requested:
+                            type: boolean
+                            description: A request of the owner waits for the updater.
+                certificate:
+                    type: object
+                    additionalProperties: false
+                    required: [mode, state]
+                    properties:
+                        mode:
+                            type: string
+                            enum: [automatic, proxy, none]
+                            description: >-
+                                `automatic` - the wyo server obtains its certificate; `proxy` - a web server in front holds
+                                it; `none` - plain http (development and tests only).
+                        state: { type: string, enum: [ok, pending, failed, not_applicable] }
+                        domain: { type: string }
+                        notAfter: { type: string, format: date-time }
+                        lastError: { type: string, description: 'A code: `dns`, `ports`, `authority`, `other`.' }
+                backups:
+                    type: object
+                    additionalProperties: false
+                    required: [state]
+                    properties:
+                        state: { type: string, enum: [ok, old, failed, none] }
+                        last: { $ref: '#/components/schemas/Backup' }
+        UpdateRequest:
+            type: object
+            additionalProperties: false
+            required: [requested]
+            properties:
+                requested: { type: string, enum: [check, install] }
+        Notice:
+            type: object
+            additionalProperties: false
+            required: [id, source, code, tone]
+            properties:
+                id: { type: string, description: Stable while the cause lasts. }
+                source: { type: string, enum: [updates, certificate, backups] }
+                code: { type: string, description: 'The text is `notices.<code>`.' }
+                tone: { type: string, enum: [ok, wait, warn, stop, info] }
+                params:
+                    type: object
+                    additionalProperties: true
+                at: { type: string, format: date-time }
+        NoticeList:
+            type: object
+            additionalProperties: false
+            required: [notices]
+            properties:
+                notices:
+                    type: array
+                    items: { $ref: '#/components/schemas/Notice' }
+    responses:
+        Refusal:
+            description: A refusal - a code with parameters; the interface words it.
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/Refusal'

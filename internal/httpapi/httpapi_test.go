@@ -13,13 +13,17 @@ import (
 	"github.com/prankyman/wyo/internal/config"
 	"github.com/prankyman/wyo/internal/httpapi"
 	"github.com/prankyman/wyo/internal/httpapi/gen"
+	"github.com/prankyman/wyo/internal/testkit/apikit"
 	"github.com/prankyman/wyo/internal/testkit/httpkit"
 )
 
 func newHandler(t *testing.T, info httpapi.Info) http.Handler {
 	t.Helper()
 
-	h, err := httpapi.New(info)
+	deps := apikit.New(t).Deps
+	deps.Info = info
+
+	h, err := httpapi.New(deps)
 	if err != nil {
 		t.Fatalf("httpapi.New: %v", err)
 	}
@@ -84,7 +88,10 @@ func TestEveryModeOfTheServerIsAModeOfTheDescription(t *testing.T) {
 func TestAnUnknownModeIsRefusedAtStart(t *testing.T) {
 	t.Parallel()
 
-	if _, err := httpapi.New(httpapi.Info{Version: "dev", Mode: "staging"}); err == nil {
+	deps := apikit.New(t).Deps
+	deps.Info = httpapi.Info{Version: "dev", Mode: "staging"}
+
+	if _, err := httpapi.New(deps); err == nil {
 		t.Fatal("want an error for a mode the description does not know")
 	}
 }
@@ -104,12 +111,10 @@ func TestUnknownAddressesAreRefusedAsJSON(t *testing.T) {
 }
 
 // TestWalkEveryPathWithEveryMethod is the router's table of who may call what, checked from the outside: for every
-// path of the description and every method, the answer is the one the table promises, and nothing is registered that the
-// description does not list.
+// path of the description and every method, signed out and signed in, the answer is the one the table promises, and
+// nothing is registered that the description does not list. A path nobody wrote a row for fails here.
 func TestWalkEveryPathWithEveryMethod(t *testing.T) {
 	t.Parallel()
-
-	h := newHandler(t, httpapi.Info{Version: "dev", Mode: config.ModeRelease})
 
 	routes, err := httpapi.Routes()
 	if err != nil {
@@ -140,35 +145,74 @@ func TestWalkEveryPathWithEveryMethod(t *testing.T) {
 			}
 		}
 
+		// A path with a parameter is walked with a value in it.
+		target := strings.ReplaceAll(path, "{group}", "updates")
+
 		for _, method := range methods {
 			t.Run(method+" "+path, func(t *testing.T) {
 				t.Parallel()
 
-				got := do(t, h, method, path)
+				f := apikit.New(t).WithOwner(t)
+				signedOut := apikit.Do(t, f.Handler, apikit.Request{Method: method, Path: target})
 
 				access, isAllowed := allowed[method]
 				if !isAllowed {
-					if got.Status != http.StatusMethodNotAllowed || got.Body != `{"error":{"code":"method_not_allowed"}}` {
-						t.Fatalf("status %d, body %q: a method the description does not list must be refused with 405", got.Status, got.Body)
+					if signedOut.Status != http.StatusMethodNotAllowed || signedOut.Body != `{"error":{"code":"method_not_allowed"}}` {
+						t.Fatalf("status %d, body %q: a method the description does not list must be refused with 405", signedOut.Status, signedOut.Body)
 					}
 
-					if got.Allow == "" {
+					if signedOut.Header.Get("Allow") == "" {
 						t.Fatal("a 405 must name the methods that are allowed")
 					}
 
 					return
 				}
 
+				signedIn := apikit.Do(t, f.Handler, apikit.Request{Method: method, Path: target, Cookie: f.SignIn(t)})
+
 				switch access {
 				case httpapi.AccessPublic:
-					if got.Status == http.StatusUnauthorized || got.Status == http.StatusForbidden || got.Status == http.StatusNotFound || got.Status == http.StatusMethodNotAllowed {
-						t.Fatalf("a public call was refused with %d: %s", got.Status, got.Body)
+					for who, got := range map[string]apikit.Response{"signed out": signedOut, "signed in": signedIn} {
+						if got.Status == http.StatusUnauthorized || got.Status == http.StatusForbidden || got.Status == http.StatusNotFound || got.Status == http.StatusMethodNotAllowed {
+							t.Fatalf("a public call was refused with %d (%s): %s", got.Status, who, got.Body)
+						}
+					}
+				case httpapi.AccessOwner:
+					if signedOut.Status != http.StatusUnauthorized || signedOut.Body != `{"error":{"code":"signed_out"}}` {
+						t.Fatalf("signed out: status %d, body %q; an owner's call must be refused with 401 signed_out", signedOut.Status, signedOut.Body)
+					}
+
+					if got := signedIn; got.Status == http.StatusUnauthorized || got.Status == http.StatusForbidden || got.Status == http.StatusNotFound || got.Status == http.StatusMethodNotAllowed || got.Status >= 500 {
+						t.Fatalf("signed in: an owner's call was refused with %d: %s", got.Status, got.Body)
 					}
 				default:
 					t.Fatalf("the route has the access %q, which this walk does not know how to check", access)
 				}
 			})
 		}
+	}
+}
+
+func TestOnlyTheMetaAndTheSignInArePublic(t *testing.T) {
+	t.Parallel()
+
+	routes, err := httpapi.Routes()
+	if err != nil {
+		t.Fatalf("Routes: %v", err)
+	}
+
+	var public []string
+
+	for _, r := range routes {
+		if r.Access == httpapi.AccessPublic {
+			public = append(public, r.Method+" "+r.Path)
+		}
+	}
+
+	sort.Strings(public)
+
+	if got := strings.Join(public, ", "); got != "GET /api/v1/meta, POST /api/v1/session" {
+		t.Fatalf("public calls: %s (/healthz and /readyz are public too, but they are not calls of the API)", got)
 	}
 }
 

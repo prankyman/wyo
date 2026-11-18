@@ -54,7 +54,10 @@ describe('start-up bar', () => {
         vi.advanceTimersByTime(1);
         expect(bar()).not.toBeNull();
         expect(bar()?.getAttribute('role')).toBe('progressbar');
-        expect(bar()?.style.height).toBe('6px');
+        // The bar's look is in src/app.css (the page's security policy refuses a style text set by a script): the bar carries
+        // the attribute that file draws as a 6 px bar.
+        expect(bar()?.hasAttribute('data-startup-bar')).toBe(true);
+        expect(readFileSync('src/app.css', 'utf8')).toMatch(/\[data-startup-bar\] \{[^}]*height: 6px;/);
         expect(bar()?.style.top).toBe('0px');
 
         release();

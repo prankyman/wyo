@@ -12,13 +12,50 @@ This file exists because a request the maintainer makes while testing one plan m
 
 ## Open
 
+### 16. The maintainer's checks of Plan 2 on a real server (2026-11-18)
+
+Plan 2 (`.agents/plans/wyo-program-go-server-embedded-interface-database-owner-sign-in-installer-https-updates-signed-release.md`, «After
+the release») is proven on GitHub's clean Ubuntu machines only, with a test certificate authority. The maintainer, 2026-11-17: «If the GH
+Actions passes fine for you - not a problem!» — and checks a real server himself afterwards: a server of 1 core and 1 GB with Debian 12
+or 13 (the pipeline has only Ubuntu) and a real domain; the installer from the README; a real Let's Encrypt certificate; the memory after
+a day; an update from this release to the next one; a copy restored on a second server. What the checks find becomes the next plan's
+premises.
+
+### 15. Systems without systemd or OpenSSL 3, a Docker image, Windows (2026-11-18)
+
+Left out of Plan 2: the installer refuses such a system and says why. To be taken up if sellers ask.
+
+### 14. A second sign-in step and a list of allowed addresses (2026-11-18)
+
+Left out of Plan 2: a code from a phone as a second step of signing in, and a list of addresses the wyo interface may be opened from.
+Later, if asked.
+
+### 13. A server without a domain name (2026-11-18)
+
+Left out of Plan 2: a certificate for a bare address. The maintainer's request names a domain («asks the domain name»).
+
+### 12. E-mail from wyo (2026-11-18)
+
+Left out of Plan 2: a forgotten password by mail and notices by mail. A seller's server has no mail set up; a forgotten password is set
+again on the server (`sudo wyo owner reset-password`) and notices live behind the bell.
+
+### 11. An offline page and installing the wyo interface as an application on a phone (2026-11-18)
+
+Left out of Plan 2: not asked for.
+
+### 10. Postgres (2026-11-18)
+
+The high-level plan: "not offered in the first stages". The database is SQLite in one file (`.specify/memory/constitution.md`,
+principle VIII). To be taken up when a seller's data outgrows it.
+
 ### 9. A policy test for rule R7 (free and open) (2026-11-17)
 
 Found by Plan 1 while writing the constitution: every other rule R1 to R6 names the test that enforces it, but rule R7 (Apache-2.0, no paid
 edition, no licence key) has only the file `LICENSE`. "A rule is not finished until a policy test enforces it" (constitution, principle IV).
 To build: a policy test that reads `package.json`, `go.mod`'s module files and any other manifest and fails when one names a licence other
 than Apache-2.0, or when a source file asks for, checks or sells a licence key. It belongs to the first plan that adds a manifest beyond the
-ones Plan 1 creates, or to Plan 2 (the release), whichever comes first. The maintainer decides when.
+ones Plan 1 creates, or to Plan 2 (the release), whichever comes first. The maintainer decides when. Plan 2 (2026-11-18) added no
+manifest and no feature switch, and its text does not name this test, so the item stays open.
 
 ### 8. The components the library does not hold yet (2026-11-17)
 
@@ -30,7 +67,8 @@ test, never rewritten:**
 - the searchable picker `Combobox` (the only user of the package `bits-ui`), `FilePicker`, `CodeNameSelect`, `DateRangeFields`,
   `TickAllBox`, `FileFormatButtons`, `StepsCard`, `RowButtonForm`, `ReasonDialog`;
 - the list component `DataList` with `ColumnHeading` and `ColumnLegend` — Plan 3 (the order list);
-- the shell parts (the header, the menu), the sign-in parts and the notification bell — Plan 2.
+- ~~the shell parts (the header, the menu), the sign-in parts and the notification bell — Plan 2~~ — copied by Plan 2 on 2026-11-18
+  (`docs/library-layout.md`); the rest of this list stays open.
 
 ### 7. More people who sign in (2026-11-17)
 

@@ -15,9 +15,17 @@ mkdir -p bin
 go build -tags wyotest -o bin/wyofakes ./cmd/wyofakes
 go build -tags wyotest -o bin/wyo-dev ./cmd/wyo
 
+# The development data folder (not committed). The first start makes it, with the owner `owner` and the password
+# `development-password`; later starts keep what is there.
+data=.dev-data
+if [ ! -f "$data/wyo.db" ]; then
+    bin/wyo-dev init --data "$data"
+    bin/wyo-dev owner create --data "$data" --login owner --password-file <(printf '%s\n' development-password)
+fi
+
 bin/wyofakes --wildberries 127.0.0.1:8791 --fulfilment 127.0.0.1:8792 &
 pids+=("$!")
-bin/wyo-dev --listen 127.0.0.1:8790 --mode development &
+bin/wyo-dev --listen 127.0.0.1:8790 --mode development --data "$data" &
 pids+=("$!")
 
 pnpm exec vite dev --host 127.0.0.1 --port 5190 --strictPort

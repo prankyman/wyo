@@ -9,9 +9,9 @@ cd "$root"
 export PATH="$root/.tools/bin:$PATH"
 
 # The Go packages the checks run over.
-GO_PACKAGES=(./cmd/... ./internal/... ./tools/...)
+GO_PACKAGES=(./cmd/... ./internal/... ./tools/... ./messages/...)
 # The same places as folders, for tools that take paths.
-GO_FOLDERS=(cmd internal tools)
+GO_FOLDERS=(cmd internal tools messages)
 
 ensure_interface_placeholder() {
     local index="$root/internal/webui/dist/index.html"
