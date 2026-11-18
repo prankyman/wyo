@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.5](https://github.com/prankyman/wyo/compare/v0.0.4...v0.0.5) (2026-11-18)
+
+### Features
+
+* «Внешний API» and the whole Wildberries FBS exchange with a fulfilment centre ([89f8be7](https://github.com/prankyman/wyo/commit/89f8be71d3d04a87a2dd4f986e375fda8b34f797))
+
 ## [0.0.4](https://github.com/prankyman/wyo/compare/v0.0.3...v0.0.4) (2026-11-18)
 
 ### Features
