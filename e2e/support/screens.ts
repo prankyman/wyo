@@ -26,9 +26,20 @@ export interface IScreen {
 }
 
 export const SCREENS: readonly IScreen[] = [
-    { route: '/', ready: 'start-version', sweptBy: 'start-page.spec.ts' },
+    { route: '/', ready: 'overview-cards', sweptBy: 'overview.spec.ts' },
+    { route: '/settings', ready: 'settings-sections', sweptBy: 'settings.spec.ts' },
+    { route: '/account', ready: 'account-login', sweptBy: 'account.spec.ts' },
+    { route: '/auth/login', ready: 'login-send', sweptBy: 'sign-in.spec.ts' },
     { route: '/showcase', ready: 'showcase', sweptBy: 'showcase-sweep.spec.ts' }
 ];
+
+/** The pages a visitor with no session can open: the sign-in page and the showcase. Every other page needs the owner signed in. */
+const PUBLIC_ROUTES: readonly string[] = ['/auth/login', '/showcase'];
+
+/** Whether the page of `route` is open only to the signed-in owner. */
+export function needsSignIn(route: string): boolean {
+    return !PUBLIC_ROUTES.includes(route);
+}
 
 /** The row of `route`; throws when the table has none, so a spec cannot measure a page the table does not know. */
 export function screenOf(route: string): IScreen {

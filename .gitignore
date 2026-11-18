@@ -34,3 +34,6 @@ blob-report/
 .DS_Store
 Thumbs.db
 *.sw?
+
+# The data folder of `pnpm dev` (scripts/dev.sh)
+.dev-data/

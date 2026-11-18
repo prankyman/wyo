@@ -41,8 +41,8 @@ describe('the languages', () => {
 
 describe('t', () => {
     it('gives the Russian text of a key', () => {
-        expect(t('start.title')).toBe('wyo');
-        expect(t('start.subtitle', 'ru')).toBe(messages.ru['start.subtitle']);
+        expect(t('nav.settings')).toBe('Настройки');
+        expect(t('nav.overview', 'ru')).toBe(messages.ru['nav.overview']);
     });
 
     it('fills {name} placeholders, every occurrence, with numbers and text', () => {
@@ -51,27 +51,33 @@ describe('t', () => {
         delete messages.ru['test.twice'];
     });
 
+    it('writes a menu token out from the menu, in the language of the text', () => {
+        messages.ru['test.place'] = 'Нажмите в меню {menu:nav-settings}.';
+        expect(t('test.place', 'ru')).toBe('Нажмите в меню «Настройки».');
+        delete messages.ru['test.place'];
+    });
+
     it('gives back the key itself when no language has it, so a missing text is visible', () => {
         expect(t('no.such.key')).toBe('no.such.key');
         expect(hasMessage('no.such.key')).toBe(false);
-        expect(hasMessage('start.title')).toBe(true);
+        expect(hasMessage('nav.settings')).toBe(true);
     });
 
     it('reads the text in the language the page address names and falls back to Russian for a key it lacks', () => {
-        withSecondLanguage({ 'start.title': 'second title' });
+        withSecondLanguage({ 'nav.settings': 'second title' });
         setPageUrl('/xx/showcase');
 
         expect(getLocale()).toBe(SECOND);
-        expect(t('start.title')).toBe('second title');
-        expect(t('start.subtitle')).toBe(messages.ru['start.subtitle']);
-        expect(hasMessage('start.subtitle')).toBe(true);
+        expect(t('nav.settings')).toBe('second title');
+        expect(t('nav.overview')).toBe(messages.ru['nav.overview']);
+        expect(hasMessage('nav.overview')).toBe(true);
     });
 
     it('prefers the language it is given over the address', () => {
-        withSecondLanguage({ 'start.title': 'second title' });
+        withSecondLanguage({ 'nav.settings': 'second title' });
         setPageUrl('/showcase');
 
-        expect(t('start.title', SECOND)).toBe('second title');
+        expect(t('nav.settings', SECOND)).toBe('second title');
         expect(getLocale(SECOND)).toBe(SECOND);
     });
 });

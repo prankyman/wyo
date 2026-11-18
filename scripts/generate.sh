@@ -7,6 +7,7 @@
 #   internal/fulfilment/fcapi/                         from api/fulfilment-centre.yaml (oapi-codegen)
 #   internal/marketplace/wildberries/wbapi/<package>/  from api/wildberries/*.yaml (oapi-codegen)
 #   src/lib/api/wyo-api.d.ts                           from api/wyo.yaml (openapi-typescript)
+#   internal/store/db/                                 from internal/store/*.sql, migrations/ and queries/ (sqlc)
 set -euo pipefail
 # shellcheck source=scripts/go/common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/go/common.sh"
@@ -22,6 +23,7 @@ case "${1:-}" in
 esac
 
 require_tool oapi-codegen
+require_tool sqlc
 
 # The generated files, relative to the root.
 GENERATED=(
@@ -32,6 +34,13 @@ GENERATED=(
     internal/marketplace/wildberries/wbapi/orders/orders.gen.go
     internal/marketplace/wildberries/wbapi/reports/reports.gen.go
     src/lib/api/wyo-api.d.ts
+    internal/store/db/db.go
+    internal/store/db/models.go
+    internal/store/db/migrations.sql.go
+    internal/store/db/people.sql.go
+    internal/store/db/secrets.sql.go
+    internal/store/db/sessions.sql.go
+    internal/store/db/settings.sql.go
 )
 
 # generate_into <folder>: writes every generated file below <folder>, at the same relative paths.
@@ -55,6 +64,15 @@ generate_into() {
         oapi-codegen -config "$root/api/codegen/wildberries-orders.cfg.yaml" "$root/api/wildberries/03-orders-fbs.yaml"
         oapi-codegen -config "$root/api/codegen/wildberries-reports.cfg.yaml" "$root/api/wildberries/12-reports.yaml"
     )
+
+    # sqlc resolves every path of its configuration against the folder the configuration is in, so when the output goes
+    # elsewhere the inputs go with it.
+    if [ "$out" != "$root" ]; then
+        mkdir -p "$out/internal/store"
+        cp "$root/sqlc.yaml" "$out/sqlc.yaml"
+        cp -R "$root/internal/store/schema_migrations.sql" "$root/internal/store/migrations" "$root/internal/store/queries" "$out/internal/store/"
+    fi
+    (cd "$out" && sqlc generate)
 
     if [ -f "$root/node_modules/.bin/openapi-typescript" ]; then
         pnpm exec openapi-typescript "$root/api/wyo.yaml" -o "$out/src/lib/api/wyo-api.d.ts"
@@ -82,6 +100,14 @@ for file in "${GENERATED[@]}"; do
     elif ! diff -q "$root/$file" "$tmp/$file" >/dev/null; then
         echo "out of date (run: pnpm generate): $file" >&2
         diff -u "$root/$file" "$tmp/$file" | head -20 >&2 || true
+        status=1
+    fi
+done
+
+# A file in the generated folder that a fresh run does not make (a query file was deleted) is out of date too.
+for extra in "$root"/internal/store/db/*.go; do
+    if [ ! -f "$tmp/internal/store/db/$(basename "$extra")" ]; then
+        echo "no longer generated (delete it): ${extra#"$root"/}" >&2
         status=1
     fi
 done

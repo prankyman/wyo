@@ -37,6 +37,7 @@ func TestMainInChildProcess(t *testing.T) {
 			defer cancel()
 
 			cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestMainInChildProcess$", childMarker) //nolint:gosec // runs this test binary again
+			cmd.Env = []string{"WYO_DATA_DIR=" + initialised(t)}                                           // the child needs nothing else from the environment
 			cmd.WaitDelay = 5 * time.Second
 
 			stderr, err := cmd.StderrPipe()

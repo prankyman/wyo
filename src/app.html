@@ -33,7 +33,9 @@
             // Start-up page-change bar. Until the interface's code has started, a press on a link makes the browser load a
             // whole new page by itself, and nothing on the page says so: the running bar (PageChangeGuard.svelte) exists
             // only once the code runs. This draws the same bar, 6 px along the lower edge of the header, 150 ms after such
-            // a press, in the theme's brand colour (the colour variables are the ones `src/app.css` defines).
+            // a press, in the theme's brand colour (the colour variables are the ones `src/app.css` defines). Its look and animation
+            // are in `src/app.css` too: the page's security policy refuses a `<style>` element and a style text set by a
+            // script; only the top edge, which depends on the header, is set here, as one property.
             //
             // The same bar also runs from the start: until the code has started, the page looks ready but nothing on it
             // reacts to typing. It appears 150 ms after the page was read, so a page that starts sooner never shows it.
@@ -49,28 +51,16 @@
                     if (released || bar || timer) return;
                     timer = setTimeout(function () {
                         timer = null;
-                        var style = document.createElement('style');
-                        style.textContent =
-                            '@keyframes startup-bar-run{from{transform:translateX(-100%)}to{transform:translateX(300%)}}' +
-                            '@media (prefers-reduced-motion: reduce){[data-startup-bar-runner]{width:100%!important;' +
-                            'animation:none!important;opacity:.6}}';
                         bar = document.createElement('div');
                         bar.setAttribute('role', 'progressbar');
                         bar.setAttribute('data-test', 'startup-page-change-bar');
                         // Along the lower edge of the pinned header; at the window's top on a page without one.
                         var header = document.querySelector('header');
                         var top = header ? Math.max(0, Math.round(header.getBoundingClientRect().bottom)) : 0;
-                        bar.style.cssText =
-                            'position:fixed;left:0;right:0;top:' +
-                            top +
-                            'px;z-index:100;height:6px;overflow:hidden;' +
-                            'background:var(--color-brand-100);pointer-events:none';
+                        bar.setAttribute('data-startup-bar', '');
+                        bar.style.top = top + 'px';
                         var runner = document.createElement('div');
                         runner.setAttribute('data-startup-bar-runner', '');
-                        runner.style.cssText =
-                            'height:100%;width:33.333%;background:var(--color-brand-500);' +
-                            'animation:startup-bar-run 1.1s ease-in-out infinite';
-                        bar.appendChild(style);
                         bar.appendChild(runner);
                         document.documentElement.appendChild(bar);
                     }, 150);
@@ -123,6 +113,6 @@
         %sveltekit.head%
     </head>
     <body data-sveltekit-preload-data="hover">
-        <div style="display: contents">%sveltekit.body%</div>
+        <div data-sveltekit-body>%sveltekit.body%</div>
     </body>
 </html>

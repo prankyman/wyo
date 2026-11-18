@@ -67,6 +67,18 @@ const ALLOWLIST: IException[] = [
         reason: 'The chip of a picker or a filter, a button holding its words and the remove cross; carries PRESS_FEEDBACK.'
     },
     {
+        path: 'src/lib/components/shell/NotificationBell.svelte',
+        reason: 'The header bell: an icon button carrying its number and its pulse ring; carries PRESS_FEEDBACK.'
+    },
+    {
+        path: 'src/lib/components/shell/CounterPill.svelte',
+        reason: 'A menu counter that opens its sentence in a portaled pop-up, like HelpTooltip; carries PRESS_FEEDBACK.'
+    },
+    {
+        path: 'src/lib/components/shell/AppNav.svelte',
+        reason: 'The "More" item of the phone tab strip: icon above label like its neighbouring links; pressed state as they have.'
+    },
+    {
         path: 'src/lib/components/ui/toast/Toaster.svelte',
         reason: 'The close cross of a toast, coloured by the toast it sits on; carries PRESS_FEEDBACK.'
     }

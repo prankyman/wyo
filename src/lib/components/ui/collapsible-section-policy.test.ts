@@ -14,7 +14,11 @@ import { describe, expect, it } from 'vitest';
 const ROOT = path.resolve(__dirname, '../../../..');
 
 /** The files holding the folded screens' sections: a screen with two or more titled sections adds its files here. */
-const SECTION_FILES: readonly string[] = [];
+const SECTION_FILES: readonly string[] = [
+    'src/lib/components/settings/SettingsSection.svelte',
+    'src/lib/components/settings/BackupsSection.svelte',
+    'src/routes/(app)/account/+page.svelte'
+];
 
 /** The raw `<h2>` a file keeps on purpose, and why: none of them heads a section of the screen. */
 const KEPT_HEADINGS: Readonly<Record<string, { count: number; reason: string }>> = {};

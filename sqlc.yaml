@@ -1,0 +1,14 @@
+# sqlc (https://docs.sqlc.dev): typed Go for the wyo server's queries. `pnpm generate` runs it; the Go in internal/store/db
+# is generated and never edited by hand. The schema is the migrations themselves (and the table that records them), so the two cannot differ.
+version: '2'
+sql:
+    - engine: sqlite
+      schema:
+          - internal/store/schema_migrations.sql
+          - internal/store/migrations
+      queries: internal/store/queries
+      gen:
+          go:
+              package: db
+              out: internal/store/db
+              emit_exact_table_names: false

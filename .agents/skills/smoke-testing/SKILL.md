@@ -28,14 +28,18 @@ A smoke test that passed is not repeated without a reason.
 
 | Address                | What it is                                                                                  |
 | ---------------------- | ------------------------------------------------------------------------------------------- |
-| `/`                    | The start page: shows the program's name and the version the wyo server reports             |
-| `/showcase`            | Every component of the library in each of its states (only in a wyo server built for tests) |
-| `GET /api/v1/meta`     | The wyo server's own API, one call: `{ "name", "version", "mode" }`                         |
-| any other `/api/…`     | `404` and `{"error":{"code":"not_found"}}`                                                  |
-| any other page address | The start page (the interface decides what to draw)                                         |
+| `/auth/login`          | Signing in: login, password, «Войти»; «Забыли пароль?» says how to set a new one on the server |
+| `/`                    | «Обзор»: the strip of steps, then cards of the version, the certificate and the last copy     |
+| `/settings`            | «Настройки»: «Обновления», «Резервные копии», «Вход и безопасность», each folded              |
+| `/account`             | «Мой профиль»: change the password, «Выйти», «Выйти на всех устройствах»                      |
+| the bell (top bar)     | Notices from the updater, the certificate and the copies                                      |
+| `/showcase`            | Every component of the library in each of its states (only in a wyo server built for tests)   |
+| `GET /api/v1/meta`     | Public: `{ "name", "version", "mode" }`; every other call of `api/wyo.yaml` needs a session     |
+| any other `/api/…`     | `404` and `{"error":{"code":"not_found"}}`                                                    |
+| any other page address | The interface (it decides what to draw)                                                       |
 
-Each plan that adds a screen adds its rows here and its steps to Phase 2, in the same plan. Plan 2 adds sign-in; Plan 3 the keys and the
-order list; Plan 4 «External API».
+Each plan that adds a screen adds its rows here and its steps to Phase 2, in the same plan. Plan 2 added sign-in and the three pages;
+Plan 3 adds the keys and the order list; Plan 4 «External API».
 
 The fakes (`cmd/wyofakes`): the fake Wildberries on `127.0.0.1:8791`, the fake fulfilment centre on `127.0.0.1:8792`. Both answer
 `/__control/health` when up, `/__control/reset` empties their state, `/__control/calls` lists the calls they received (without keys).
@@ -72,8 +76,9 @@ selectors.setTestIdAttribute('data-test');
 > **Passwords and keys are not written down here, anywhere.** A password, a key or a session cookie never goes into a tool call, a file, a
 > commit, a report, a screenshot filename or the chat.
 
-There is no sign-in before Plan 2. When sign-in exists, the owner's address and password for a smoke run come from the environment of the
-shell that starts the run (the plan that builds sign-in names the variables); read them at the moment you need them and fill the field
+The owner is created for the run in the run's own data folder, before the wyo server starts: `bin/wyo owner create --data <folder>
+--login <login> --password-file <file>`, the file made with `umask 077` and deleted at the end. The script reads the login and the
+password from the environment variables `SMOKE_OWNER_LOGIN` and `SMOKE_OWNER_PASSWORD`; read them at the moment you need them and fill the field
 inside the page. The same holds for a marketplace key: use the made-up key of the fakes (the fake Wildberries accepts any key and keeps a
 state per key), typed inside the page, never printed. Where a screenshot would show a key, take a screenshot of the single element being
 checked, or none.
@@ -119,28 +124,31 @@ prefix the session shows. `browser_type` fills the whole text at once by default
 Test the screens in this order — each step leaves the browser in the state the next needs:
 
 1. **The meta call** (`/api/v1/meta`): navigate directly; expect a `200` JSON answer with `name` `wyo`, a `version` and `mode` `test`.
-2. **The start page** (`/`) at 1280 × 800 and at 390 × 844: the name and the version the wyo server reports are drawn; take a screenshot of
-   each for the report; run the four checks.
-3. **An unknown page address** (`/does-not-exist`): the start page answers (a reload on any page works). **An unknown API address**
+2. **Signing in** (`/auth/login`): a wrong password is refused with its sentence and the password box empties; the right one opens
+   «Обзор». Screenshot of the sign-in page at 390 × 844; run the four checks.
+3. **«Обзор», «Настройки», «Мой профиль» and the bell** at 1280 × 800 and at 390 × 844: the strip of steps and the three cards; the three
+   folded sections; «Сделать копию сейчас» adds a copy to the list; the bell opens and closes. Change the password on «Мой профиль», sign
+   out, sign in with the new one. Screenshot of each page at each width; run the four checks after each.
+4. **An unknown page address** (`/does-not-exist`): the interface answers (a reload on any page works). **An unknown API address**
    (`/api/does-not-exist`): `404` with `{"error":{"code":"not_found"}}`.
-4. **The showcase page** (`/showcase`) at 1280 × 800 and at 390 × 844: every component is drawn in each of its states; nothing is cut off,
+5. **The showcase page** (`/showcase`) at 1280 × 800 and at 390 × 844: every component is drawn in each of its states; nothing is cut off,
    overlapping or unreachable; every tap target looks at least 44 × 44 pixels; take a screenshot of each width; run the four checks.
-5. **R3 — with «External API» empty no request leaves for anything but the fake marketplaces.** While you walk the screens above (and every
+6. **R3 — with «External API» empty no request leaves for anything but the fake marketplaces.** While you walk the screens above (and every
    screen later plans add), read the list of requests the browser sent (`browser_network_requests`) and the fakes' call lists
    (`/__control/calls`): the browser calls only the wyo server's own address; the wyo server calls only the fake Wildberries, and the fake
    fulfilment centre receives nothing while «External API» is empty. Any other address — a font, a script, a statistics call — is a failure.
    (The wyo server's own outgoing addresses are checked by its Go tests; this step checks the whole built program.)
-6. **R4 — a key shows only its last four characters.** From Plan 3 on, when a screen shows a saved marketplace key, check that the page
+7. **R4 — a key shows only its last four characters.** From Plan 3 on, when a screen shows a saved marketplace key, check that the page
    shows at most its last four characters: the snapshot, the page source (`browser_evaluate` on `document.documentElement.outerHTML`,
    searched for the key's first characters, never printed) and the network answers must not contain the rest of the key. Until a screen
    shows a key this step is **not applicable**; write "not applicable: no screen shows a key yet", never "passed".
-7. **Two people at once** (from Plan 2 on, when more than one person can sign in): use a second browser **context** per person, never a
+8. **Two people at once** (only when more than one person can sign in; Plan 2 has one owner): use a second browser **context** per person, never a
    second browser, and open them one after another.
 
 A check that only a human can do (a printed sticker on paper, a phone camera, a real marketplace account) is reported as **waiting for the
 maintainer**, never as passed.
 
-**Responsive testing:** the start page and the showcase page are checked at 1280 × 800 and at 390 × 844. The 390 × 844 phone is the
+**Responsive testing:** every page is checked at 1280 × 800 and at 390 × 844. The 390 × 844 phone is the
 primary layout (constitution, «Every screen is mobile-first»); the widths 640, 768, 1024 and 1280 are measured by the browser tests'
 screen sweep, not by hand.
 
@@ -187,8 +195,9 @@ ps -eo pid,args | grep '[m]s-playwright' | grep -E 'chrom'     # only PIDs from 
 Before reporting the smoke test as complete:
 
 - [ ] The machine had at least 3 GB of memory available; the wyo server and the fakes answered before the first step
-- [ ] The meta call, the start page, an unknown page address, an unknown API address and the showcase page checked
-- [ ] The start page and the showcase page seen at 1280 × 800 and at 390 × 844, a screenshot of each
+- [ ] The meta call, signing in, «Обзор», «Настройки», «Мой профиль», the bell, an unknown page address, an unknown API address and the
+      showcase page checked
+- [ ] Every page seen at 390 × 844 first and at 1280 × 800, a screenshot of each
 - [ ] After every screen: no console error, no raw key, no sideways scroll at 390, no request to a foreign address
 - [ ] R3 checked: with «External API» empty, no request left for anything but the fake marketplaces
 - [ ] R4 checked, or written as "not applicable" with the reason

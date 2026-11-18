@@ -21,6 +21,179 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who is signed in on this browser. */
+        get: operations["getSession"];
+        put?: never;
+        /** Signs in with the login and the password. Sets the cookie `wyo_session`. A wrong login and a wrong password are refused alike (`sign_in_refused`); after 5 failures in 15 minutes for one login or one address the answer is `too_many_attempts` with `params.minutes`. */
+        post: operations["signIn"];
+        /** Ends the session of this browser. */
+        delete: operations["signOut"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Ends every session of the owner, this browser's included. */
+        delete: operations["signOutEverywhere"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Sets a new password after checking the current one, and ends every other session. Refusals lie on the fields: `currentPassword` / `wrong`, `newPassword` / `too_short` (`params.min`), `newPassword` / `same_as_current`. */
+        put: operations["changePassword"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every setting of the settings registry, by group, with its value, default and limits. */
+        get: operations["getSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/{group}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Saves the values of one group. A value outside its limits is refused with an issue whose path is the setting's key (`out_of_range` with `params.min` and `params.max`, or `wrong_kind`). */
+        put: operations["saveSettingsGroup"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/installation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The state of the installation shown on «Обзор» - version, updates, certificate, the last copy. */
+        get: operations["getInstallation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/updates/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Asks the updater to look for a newer release now (it installs nothing). */
+        post: operations["requestUpdateCheck"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/updates/install": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Asks the updater to install a newer release now, even with automatic updates off and even a version that failed before. */
+        post: operations["requestUpdateInstall"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The copies of the database kept on the server, newest first. */
+        get: operations["listBackups"];
+        put?: never;
+        /** Writes a copy of the database now and keeps the newest seven. */
+        post: operations["createBackup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What needs the owner's attention now, from every notice source (the bell). */
+        get: operations["listNotices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -48,8 +221,128 @@ export interface components {
                 }[];
             };
         };
+        SignIn: {
+            login: string;
+            password: string;
+        };
+        Session: {
+            login: string;
+            mustChangePassword: boolean;
+            /** @description After how many minutes without the person's own action the session ends. */
+            idleMinutes: number;
+        };
+        PasswordChange: {
+            currentPassword: string;
+            newPassword: string;
+        };
+        Setting: {
+            /** @description `<group>.<name>`; the texts are `settings.<key>.label` and `settings.<key>.help`. */
+            key: string;
+            /** @enum {string} */
+            kind: "boolean" | "integer";
+            /** @description A boolean or an integer */
+            value: unknown;
+            /** @description A boolean or an integer */
+            defaultValue: unknown;
+            min?: number;
+            max?: number;
+        };
+        SettingsGroup: {
+            id: string;
+            settings: components["schemas"]["Setting"][];
+        };
+        SettingsList: {
+            groups: components["schemas"]["SettingsGroup"][];
+        };
+        SettingsValues: {
+            /** @description Setting keys of the group with their new values. */
+            values: {
+                [key: string]: unknown;
+            };
+        };
+        Backup: {
+            /** @description The file name in `backups/`, e.g. `wyo-2026-11-17.db`. */
+            name: string;
+            /**
+             * Format: int64
+             * @description The size in bytes.
+             */
+            size: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        BackupList: {
+            backups: components["schemas"]["Backup"][];
+        };
+        Installation: {
+            version: string;
+            updates: {
+                auto: boolean;
+                /** Format: date-time */
+                lastCheckAt?: string;
+                /** @description The newest version the last look found. */
+                latestVersion?: string;
+                /** @description A newer version that waits to be installed. */
+                waitingVersion?: string;
+                /** @description A version whose update failed and was put back. */
+                failedVersion?: string;
+                /** @description A request of the owner waits for the updater. */
+                requested: boolean;
+            };
+            certificate: {
+                /**
+                 * @description `automatic` - the wyo server obtains its certificate; `proxy` - a web server in front holds it; `none` - plain http (development and tests only).
+                 * @enum {string}
+                 */
+                mode: "automatic" | "proxy" | "none";
+                /** @enum {string} */
+                state: "ok" | "pending" | "failed" | "not_applicable";
+                domain?: string;
+                /** Format: date-time */
+                notAfter?: string;
+                /** @description A code: `dns`, `ports`, `authority`, `other`. */
+                lastError?: string;
+            };
+            backups: {
+                /** @enum {string} */
+                state: "ok" | "old" | "failed" | "none";
+                last?: components["schemas"]["Backup"];
+            };
+        };
+        UpdateRequest: {
+            /** @enum {string} */
+            requested: "check" | "install";
+        };
+        Notice: {
+            /** @description Stable while the cause lasts. */
+            id: string;
+            /** @enum {string} */
+            source: "updates" | "certificate" | "backups";
+            /** @description The text is `notices.<code>`. */
+            code: string;
+            /** @enum {string} */
+            tone: "ok" | "wait" | "warn" | "stop" | "info";
+            params?: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            at?: string;
+        };
+        NoticeList: {
+            notices: components["schemas"]["Notice"][];
+        };
     };
-    responses: never;
+    responses: {
+        /** @description A refusal - a code with parameters; the interface words it. */
+        Refusal: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Refusal"];
+            };
+        };
+    };
     parameters: never;
     requestBodies: never;
     headers: never;
@@ -84,6 +377,287 @@ export interface operations {
                     "application/json": components["schemas"]["Refusal"];
                 };
             };
+        };
+    };
+    getSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The signed-in person. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    signIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignIn"];
+            };
+        };
+        responses: {
+            /** @description Signed in. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    signOut: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Signed out. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    signOutEverywhere: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Every session ended. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    changePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordChange"];
+            };
+        };
+        responses: {
+            /** @description Changed. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    getSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The settings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsList"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    saveSettingsGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettingsValues"];
+            };
+        };
+        responses: {
+            /** @description The group as saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsGroup"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    getInstallation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Installation"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    requestUpdateCheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Asked. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateRequest"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    requestUpdateInstall: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Asked. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateRequest"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    listBackups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The copies. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupList"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    createBackup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The copy written. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Backup"];
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    listNotices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The notices. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeList"];
+                };
+            };
+            default: components["responses"]["Refusal"];
         };
     };
 }

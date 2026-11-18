@@ -59,7 +59,9 @@ runs `pnpm precommit` and the whole browser suite locally. Never `pnpm test` (it
 | The fake fulfilment centre                 | `127.0.0.1:8792`        |
 | Browser tests, one wyo server per worker   | `127.0.0.1:8800` and up |
 
-Open `http://127.0.0.1:5190` while `pnpm dev` runs. The page `/showcase` draws every component of the library in each of its states; it
+Open `http://127.0.0.1:5190` while `pnpm dev` runs and sign in as `owner` with the password `development-password`: the first
+`pnpm dev` makes the data folder `.dev-data/` (not committed) with `wyo init` and that owner with `wyo owner create`; later runs keep it.
+Delete `.dev-data/` to start again with an empty database. The page `/showcase` draws every component of the library in each of its states; it
 exists only in a wyo server built with the Go build tag `wyotest` (which `pnpm dev` and `pnpm test:e2e` set), and a released wyo server
 answers "not found" at its address.
 
@@ -69,7 +71,16 @@ answers "not found" at its address.
 cmd/wyo/                      the wyo server's entry point
 cmd/wyofakes/                 both fakes for development and browser tests; never part of a release
 internal/webui/               the embedded interface (dist/ is built, not committed) and the handler that serves it
-internal/httpapi/             the wyo server's own API; gen/ is generated from api/wyo.yaml
+internal/httpapi/             the wyo server's own API (the access table, the handlers); gen/ is generated from api/wyo.yaml
+internal/cli/                 the wyo server's commands (commands.go is their one table; texts are cli.* of messages/ru.json)
+internal/server/              the parts joined: the data folder, the services, the handler, the daily copy
+internal/store/               the database: migrations/ (numbered, never edited once released), queries/, db/ (sqlc), testdata/
+internal/secretbox/           the secret store (AES-256-GCM with secret.key)
+internal/auth/, settings/, notices/, schedule/, backup/, datadir/, datalock/, issue/
+internal/outbound/            the one gate of every outgoing call, by purpose (the only maker of HTTP clients)
+internal/release/             the release keys (keys/*.pem), the checking order, the updater
+internal/updatestate/         the files the wyo server and the updater exchange (update-request, update-state.json)
+internal/tlsauto/, certstatus/  the certificate the wyo server obtains itself (CertMagic), and its state
 internal/version/, clock/, config/, logging/
 internal/marketplace/wildberries/wbapi/    generated from api/wildberries/*.yaml
 internal/fulfilment/fcapi/    generated from api/fulfilment-centre.yaml
@@ -79,11 +90,13 @@ tools/covercheck/             the Go coverage floors
 api/                          wyo.yaml, fulfilment-centre.yaml, wildberries/*.yaml
 src/lib/components/ui/        the component library (see docs/library-layout.md)
 src/lib/forms/, validation/, i18n/, api/, stores/, utils/
-src/routes/                   the start page and /showcase
+src/routes/                   (app)/ — «Обзор», «Настройки», «Мой профиль»; auth/login; /showcase
+src/lib/components/shell/, auth/, overview/, settings/   the top bar, the menu, the bell, the sign-in parts, the pages' parts
+src/lib/nav/nav-items.ts      the one list the menu is drawn from
 src/test/                     support (shared test fixtures), harnesses, mocks
 messages/ru.json              every visible text of the interface
 e2e/                          browser tests: specs, helpers, fixtures
-scripts/                      coverage-check.cjs, go/, tools/, e2e/
+scripts/                      install.sh (the installer), ci/ (the pipeline's installer job), coverage-check.cjs, go/, tools/, e2e/
 docs/, .agents/, .specify/, .github/workflows/ci-cd.yml, .husky/
 ```
 
@@ -92,6 +105,24 @@ docs/, .agents/, .specify/, .github/workflows/ci-cd.yml, .husky/
 - **`fetch` is called only inside `src/lib/api/`,** and only for the wyo server's own addresses. The form library is imported only by
   `src/lib/forms/super-form.ts`.
 - **Every visible text is a key in `messages/ru.json`.** The wyo server never writes a sentence; it answers codes.
+
+## The database, the commands, the installer
+
+- **A migration is a new numbered file** in `internal/store/migrations/`, never an edit of one a release carried
+  (`.specify/memory/constitution.md`, principle VIII). Add its checksum line to `internal/store/migrations.sum` (the test prints the
+  line it expects). Before adding the migration of a plan, write the database of the version being released into
+  `internal/store/testdata/` with `go test ./internal/store -run TestWriteTheSnapshotOfTheVersionBeingReleased -snapshot=<number>`, so the
+  upgrade from it is tested for ever. Queries are typed: write SQL in `internal/store/queries/`, then `pnpm generate` (sqlc).
+- **The commands** (`wyo serve`, `wyo init`, `wyo owner create`, `wyo owner reset-password`, `wyo update`, `wyo backup`, `wyo restore`,
+  `wyo doctor`, `wyo version`) are one table, `internal/cli/commands.go`. The README names only commands of that table and flags the
+  installer reads (`src/lib/readme-policy.test.ts`).
+- **The installer** `scripts/install.sh` is published with every release. It holds two constants — the release address and the public key
+  of `internal/release/keys/` — which a Go test compares with the program's own. The pipeline's installer job (`scripts/ci/installer-job.sh`)
+  runs a test copy of it on clean Ubuntu machines against a local release signed with a key made for the run and the test certificate
+  authority Pebble; it is the only place the installer, systemd, the ports 80 and 443 and a certificate are exercised.
+- **Releases are signed.** The release job signs `checksums.txt` with the repository's secret `RELEASE_SIGNING_KEY` (an Ed25519 key in PEM)
+  and checks the signature with the committed public key before publishing. `docs/release-signature.md` shows how anybody checks a release
+  by hand.
 
 ## The fakes
 

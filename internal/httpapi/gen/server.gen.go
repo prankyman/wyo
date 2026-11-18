@@ -14,9 +14,80 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/oapi-codegen/runtime"
 )
+
+// Defines values for InstallationBackupsState.
+const (
+	InstallationBackupsStateFailed InstallationBackupsState = "failed"
+	InstallationBackupsStateNone   InstallationBackupsState = "none"
+	InstallationBackupsStateOk     InstallationBackupsState = "ok"
+	InstallationBackupsStateOld    InstallationBackupsState = "old"
+)
+
+// Valid indicates whether the value is a known member of the InstallationBackupsState enum.
+func (e InstallationBackupsState) Valid() bool {
+	switch e {
+	case InstallationBackupsStateFailed:
+		return true
+	case InstallationBackupsStateNone:
+		return true
+	case InstallationBackupsStateOk:
+		return true
+	case InstallationBackupsStateOld:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InstallationCertificateMode.
+const (
+	InstallationCertificateModeAutomatic InstallationCertificateMode = "automatic"
+	InstallationCertificateModeNone      InstallationCertificateMode = "none"
+	InstallationCertificateModeProxy     InstallationCertificateMode = "proxy"
+)
+
+// Valid indicates whether the value is a known member of the InstallationCertificateMode enum.
+func (e InstallationCertificateMode) Valid() bool {
+	switch e {
+	case InstallationCertificateModeAutomatic:
+		return true
+	case InstallationCertificateModeNone:
+		return true
+	case InstallationCertificateModeProxy:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InstallationCertificateState.
+const (
+	InstallationCertificateStateFailed        InstallationCertificateState = "failed"
+	InstallationCertificateStateNotApplicable InstallationCertificateState = "not_applicable"
+	InstallationCertificateStateOk            InstallationCertificateState = "ok"
+	InstallationCertificateStatePending       InstallationCertificateState = "pending"
+)
+
+// Valid indicates whether the value is a known member of the InstallationCertificateState enum.
+func (e InstallationCertificateState) Valid() bool {
+	switch e {
+	case InstallationCertificateStateFailed:
+		return true
+	case InstallationCertificateStateNotApplicable:
+		return true
+	case InstallationCertificateStateOk:
+		return true
+	case InstallationCertificateStatePending:
+		return true
+	default:
+		return false
+	}
+}
 
 // Defines values for MetaMode.
 const (
@@ -39,6 +110,151 @@ func (e MetaMode) Valid() bool {
 	}
 }
 
+// Defines values for NoticeSource.
+const (
+	Backups     NoticeSource = "backups"
+	Certificate NoticeSource = "certificate"
+	Updates     NoticeSource = "updates"
+)
+
+// Valid indicates whether the value is a known member of the NoticeSource enum.
+func (e NoticeSource) Valid() bool {
+	switch e {
+	case Backups:
+		return true
+	case Certificate:
+		return true
+	case Updates:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NoticeTone.
+const (
+	NoticeToneInfo NoticeTone = "info"
+	NoticeToneOk   NoticeTone = "ok"
+	NoticeToneStop NoticeTone = "stop"
+	NoticeToneWait NoticeTone = "wait"
+	NoticeToneWarn NoticeTone = "warn"
+)
+
+// Valid indicates whether the value is a known member of the NoticeTone enum.
+func (e NoticeTone) Valid() bool {
+	switch e {
+	case NoticeToneInfo:
+		return true
+	case NoticeToneOk:
+		return true
+	case NoticeToneStop:
+		return true
+	case NoticeToneWait:
+		return true
+	case NoticeToneWarn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SettingKind.
+const (
+	Boolean SettingKind = "boolean"
+	Integer SettingKind = "integer"
+)
+
+// Valid indicates whether the value is a known member of the SettingKind enum.
+func (e SettingKind) Valid() bool {
+	switch e {
+	case Boolean:
+		return true
+	case Integer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UpdateRequestRequested.
+const (
+	Check   UpdateRequestRequested = "check"
+	Install UpdateRequestRequested = "install"
+)
+
+// Valid indicates whether the value is a known member of the UpdateRequestRequested enum.
+func (e UpdateRequestRequested) Valid() bool {
+	switch e {
+	case Check:
+		return true
+	case Install:
+		return true
+	default:
+		return false
+	}
+}
+
+// Backup defines model for Backup.
+type Backup struct {
+	CreatedAt time.Time `json:"createdAt"`
+
+	// Name The file name in `backups/`, e.g. `wyo-2026-11-17.db`.
+	Name string `json:"name"`
+
+	// Size The size in bytes.
+	Size int64 `json:"size"`
+}
+
+// BackupList defines model for BackupList.
+type BackupList struct {
+	Backups []Backup `json:"backups"`
+}
+
+// Installation defines model for Installation.
+type Installation struct {
+	Backups struct {
+		Last  *Backup                  `json:"last,omitempty"`
+		State InstallationBackupsState `json:"state"`
+	} `json:"backups"`
+	Certificate struct {
+		Domain *string `json:"domain,omitempty"`
+
+		// LastError A code: `dns`, `ports`, `authority`, `other`.
+		LastError *string `json:"lastError,omitempty"`
+
+		// Mode `automatic` - the wyo server obtains its certificate; `proxy` - a web server in front holds it; `none` - plain http (development and tests only).
+		Mode     InstallationCertificateMode  `json:"mode"`
+		NotAfter *time.Time                   `json:"notAfter,omitempty"`
+		State    InstallationCertificateState `json:"state"`
+	} `json:"certificate"`
+	Updates struct {
+		Auto bool `json:"auto"`
+
+		// FailedVersion A version whose update failed and was put back.
+		FailedVersion *string    `json:"failedVersion,omitempty"`
+		LastCheckAt   *time.Time `json:"lastCheckAt,omitempty"`
+
+		// LatestVersion The newest version the last look found.
+		LatestVersion *string `json:"latestVersion,omitempty"`
+
+		// Requested A request of the owner waits for the updater.
+		Requested bool `json:"requested"`
+
+		// WaitingVersion A newer version that waits to be installed.
+		WaitingVersion *string `json:"waitingVersion,omitempty"`
+	} `json:"updates"`
+	Version string `json:"version"`
+}
+
+// InstallationBackupsState defines model for Installation.Backups.State.
+type InstallationBackupsState string
+
+// InstallationCertificateMode `automatic` - the wyo server obtains its certificate; `proxy` - a web server in front holds it; `none` - plain http (development and tests only).
+type InstallationCertificateMode string
+
+// InstallationCertificateState defines model for Installation.Certificate.State.
+type InstallationCertificateState string
+
 // Meta defines model for Meta.
 type Meta struct {
 	// Mode `release` for a released wyo server; `development` and `test` only in a build made with the `wyotest` tag.
@@ -54,6 +270,37 @@ type Meta struct {
 // MetaMode `release` for a released wyo server; `development` and `test` only in a build made with the `wyotest` tag.
 type MetaMode string
 
+// Notice defines model for Notice.
+type Notice struct {
+	At *time.Time `json:"at,omitempty"`
+
+	// Code The text is `notices.<code>`.
+	Code string `json:"code"`
+
+	// Id Stable while the cause lasts.
+	Id     string                  `json:"id"`
+	Params *map[string]interface{} `json:"params,omitempty"`
+	Source NoticeSource            `json:"source"`
+	Tone   NoticeTone              `json:"tone"`
+}
+
+// NoticeSource defines model for Notice.Source.
+type NoticeSource string
+
+// NoticeTone defines model for Notice.Tone.
+type NoticeTone string
+
+// NoticeList defines model for NoticeList.
+type NoticeList struct {
+	Notices []Notice `json:"notices"`
+}
+
+// PasswordChange defines model for PasswordChange.
+type PasswordChange struct {
+	CurrentPassword string `json:"currentPassword"`
+	NewPassword     string `json:"newPassword"`
+}
+
 // Refusal defines model for Refusal.
 type Refusal struct {
 	Error struct {
@@ -66,11 +313,116 @@ type Refusal struct {
 	} `json:"error"`
 }
 
+// Session defines model for Session.
+type Session struct {
+	// IdleMinutes After how many minutes without the person's own action the session ends.
+	IdleMinutes        int    `json:"idleMinutes"`
+	Login              string `json:"login"`
+	MustChangePassword bool   `json:"mustChangePassword"`
+}
+
+// Setting defines model for Setting.
+type Setting struct {
+	// DefaultValue A boolean or an integer
+	DefaultValue interface{} `json:"defaultValue"`
+
+	// Key `<group>.<name>`; the texts are `settings.<key>.label` and `settings.<key>.help`.
+	Key  string      `json:"key"`
+	Kind SettingKind `json:"kind"`
+	Max  *int        `json:"max,omitempty"`
+	Min  *int        `json:"min,omitempty"`
+
+	// Value A boolean or an integer
+	Value interface{} `json:"value"`
+}
+
+// SettingKind defines model for Setting.Kind.
+type SettingKind string
+
+// SettingsGroup defines model for SettingsGroup.
+type SettingsGroup struct {
+	Id       string    `json:"id"`
+	Settings []Setting `json:"settings"`
+}
+
+// SettingsList defines model for SettingsList.
+type SettingsList struct {
+	Groups []SettingsGroup `json:"groups"`
+}
+
+// SettingsValues defines model for SettingsValues.
+type SettingsValues struct {
+	// Values Setting keys of the group with their new values.
+	Values map[string]interface{} `json:"values"`
+}
+
+// SignIn defines model for SignIn.
+type SignIn struct {
+	Login    string `json:"login"`
+	Password string `json:"password"`
+}
+
+// UpdateRequest defines model for UpdateRequest.
+type UpdateRequest struct {
+	Requested UpdateRequestRequested `json:"requested"`
+}
+
+// UpdateRequestRequested defines model for UpdateRequest.Requested.
+type UpdateRequestRequested string
+
+// ChangePasswordJSONRequestBody defines body for ChangePassword for application/json ContentType.
+type ChangePasswordJSONRequestBody = PasswordChange
+
+// SignInJSONRequestBody defines body for SignIn for application/json ContentType.
+type SignInJSONRequestBody = SignIn
+
+// SaveSettingsGroupJSONRequestBody defines body for SaveSettingsGroup for application/json ContentType.
+type SaveSettingsGroupJSONRequestBody = SettingsValues
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// ChangePassword Sets a new password after checking the current one, and ends every other session. Refusals lie on the fields: `currentPassword` / `wrong`, `newPassword` / `too_short` (`params.min`), `newPassword` / `same_as_current`.
+	// (PUT /api/v1/account/password)
+	ChangePassword(w http.ResponseWriter, r *http.Request)
+	// ListBackups The copies of the database kept on the server, newest first.
+	// (GET /api/v1/backups)
+	ListBackups(w http.ResponseWriter, r *http.Request)
+	// CreateBackup Writes a copy of the database now and keeps the newest seven.
+	// (POST /api/v1/backups)
+	CreateBackup(w http.ResponseWriter, r *http.Request)
+	// GetInstallation The state of the installation shown on «Обзор» - version, updates, certificate, the last copy.
+	// (GET /api/v1/installation)
+	GetInstallation(w http.ResponseWriter, r *http.Request)
 	// GetMeta The program's name, version and mode.
 	// (GET /api/v1/meta)
 	GetMeta(w http.ResponseWriter, r *http.Request)
+	// ListNotices What needs the owner's attention now, from every notice source (the bell).
+	// (GET /api/v1/notices)
+	ListNotices(w http.ResponseWriter, r *http.Request)
+	// SignOut Ends the session of this browser.
+	// (DELETE /api/v1/session)
+	SignOut(w http.ResponseWriter, r *http.Request)
+	// GetSession Who is signed in on this browser.
+	// (GET /api/v1/session)
+	GetSession(w http.ResponseWriter, r *http.Request)
+	// SignIn Signs in with the login and the password. Sets the cookie `wyo_session`. A wrong login and a wrong password are refused alike (`sign_in_refused`); after 5 failures in 15 minutes for one login or one address the answer is `too_many_attempts` with `params.minutes`.
+	// (POST /api/v1/session)
+	SignIn(w http.ResponseWriter, r *http.Request)
+	// SignOutEverywhere Ends every session of the owner, this browser's included.
+	// (DELETE /api/v1/sessions)
+	SignOutEverywhere(w http.ResponseWriter, r *http.Request)
+	// GetSettings Every setting of the settings registry, by group, with its value, default and limits.
+	// (GET /api/v1/settings)
+	GetSettings(w http.ResponseWriter, r *http.Request)
+	// SaveSettingsGroup Saves the values of one group. A value outside its limits is refused with an issue whose path is the setting's key (`out_of_range` with `params.min` and `params.max`, or `wrong_kind`).
+	// (PUT /api/v1/settings/{group})
+	SaveSettingsGroup(w http.ResponseWriter, r *http.Request, group string)
+	// RequestUpdateCheck Asks the updater to look for a newer release now (it installs nothing).
+	// (POST /api/v1/updates/check)
+	RequestUpdateCheck(w http.ResponseWriter, r *http.Request)
+	// RequestUpdateInstall Asks the updater to install a newer release now, even with automatic updates off and even a version that failed before.
+	// (POST /api/v1/updates/install)
+	RequestUpdateInstall(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -82,11 +434,205 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
+// ChangePassword operation middleware
+func (siw *ServerInterfaceWrapper) ChangePassword(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ChangePassword(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListBackups operation middleware
+func (siw *ServerInterfaceWrapper) ListBackups(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListBackups(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateBackup operation middleware
+func (siw *ServerInterfaceWrapper) CreateBackup(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateBackup(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetInstallation operation middleware
+func (siw *ServerInterfaceWrapper) GetInstallation(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetInstallation(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetMeta operation middleware
 func (siw *ServerInterfaceWrapper) GetMeta(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetMeta(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListNotices operation middleware
+func (siw *ServerInterfaceWrapper) ListNotices(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListNotices(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SignOut operation middleware
+func (siw *ServerInterfaceWrapper) SignOut(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SignOut(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSession operation middleware
+func (siw *ServerInterfaceWrapper) GetSession(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSession(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SignIn operation middleware
+func (siw *ServerInterfaceWrapper) SignIn(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SignIn(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SignOutEverywhere operation middleware
+func (siw *ServerInterfaceWrapper) SignOutEverywhere(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SignOutEverywhere(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SaveSettingsGroup operation middleware
+func (siw *ServerInterfaceWrapper) SaveSettingsGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "group" -------------
+	var group string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "group", r.PathValue("group"), &group, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "group", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SaveSettingsGroup(w, r, group)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RequestUpdateCheck operation middleware
+func (siw *ServerInterfaceWrapper) RequestUpdateCheck(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RequestUpdateCheck(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RequestUpdateInstall operation middleware
+func (siw *ServerInterfaceWrapper) RequestUpdateInstall(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RequestUpdateInstall(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -217,6 +763,19 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/meta", wrapper.GetMeta)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/session", wrapper.SignOut)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/session", wrapper.GetSession)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/session", wrapper.SignIn)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/sessions", wrapper.SignOutEverywhere)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/account/password", wrapper.ChangePassword)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/settings", wrapper.GetSettings)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/settings/{group}", wrapper.SaveSettingsGroup)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/installation", wrapper.GetInstallation)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/updates/check", wrapper.RequestUpdateCheck)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/updates/install", wrapper.RequestUpdateInstall)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/backups", wrapper.ListBackups)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/backups", wrapper.CreateBackup)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/notices", wrapper.ListNotices)
 
 	return m
 }
@@ -226,17 +785,50 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"rFTfa8NGDP5XhDboBsZOtzf3KQ9j9GFQxt5KwaqtJFfsu5skJzMh//u4c9KENB0r9CXn3OnTj0+ftMc2",
-	"DDF49qZY71HbDQ+UP/9go3RS1zlzwVP/JCGymGPFekW9coHx4mqPQ+g4nR1rKy4mFNbYCPdMyg2sggDB",
-	"8W8HuymAsmxZHqDpeMt9iAN7a4B8B42xWgPB9xM4DwSvo+s7GKhj2DnbgG0Ymt0UZjujdYkFsh8HrJ/x",
-	"GAQLvHCMBSZjfCnQpshYo5o4v8ZDgZ6GG7kv+x1NmsM0Jd6AbVk0m14j/9rwqVI4GhUQJBd6YmKuyDZk",
-	"sCMFHwzUaIjc3Yh1KFD479EJd6nAnO85fjGTf64svL5xaynFP3k1KvVf7CWLBPkipj32/wNLTnWcTZzx",
-	"oN/lNpJtbjxcMZWtCmw/4+d4QSI0zV6F/itHk5E/uLmK+UmwK6uZ4xtmiTK/CrdVtXx6zNpP4+O8sayo",
-	"ZWip77WE37YsE5DXHQs4hY6MIIutDafByQWysejDu6N5DsFz+t2JM1YgUPbGvuWjXiOLBg8/JZDxP6bQ",
-	"uy2n6Uw377ncKTQDq9KatWp+zlp21qcKL0Itnx4v9FvjolyU94n/ENlTdFjjr+V9ucC5z7khFUVXbe+r",
-	"4bib1mzpSL2hxNBjhzX+zpZ3V+JaY/A6q+iXxWIWUyopwyjG3rUZWL1p8OcFmL5+FF5hjT9U5w1Zza9a",
-	"Zf+5TR/bEyWshYY7hTSixWn4805LM1pihq1o7O3bEjrN+I2cliDzY5n1p+MwkEz/P9kMyi1TrJ/3OEqP",
-	"NVZ4eDn8OwA=",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

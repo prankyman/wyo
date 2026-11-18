@@ -17,6 +17,8 @@ export interface IProgram {
     output(): string;
     /** True once the program has ended. */
     ended(): boolean;
+    /** Resolves with the program's exit code once it has ended (null when it was ended by a signal or could not start). */
+    finished(): Promise<number | null>;
     /** Asks the program to stop, and waits until it has; ends it by force when it does not stop in time. */
     stop(): Promise<void>;
 }
@@ -40,14 +42,16 @@ export function startProgram(
     });
     let printed = '';
     let ended = false;
+    let exitCode: number | null = null;
     const keep = (chunk: Buffer): void => {
         printed = (printed + chunk.toString('utf8')).slice(-MAX_OUTPUT);
     };
     child.stdout?.on('data', keep);
     child.stderr?.on('data', keep);
     const exited = new Promise<void>((resolve) => {
-        child.once('exit', () => {
+        child.once('exit', (code) => {
             ended = true;
+            exitCode = code;
             resolve();
         });
         child.once('error', (error) => {
@@ -61,6 +65,7 @@ export function startProgram(
         name,
         output: () => printed,
         ended: () => ended,
+        finished: () => exited.then(() => exitCode),
         async stop() {
             if (ended) return;
             child.kill('SIGTERM');
@@ -71,6 +76,37 @@ export function startProgram(
             }
         }
     };
+}
+
+/** What a program that was run to its end printed, and how it ended. */
+export interface IProgramResult {
+    code: number | null;
+    output: string;
+}
+
+/**
+ * Runs `command` to its end and returns its exit code and what it printed. For a command that does one job and stops (creating the
+ * owner of a wyo server), as `startProgram` is for one that keeps running. Gives up, ending the command, after `timeoutMs`.
+ */
+export async function runProgram(
+    name: string,
+    command: string,
+    args: readonly string[],
+    options: IStartOptions = {},
+    timeoutMs = 30_000
+): Promise<IProgramResult> {
+    const program = startProgram(name, command, args, options);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timedOut = new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), timeoutMs);
+    });
+    const outcome = await Promise.race([program.finished().then((code) => ({ code })), timedOut]);
+    clearTimeout(timer);
+    if (outcome === null) {
+        await program.stop();
+        return { code: null, output: `${name} did not end within ${timeoutMs} ms.\n${program.output()}` };
+    }
+    return { code: outcome.code, output: program.output() };
 }
 
 const delay = (milliseconds: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, milliseconds));

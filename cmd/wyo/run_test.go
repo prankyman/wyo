@@ -6,12 +6,14 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/prankyman/wyo/internal/buildinfo"
 	"github.com/prankyman/wyo/internal/config"
+	"github.com/prankyman/wyo/internal/server"
 	"github.com/prankyman/wyo/internal/testkit/httpkit"
 )
 
@@ -32,7 +34,27 @@ type started struct {
 	stderr *bytes.Buffer
 }
 
+// initialised makes a data folder the way `wyo init` makes it and returns its path.
+func initialised(t *testing.T) string {
+	t.Helper()
+
+	dir := filepath.Join(t.TempDir(), "data")
+	if _, err := server.Init(t.Context(), dir, nil); err != nil {
+		t.Fatalf("server.Init: %v", err)
+	}
+
+	return dir
+}
+
+// start runs the program on a data folder made the way `wyo init` makes it.
 func start(t *testing.T, args []string, env environment) *started {
+	t.Helper()
+
+	return startRaw(t, append([]string{"--data", initialised(t)}, args...), env)
+}
+
+// startRaw runs the program with exactly the arguments given.
+func startRaw(t *testing.T, args []string, env environment) *started {
 	t.Helper()
 
 	ln, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", "127.0.0.1:0")
@@ -122,8 +144,9 @@ func TestHelpExitsWithZero(t *testing.T) {
 
 	code := run(context.Background(), []string{"--help"}, environment{}.lookup, &stdout, &stderr, nil)
 
-	if code != 0 || !strings.Contains(stderr.String(), "listen") {
-		t.Fatalf("exit %d, stderr %q", code, stderr.String())
+	// The help lists every command of the wyo server and the server's own flags.
+	if code != 0 || !strings.Contains(stdout.String(), "--listen") || !strings.Contains(stdout.String(), "wyo owner create") {
+		t.Fatalf("exit %d, stdout %q", code, stdout.String())
 	}
 }
 
@@ -134,7 +157,7 @@ func TestAListenAddressThatCannotBeUsedExitsWithOne(t *testing.T) {
 
 	failing := func(string) (net.Listener, error) { return nil, errors.New("address in use") }
 
-	code := run(context.Background(), []string{"--listen", "127.0.0.1:8790"}, environment{}.lookup, &stdout, &stderr, failing)
+	code := run(context.Background(), []string{"--data", initialised(t), "--listen", "127.0.0.1:8790"}, environment{}.lookup, &stdout, &stderr, failing)
 
 	if code != 1 || !strings.Contains(stderr.String(), "address in use") {
 		t.Fatalf("exit %d, stderr %q", code, stderr.String())

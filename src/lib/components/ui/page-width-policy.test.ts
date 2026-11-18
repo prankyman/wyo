@@ -17,9 +17,7 @@ import {
  * exception, added by the plan that draws it, with its reason; the list starts empty.
  */
 
-const EXCEPTIONS: Readonly<Record<string, string>> = {
-    'src/routes/+layout.svelte': 'the page frame: the one centred column every page is drawn in'
-};
+const EXCEPTIONS: Readonly<Record<string, string>> = {};
 
 const isNarrowCentred = (node: IMarkupNode) => {
     const words = classWords(node);

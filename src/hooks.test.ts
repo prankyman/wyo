@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { z } from 'zod';
 import { messages } from '$lib/i18n/messages';
 import { reroute } from './hooks';
 
@@ -35,5 +36,11 @@ describe('reroute', () => {
         expect(route('/ru/showcase')).toBeUndefined();
         expect(route('/yy/showcase')).toBeUndefined();
         expect(route(`/showcase/${SECOND}`)).toBeUndefined();
+    });
+});
+
+describe("the form checks under the page's security policy", () => {
+    it('never makes the form checks build functions at run time, which the policy refuses', () => {
+        expect(z.config().jitless).toBe(true);
     });
 });

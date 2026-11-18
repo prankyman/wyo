@@ -31,8 +31,8 @@ describe('tError', () => {
     });
 
     it('interpolates params into the translated message', () => {
-        expect(tError('start.version', 'ru', { version: '1.2.3' })).toBe(
-            messages.ru['start.version'].replace('{version}', '1.2.3')
+        expect(tError('settings.updates.version', 'ru', { version: '1.2.3' })).toBe(
+            messages.ru['settings.updates.version'].replace('{version}', '1.2.3')
         );
     });
 

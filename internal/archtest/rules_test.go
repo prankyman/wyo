@@ -19,6 +19,7 @@ const (
 // fails the test, so a new generator is a decision about its owner.
 var generatedOwners = map[string][]string{
 	"internal/httpapi/gen":                           {"internal/httpapi"},
+	"internal/store/db":                              {"internal/store"},
 	"internal/fulfilment/fcapi":                      {"internal/fulfilment", "internal/fakes/fulfilment"},
 	"internal/marketplace/wildberries/wbapi/general": {"internal/marketplace/wildberries", "internal/fakes/wildberries"},
 	"internal/marketplace/wildberries/wbapi/items":   {"internal/marketplace/wildberries", "internal/fakes/wildberries"},
