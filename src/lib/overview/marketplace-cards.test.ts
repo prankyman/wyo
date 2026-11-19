@@ -8,6 +8,7 @@ const WORKING: TMarketplacesOverview = {
     assembling: 1,
     overdue: 0,
     unknownStates: 0,
+    testOrders: 0,
     lastSuccessAt: '2026-11-18T12:00:00'
 };
 
@@ -46,6 +47,15 @@ describe('marketplaceCards', () => {
 
         expect(card.state.tone).toBe(tone);
         expect(card.sentence).toContain(sentence);
+    });
+
+    it('says under the orders’ numbers how many test orders no number counts, with the reason, and says nothing when there are none', () => {
+        const withTests = cardOf({ ...WORKING, overdue: 2, testOrders: 3 }, 'orders');
+
+        expect(withTests.sentence).toContain('Просрочено заказов: 2. Новых: 3, на сборке: 1.');
+        expect(withTests.sentence).toContain('Тестовых заказов: 3');
+        expect(withTests.sentence).toContain('ни одно из этих чисел их не считает');
+        expect(cardOf(WORKING, 'orders').sentence).not.toContain('Тестовых');
     });
 
     it('says when the last successful reading was, or that there was none yet', () => {

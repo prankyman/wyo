@@ -6,8 +6,9 @@
     import type { TOrderScheme } from './types';
 
     /**
-     * Who packs an order (`api/wyo.yaml`, `OrderScheme`): FBS — the seller packs it and hands it to the marketplace; FBO — the
-     * marketplace packs it from its own warehouse, and the order is shown read-only. A badge with a «?» that says which is which.
+     * Who packs an order (`api/wyo.yaml`, `OrderScheme`): FBS — the seller packs it and hands it to the marketplace; Express —
+     * the seller packs it and a courier of the marketplace takes it within hours; FBO and FBY — the marketplace packs it from its
+     * own warehouse, and the order is shown read-only. A badge with a «?» that says which is which.
      */
     interface IProps {
         lang: TLocale;
@@ -18,7 +19,7 @@
 
     let { lang, scheme, testId }: IProps = $props();
 
-    const TONE: Readonly<Record<TOrderScheme, TTone>> = { fbs: 'info', fbo: 'off' };
+    const TONE: Readonly<Record<TOrderScheme, TTone>> = { fbs: 'info', fbo: 'off', express: 'info', fby: 'off' };
 </script>
 
 <StatusBadgeWithHelp

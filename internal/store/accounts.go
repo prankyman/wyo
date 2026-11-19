@@ -35,6 +35,17 @@ type Account struct {
 	LastRefusal       AccountRefusal
 	FailuresInRow     int
 	CreatedAt         time.Time
+	// HookText is the text of the account's notification address (/hooks/marketplace/<text>); empty when its marketplace
+	// sends none. NotificationsSeenAt is when the last notification of the account arrived, NotificationsLostAt when a
+	// safety reading last found an order change no notification had named.
+	HookText            string
+	NotificationsSeenAt time.Time
+	NotificationsLostAt time.Time
+}
+
+// NotificationsWork says whether the account's notifications arrive: one arrived, and after the last one found lost.
+func (a Account) NotificationsWork() bool {
+	return !a.NotificationsSeenAt.IsZero() && a.NotificationsSeenAt.After(a.NotificationsLostAt)
 }
 
 // AccountRefusal is the last refusal of a marketplace for an account: the adapter's code and the answer's status.
@@ -70,13 +81,24 @@ type KeyField struct {
 
 // Warehouse is one of the seller's warehouses on a marketplace: the marketplace's own number, its name, and whether the
 // seller delivers its orders to the buyer itself (they are never read), the kind of label the marketplace makes for it ("" when
-// it names none) and whether the marketplace itself assembles its orders.
+// it names none), whether the marketplace itself assembles its orders and whether a courier takes its orders one by one
+// within hours (Express).
 type Warehouse struct {
 	Number         string
 	Name           string
 	SellerDelivers bool
 	LabelType      string
 	AutoAssembly   bool
+	Express        bool
+}
+
+// Shop is one shop of an account whose marketplace keeps several shops in one cabinet: the marketplace's own number and
+// name, its scheme in the marketplace's words, and whether the marketplace has switched the shop's API off.
+type Shop struct {
+	Number string
+	Name   string
+	Scheme string
+	APIOff bool
 }
 
 // keyFieldsText keeps the shown fields of a key as JSON; no field is no text.
@@ -140,7 +162,8 @@ func account(row db.MarketplaceAccount) Account {
 		LastRefusal: AccountRefusal{
 			Code: row.LastRefusalCode, Status: int(row.LastRefusalStatus), At: optionalMoment(row.LastRefusalAt),
 		},
-		FailuresInRow: int(row.FailuresInRow), CreatedAt: moment(row.CreatedAt),
+		FailuresInRow: int(row.FailuresInRow), CreatedAt: moment(row.CreatedAt), HookText: row.HookText,
+		NotificationsSeenAt: optionalMoment(row.NotificationsSeenAt), NotificationsLostAt: optionalMoment(row.NotificationsLostAt),
 	}
 }
 
@@ -165,7 +188,7 @@ func (q *Queries) InsertAccount(ctx context.Context, a Account) (Account, error)
 		KeyExpiresAt: optionalSeconds(a.KeyExpiresAt), Categories: words(a.Categories), MissingCategories: words(a.MissingCategories),
 		ReadOnly: boolInt(a.ReadOnly), DeadlineHours: int64(a.DeadlineHours), LastCheckAt: optionalSeconds(a.LastCheckAt),
 		LastCheckOutcome: a.LastCheckOutcome, LastSuccessAt: optionalSeconds(a.LastSuccessAt), CreatedAt: seconds(a.CreatedAt),
-		KeyFields: keyFieldsText(a.KeyFields),
+		KeyFields: keyFieldsText(a.KeyFields), HookText: a.HookText,
 	})
 	if err != nil {
 		return Account{}, kind(err)
@@ -276,7 +299,7 @@ func (q *Queries) ReplaceWarehouses(ctx context.Context, accountID int64, list [
 	for _, w := range list {
 		if err := q.q.InsertWarehouse(ctx, db.InsertWarehouseParams{
 			AccountID: accountID, Number: w.Number, Name: w.Name, SellerDelivers: boolInt(w.SellerDelivers),
-			LabelType: w.LabelType, AutoAssembly: boolInt(w.AutoAssembly), UpdatedAt: seconds(at),
+			LabelType: w.LabelType, AutoAssembly: boolInt(w.AutoAssembly), Express: boolInt(w.Express), UpdatedAt: seconds(at),
 		}); err != nil {
 			return kind(err)
 		}
@@ -296,6 +319,7 @@ func (q *Queries) Warehouses(ctx context.Context, accountID int64) ([]Warehouse,
 	for _, row := range rows {
 		list = append(list, Warehouse{
 			Number: row.Number, Name: row.Name, SellerDelivers: row.SellerDelivers == 1, LabelType: row.LabelType, AutoAssembly: row.AutoAssembly == 1,
+			Express: row.Express == 1,
 		})
 	}
 

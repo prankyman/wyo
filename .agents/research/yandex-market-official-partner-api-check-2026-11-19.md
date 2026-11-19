@@ -217,3 +217,31 @@ or deletes goods (sections 10 and 11): `updateOrderItems`, `acceptOrderCancellat
 2. Whether Let's Encrypt certificates are accepted for notifications (section 8).
 3. Whether an order that is not ready is moved out of a shipment by Яндекс Маркет itself (section 11).
 4. The exact meaning of the courier substatuses and of `CHECKING_BY_MERCHANT` (section 12).
+
+## 15. The notification's body and answers (read on 2026-11-19 while implementing Plan 7)
+
+`https://yandex.ru/dev/market/partner-api/doc/ru/push-notifications/reference/sendNotification.md` and
+`https://yandex.ru/dev/market/partner-api/doc/ru/push-notifications/index.md`, both read on 2026-11-19. The notifications are not
+part of the description files of section 1.
+
+- **Kinds** (`notificationType`): `PING`, `ORDER_CREATED`, `ORDER_CANCELLED`, `ORDER_STATUS_UPDATED`, `ORDER_RETURN_CREATED`,
+  `ORDER_CANCELLATION_REQUEST`, `ORDER_RETURN_STATUS_UPDATED`, `ORDER_UPDATED`, `ORDER_LINE_SERVICE_STATUS_UPDATED`,
+  `GOODS_FEEDBACK_CREATED`, `GOODS_FEEDBACK_COMMENT_CREATED`, `CHAT_CREATED`, `CHAT_MESSAGE_SENT`, `CHAT_ARBITRAGE_STARTED`,
+  `CHAT_ARBITRAGE_FINISHED`, `QUESTION_CREATED`, `QUESTION_ANSWER_CREATED`, `QUESTION_COMMENT_CREATED`.
+- **Bodies of the kinds the wyo server reads:** `PING` — `notificationType`, `time`; `ORDER_CREATED` — `notificationType`,
+  `campaignId`, `orderId`, `createdAt`, `items[]` (`offerId`, `count`), `orderLineServices`; `ORDER_STATUS_UPDATED` —
+  `notificationType`, `campaignId`, `orderId`, `status`, `substatus`, `updatedAt`; `ORDER_CANCELLED` — `notificationType`,
+  `campaignId`, `orderId`, `cancelledAt`, `items[]`; `ORDER_UPDATED` — `notificationType`, `campaignId`, `orderId`, `updateType`
+  (e.g. `SHIPMENT_DATE_UPDATED`), `updatedAt`.
+- «Маркет может отправлять несколько уведомлений по одному и тому же событию»; «Время в уведомлении, в ответе на запрос к Маркету и
+  в вашей системе может отличаться … Актуальным считайте более позднее время события.»
+- **Answers:** `200` with `{ "version", "name", "time" }`; «Если Маркет прислал некорректное уведомление, верните код `400` с
+  описанием ошибки» — `{ "error": { "type", "message" } }`, `type` one of `UNKNOWN`, `WRONG_EVENT_FORMAT` («неправильный тип
+  уведомления»), `DUPLICATED_EVENT`; «Если произошла техническая ошибка на вашей стороне, верните код `500`».
+- **Connecting:** account icon → «Настройки» → «API и модули» → tab «API-уведомления» → «Подключить уведомления»; a name; «кабинет»
+  (every shop; the cabinet's owner or manager) or «магазин»; the kinds; «Введите ссылку, куда Маркет будет отправлять уведомления.
+  Укажите ее целиком, включая протокол HTTPS»; «Подключить»; «приходить они начнут в течение 2 минут». «Если уведомления, связанные с
+  заказами, настроены для кабинета, они приходят и по FBY-заказам.»
+- **NOT SOURCED:** whether Яндекс Маркет sends to the address exactly as entered or adds `/notification` to it (the reference page
+  writes the request as `POST /notification`). The wyo server answers both, `/hooks/marketplace/<text>` and
+  `/hooks/marketplace/<text>/notification`; the check on the first real cabinet settles it.

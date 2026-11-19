@@ -134,32 +134,53 @@ type HandoverStep struct {
 }
 
 type MarketplaceAccount struct {
-	ID                int64
-	Marketplace       string
-	Name              string
-	State             string
-	Test              int64
-	SellerName        string
-	SellerProfileID   string
-	SecretName        string
-	KeyLast4          string
-	KeyType           string
-	KeyExpiresAt      sql.NullInt64
-	Categories        string
-	MissingCategories string
-	ReadOnly          int64
-	DeadlineHours     int64
-	LastCheckAt       sql.NullInt64
-	LastCheckOutcome  string
-	LastSuccessAt     sql.NullInt64
-	LastRefusalCode   string
-	LastRefusalStatus int64
-	LastRefusalAt     sql.NullInt64
-	FailuresInRow     int64
-	CreatedAt         int64
-	HandoverSettings  string
-	ShippingPoint     string
-	KeyFields         string
+	ID                  int64
+	Marketplace         string
+	Name                string
+	State               string
+	Test                int64
+	SellerName          string
+	SellerProfileID     string
+	SecretName          string
+	KeyLast4            string
+	KeyType             string
+	KeyExpiresAt        sql.NullInt64
+	Categories          string
+	MissingCategories   string
+	ReadOnly            int64
+	DeadlineHours       int64
+	LastCheckAt         sql.NullInt64
+	LastCheckOutcome    string
+	LastSuccessAt       sql.NullInt64
+	LastRefusalCode     string
+	LastRefusalStatus   int64
+	LastRefusalAt       sql.NullInt64
+	FailuresInRow       int64
+	CreatedAt           int64
+	HandoverSettings    string
+	ShippingPoint       string
+	KeyFields           string
+	HookText            string
+	NotificationsSeenAt sql.NullInt64
+	NotificationsLostAt sql.NullInt64
+}
+
+type MarketplaceNotification struct {
+	ID        int64
+	AccountID int64
+	At        int64
+	Kind      string
+	Numbers   string
+	ReadAt    sql.NullInt64
+}
+
+type MarketplaceShop struct {
+	AccountID int64
+	Number    string
+	Name      string
+	Scheme    string
+	ApiOff    int64
+	UpdatedAt int64
 }
 
 type MarketplaceSupply struct {
@@ -182,6 +203,7 @@ type MarketplaceWarehouse struct {
 	SellerDelivers int64
 	LabelType      string
 	AutoAssembly   int64
+	Express        int64
 }
 
 type Order struct {
@@ -205,6 +227,9 @@ type Order struct {
 	OptionalIds       string
 	ShipBy            sql.NullInt64
 	ParentNumber      string
+	Test              int64
+	SchemeName        string
+	WarehouseText     string
 }
 
 type OrderCode struct {

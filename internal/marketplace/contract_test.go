@@ -35,7 +35,8 @@ func TestEveryPartOfTheContractIsNamedAndOnlyThisStagesPartsAreSupported(t *test
 		marketplace.KeyCheck: true, marketplace.WarehousesRead: true, marketplace.OrdersNew: true, marketplace.OrdersStates: true,
 		marketplace.OrdersFeed: true, marketplace.OrdersConfirm: true, marketplace.OrdersPack: true, marketplace.LabelsFetch: true, marketplace.CodesReport: true,
 		marketplace.CodesVerdict: true, marketplace.HandoverGroup: true, marketplace.HandoverClose: true,
-		marketplace.HandoverDocuments: true,
+		marketplace.HandoverDocuments: true, marketplace.OrdersChanges: true, marketplace.OrdersNamed: true,
+		marketplace.NotificationsReceive: true,
 	}
 
 	if !reflect.DeepEqual(supported, want) {
@@ -84,5 +85,31 @@ func TestACallErrorOrARefusalWithoutAnAnswerSaysSo(t *testing.T) {
 
 	if got := (&marketplace.Refusal{Code: "key_expired"}).Error(); got != "the marketplace refused: key_expired" {
 		t.Fatalf("Refusal = %q", got)
+	}
+}
+
+func TestASchemeOfAMarketplacesOwnNameIsReadAsTheSchemeOfWhoPacks(t *testing.T) {
+	t.Parallel()
+
+	cases := map[marketplace.Scheme]marketplace.Scheme{
+		marketplace.SchemeFBS: marketplace.SchemeFBS, marketplace.SchemeFBO: marketplace.SchemeFBO,
+		marketplace.SchemeExpress: marketplace.SchemeFBS, marketplace.SchemeFBY: marketplace.SchemeFBO,
+	}
+
+	for scheme, want := range cases {
+		if got := scheme.Base(); got != want {
+			t.Errorf("%s.Base() = %s, want %s", scheme, got, want)
+		}
+	}
+}
+
+func TestALimitIsMetByItsOwnStatusOr429(t *testing.T) {
+	t.Parallel()
+
+	own := marketplace.LimitGroup{LimitStatus: 420}
+	plain := marketplace.LimitGroup{}
+
+	if !own.MetBy(420) || own.MetBy(http.StatusTooManyRequests) || !plain.MetBy(http.StatusTooManyRequests) || plain.MetBy(420) {
+		t.Fatalf("own: 420 %v, 429 %v; plain: 429 %v, 420 %v", own.MetBy(420), own.MetBy(429), plain.MetBy(429), plain.MetBy(420))
 	}
 }

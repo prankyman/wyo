@@ -66,6 +66,18 @@ type Fixture struct {
 	NeedsOtherIdentifier func(t *testing.T, key map[string]string) (number, identifier string)
 	// BatchNotReady makes the marketplace unable to make a batch yet (it answers with a *marketplace.BatchWait).
 	BatchNotReady func(t *testing.T, key map[string]string)
+
+	// The fields below are for the parts of Plan 7.
+
+	// ProfileFromCheck says the key does not name the seller's profile itself (an opaque key): ReadKey leaves the profile
+	// empty and CheckKey finds it by asking the marketplace.
+	ProfileFromCheck bool
+	// NewTestOrder makes a new test order (one the seller makes in the cabinet to try the connection) and returns its number.
+	NewTestOrder func(t *testing.T, key map[string]string) string
+	// OrderNotification gives the body of the marketplace's notification that the order of the number appeared, and
+	// PingNotification the body of its check that the address answers.
+	OrderNotification func(number string) []byte
+	PingNotification  func() []byte
 }
 
 // maxFeedReadings bounds the readings of a feed in one case: a feed that never ends is a defect.
@@ -98,6 +110,10 @@ func RunAdapterContract(t *testing.T, f Fixture) {
 	}
 
 	for c, run := range writingCases() {
+		cases[c] = run
+	}
+
+	for c, run := range changesCases() {
 		cases[c] = run
 	}
 
@@ -146,6 +162,12 @@ func checkDescription(t *testing.T, a marketplace.Adapter, desc marketplace.Desc
 
 	expect(t, desc.OrdersPeriod >= 0 && desc.StatesPeriod >= 0, "the periods %v and %v of the exchange are not negative", desc.OrdersPeriod, desc.StatesPeriod)
 	expect(t, !desc.CodesReplace || desc.Supports(marketplace.CodesReport), "the adapter says its codes replace and claims no codes.report")
+	expect(t, !desc.Supports(marketplace.OrdersChanges) || (!desc.Supports(marketplace.OrdersNew) && !desc.Supports(marketplace.OrdersStates)),
+		"the adapter claims orders.changes beside orders.new or orders.states: the changes are read in place of both")
+	expect(t, !desc.Supports(marketplace.NotificationsReceive) || desc.Supports(marketplace.OrdersNamed),
+		"the adapter claims notifications.receive and not orders.named, which reads the orders a notification names")
+	expect(t, desc.MaxInFlight >= 0 && len(desc.ProgramHeader) <= 100, "at most %d requests at once and the program header %q",
+		desc.MaxInFlight, desc.ProgramHeader)
 
 	writes := false
 
@@ -286,10 +308,11 @@ func keyCheck(t *testing.T, f Fixture) {
 	key := f.Key(t)
 
 	facts, kept, err := c.ReadKey(key, f.Now)
-	expect(t, err == nil && len(kept) > 0 && facts.ProfileID != "", "a working key: %+v, fields kept %v, %v", facts, len(kept) > 0, err)
+	expect(t, err == nil && len(kept) > 0 && (facts.ProfileID != "") != f.ProfileFromCheck,
+		"a working key: %+v, fields kept %v, %v; the key names its profile: %v", facts, len(kept) > 0, err, !f.ProfileFromCheck)
 
 	checked, err := c.CheckKey(t.Context(), f.Conn(t, key), facts)
-	expect(t, err == nil && checked.ProfileID == facts.ProfileID, "CheckKey: %+v, %v", checked, err)
+	expect(t, err == nil && checked.ProfileID != "" && (f.ProfileFromCheck || checked.ProfileID == facts.ProfileID), "CheckKey: %+v, %v", checked, err)
 }
 
 func warehousesRead(t *testing.T, f Fixture) {

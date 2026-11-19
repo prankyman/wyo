@@ -1,8 +1,9 @@
 -- name: InsertOrder :one
 INSERT INTO orders (
     account_id, number, scheme, join_key, basket, warehouse_number, warehouse_name, created_at, ship_by, parent_number, state,
-    cancelled_by, seller_status, marketplace_status, updated_at, grp, item_id, required_ids, optional_ids
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    cancelled_by, seller_status, marketplace_status, updated_at, grp, item_id, required_ids, optional_ids, test, scheme_name,
+    warehouse_text
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT (account_id, number) DO NOTHING
 RETURNING id;
 
@@ -70,7 +71,8 @@ FROM orders o
 JOIN marketplace_accounts a ON a.id = o.account_id
 LEFT JOIN marketplace_warehouses w ON w.account_id = o.account_id AND w.number = o.warehouse_number
 WHERE (sqlc.narg(account_id) IS NULL OR o.account_id = sqlc.narg(account_id))
-  AND (sqlc.narg(scheme) IS NULL OR o.scheme = sqlc.narg(scheme))
+  AND (sqlc.narg(scheme) IS NULL OR o.scheme = sqlc.narg(scheme) OR o.scheme_name = sqlc.narg(scheme))
+  AND (sqlc.narg(test) IS NULL OR o.test = sqlc.narg(test))
   AND (sqlc.narg(state) IS NULL OR o.state = sqlc.narg(state))
   AND (sqlc.narg(created_from) IS NULL OR o.created_at >= sqlc.narg(created_from))
   AND (sqlc.narg(created_before) IS NULL OR o.created_at < sqlc.narg(created_before))
@@ -90,7 +92,8 @@ LIMIT sqlc.arg(page_size) OFFSET sqlc.arg(page_offset);
 SELECT count(*) FROM orders o
 JOIN marketplace_accounts a ON a.id = o.account_id
 WHERE (sqlc.narg(account_id) IS NULL OR o.account_id = sqlc.narg(account_id))
-  AND (sqlc.narg(scheme) IS NULL OR o.scheme = sqlc.narg(scheme))
+  AND (sqlc.narg(scheme) IS NULL OR o.scheme = sqlc.narg(scheme) OR o.scheme_name = sqlc.narg(scheme))
+  AND (sqlc.narg(test) IS NULL OR o.test = sqlc.narg(test))
   AND (sqlc.narg(state) IS NULL OR o.state = sqlc.narg(state))
   AND (sqlc.narg(created_from) IS NULL OR o.created_at >= sqlc.narg(created_from))
   AND (sqlc.narg(created_before) IS NULL OR o.created_at < sqlc.narg(created_before))
@@ -105,13 +108,20 @@ WHERE (sqlc.narg(account_id) IS NULL OR o.account_id = sqlc.narg(account_id))
          AND (x.attention <> '' OR (x.state = 'sent' AND o.created_at + a.deadline_hours * 900 <= sqlc.narg(attention_now)))));
 
 -- name: CountOrdersByState :many
+-- A test order is counted in no total (constitution, principle X).
 SELECT o.state, count(*) AS orders FROM orders o
 JOIN marketplace_accounts a ON a.id = o.account_id
-WHERE a.state <> 'disabled'
+WHERE a.state <> 'disabled' AND o.test = 0
 GROUP BY o.state;
 
 -- name: CountOverdueOrders :one
 SELECT count(*) FROM orders o
 JOIN marketplace_accounts a ON a.id = o.account_id
-WHERE a.state <> 'disabled' AND o.scheme = 'fbs' AND o.state IN ('new', 'assembling')
+WHERE a.state <> 'disabled' AND o.test = 0 AND o.scheme = 'fbs' AND o.state IN ('new', 'assembling')
   AND COALESCE(o.ship_by, o.created_at + a.deadline_hours * 3600) < CAST(sqlc.arg(now) AS INTEGER);
+
+-- name: CountTestOrders :one
+-- Not a total of the orders: it says only whether the home page names the test orders it leaves out of its numbers.
+SELECT count(*) FROM orders o
+JOIN marketplace_accounts a ON a.id = o.account_id
+WHERE a.state <> 'disabled' AND o.test = 1;

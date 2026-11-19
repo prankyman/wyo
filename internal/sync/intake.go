@@ -20,10 +20,16 @@ const maxFeedPages = 20
 // reading that changed nothing writes nothing).
 type change func(ctx context.Context, q *store.Queries) error
 
-// storedOrder turns an adapter's order into a row of an account.
+// storedOrder turns an adapter's order into a row of an account: its scheme is who packs it, and a scheme of the
+// marketplace's own name is kept as that name beside it.
 func storedOrder(accountID int64, o marketplace.Order, now time.Time) store.Order {
+	name := ""
+	if o.Scheme.Base() != o.Scheme {
+		name = string(o.Scheme)
+	}
+
 	return store.Order{
-		AccountID: accountID, Number: o.Number, Scheme: string(o.Scheme), JoinKey: o.JoinKey, Basket: o.Basket,
+		AccountID: accountID, Number: o.Number, Scheme: string(o.Scheme.Base()), SchemeName: name, Test: o.Test, WarehouseText: o.WarehouseText, JoinKey: o.JoinKey, Basket: o.Basket,
 		WarehouseNumber: o.WarehouseNumber, WarehouseName: o.WarehouseName, Lines: storedLines(o.Lines), CreatedAt: o.CreatedAt,
 		ShipBy: o.ShipBy, Parent: o.Parent, State: string(o.Status.State), CancelledBy: o.Status.CancelledBy,
 		SellerStatus: o.Status.Seller, MarketplaceStatus: o.Status.Marketplace, UpdatedAt: now, Group: o.Group, ItemID: o.ItemID,
@@ -444,8 +450,32 @@ func (e *Engine) takeWarehouses(ctx context.Context, a account) error {
 	for _, w := range list {
 		rows = append(rows, store.Warehouse{
 			Number: w.Number, Name: w.Name, SellerDelivers: w.SellerDelivers, LabelType: w.LabelType, AutoAssembly: w.AutoAssembly,
+			Express: w.Express,
 		})
 	}
 
-	return e.opts.Store.Do(ctx, func(q *store.Queries) error { return q.ReplaceWarehouses(ctx, a.row.ID, rows, e.opts.Clock.Now()) })
+	var shops []store.Shop
+
+	if reader, ok := a.adapter.(marketplace.ShopReader); ok {
+		list, err := reader.Shops(ctx, a.conn(string(marketplace.WarehousesRead)))
+		if err != nil {
+			return err
+		}
+
+		for _, s := range list {
+			shops = append(shops, store.Shop{Number: s.Number, Name: s.Name, Scheme: s.Scheme, APIOff: s.APIOff})
+		}
+	}
+
+	return e.opts.Store.Do(ctx, func(q *store.Queries) error {
+		if err := q.ReplaceWarehouses(ctx, a.row.ID, rows, e.opts.Clock.Now()); err != nil {
+			return err
+		}
+
+		if shops == nil {
+			return nil
+		}
+
+		return q.ReplaceShops(ctx, a.row.ID, shops, e.opts.Clock.Now())
+	})
 }

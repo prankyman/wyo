@@ -375,3 +375,44 @@ func TestTheLastFourCharactersAreCountedInCharactersNotBytes(t *testing.T) {
 		}
 	}
 }
+
+func TestAnAccountOfAMarketplaceThatNotifiesGetsAnAddressOfItsOwnAndKeepsItsShops(t *testing.T) {
+	t.Parallel()
+
+	kit := synckit.NewInProcess(t, func(*clock.Fixed) http.Handler { return http.NotFoundHandler() })
+	notifying := memadapter.NewNotifying(10)
+	notifying.SetShops([]marketplace.Shop{{Number: "21", Name: "Магазин", Scheme: "FBS"}})
+	engine, registry := kit.Engine(t, notifying)
+	service := accounts.New(accounts.Options{
+		Store: kit.Store, Keys: kit.Vault, Engine: engine, Registry: registry, Clock: kit.Clock, Log: kit.Logger(),
+	})
+
+	first, err := service.Create(t.Context(), memadapter.Code, "Первый", map[string]string{"token": "mem-one"})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	second, err := service.Create(t.Context(), memadapter.Code, "Второй", map[string]string{"token": "mem-two"})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	if len(first.HookText) < 20 || first.HookText == second.HookText || first.Express != 0 ||
+		!reflect.DeepEqual(first.Shops, []store.Shop{{Number: "21", Name: "Магазин", Scheme: "FBS"}}) {
+		t.Fatalf("the accounts: %+v and %+v; want an address text of its own each and the shop", first, second)
+	}
+
+	notifying.SetShops([]marketplace.Shop{{Number: "22", Name: "Другой", Scheme: "FBY", APIOff: true}})
+	notifying.SetWarehouses([]marketplace.Warehouse{{Number: "1", Name: "Экспресс", Express: true}})
+
+	replaced, err := service.ReplaceKey(t.Context(), first.ID, map[string]string{"token": "mem-one"})
+	if err != nil || replaced.HookText != first.HookText || replaced.Express != 1 ||
+		!reflect.DeepEqual(replaced.Shops, []store.Shop{{Number: "22", Name: "Другой", Scheme: "FBY", APIOff: true}}) {
+		t.Fatalf("after a new key: %+v, %v; want the same address, the new shops and one Express warehouse", replaced, err)
+	}
+
+	plain := newRig(t).create(t, "Без уведомлений", "mem-three")
+	if plain.HookText != "" || len(plain.Shops) != 0 {
+		t.Fatalf("an account of a marketplace without notifications: %+v", plain)
+	}
+}

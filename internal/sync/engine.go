@@ -51,6 +51,8 @@ type EngineOptions struct {
 	Log      *slog.Logger
 	// Location is the installation's time zone: the journal is pruned at night there.
 	Location *time.Location
+	// ExchangeOn says whether «Внешний API» is filled; nil is never.
+	ExchangeOn func() bool
 }
 
 // RefreshState is when «Обновить» was last answered and when it may be again (zero: now).
@@ -106,15 +108,17 @@ func (e *Engine) lockOf(accountID int64) *stdsync.Mutex {
 	return l
 }
 
-// Jobs are the engine's scheduled jobs: the orders every 30 minutes, the warehouses and the key check once a day, each
-// shifted by up to Spread, and the journal's nightly prune.
+// Jobs are the engine's scheduled jobs: the orders every 30 minutes, the safety read of the accounts read by changes at
+// their own periods (it wakes every minute), the warehouses and the key check once a day, each shifted by up to Spread,
+// and the journal's nightly prune.
 func (e *Engine) Jobs() []schedule.Job {
 	every := func(name string, period time.Duration, run func(context.Context) error) schedule.Job {
 		return schedule.Job{Name: name, Plan: schedule.Every{Period: period, Spread: Spread}, Run: run}
 	}
 
 	return []schedule.Job{
-		every("orders", ordersPeriod, e.RunOrders),
+		every("orders", ordersPeriod, e.runScheduledOrders),
+		{Name: changesMark, Plan: schedule.Every{Period: time.Minute, Spread: Spread}, Run: e.RunChangesDue},
 		every("warehouses", warehousesPeriod, e.RunWarehouses),
 		every("key.check", keyCheckPeriod, e.RunKeyChecks),
 		e.opts.Journal.Job(e.opts.Location),
@@ -233,6 +237,7 @@ func (e *Engine) connOf(row store.Account, adapter marketplace.Adapter) func(job
 	return func(job string) marketplace.Conn {
 		return e.opts.Caller.Conn(Target{
 			Adapter: adapter, AccountID: row.ID, Test: row.Test, Job: job, SecretName: row.SecretName, Missing: row.MissingCategories,
+			Profile: row.SellerProfileID,
 		})
 	}
 }
@@ -266,8 +271,20 @@ type part struct {
 	run        func(ctx context.Context, a account) error
 }
 
-// RunOrders reads the new orders, the states of the open ones and the orders feed of every running account.
+// RunOrders reads the new orders, the states of the open ones, the orders feed and the changed orders of every running
+// account: «Обновить» asks it.
 func (e *Engine) RunOrders(ctx context.Context) error {
+	return e.forEachLocked(ctx, []part{
+		{capability: marketplace.OrdersNew, run: e.takeNewOrders},
+		{capability: marketplace.OrdersStates, run: e.takeStates},
+		{capability: marketplace.OrdersFeed, run: e.takeFeed},
+		{capability: marketplace.OrdersChanges, run: e.takeChanges},
+	}, nil)
+}
+
+// runScheduledOrders is RunOrders on its 30 minutes, without the changed orders: the safety read keeps their own periods
+// (RunChangesDue), so that a marketplace whose notifications work is not asked more often than it needs.
+func (e *Engine) runScheduledOrders(ctx context.Context) error {
 	return e.forEachLocked(ctx, []part{
 		{capability: marketplace.OrdersNew, run: e.takeNewOrders},
 		{capability: marketplace.OrdersStates, run: e.takeStates},

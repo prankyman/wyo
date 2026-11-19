@@ -12,8 +12,25 @@ describe('the filters of the order list and the journal', () => {
             from: '2026-11-01',
             to: '',
             q: 'DRESS',
-            attention: ''
+            attention: '',
+            test: ''
         });
+    });
+
+    it.each([
+        ['only the test orders', 'only', 'only'],
+        ['no test order', 'none', 'none'],
+        ['the whole list for a value that is neither', 'maybe', '']
+    ])('reads the test-orders filter from the address: %s', async (_case, value, expected) => {
+        await expect(
+            readListFilter(new URL(`http://localhost/orders?test=${value}`), orderFilterSchema, 'orders-filter')
+        ).resolves.toMatchObject({ test: expected });
+    });
+
+    it.each(['express', 'fby'])('reads the scheme %s from the address', async (scheme) => {
+        await expect(
+            readListFilter(new URL(`http://localhost/orders?scheme=${scheme}`), orderFilterSchema, 'orders-filter')
+        ).resolves.toMatchObject({ scheme });
     });
 
     it('reads «Требуют внимания» and the place a journal request went to from the address', async () => {

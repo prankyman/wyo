@@ -190,8 +190,9 @@ func TestWalkEveryPathWithEveryMethod(t *testing.T) {
 					if got := signedIn; got.Status == http.StatusUnauthorized || got.Status == http.StatusForbidden || got.Status == http.StatusNotFound || got.Status == http.StatusMethodNotAllowed || got.Status >= 500 {
 						t.Fatalf("signed in: an owner's call was refused with %d: %s", got.Status, got.Body)
 					}
-				case httpapi.AccessSigned:
-					// A session changes nothing: an unsigned notification to an address text nobody made is refused.
+				case httpapi.AccessSigned, httpapi.AccessMarketplaceHook:
+					// A session changes nothing: a notification to an address text nobody made is refused as an address that
+					// does not exist.
 					for who, got := range map[string]apikit.Response{"signed out": signedOut, "signed in": signedIn} {
 						if got.Status != http.StatusNotFound || got.Body != `{"error":{"code":"not_found"}}` {
 							t.Fatalf("%s: status %d, body %q; an unsigned notification must be refused with 404 not_found", who, got.Status, got.Body)

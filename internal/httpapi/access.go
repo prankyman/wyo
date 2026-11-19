@@ -21,6 +21,10 @@ const (
 	// AccessSigned is for a call made by another program with a signature the handler checks (a fulfilment centre's
 	// notification): no session, no cookie.
 	AccessSigned Access = "signed"
+	// AccessMarketplaceHook is for a marketplace's notification: no session, no cookie, no signature (the marketplace sends
+	// none); the handler accepts it only from the networks the marketplace's adapter declares and at an address text the wyo
+	// server made, and answers anything else as an address that does not exist.
+	AccessMarketplaceHook Access = "marketplace_hook"
 )
 
 // Route is one call: a method, an address as the description writes it, and who may make it.
@@ -84,6 +88,9 @@ var accessByCall = map[string]Access{
 	// The only address open without signing in that changes anything: it carries no cookie, and the notification's
 	// signature (checked by the exchange) stands in its place.
 	"POST /hooks/fulfilment/{text}": AccessSigned,
+	// A marketplace's notification: no cookie and no signature; the caller's network and the address text stand in for them.
+	"POST /hooks/marketplace/{text}":              AccessMarketplaceHook,
+	"POST /hooks/marketplace/{text}/notification": AccessMarketplaceHook,
 }
 
 // Routes lists every call of api/wyo.yaml with its access. It fails when a call has no access declared, or the

@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/netip"
 	stdsync "sync"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 	"github.com/prankyman/wyo/internal/journal"
 	"github.com/prankyman/wyo/internal/marketplace"
 	"github.com/prankyman/wyo/internal/notices"
+	"github.com/prankyman/wyo/internal/notify"
 	"github.com/prankyman/wyo/internal/outbound"
 	"github.com/prankyman/wyo/internal/schedule"
 	"github.com/prankyman/wyo/internal/secretbox"
@@ -69,6 +71,9 @@ type App struct {
 	Accounts *accounts.Service
 	// Exchange is the exchange with the fulfilment centre of «Внешний API».
 	Exchange *exchange.Service
+	// Notifications receives the marketplaces' notifications; notified wakes the reading of the orders they name.
+	Notifications *notify.Marketplace
+	notified      *notify.Kicker
 
 	handler  http.Handler
 	log      *slog.Logger
@@ -167,6 +172,7 @@ func (a *App) assemble(ctx context.Context, opts Options) error {
 		Accounts:     a.Accounts,
 		Refresher:    a.Engine,
 		Exchange:     a.Exchange,
+		Hooks:        a.Notifications,
 		Lifetime:     a.lifetime,
 		Location:     a.location,
 		Clock:        a.clock,
@@ -221,7 +227,18 @@ func (a *App) assembleMarketplaces(opts Options) (*marketplace.Registry, error) 
 
 	a.Engine = sync.NewEngine(sync.EngineOptions{
 		Store: a.Store, Caller: caller, Registry: registry, Journal: logbook, Clock: a.clock, Log: a.log, Location: a.location,
+		ExchangeOn: func() bool { return a.Exchange != nil && a.Exchange.Filled() },
 	})
+	a.notified = notify.NewKicker()
+	a.Notifications = notify.NewMarketplace(notify.Options{
+		Store: a.Store, Registry: registry, Clock: a.clock, Kicker: a.notified, Version: opts.Version, Log: a.log,
+	})
+
+	if buildinfo.TestBuild {
+		// A build for development and tests takes the notifications of a fake marketplace, which sends them from this machine;
+		// a released wyo server takes them only from the networks each adapter declares.
+		a.Notifications.AllowAlso(netip.MustParsePrefix("127.0.0.0/8"), netip.MustParsePrefix("::1/128"))
+	}
 	a.Accounts = accounts.New(accounts.Options{
 		Store: a.Store, Keys: a.Vault, Engine: a.Engine, Registry: registry, Clock: a.clock, Log: a.log,
 	})
@@ -325,6 +342,10 @@ func (a *App) RunWith(ctx context.Context, serve func(ctx context.Context) error
 		return err
 	}
 
+	// The orders a marketplace's notification names are read a moment after it arrives, so that the notifications sent
+	// together make one reading.
+	go a.notified.Listen(jobs, a.wait, notifiedGather, a.Engine.ReadNotified, a.log)
+
 	var group stdsync.WaitGroup
 
 	group.Add(1)
@@ -342,6 +363,9 @@ func (a *App) RunWith(ctx context.Context, serve func(ctx context.Context) error
 
 	return err
 }
+
+// notifiedGather is how long the reading of notified orders waits after the first notification, for the ones sent with it.
+const notifiedGather = 2 * time.Second
 
 // jobs are every scheduled job: the daily copy, the readings of the marketplaces and the exchange.
 func (a *App) jobs() []schedule.Job {

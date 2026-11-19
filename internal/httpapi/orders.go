@@ -67,12 +67,21 @@ func cancelledBy(who string) *gen.CancelledBy {
 
 func orderBody(v store.OrderView) gen.Order {
 	return gen.Order{
-		Id: v.ID, AccountId: v.AccountID, AccountName: v.AccountName, Marketplace: v.Marketplace, Scheme: gen.OrderScheme(v.Scheme),
+		Id: v.ID, AccountId: v.AccountID, AccountName: v.AccountName, Marketplace: v.Marketplace, Scheme: schemeOf(v),
 		Number: v.Number, Basket: text(v.Basket), Warehouse: text(v.Warehouse), Lines: linesBody(v.Lines), CreatedAt: v.CreatedAt,
 		DeadlineAt: moment(v.DeadlineAt), ShipBy: moment(v.ShipBy), ParentNumber: text(v.Parent), State: gen.OrderState(v.State),
 		CancelledBy: cancelledBy(v.CancelledBy), MarketplaceStatus: statusBody(v.SellerStatus, v.MarketplaceStatus),
-		UpdatedAt: moment(v.UpdatedAt), Parts: optionalWords(v.Parts),
+		UpdatedAt: moment(v.UpdatedAt), Parts: optionalWords(v.Parts), Test: v.Test, WarehouseText: text(v.WarehouseText),
 	}
+}
+
+// schemeOf is the scheme the API shows: the marketplace's own name of it when it has one, otherwise the connector's.
+func schemeOf(v store.OrderView) gen.OrderScheme {
+	if v.SchemeName != "" {
+		return gen.OrderScheme(v.SchemeName)
+	}
+
+	return gen.OrderScheme(v.Scheme)
 }
 
 // optionalWords is a list the API leaves out when it is empty.
@@ -100,7 +109,8 @@ func linesBody(lines []store.OrderLine) []gen.OrderLine {
 // ListOrders answers GET /api/v1/orders.
 func (a *api) ListOrders(w http.ResponseWriter, r *http.Request, params gen.ListOrdersParams) {
 	page, ok := pageOf(params.Page)
-	if !ok || (params.Scheme != nil && !params.Scheme.Valid()) || (params.State != nil && !params.State.Valid()) {
+	if !ok || (params.Scheme != nil && !params.Scheme.Valid()) || (params.State != nil && !params.State.Valid()) ||
+		(params.Test != nil && !params.Test.Valid()) {
 		BadRequest(w, r, nil)
 
 		return
@@ -109,7 +119,7 @@ func (a *api) ListOrders(w http.ResponseWriter, r *http.Request, params gen.List
 	from, before := a.period(params.From, params.To)
 	filter := store.OrderFilter{
 		AccountID: valueOf(params.Account), Scheme: string(valueOf(params.Scheme)), State: string(valueOf(params.State)),
-		CreatedFrom: from, CreatedBefore: before, Search: valueOf(params.Q), Page: page,
+		CreatedFrom: from, CreatedBefore: before, Search: valueOf(params.Q), Page: page, Test: string(valueOf(params.Test)),
 	}
 
 	if valueOf(params.Attention) {
@@ -229,6 +239,7 @@ func (a *api) GetMarketplacesOverview(w http.ResponseWriter, r *http.Request) {
 			Assembling:    int(counts.ByState[string(marketplace.StateAssembling)]),
 			UnknownStates: int(counts.ByState[string(marketplace.StateUnknown)]),
 			Overdue:       int(counts.Overdue),
+			TestOrders:    int(counts.Tests),
 		}
 		last time.Time
 	)

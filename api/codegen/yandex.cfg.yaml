@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/v2.8.2/configuration-schema.json
+# Яндекс Маркет's description api/yandex/ (a tree of files, joined into one temporary file by tools/specfix, the rule
+# «join»), limited to the methods the connector uses (listed in .agents/research/yandex-market-official-partner-api-check-2026-11-19.md,
+# section 5): the types and a client. The methods that cut an order's goods, accept a cancellation or move orders out of a
+# shipment are never listed here (api/yandex/README.md names them), and every method that is listed is named by a test
+# (internal/archtest/rules_test.go).
+package: yandexapi
+output: internal/marketplace/yandex/yandexapi/yandexapi.gen.go
+generate:
+    models: true
+    client: true
+output-options:
+    resolve-type-name-collisions: true
+    include-operation-ids:
+        - getAuthTokenInfo
+        - getCampaigns
+        - getBusinessOrders
+        - getPartnerWarehouses
+        - getOfferMappings

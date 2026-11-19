@@ -155,8 +155,33 @@ func TestEveryAnswerHasOneOfTheSixOutcomes(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := journal.OutcomeOf(tc.status); got != tc.want {
+			if got := journal.OutcomeOf(tc.status, 0); got != tc.want {
 				t.Fatalf("OutcomeOf(%d) = %q, want %q", tc.status, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestALimitIsTheStatusTheGroupNamesAnd429WhenItNamesNone(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name          string
+		status, limit int
+		want          string
+	}{
+		{name: "420 of a group that names 420", status: 420, limit: 420, want: journal.Limited},
+		{name: "429 of a group that names 420", status: http.StatusTooManyRequests, limit: 420, want: journal.Refused},
+		{name: "429 of a group that names none", status: http.StatusTooManyRequests, limit: 0, want: journal.Limited},
+		{name: "420 of a group that names none", status: 420, limit: 0, want: journal.Refused},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := journal.OutcomeOf(tc.status, tc.limit); got != tc.want {
+				t.Fatalf("OutcomeOf(%d, %d) = %q, want %q", tc.status, tc.limit, got, tc.want)
 			}
 		})
 	}
@@ -165,3 +190,44 @@ func TestEveryAnswerHasOneOfTheSixOutcomes(t *testing.T) {
 type fixedRandom struct{}
 
 func (fixedRandom) Int64N(int64) int64 { return 0 }
+
+// TestTheNightlyJobDeletesTheMarketplacesNotificationsOlderThanThirtyDays: the notifications a marketplace sent are kept as
+// long as the journal's rows (migration 0007), and the same nightly job deletes the older ones.
+func TestTheNightlyJobDeletesTheMarketplacesNotificationsOlderThanThirtyDays(t *testing.T) {
+	t.Parallel()
+
+	j, st, _ := newJournal(t)
+	ctx := t.Context()
+
+	err := st.Do(ctx, func(q *store.Queries) error {
+		a, err := q.InsertAccount(ctx, store.Account{
+			Marketplace: "alpha", Name: "a", State: "working", SecretName: "a.key", KeyLast4: "abcd", DeadlineHours: 48, CreatedAt: noon(),
+		})
+		if err != nil {
+			return err
+		}
+
+		for _, age := range []time.Duration{31 * 24 * time.Hour, 29 * 24 * time.Hour} {
+			if _, err := q.InsertNotification(ctx, store.Notification{AccountID: a.ID, At: noon().Add(-age), Kind: "PING"}); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+
+	if err := j.Job(moscow).Run(ctx); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if ids, _ := st.Read().AccountsWithUnreadNotifications(ctx); len(ids) != 1 {
+		t.Fatalf("accounts with notifications left: %v, want the one with the notification of 29 days", ids)
+	}
+
+	if unread, _ := st.Read().UnreadNotifications(ctx, 1, 10); len(unread) != 1 || !unread[0].At.Equal(noon().Add(-29*24*time.Hour)) {
+		t.Fatalf("notifications left: %+v, want only the one of 29 days", unread)
+	}
+}

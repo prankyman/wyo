@@ -66,6 +66,10 @@ type View struct {
 
 	HasOrders      bool
 	SellerDelivers int
+	// Express is how many of the account's warehouses a courier takes orders from one by one within hours; Shops are the
+	// shops of an account whose marketplace keeps several in one account.
+	Express int
+	Shops   []store.Shop
 }
 
 // Change is what the owner may change of an account; a nil field stays as it is.
@@ -107,14 +111,23 @@ func (s *Service) view(ctx context.Context, row store.Account) (View, error) {
 		return View{}, fmt.Errorf("read the account's warehouses: %w", err)
 	}
 
-	delivers := 0
+	delivers, express := 0, 0
 	for _, w := range warehouses {
 		if w.SellerDelivers {
 			delivers++
 		}
+
+		if w.Express {
+			express++
+		}
 	}
 
-	return View{Account: row, HasOrders: n > 0, SellerDelivers: delivers}, nil
+	shops, err := s.opts.Store.Read().Shops(ctx, row.ID)
+	if err != nil {
+		return View{}, fmt.Errorf("read the account's shops: %w", err)
+	}
+
+	return View{Account: row, HasOrders: n > 0, SellerDelivers: delivers, Express: express, Shops: shops}, nil
 }
 
 // Get finds one account; store.ErrNotFound when there is none.
@@ -194,6 +207,7 @@ func (s *Service) Create(ctx context.Context, code, name string, key marketplace
 	}
 
 	now := s.opts.Clock.Now()
+	hook := s.hookTextOf(code)
 
 	var row store.Account
 
@@ -205,10 +219,13 @@ func (s *Service) Create(ctx context.Context, code, name string, key marketplace
 			SellerName: checked.SellerName, SellerProfileID: checked.ProfileID, SecretName: secretAt, KeyLast4: last4, KeyFields: shown,
 			KeyType: checked.Type, KeyExpiresAt: checked.ExpiresAt, Categories: checked.Categories,
 			MissingCategories: checked.MissingCategories, ReadOnly: checked.ReadOnly, DeadlineHours: DefaultDeadlineHours,
-			LastCheckAt: now, LastCheckOutcome: journal.Done, LastSuccessAt: now, CreatedAt: now,
+			LastCheckAt: now, LastCheckOutcome: journal.Done, LastSuccessAt: now, CreatedAt: now, HookText: hook,
 		})
+		if insertErr != nil {
+			return insertErr
+		}
 
-		return insertErr
+		return q.ReplaceShops(ctx, row.ID, storedShops(checked.Shops), now)
 	})
 	if err != nil {
 		return View{}, errors.Join(fmt.Errorf("add the account: %w", err), s.opts.Keys.Delete(ctx, secretAt))
@@ -217,6 +234,27 @@ func (s *Service) Create(ctx context.Context, code, name string, key marketplace
 	s.readWarehouses(ctx, row.ID)
 
 	return s.Get(ctx, row.ID)
+}
+
+// hookTextOf is the text of a new account's notification address: a random text when its marketplace sends
+// notifications, made as the fulfilment centre's address text is (rand.Text), and none otherwise.
+func (s *Service) hookTextOf(code string) string {
+	adapter, known := s.opts.Registry.Get(code)
+	if !known || !adapter.Describe().Supports(marketplace.NotificationsReceive) {
+		return ""
+	}
+
+	return rand.Text()
+}
+
+// storedShops turns the shops a check gave into the store's.
+func storedShops(list []marketplace.Shop) []store.Shop {
+	out := make([]store.Shop, 0, len(list))
+	for _, s := range list {
+		out = append(out, store.Shop{Number: s.Number, Name: s.Name, Scheme: s.Scheme, APIOff: s.APIOff})
+	}
+
+	return out
 }
 
 // readWarehouses reads an account's warehouses after a check; a failure leaves them for the daily reading.
@@ -302,7 +340,14 @@ func (s *Service) ReplaceKey(ctx context.Context, id int64, key marketplace.Key)
 		MissingCategories: checked.MissingCategories, ReadOnly: checked.ReadOnly, CheckedAt: now, CheckOutcome: journal.Done,
 	}
 
-	if err := s.opts.Store.Do(ctx, func(q *store.Queries) error { return q.UpdateAccountKey(ctx, id, k) }); err != nil {
+	err = s.opts.Store.Do(ctx, func(q *store.Queries) error {
+		if err := q.UpdateAccountKey(ctx, id, k); err != nil {
+			return err
+		}
+
+		return q.ReplaceShops(ctx, id, storedShops(checked.Shops), now)
+	})
+	if err != nil {
 		return View{}, err
 	}
 

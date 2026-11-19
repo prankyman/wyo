@@ -15,24 +15,26 @@ const countOrderViews = `-- name: CountOrderViews :one
 SELECT count(*) FROM orders o
 JOIN marketplace_accounts a ON a.id = o.account_id
 WHERE (?1 IS NULL OR o.account_id = ?1)
-  AND (?2 IS NULL OR o.scheme = ?2)
-  AND (?3 IS NULL OR o.state = ?3)
-  AND (?4 IS NULL OR o.created_at >= ?4)
-  AND (?5 IS NULL OR o.created_at < ?5)
-  AND (?6 IS NULL OR instr(o.number, ?6) > 0 OR EXISTS (
+  AND (?2 IS NULL OR o.scheme = ?2 OR o.scheme_name = ?2)
+  AND (?3 IS NULL OR o.test = ?3)
+  AND (?4 IS NULL OR o.state = ?4)
+  AND (?5 IS NULL OR o.created_at >= ?5)
+  AND (?6 IS NULL OR o.created_at < ?6)
+  AND (?7 IS NULL OR instr(o.number, ?7) > 0 OR EXISTS (
        SELECT 1 FROM order_lines l
        WHERE l.order_id = o.id
-         AND (instr(l.article, ?6) > 0 OR instr(l.barcodes, ?6) > 0
-              OR instr(l.product_id, ?6) > 0)))
-  AND (?7 IS NULL OR EXISTS (
+         AND (instr(l.article, ?7) > 0 OR instr(l.barcodes, ?7) > 0
+              OR instr(l.product_id, ?7) > 0)))
+  AND (?8 IS NULL OR EXISTS (
        SELECT 1 FROM exchange_orders x
        WHERE x.order_id = o.id
-         AND (x.attention <> '' OR (x.state = 'sent' AND o.created_at + a.deadline_hours * 900 <= ?7))))
+         AND (x.attention <> '' OR (x.state = 'sent' AND o.created_at + a.deadline_hours * 900 <= ?8))))
 `
 
 type CountOrderViewsParams struct {
 	AccountID     interface{}
 	Scheme        interface{}
+	Test          interface{}
 	State         interface{}
 	CreatedFrom   interface{}
 	CreatedBefore interface{}
@@ -44,6 +46,7 @@ func (q *Queries) CountOrderViews(ctx context.Context, arg CountOrderViewsParams
 	row := q.db.QueryRowContext(ctx, countOrderViews,
 		arg.AccountID,
 		arg.Scheme,
+		arg.Test,
 		arg.State,
 		arg.CreatedFrom,
 		arg.CreatedBefore,
@@ -58,7 +61,7 @@ func (q *Queries) CountOrderViews(ctx context.Context, arg CountOrderViewsParams
 const countOrdersByState = `-- name: CountOrdersByState :many
 SELECT o.state, count(*) AS orders FROM orders o
 JOIN marketplace_accounts a ON a.id = o.account_id
-WHERE a.state <> 'disabled'
+WHERE a.state <> 'disabled' AND o.test = 0
 GROUP BY o.state
 `
 
@@ -67,6 +70,7 @@ type CountOrdersByStateRow struct {
 	Orders int64
 }
 
+// A test order is counted in no total (constitution, principle X).
 func (q *Queries) CountOrdersByState(ctx context.Context) ([]CountOrdersByStateRow, error) {
 	rows, err := q.db.QueryContext(ctx, countOrdersByState)
 	if err != nil {
@@ -93,12 +97,26 @@ func (q *Queries) CountOrdersByState(ctx context.Context) ([]CountOrdersByStateR
 const countOverdueOrders = `-- name: CountOverdueOrders :one
 SELECT count(*) FROM orders o
 JOIN marketplace_accounts a ON a.id = o.account_id
-WHERE a.state <> 'disabled' AND o.scheme = 'fbs' AND o.state IN ('new', 'assembling')
+WHERE a.state <> 'disabled' AND o.test = 0 AND o.scheme = 'fbs' AND o.state IN ('new', 'assembling')
   AND COALESCE(o.ship_by, o.created_at + a.deadline_hours * 3600) < CAST(?1 AS INTEGER)
 `
 
 func (q *Queries) CountOverdueOrders(ctx context.Context, now int64) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countOverdueOrders, now)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countTestOrders = `-- name: CountTestOrders :one
+SELECT count(*) FROM orders o
+JOIN marketplace_accounts a ON a.id = o.account_id
+WHERE a.state <> 'disabled' AND o.test = 1
+`
+
+// Not a total of the orders: it says only whether the home page names the test orders it leaves out of its numbers.
+func (q *Queries) CountTestOrders(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countTestOrders)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -114,7 +132,7 @@ func (q *Queries) DeleteOrderLines(ctx context.Context, orderID int64) error {
 }
 
 const getOrderByJoinKey = `-- name: GetOrderByJoinKey :one
-SELECT id, account_id, number, scheme, join_key, basket, warehouse_number, warehouse_name, created_at, state, cancelled_by, seller_status, marketplace_status, updated_at, grp, item_id, required_ids, optional_ids, ship_by, parent_number FROM orders WHERE account_id = ? AND join_key = ? ORDER BY id LIMIT 1
+SELECT id, account_id, number, scheme, join_key, basket, warehouse_number, warehouse_name, created_at, state, cancelled_by, seller_status, marketplace_status, updated_at, grp, item_id, required_ids, optional_ids, ship_by, parent_number, test, scheme_name, warehouse_text FROM orders WHERE account_id = ? AND join_key = ? ORDER BY id LIMIT 1
 `
 
 type GetOrderByJoinKeyParams struct {
@@ -146,12 +164,15 @@ func (q *Queries) GetOrderByJoinKey(ctx context.Context, arg GetOrderByJoinKeyPa
 		&i.OptionalIds,
 		&i.ShipBy,
 		&i.ParentNumber,
+		&i.Test,
+		&i.SchemeName,
+		&i.WarehouseText,
 	)
 	return i, err
 }
 
 const getOrderByNumber = `-- name: GetOrderByNumber :one
-SELECT id, account_id, number, scheme, join_key, basket, warehouse_number, warehouse_name, created_at, state, cancelled_by, seller_status, marketplace_status, updated_at, grp, item_id, required_ids, optional_ids, ship_by, parent_number FROM orders WHERE account_id = ? AND number = ?
+SELECT id, account_id, number, scheme, join_key, basket, warehouse_number, warehouse_name, created_at, state, cancelled_by, seller_status, marketplace_status, updated_at, grp, item_id, required_ids, optional_ids, ship_by, parent_number, test, scheme_name, warehouse_text FROM orders WHERE account_id = ? AND number = ?
 `
 
 type GetOrderByNumberParams struct {
@@ -183,12 +204,15 @@ func (q *Queries) GetOrderByNumber(ctx context.Context, arg GetOrderByNumberPara
 		&i.OptionalIds,
 		&i.ShipBy,
 		&i.ParentNumber,
+		&i.Test,
+		&i.SchemeName,
+		&i.WarehouseText,
 	)
 	return i, err
 }
 
 const getOrderView = `-- name: GetOrderView :one
-SELECT o.id, o.account_id, o.number, o.scheme, o.join_key, o.basket, o.warehouse_number, o.warehouse_name, o.created_at, o.state, o.cancelled_by, o.seller_status, o.marketplace_status, o.updated_at, o.grp, o.item_id, o.required_ids, o.optional_ids, o.ship_by, o.parent_number, a.name AS account_name, a.marketplace AS marketplace, a.deadline_hours AS deadline_hours,
+SELECT o.id, o.account_id, o.number, o.scheme, o.join_key, o.basket, o.warehouse_number, o.warehouse_name, o.created_at, o.state, o.cancelled_by, o.seller_status, o.marketplace_status, o.updated_at, o.grp, o.item_id, o.required_ids, o.optional_ids, o.ship_by, o.parent_number, o.test, o.scheme_name, o.warehouse_text, a.name AS account_name, a.marketplace AS marketplace, a.deadline_hours AS deadline_hours,
        COALESCE(w.name, '') AS known_warehouse_name
 FROM orders o
 JOIN marketplace_accounts a ON a.id = o.account_id
@@ -217,6 +241,9 @@ type GetOrderViewRow struct {
 	OptionalIds        string
 	ShipBy             sql.NullInt64
 	ParentNumber       string
+	Test               int64
+	SchemeName         string
+	WarehouseText      string
 	AccountName        string
 	Marketplace        string
 	DeadlineHours      int64
@@ -247,6 +274,9 @@ func (q *Queries) GetOrderView(ctx context.Context, id int64) (GetOrderViewRow, 
 		&i.OptionalIds,
 		&i.ShipBy,
 		&i.ParentNumber,
+		&i.Test,
+		&i.SchemeName,
+		&i.WarehouseText,
 		&i.AccountName,
 		&i.Marketplace,
 		&i.DeadlineHours,
@@ -258,8 +288,9 @@ func (q *Queries) GetOrderView(ctx context.Context, id int64) (GetOrderViewRow, 
 const insertOrder = `-- name: InsertOrder :one
 INSERT INTO orders (
     account_id, number, scheme, join_key, basket, warehouse_number, warehouse_name, created_at, ship_by, parent_number, state,
-    cancelled_by, seller_status, marketplace_status, updated_at, grp, item_id, required_ids, optional_ids
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    cancelled_by, seller_status, marketplace_status, updated_at, grp, item_id, required_ids, optional_ids, test, scheme_name,
+    warehouse_text
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT (account_id, number) DO NOTHING
 RETURNING id
 `
@@ -284,6 +315,9 @@ type InsertOrderParams struct {
 	ItemID            string
 	RequiredIds       string
 	OptionalIds       string
+	Test              int64
+	SchemeName        string
+	WarehouseText     string
 }
 
 func (q *Queries) InsertOrder(ctx context.Context, arg InsertOrderParams) (int64, error) {
@@ -307,6 +341,9 @@ func (q *Queries) InsertOrder(ctx context.Context, arg InsertOrderParams) (int64
 		arg.ItemID,
 		arg.RequiredIds,
 		arg.OptionalIds,
+		arg.Test,
+		arg.SchemeName,
+		arg.WarehouseText,
 	)
 	var id int64
 	err := row.Scan(&id)
@@ -585,32 +622,34 @@ func (q *Queries) ListOrderPartsOf(ctx context.Context, parentNumbers []string) 
 }
 
 const listOrderViews = `-- name: ListOrderViews :many
-SELECT o.id, o.account_id, o.number, o.scheme, o.join_key, o.basket, o.warehouse_number, o.warehouse_name, o.created_at, o.state, o.cancelled_by, o.seller_status, o.marketplace_status, o.updated_at, o.grp, o.item_id, o.required_ids, o.optional_ids, o.ship_by, o.parent_number, a.name AS account_name, a.marketplace AS marketplace, a.deadline_hours AS deadline_hours,
+SELECT o.id, o.account_id, o.number, o.scheme, o.join_key, o.basket, o.warehouse_number, o.warehouse_name, o.created_at, o.state, o.cancelled_by, o.seller_status, o.marketplace_status, o.updated_at, o.grp, o.item_id, o.required_ids, o.optional_ids, o.ship_by, o.parent_number, o.test, o.scheme_name, o.warehouse_text, a.name AS account_name, a.marketplace AS marketplace, a.deadline_hours AS deadline_hours,
        COALESCE(w.name, '') AS known_warehouse_name
 FROM orders o
 JOIN marketplace_accounts a ON a.id = o.account_id
 LEFT JOIN marketplace_warehouses w ON w.account_id = o.account_id AND w.number = o.warehouse_number
 WHERE (?1 IS NULL OR o.account_id = ?1)
-  AND (?2 IS NULL OR o.scheme = ?2)
-  AND (?3 IS NULL OR o.state = ?3)
-  AND (?4 IS NULL OR o.created_at >= ?4)
-  AND (?5 IS NULL OR o.created_at < ?5)
-  AND (?6 IS NULL OR instr(o.number, ?6) > 0 OR EXISTS (
+  AND (?2 IS NULL OR o.scheme = ?2 OR o.scheme_name = ?2)
+  AND (?3 IS NULL OR o.test = ?3)
+  AND (?4 IS NULL OR o.state = ?4)
+  AND (?5 IS NULL OR o.created_at >= ?5)
+  AND (?6 IS NULL OR o.created_at < ?6)
+  AND (?7 IS NULL OR instr(o.number, ?7) > 0 OR EXISTS (
        SELECT 1 FROM order_lines l
        WHERE l.order_id = o.id
-         AND (instr(l.article, ?6) > 0 OR instr(l.barcodes, ?6) > 0
-              OR instr(l.product_id, ?6) > 0)))
-  AND (?7 IS NULL OR EXISTS (
+         AND (instr(l.article, ?7) > 0 OR instr(l.barcodes, ?7) > 0
+              OR instr(l.product_id, ?7) > 0)))
+  AND (?8 IS NULL OR EXISTS (
        SELECT 1 FROM exchange_orders x
        WHERE x.order_id = o.id
-         AND (x.attention <> '' OR (x.state = 'sent' AND o.created_at + a.deadline_hours * 900 <= ?7))))
+         AND (x.attention <> '' OR (x.state = 'sent' AND o.created_at + a.deadline_hours * 900 <= ?8))))
 ORDER BY o.created_at DESC, o.id DESC
-LIMIT ?9 OFFSET ?8
+LIMIT ?10 OFFSET ?9
 `
 
 type ListOrderViewsParams struct {
 	AccountID     interface{}
 	Scheme        interface{}
+	Test          interface{}
 	State         interface{}
 	CreatedFrom   interface{}
 	CreatedBefore interface{}
@@ -641,6 +680,9 @@ type ListOrderViewsRow struct {
 	OptionalIds        string
 	ShipBy             sql.NullInt64
 	ParentNumber       string
+	Test               int64
+	SchemeName         string
+	WarehouseText      string
 	AccountName        string
 	Marketplace        string
 	DeadlineHours      int64
@@ -651,6 +693,7 @@ func (q *Queries) ListOrderViews(ctx context.Context, arg ListOrderViewsParams) 
 	rows, err := q.db.QueryContext(ctx, listOrderViews,
 		arg.AccountID,
 		arg.Scheme,
+		arg.Test,
 		arg.State,
 		arg.CreatedFrom,
 		arg.CreatedBefore,
@@ -687,6 +730,9 @@ func (q *Queries) ListOrderViews(ctx context.Context, arg ListOrderViewsParams) 
 			&i.OptionalIds,
 			&i.ShipBy,
 			&i.ParentNumber,
+			&i.Test,
+			&i.SchemeName,
+			&i.WarehouseText,
 			&i.AccountName,
 			&i.Marketplace,
 			&i.DeadlineHours,
@@ -706,7 +752,7 @@ func (q *Queries) ListOrderViews(ctx context.Context, arg ListOrderViewsParams) 
 }
 
 const listOrdersOfNumbers = `-- name: ListOrdersOfNumbers :many
-SELECT id, account_id, number, scheme, join_key, basket, warehouse_number, warehouse_name, created_at, state, cancelled_by, seller_status, marketplace_status, updated_at, grp, item_id, required_ids, optional_ids, ship_by, parent_number FROM orders WHERE account_id = ? AND number IN (/*SLICE:numbers*/?)
+SELECT id, account_id, number, scheme, join_key, basket, warehouse_number, warehouse_name, created_at, state, cancelled_by, seller_status, marketplace_status, updated_at, grp, item_id, required_ids, optional_ids, ship_by, parent_number, test, scheme_name, warehouse_text FROM orders WHERE account_id = ? AND number IN (/*SLICE:numbers*/?)
 `
 
 type ListOrdersOfNumbersParams struct {
@@ -755,6 +801,9 @@ func (q *Queries) ListOrdersOfNumbers(ctx context.Context, arg ListOrdersOfNumbe
 			&i.OptionalIds,
 			&i.ShipBy,
 			&i.ParentNumber,
+			&i.Test,
+			&i.SchemeName,
+			&i.WarehouseText,
 		); err != nil {
 			return nil, err
 		}

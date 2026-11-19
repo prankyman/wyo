@@ -78,7 +78,8 @@ func TestAKitOverAGivenDatabaseBuildsTheEngineOfTheGivenAdapters(t *testing.T) {
 		t.Fatalf("the registry holds %d adapters", len(registry.All()))
 	}
 
-	if jobs := engine.Jobs(); len(jobs) != 4 {
+	// The orders, the safety read of the accounts read by changes (Plan 7), the warehouses, the key check, the journal's prune.
+	if jobs := engine.Jobs(); len(jobs) != 5 {
 		t.Fatalf("the engine has %d jobs", len(jobs))
 	}
 }

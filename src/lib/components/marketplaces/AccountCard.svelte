@@ -18,14 +18,19 @@
     import AccountStateBadge from './AccountStateBadge.svelte';
     import KeyForm from './KeyForm.svelte';
     import MarketplaceMark from './MarketplaceMark.svelte';
+    import NotificationAddressCard from './NotificationAddressCard.svelte';
+    import ShopList from './ShopList.svelte';
     import type { TAccount, TMarketplace } from './types';
 
     /**
      * One marketplace account on «Маркетплейсы»: the marketplace's mark, the account's own name and state, and what its key and
      * its readings say — the seller, the fields of the key that are not secret in full (an account number), the key's last four
      * characters (never more), what the key allows, the day it ends, the last successful reading, the last refusal in words, the
-     * hours to hand an order over (only for a marketplace that does not give each order its own deadline). A test key, a missing
-     * category and the warehouses the seller delivers from itself each say in a note what they hide. Every refusal and note is
+     * hours to hand an order over (only for a marketplace that does not give each order its own deadline), and how many warehouses
+     * a courier takes orders from within hours (Express). A test key, a missing
+     * category and the warehouses the seller delivers from itself each say in a note what they hide. An account whose marketplace
+     * keeps several shops under one key lists them (`ShopList`), and one whose marketplace sends notifications shows its
+     * notification address, its state and the steps that connect it (`NotificationAddressCard`). Every refusal and note is
      * worded by the one lookup of the accounts' texts (`accountTextKey`): the marketplace's own words first. Under them: «Заменить ключ» (`KeyForm`), «Изменить» (`AccountChangeForm`), «Проверить ключ
      * сейчас», «Отключить» or «Включить», and «Удалить» for an account from which no order ever came, behind a window.
      *
@@ -117,6 +122,7 @@
                 })
             );
         }
+        if (account.expressWarehouses) fact('expressWarehouses', String(account.expressWarehouses));
         if (!givesDeadline) {
             fact('deadlineHours', t('accounts.fact.deadlineHours.value', lang, { hours: account.deadlineHours }));
         }
@@ -153,6 +159,17 @@
             />
         </div>
         <FactList items={facts} dataTest="account-facts" />
+        {#if account.shops && account.shops.length > 0}
+            <ShopList {lang} shops={account.shops} testId="account-shops" />
+        {/if}
+        {#if account.notifications}
+            <NotificationAddressCard
+                {lang}
+                code={account.marketplace}
+                notifications={account.notifications}
+                testId="account-notifications"
+            />
+        {/if}
         {#if account.test && testNote}
             <NoteBox tone="info" dataTest="account-note-test">{t(testNote, lang)}</NoteBox>
         {/if}

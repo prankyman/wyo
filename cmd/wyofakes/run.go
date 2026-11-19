@@ -17,6 +17,7 @@ import (
 	"github.com/prankyman/wyo/internal/fakes/fulfilment"
 	"github.com/prankyman/wyo/internal/fakes/ozon"
 	"github.com/prankyman/wyo/internal/fakes/wildberries"
+	"github.com/prankyman/wyo/internal/fakes/yandex"
 	"github.com/prankyman/wyo/internal/logging"
 	"github.com/prankyman/wyo/internal/server"
 )
@@ -58,7 +59,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, listenOn 
 	flags := flag.NewFlagSet("wyofakes", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 
-	mp := flags.String("marketplaces", defaultMarketplaces, "address of the fake marketplaces, wildberries and ozon, on one address (127.0.0.1:0 picks a free port)")
+	mp := flags.String("marketplaces", defaultMarketplaces, "address of the fake marketplaces, wildberries, ozon and yandex, on one address (127.0.0.1:0 picks a free port)")
 	fc := flags.String("fulfilment", defaultFulfilment, "address of the fake fulfilment centre (127.0.0.1:0 picks a free port)")
 
 	if err := flags.Parse(args); err != nil {
@@ -114,9 +115,10 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, listenOn 
 
 	wildberriesFake := wildberries.New(wildberries.Options{Clock: clock.Real{}})
 	ozonFake := ozon.New(ozon.Options{Clock: clock.Real{}})
+	yandexFake := yandex.New(yandex.Options{Clock: clock.Real{}})
 
 	return serveBoth(ctx, log, []fake{
-		{name: "marketplaces", ln: mpLn, handler: fakekit.HostRouter(wildberriesFake.Handler(), ozonFake)},
+		{name: "marketplaces", ln: mpLn, handler: fakekit.HostRouter(wildberriesFake.Handler(), ozonFake, yandexFake)},
 		{name: "fulfilment", ln: fcLn, handler: fulfilmentFake.Handler()},
 	})
 }

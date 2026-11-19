@@ -26,7 +26,7 @@ function accountsCard(overview: TMarketplacesOverview, lang: TLocale): Pick<IIns
 }
 
 function ordersCard(overview: TMarketplacesOverview, lang: TLocale): Pick<IInstallationCard, 'state' | 'sentence'> {
-    const { newOrders, assembling, overdue, unknownStates } = overview;
+    const { newOrders, assembling, overdue, unknownStates, testOrders } = overview;
     const counts = { newOrders, assembling, overdue };
     const state: IInstallationCard['state'] =
         overdue > 0
@@ -34,7 +34,8 @@ function ordersCard(overview: TMarketplacesOverview, lang: TLocale): Pick<IInsta
             : { label: t('overview.orders.ok', lang), tone: 'ok' };
     const sentence = t(overdue > 0 ? 'overview.orders.overdueSentence' : 'overview.orders.okSentence', lang, counts);
     const unknown = unknownStates > 0 ? ` ${t('overview.orders.unknownSentence', lang, { unknownStates })}` : '';
-    return { state, sentence: `${sentence}${unknown}` };
+    const test = testOrders > 0 ? ` ${t('overview.orders.testSentence', lang, { testOrders })}` : '';
+    return { state, sentence: `${sentence}${unknown}${test}` };
 }
 
 function readingCard(overview: TMarketplacesOverview, lang: TLocale): Pick<IInstallationCard, 'state' | 'sentence'> {

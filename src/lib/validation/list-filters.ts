@@ -22,12 +22,14 @@ function periodInOrder(values: { from: string; to: string }, context: z.Refineme
 }
 
 export const ORDER_STATES = ['new', 'assembling', 'in_delivery', 'received', 'cancelled', 'unknown'] as const;
-export const ORDER_SCHEMES = ['fbs', 'fbo'] as const;
+export const ORDER_SCHEMES = ['fbs', 'fbo', 'express', 'fby'] as const;
+/** The test-orders filter: only the test orders (`only`), none of them (`none`), or both (empty). */
+export const ORDER_TESTS = ['only', 'none'] as const;
 export const JOURNAL_OUTCOMES = ['done', 'limited', 'refused', 'server_error', 'no_connection', 'key_refused'] as const;
 
 /**
  * The filter of «Заказы»: account, scheme, state, the period of creation, a search by number, article or barcode, and
- * «Требуют внимания» (`true`: only the orders that need the owner).
+ * «Требуют внимания» (`true`: only the orders that need the owner), and the test orders (`only`, `none`).
  */
 export const orderFilterSchema = z
     .object({
@@ -37,7 +39,8 @@ export const orderFilterSchema = z
         from: DAY,
         to: DAY,
         q: z.string().trim().max(100, 'errors.search_too_long').default(''),
-        attention: z.enum(['', 'true']).default('')
+        attention: z.enum(['', 'true']).default(''),
+        test: z.enum(['', ...ORDER_TESTS]).default('')
     })
     .superRefine(periodInOrder);
 

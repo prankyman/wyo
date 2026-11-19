@@ -39,7 +39,7 @@ describe('the load of «Заказы»', () => {
 
         expect(get).toHaveBeenCalledWith('/api/v1/orders?account=7&state=new&q=DRESS&page=2');
         expect(data).toEqual({
-            filter: { account: '7', scheme: '', state: 'new', from: '', to: '', q: 'DRESS', attention: '' },
+            filter: { account: '7', scheme: '', state: 'new', from: '', to: '', q: 'DRESS', attention: '', test: '' },
             list: LIST,
             refusal: null,
             accounts: [accountOf()],
@@ -57,6 +57,18 @@ describe('the load of «Заказы»', () => {
 
         expect(get).toHaveBeenCalledWith('/api/v1/orders?attention=true');
         expect(data.filter).toMatchObject({ attention: 'true' });
+    });
+
+    it('asks only for the test orders, or for none of them, when the address says so', async () => {
+        answers();
+
+        const only = await loadAt('/orders?test=only');
+        expect(get).toHaveBeenCalledWith('/api/v1/orders?test=only');
+        expect(only.filter).toMatchObject({ test: 'only' });
+
+        get.mockClear();
+        await loadAt('/orders?test=none&scheme=express');
+        expect(get).toHaveBeenCalledWith('/api/v1/orders?scheme=express&test=none');
     });
 
     it('reads the order the address opens, for its details beside the list', async () => {

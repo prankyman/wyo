@@ -16,6 +16,7 @@ import (
 	"github.com/prankyman/wyo/internal/fakes/fakekit"
 	fakeozon "github.com/prankyman/wyo/internal/fakes/ozon"
 	fakewb "github.com/prankyman/wyo/internal/fakes/wildberries"
+	fakeyandex "github.com/prankyman/wyo/internal/fakes/yandex"
 	"github.com/prankyman/wyo/internal/marketplace"
 	"github.com/prankyman/wyo/internal/outbound"
 	"github.com/prankyman/wyo/internal/server"
@@ -32,6 +33,9 @@ var wildberriesHosts = []string{
 
 // ozonHost is the host the Ozon adapter calls.
 const ozonHost = "api-seller.ozon.ru"
+
+// yandexHost is Яндекс Маркет's API host, the first part of the path of a call to the fake Яндекс Маркет.
+const yandexHost = "api.partner.market.yandex.ru"
 
 // fakeSeller is the profile id the fake Wildberries gives every seller.
 const fakeSeller = "00000000-0000-0000-0000-000000000001"
@@ -73,8 +77,9 @@ func fakeMarketplaces(t *testing.T, clk *clock.Fixed) *httptest.Server {
 
 	wb := fakewb.New(fakewb.Options{Clock: clk, Delay: fakekit.ClockDelayer{Clock: clk}})
 	oz := fakeozon.New(fakeozon.Options{Clock: clk, Delay: fakekit.ClockDelayer{Clock: clk}})
+	ya := fakeyandex.New(fakeyandex.Options{Clock: clk, Delay: fakekit.ClockDelayer{Clock: clk}})
 
-	fake := httptest.NewServer(fakekit.HostRouter(wb.Handler(), oz))
+	fake := httptest.NewServer(fakekit.HostRouter(wb.Handler(), oz, ya))
 	t.Cleanup(fake.Close)
 
 	return fake
@@ -121,6 +126,44 @@ func addOzonAccount(t *testing.T, app *server.App, fakeURL, name string, now tim
 	}
 
 	return id, key
+}
+
+// addYandexAccount sets a key up at the fake Яндекс Маркет (the cabinet 7001 with every level, one FBS shop and its
+// warehouse) and saves its account the way the accounts service does, without asking. It returns the account.
+func addYandexAccount(t *testing.T, app *server.App, fakeURL, name string, now time.Time) int64 {
+	t.Helper()
+
+	key := "yandex-" + name + "-" + strings.ReplaceAll(t.Name(), "/", "-")
+
+	if err := fakekit.NewControl(fakeURL+"/"+yandexHost, key, nil).Do(t.Context(), http.MethodPost, "/__control/setup", map[string]any{
+		"business": map[string]any{"id": 7001, "name": "Кабинет " + name}, "scopes": []string{"ALL_METHODS"},
+		"campaigns":  []map[string]any{{"id": 5001, "name": "shop.test", "placement_type": "FBS"}},
+		"warehouses": []map[string]any{{"id": 301, "name": "Склад FBS", "models": []map[string]any{{"placement_type": "FBS", "campaign_id": 5001}}}},
+	}, nil); err != nil {
+		t.Fatalf("set the key up at the fake Яндекс Маркет: %v", err)
+	}
+
+	secret := "account." + name + ".key"
+	if err := app.Vault.Put(t.Context(), secret, key); err != nil {
+		t.Fatalf("Vault.Put: %v", err)
+	}
+
+	var id int64
+
+	if err := app.Store.Do(t.Context(), func(q *store.Queries) error {
+		row, err := q.InsertAccount(t.Context(), store.Account{
+			Marketplace: "yandex", Name: name, State: "working", SellerProfileID: "7001", SecretName: secret, KeyLast4: key[len(key)-4:],
+			Categories: []string{"orders", "products", "orders_write"}, DeadlineHours: 48, LastSuccessAt: now, CreatedAt: now,
+			HookText: "hook-" + name,
+		})
+		id = row.ID
+
+		return err
+	}); err != nil {
+		t.Fatalf("InsertAccount: %v", err)
+	}
+
+	return id
 }
 
 // recordingGate is the outbound gate of a test build pointed at the fake marketplace, recording every address.
@@ -205,7 +248,7 @@ func hostOfFake(address, fakeURL string) string {
 	}
 
 	host, _, _ := strings.Cut(rest, "/")
-	for _, known := range append([]string{ozonHost}, wildberriesHosts...) {
+	for _, known := range append([]string{ozonHost, yandexHost}, wildberriesHosts...) {
 		if host == known {
 			return host
 		}

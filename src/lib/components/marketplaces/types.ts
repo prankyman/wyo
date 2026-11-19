@@ -10,3 +10,8 @@ export type TKeyField = components['schemas']['KeyField'];
 export type TAccount = components['schemas']['Account'];
 export type TAccountList = components['schemas']['AccountList'];
 export type TAccountState = components['schemas']['AccountState'];
+
+/** One shop of an account whose marketplace keeps several shops in one account (`Account.shops`). */
+export type TShop = components['schemas']['Shop'];
+/** An account's notification address and whether the marketplace's notifications arrive (`Account.notifications`). */
+export type TAccountNotifications = components['schemas']['AccountNotifications'];

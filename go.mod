@@ -10,6 +10,7 @@ require (
 	github.com/mholt/acmez/v3 v3.1.7
 	github.com/oapi-codegen/runtime v1.9.0
 	go.uber.org/zap v1.28.0
+	go.yaml.in/yaml/v4 v4.0.0
 	golang.org/x/crypto v0.59.0
 	golang.org/x/term v0.48.0
 	modernc.org/sqlite v1.62.0
@@ -32,7 +33,6 @@ require (
 	github.com/zeebo/blake3 v0.2.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap/exp v0.3.0 // indirect
-	go.yaml.in/yaml/v4 v4.0.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/sys v0.50.0 // indirect
 	golang.org/x/text v0.44.0 // indirect

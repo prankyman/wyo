@@ -29,8 +29,9 @@ const Code = "fulfilment"
 const apiPrefix = "/api/v1"
 
 // group is the limit group of every request: «300 requests a minute per key». A burst of 50 that refills one request every
-// 240 ms keeps any minute at or below 300 (50 + 60 s / 240 ms = 300).
-var group = marketplace.LimitGroup{Name: Code, Interval: 240 * time.Millisecond, Burst: 50, ErrorCost: 1}
+// 240 ms keeps any minute at or below 300 (50 + 60 s / 240 ms = 300). A 429 rate_limited tells in Retry-After how many
+// seconds to wait (api/fulfilment-centre.yaml; register item 33).
+var group = marketplace.LimitGroup{Name: Code, Interval: 240 * time.Millisecond, Burst: 50, ErrorCost: 1, RetryHeader: "Retry-After"}
 
 // ErrAddress is an address «Внешний API» cannot take.
 var ErrAddress = errors.New("the address is not an https:// address of a fulfilment centre's API")

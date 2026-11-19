@@ -5,7 +5,10 @@ import {
     MARKETPLACE_NAME,
     SECOND_MARKETPLACE,
     SECOND_MARKETPLACE_CODE,
-    SECOND_MARKETPLACE_NAME
+    SECOND_MARKETPLACE_NAME,
+    THIRD_MARKETPLACE,
+    THIRD_MARKETPLACE_CODE,
+    THIRD_MARKETPLACE_NAME
 } from '$test/support/marketplaces';
 import MarketplaceMark from './MarketplaceMark.svelte';
 
@@ -30,6 +33,15 @@ describe('MarketplaceMark', () => {
 
         expect(screen.getByTestId('mark')).toHaveTextContent(SECOND_MARKETPLACE_NAME);
         expect(screen.getByTestId('mark-dot')).toHaveClass('bg-mark-azure');
+    });
+
+    it('draws the third adapter with its own mark and name', () => {
+        render(MarketplaceMark, {
+            props: { lang: 'ru', code: THIRD_MARKETPLACE_CODE, mark: THIRD_MARKETPLACE.mark, dataTest: 'mark' }
+        });
+
+        expect(screen.getByTestId('mark')).toHaveTextContent(THIRD_MARKETPLACE_NAME);
+        expect(screen.getByTestId('mark-dot')).toHaveClass('bg-mark-yellow');
     });
 
     it('shows the code itself for an adapter this interface has no name for', () => {

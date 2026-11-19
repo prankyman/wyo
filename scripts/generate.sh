@@ -10,6 +10,9 @@
 #                                                      copy written by tools/specfix into a temporary folder: Ozon's file
 #                                                      departs from OpenAPI where the generator refuses it, and the
 #                                                      committed file is never edited (api/ozon/README.md)
+#   internal/marketplace/yandex/yandexapi/             from api/yandex/ (oapi-codegen), through one joined copy written by
+#                                                      tools/specfix join into a temporary folder: the generator stops on
+#                                                      the tree of files as published (api/yandex/README.md)
 #   src/lib/api/wyo-api.d.ts                           from api/wyo.yaml (openapi-typescript)
 #   internal/store/db/                                 from internal/store/*.sql, migrations/ and queries/ (sqlc)
 set -euo pipefail
@@ -38,6 +41,7 @@ GENERATED=(
     internal/marketplace/wildberries/wbapi/orders/orders.gen.go
     internal/marketplace/wildberries/wbapi/reports/reports.gen.go
     internal/marketplace/ozon/ozonapi/ozonapi.gen.go
+    internal/marketplace/yandex/yandexapi/yandexapi.gen.go
     src/lib/api/wyo-api.d.ts
     internal/store/db/accounts.sql.go
     internal/store/db/db.go
@@ -45,6 +49,7 @@ GENERATED=(
     internal/store/db/journal.sql.go
     internal/store/db/models.go
     internal/store/db/migrations.sql.go
+    internal/store/db/notifications.sql.go
     internal/store/db/orders.sql.go
     internal/store/db/people.sql.go
     internal/store/db/secrets.sql.go
@@ -64,10 +69,12 @@ generate_into() {
         cp "$root/go.mod" "$out/go.mod"
     fi
 
-    # The corrected copy of Ozon's file lives only for this run.
-    local ozon
-    ozon="$(mktemp -d)"
-    go run ./tools/specfix "$root/api/ozon/seller-api.json" "$ozon/seller-api.json" >/dev/null
+    # The corrected copy of Ozon's file lives only for this run, in a temporary folder of its own.
+    local copies
+    copies="$(mktemp -d)"
+    go run ./tools/specfix "$root/api/ozon/seller-api.json" "$copies/seller-api.json" >/dev/null
+    # So does the joined copy of Яндекс Маркет's tree (the rule «join» of internal/specfix).
+    go run ./tools/specfix join "$root/api/yandex/openapi.yaml" "$copies/yandex.yaml" >/dev/null
 
     (
         cd "$out"
@@ -77,9 +84,10 @@ generate_into() {
         oapi-codegen -config "$root/api/codegen/wildberries-items.cfg.yaml" "$root/api/wildberries/02-items.yaml"
         oapi-codegen -config "$root/api/codegen/wildberries-orders.cfg.yaml" "$root/api/wildberries/03-orders-fbs.yaml"
         oapi-codegen -config "$root/api/codegen/wildberries-reports.cfg.yaml" "$root/api/wildberries/12-reports.yaml"
-        oapi-codegen -config "$root/api/codegen/ozon.cfg.yaml" "$ozon/seller-api.json"
+        oapi-codegen -config "$root/api/codegen/ozon.cfg.yaml" "$copies/seller-api.json"
+        oapi-codegen -config "$root/api/codegen/yandex.cfg.yaml" "$copies/yandex.yaml"
     )
-    rm -rf "$ozon"
+    rm -rf "$copies"
 
     # sqlc resolves every path of its configuration against the folder the configuration is in, so when the output goes
     # elsewhere the inputs go with it.

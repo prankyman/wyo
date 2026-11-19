@@ -20,18 +20,18 @@ import (
 	"github.com/prankyman/wyo/internal/testkit/synckit"
 )
 
-// The measurement of plan 3, section H, widened by plan 5, section H: the memory of the wyo server with three accounts —
-// two of Wildberries and one of Ozon, whose orders have three products on average — and 10 000 orders in its database,
-// reading the fakes at the plans' periods for a made-up day. It runs only when asked for
+// The measurement of plan 3, section H, widened by plans 5 and 7, section H: the memory of the wyo server with four
+// accounts — two of Wildberries, one of Ozon and one of Яндекс Маркет, whose orders have three products on average and
+// each a notification — and 10 000 orders in its database, reading the fakes at the plans' periods for a made-up day. It runs only when asked for
 // (`pnpm go:measure`, the build tag wyomeasure), because it measures, not checks: the pipeline prints its line, and the
 // README's requirements take the number with the date.
 //
 // What the number is: the peak resident memory of the whole test process (VmHWM of /proc/self/status) and the Go heap
 // in use after the day. The process also holds the fakes and the test itself, so the number is an upper bound of the wyo
 // server's own memory.
-func TestTheMemoryOfADayWithThreeAccountsAndTenThousandOrders(t *testing.T) {
+func TestTheMemoryOfADayWithFourAccountsAndTenThousandOrders(t *testing.T) {
 	const (
-		accountCount = 3
+		accountCount = 4
 		orderCount   = 10_000
 		newEachDay   = 30 // new orders each account has at the fake on the day
 	)
@@ -51,7 +51,7 @@ func TestTheMemoryOfADayWithThreeAccountsAndTenThousandOrders(t *testing.T) {
 
 	var ids []int64
 
-	for i := range accountCount - 1 {
+	for i := range accountCount - 2 {
 		name := fmt.Sprintf("account-%d", i+1)
 		tokenText := token("measure-"+name, clk.Now())
 		ids = append(ids, addAccount(t, app, name, tokenText, clk.Now()))
@@ -81,6 +81,8 @@ func TestTheMemoryOfADayWithThreeAccountsAndTenThousandOrders(t *testing.T) {
 			t.Fatalf("a posting at the fake: %v", err)
 		}
 	}
+
+	ids = append(ids, measuredYandexAccount(t, app, fake.URL, clk.Now(), newEachDay))
 
 	seedOrders(t, app, ids, orderCount, clk.Now())
 
@@ -143,7 +145,7 @@ func seedOrders(t *testing.T, app *server.App, accounts []int64, count int, now 
 			created := now.Add(-time.Duration(i%90)*24*time.Hour - time.Duration(i%600)*time.Minute)
 			number := strconv.Itoa(900_000_000 + i)
 
-			// The orders of the last account, the Ozon one, have two, three or four products: three on average.
+			// The orders of the last account, the Яндекс Маркет one, have two, three or four products: three on average.
 			account := i % len(accounts)
 			lines := []store.OrderLine{{Article: fmt.Sprintf("ART-%d", i%400), Barcodes: []string{fmt.Sprintf("46%011d", i)}, Quantity: 1}}
 
@@ -190,4 +192,51 @@ func status(t *testing.T, field string) int {
 	t.Fatalf("no %s in /proc/self/status", field)
 
 	return 0
+}
+
+// measuredYandexAccount adds the Яндекс Маркет account of the measurement: count orders at the fake of two, three or four
+// products, each named by a notification the wyo server stored and read, as notifications for every change bring them.
+func measuredYandexAccount(t *testing.T, app *server.App, fakeURL string, now time.Time, count int) int64 {
+	t.Helper()
+
+	id := addYandexAccount(t, app, fakeURL, "account-yandex", now)
+	key := "yandex-account-yandex-" + strings.ReplaceAll(t.Name(), "/", "-")
+	control := fakekit.NewControl(fakeURL+"/"+yandexHost, key, nil)
+
+	var numbers []string
+
+	for i := range count {
+		items := []map[string]any{}
+		for line := range 2 + i%3 {
+			items = append(items, map[string]any{"offer_id": fmt.Sprintf("ART-%d", line), "offer_name": "Товар", "count": 1 + line})
+		}
+
+		var out struct {
+			OrderID int64 `json:"order_id"`
+		}
+
+		if err := control.Do(t.Context(), "POST", "/__control/orders", map[string]any{"campaign_id": 5001, "items": items}, &out); err != nil {
+			t.Fatalf("an order at the fake Яндекс Маркет: %v", err)
+		}
+
+		numbers = append(numbers, strconv.FormatInt(out.OrderID, 10))
+	}
+
+	if err := app.Store.Do(t.Context(), func(q *store.Queries) error {
+		for _, n := range numbers {
+			if _, err := q.InsertNotification(t.Context(), store.Notification{AccountID: id, At: now, Kind: "ORDER_CREATED", Numbers: []string{n}}); err != nil {
+				return err
+			}
+		}
+
+		return q.RecordNotificationSeen(t.Context(), id, now)
+	}); err != nil {
+		t.Fatalf("store the notifications: %v", err)
+	}
+
+	if err := app.Engine.ReadNotified(t.Context()); err != nil {
+		t.Fatalf("ReadNotified: %v", err)
+	}
+
+	return id
 }

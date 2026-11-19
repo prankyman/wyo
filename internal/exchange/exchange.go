@@ -16,6 +16,7 @@ package exchange
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	stdsync "sync"
 	"sync/atomic"
@@ -25,6 +26,7 @@ import (
 	"github.com/prankyman/wyo/internal/fulfilment"
 	"github.com/prankyman/wyo/internal/handover"
 	"github.com/prankyman/wyo/internal/marketplace"
+	"github.com/prankyman/wyo/internal/notify"
 	"github.com/prankyman/wyo/internal/schedule"
 	"github.com/prankyman/wyo/internal/store"
 	"github.com/prankyman/wyo/internal/sync"
@@ -108,7 +110,7 @@ type Service struct {
 
 	run      stdsync.Mutex // one step of the exchange at a time
 	lastPoll time.Time
-	kick     chan struct{}
+	kick     *notify.Kicker
 	// filled says whether «Внешний API» is filled: the jobs wake at their periods only then (whileFilled).
 	filled atomic.Bool
 	// life is the wyo server's lifetime (Start's): filling the setting reads the new orders at once under it.
@@ -121,11 +123,14 @@ func New(o Options) *Service {
 		o.Location = time.UTC
 	}
 
-	s := &Service{opts: o, kick: make(chan struct{}, 1)}
+	s := &Service{opts: o, kick: notify.NewKicker()}
 	s.handovers = handover.New(handover.Options{Store: o.Store, Accounts: o.Engine.Conn, Clock: o.Clock, Log: o.Log})
 
 	return s
 }
+
+// Filled says whether «Внешний API» is filled: the engine reads a marketplace without notifications more often then.
+func (s *Service) Filled() bool { return s.filled.Load() }
 
 // Handovers are the hand-overs' steps.
 func (s *Service) Handovers() *handover.Runner { return s.handovers }
@@ -158,16 +163,13 @@ func (s *Service) Start(ctx context.Context) error {
 
 // listen applies the events every time a notification arrives.
 func (s *Service) listen(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-s.kick:
-			if err := s.readEvents(ctx, true); err != nil {
-				s.opts.Log.Warn("the events a notification announced could not be read", "err", err)
-			}
+	s.kick.Listen(ctx, nil, 0, func(ctx context.Context) error {
+		if err := s.readEvents(ctx, true); err != nil {
+			return fmt.Errorf("the events a notification announced could not be read: %w", err)
 		}
-	}
+
+		return nil
+	}, s.opts.Log)
 }
 
 // addressOrigin is the scheme and host of a saved address, which the gate lists.
