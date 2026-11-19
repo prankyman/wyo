@@ -2,6 +2,8 @@ package wildberries
 
 import (
 	"context"
+	"errors"
+	"strings"
 
 	"github.com/prankyman/wyo/internal/marketplace"
 )
@@ -13,9 +15,10 @@ func (a *Adapter) MakeBatch(ctx context.Context, conn marketplace.Conn, req mark
 	return a.NewBatch(ctx, conn, req.Name)
 }
 
-// FillBatch implements marketplace.HandoverGrouper: the orders the supply does not hold yet are put into it. A supply
-// of Wildberries only takes orders and gives none back, and the supply of a hand-over is filled only by the wyo server, so
-// afterwards it holds exactly the orders given.
+// FillBatch implements marketplace.HandoverGrouper: the orders the supply does not hold yet are put into it, so afterwards it
+// holds every order given (the supply of a hand-over is filled only by the wyo server). Whether Wildberries ever takes an order
+// out of a supply is not sourced; the step «close» reads the supply again and calls this once more when one is missing. A
+// refusal names the orders that were to be put in («postings»).
 func (a *Adapter) FillBatch(ctx context.Context, conn marketplace.Conn, batch string, numbers []string) error {
 	state, err := a.Batch(ctx, conn, batch)
 	if err != nil {
@@ -27,7 +30,21 @@ func (a *Adapter) FillBatch(ctx context.Context, conn marketplace.Conn, batch st
 		return nil
 	}
 
-	return a.PutInBatch(ctx, conn, batch, missing)
+	// A refusal names the orders that were to be put in, so that the hand-over's problem says which they are.
+	err = a.PutInBatch(ctx, conn, batch, missing)
+
+	var refusal *marketplace.Refusal
+	if errors.As(err, &refusal) {
+		if refusal.Params == nil {
+			refusal.Params = map[string]any{}
+		}
+
+		if _, named := refusal.Params["postings"]; !named {
+			refusal.Params["postings"] = strings.Join(missing, ", ")
+		}
+	}
+
+	return err
 }
 
 // Documents implements marketplace.HandoverDocumenter: the closed supply's code, with the supply's number as the text it

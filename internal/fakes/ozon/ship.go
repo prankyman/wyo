@@ -94,6 +94,20 @@ func (c *call) ship() {
 	c.json(http.StatusOK, c.st.shipWire(parts, deref(deref(req.With).AdditionalData)))
 }
 
+// shipWire is the answer of a report: the numbers of the parts, and with additional_data each part with its products. The
+// products carry no marking codes: Ozon's field for them is optional and the fake leaves it out. A report that split the posting
+// while a test commanded a bare answer (control ship-split) is answered with the parts' numbers only, last part first.
+func (st *state) shipWire(parts []shipPart, additional bool) ozonapi.Fbsv4FbsPostingShipV4Response {
+	if st.splitBare && len(parts) > 1 {
+		reversed := slices.Clone(parts)
+		slices.Reverse(reversed)
+
+		return shipReply(reversed, false)
+	}
+
+	return shipReply(parts, additional)
+}
+
 // shipRefusal says whether a report cannot be accepted, in the words Ozon gives for it. The order of the checks is the fake's.
 func (st *state) shipRefusal(p *posting, req shipRequest) (string, bool) {
 	switch p.status {
@@ -263,9 +277,8 @@ const (
 	madeUpCurrency = "RUB"
 )
 
-// shipWire is the answer of a report: the numbers of the parts, and with additional_data each part with its products. The
-// products carry no marking codes: Ozon's field for them is optional and the fake leaves it out.
-func (st *state) shipWire(parts []shipPart, additional bool) ozonapi.Fbsv4FbsPostingShipV4Response {
+// shipReply is the answer that names the parts in the order given, with their products when additional is true.
+func shipReply(parts []shipPart, additional bool) ozonapi.Fbsv4FbsPostingShipV4Response {
 	result := make([]string, len(parts))
 	for i, part := range parts {
 		result[i] = part.number

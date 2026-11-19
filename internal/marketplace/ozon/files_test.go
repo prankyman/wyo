@@ -119,6 +119,52 @@ func TestALinkUnderOzonesDomainIsFetchedAndAnAnswerThatIsNoFileIsRefusedWithItsS
 	}
 }
 
+func TestALabelHeldInAnObjectIsTakenUpToTheLimitOfTheFileAndRefusedOverIt(t *testing.T) {
+	t.Parallel()
+
+	pdf := func(size int) []byte { return append([]byte("%PDF-1.4\n"), make([]byte, size-len("%PDF-1.4\n"))...) }
+
+	object := func(file []byte) []byte {
+		raw, _ := json.Marshal(map[string]any{"content_type": "application/pdf", "file_name": "label.pdf", "file_content": base64.StdEncoding.EncodeToString(file)})
+
+		return raw
+	}
+
+	cases := []struct {
+		name string
+		body []byte
+		code string
+		size int
+	}{
+		{"an object holding a file of 4.5 MB", object(pdf(4*1024*1024 + 512*1024)), "", 4*1024*1024 + 512*1024},
+		{"an object holding a file of exactly 5 MB", object(pdf(ozon.MaxFileBytes)), "", ozon.MaxFileBytes},
+		{"an object holding a file of a byte over 5 MB", object(pdf(ozon.MaxFileBytes + 1)), "file_too_large", 0},
+		{"an object holding a file of 6 MB", object(pdf(6 * 1024 * 1024)), "file_too_large", 0},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			r, conn := stubRig(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write(tc.body) }))
+
+			got, err := r.adapter.FetchFile(t.Context(), conn, "https://ir.ozone.ru/s3/ord-tmp-12/big_label/ticket-00-0000-0000.pdf")
+
+			if tc.code != "" {
+				if refusal := asRefusal(t, err); refusal.Code != tc.code {
+					t.Fatalf("FetchFile = %v; want %s", err, tc.code)
+				}
+
+				return
+			}
+
+			if err != nil || len(got) != tc.size {
+				t.Fatalf("FetchFile = %d bytes, %v; want the label of %d bytes", len(got), err, tc.size)
+			}
+		})
+	}
+}
+
 func toText(v any) string {
 	raw, _ := json.Marshal(v)
 

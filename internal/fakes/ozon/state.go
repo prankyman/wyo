@@ -158,6 +158,9 @@ type state struct {
 	// splitOriginal is what a test commanded for the key's reports that split a posting (control.go, ship-split): every part gets
 	// a new number and the original becomes cancelled_from_split_pending.
 	splitOriginal bool
+	// splitBare is what a test commanded for the answer of such a report (control.go, ship-split): the parts' numbers only, last
+	// part first, without additional_data.
+	splitBare bool
 
 	// The shipments (carriage.go) and what a test commanded for them.
 	carriages    []*carriage

@@ -29,6 +29,7 @@ const (
 	codeIdentifierRefused = "identifier_unsupported"
 	codeNotANumber        = "not_a_number"
 	codeCodesCount        = "codes_count_mismatch"
+	codeCodesProduct      = "codes_product_not_in_posting"
 	codeLabelTaskMissing  = "label_task_missing"
 	codeTicketUnreadable  = "label_ticket_unreadable"
 	codeFileLinkRefused   = "file_link_refused"

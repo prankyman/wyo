@@ -52,7 +52,10 @@ func newRig(t *testing.T) *rig {
 
 	pace := new(time.Duration)
 	r := &rig{t: t, pace: pace, clock: fixed, srv: srv, key: key, ctl: fakekit.NewControl(srv.URL, key, srv.Client())}
-	httpClient := &http.Client{Transport: pacing{base: http.DefaultTransport, clock: fixed, pace: pace}}
+	// The rig's own server's transport, never the shared http.DefaultTransport: closing a test server closes the idle connections
+	// of http.DefaultTransport (net/http/httptest, Server.Close), which broke a parallel test's request («http: CloseIdleConnections
+	// called»).
+	httpClient := &http.Client{Transport: pacing{base: srv.Client().Transport, clock: fixed, pace: pace}}
 
 	edit := func(_ context.Context, req *http.Request) error {
 		req.Header.Set("Authorization", key)
@@ -146,7 +149,7 @@ func (r *rig) rawAs(key, method, path, body string) (int, http.Header, string) {
 		req.Header.Set("Authorization", key)
 	}
 
-	res, err := (&http.Client{Transport: pacing{base: http.DefaultTransport, clock: r.clock, pace: r.pace}}).Do(req)
+	res, err := (&http.Client{Transport: pacing{base: r.srv.Client().Transport, clock: r.clock, pace: r.pace}}).Do(req)
 	if err != nil {
 		r.t.Fatalf("%s %s: %v", method, path, err)
 	}

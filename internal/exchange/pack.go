@@ -166,8 +166,10 @@ func linesKey(lines []marketplace.ParcelLine) string {
 }
 
 // assign gives each parcel the marketplace's number of the part with the same contents; two parcels with the same
-// contents may take either part, for their labels are alike. A marketplace that gave no parts (the packing was reported
-// before) leaves the order's own number on its one parcel.
+// contents may take either part, for their labels are alike. A part whose contents are not known is given to a parcel only
+// when every parcel left has the same contents, so that no label is guessed: otherwise the parcel keeps no number, and the
+// owner is told (problemPackParts). A marketplace that gave no parts (the packing was reported before) leaves the order's own
+// number on its one parcel.
 func assign(o *order, parcels []marketplace.Parcel, parts []marketplace.PackedPart) []string {
 	numbers := make([]string, len(parcels))
 	taken := make([]bool, len(parts))
@@ -182,7 +184,19 @@ func assign(o *order, parcels []marketplace.Parcel, parts []marketplace.PackedPa
 		}
 	}
 
-	// A part whose contents the marketplace did not give back in the same words is taken in order.
+	// A part whose contents the marketplace did not give back in the same words is taken in order, only among parcels alike.
+	left := map[string]bool{}
+
+	for i, p := range parcels {
+		if numbers[i] == "" {
+			left[linesKey(p.Lines)] = true
+		}
+	}
+
+	if len(left) > 1 {
+		return numbers
+	}
+
 	for i := range numbers {
 		if numbers[i] != "" {
 			continue
@@ -306,7 +320,12 @@ func (s *Service) packState(ctx context.Context, packer marketplace.OrderPacker,
 
 	if len(parts) == 0 {
 		state, err := packer.PackState(ctx, conn, o.row.Number)
-		state.Cancelled = state.Cancelled || state.Split
+
+		// A report was sent and the parts it made are not known (its answer was lost, or a part matched no parcel): the order
+		// shown split is that report's split, and stays Split, never a cancellation.
+		if !state.Split || o.x.PackSentAt.IsZero() {
+			state.Cancelled = state.Cancelled || state.Split
+		}
 
 		return state, "", err
 	}
@@ -366,6 +385,8 @@ func (s *Service) packStep(ctx context.Context, sess *session, o *order) {
 	switch {
 	case gone != "":
 		s.packProblem(ctx, sess, o, partGone(gone, state))
+	case state.Split && !state.Cancelled:
+		s.packProblem(ctx, sess, o, store.Problem{Code: problemPackParts})
 	case state.Cancelled:
 		o.x.PackNextAt = time.Time{}
 		s.passCancel(ctx, sess, o)
@@ -402,6 +423,11 @@ func (s *Service) settledAtMarketplace(ctx context.Context, sess *session, o *or
 	case gone != "":
 		o.x.NextCheckAt = time.Time{}
 		s.packProblem(ctx, sess, o, partGone(gone, state))
+
+		return true
+	case state.Split && !state.Cancelled:
+		o.x.NextCheckAt = time.Time{}
+		s.packProblem(ctx, sess, o, store.Problem{Code: problemPackParts})
 
 		return true
 	case state.Cancelled:
@@ -467,6 +493,11 @@ func (s *Service) report(ctx context.Context, sess *session, o *order, packer ma
 		return
 	}
 
+	// The sending is recorded, with the next reading, before the report leaves: should the wyo server stop before the answer is
+	// recorded, the packing is read again, and the order the report may have split is never taken for a cancellation (packState).
+	o.x.PackSentAt = s.opts.Clock.Now()
+	s.packLater(ctx, o)
+
 	parts, err := packer.Pack(ctx, conn, o.row.Number, parcels)
 	if err != nil {
 		s.packFailed(ctx, sess, o, err)
@@ -481,7 +512,8 @@ func (s *Service) report(ctx context.Context, sess *session, o *order, packer ma
 		return
 	}
 
-	for i, number := range assign(o, parcels, parts) {
+	numbers := assign(o, parcels, partsWithLines(ctx, packer, conn, parts))
+	for i, number := range numbers {
 		rows[i].MpNumber = number
 	}
 
@@ -490,8 +522,33 @@ func (s *Service) report(ctx context.Context, sess *session, o *order, packer ma
 	now := s.opts.Clock.Now()
 	o.x.PackReportedAt, o.x.PackTries = now, o.x.PackTries+1
 	o.added = append(o.added, store.ExchangeHistory{At: now, State: o.x.State, Code: "packing_reported"})
+
+	if len(parts) > 0 && slices.Contains(numbers, "") {
+		s.packProblem(ctx, sess, o, store.Problem{Code: problemPackParts})
+
+		return
+	}
+
 	s.clearProblem(ctx, sess, o)
 	s.packLater(ctx, o)
+}
+
+// partsWithLines are the parts a report made, each with its contents: a part the answer gave without them is read by its own
+// number. A part that cannot be read keeps no contents, and assign gives it to no parcel unless the parcels left are alike.
+func partsWithLines(ctx context.Context, packer marketplace.OrderPacker, conn marketplace.Conn, parts []marketplace.PackedPart) []marketplace.PackedPart {
+	out := slices.Clone(parts)
+
+	for i := range out {
+		if len(out[i].Lines) > 0 || len(parts) < 2 {
+			continue
+		}
+
+		if state, err := packer.PackState(ctx, conn, out[i].Number); err == nil {
+			out[i].Lines = state.Lines
+		}
+	}
+
+	return out
 }
 
 // clearSettled clears the problem that a packing the marketplace shows packed, or a label attached, settles. A parcel reopened

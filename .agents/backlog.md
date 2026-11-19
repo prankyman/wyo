@@ -15,32 +15,33 @@ This file exists because a request the maintainer makes while testing one plan m
 ### 38. What the final review of Plan 6 left (2026-11-19)
 
 Plan 6a (`.agents/plans/wyo-plan-6a-ozon-exchange-review-fixes-endless-retries-shipment-recheck-split-original-docs.md`) fixed what the
-final review of Plan 6 found; these stay open, each with its reason:
+final review of Plan 6 found and left nine items here. The maintainer, 2026-11-19: «Fix all issues you left hanging now!» — the branch
+`fix/ozon-exchange-open-items-of-review` (one commit, pull request #12) fixed seven of them:
 
-- **Parts matched to parcels by position** when Ozon's answer to the packing report lacks `additional_data`
-  (`internal/marketplace/ozon/pack.go`, `partsOf`; `internal/exchange/pack.go`, `assign`): with two parcels of different contents a
-  different order of the parts would swap their labels. The shape of the answer is not sourced; decided after item 34.
-- **A stop of the wyo server between a write to Ozon and its record** (`pack.go` `report`, `codes.go` codes accepted): the order keeps no
-  next reading and waits for the next fulfilment-centre event. A narrow window; the interrupted-walk test covers lost answers, not a
-  process stop at that line.
-- **Marking codes of a product that is not in the posting are dropped without a word** (`internal/marketplace/ozon/codes.go`, `marksOf`):
-  Ozon then refuses the packing report, and that refusal is shown in Ozon's words.
-- **The 5 MB limit is applied after Ozon's own API answer is read** (`handover.go` documents, `files.go`): the host is Ozon's API and the
-  call has a 30-second limit.
-- **The outbound gate allows `*.ozone.ru` for every marketplace adapter, not only Ozon's** (`internal/outbound/outbound.go`): the route
-  table keeps every key off those hosts.
+- Fixed: **parts matched to parcels by position** when Ozon's answer to the packing report lacks `additional_data` — each part is read
+  by its own number and matched by its products; by position only among parcels of the same contents; a part matched to no parcel is
+  the problem `pack_parts_unknown` and no label is asked for (`internal/exchange/pack.go`, `assign`, `partsWithLines`).
+- Fixed: **a stop of the wyo server between a write to Ozon and its record** — the report's sending (`pack_sent_at`, migration 0006)
+  and the next reading are saved before the report leaves.
+- Fixed: **marking codes of a product that is not in the posting** — a refusal of the adapter's own, `codes_product_not_in_posting`,
+  naming the product (`internal/marketplace/ozon/codes.go`).
+- Fixed: **the 5 MB limit applied after Ozon's whole API answer was read** — the documents' answers and the label files are read
+  through one function that stops at the limit (`internal/marketplace/ozon/files.go`).
+- Fixed: **the outbound gate allowing `*.ozone.ru` for every adapter** — the caller refuses, before anything leaves, a request to a host
+  its own adapter does not list (`internal/sync/caller.go`).
+- Fixed (found in Plan 6a): **a lost answer of a report that split the posting** — the original shown split after a report the wyo
+  server sent is the problem `pack_parts_unknown`, never a cancellation; the reading of states leaves such an order to the packing's
+  own reading until the packing is confirmed.
+- Fixed (found in Plan 6a): **a Wildberries supply that lost an order before closing** — tested both ways (taken back, then closed; not
+  taken back, never closed, the problem names the order: `TestAWildberriesSupplyThatLostAnOrderBeforeClosingGetsItBackOrIsNeverClosed`).
+
+Still open:
+
 - **Documents `error` / `cancelled` wait and are asked again every 5 minutes**; how Ozon wants them «запрошены повторно» is not sourced
   (item 34).
-- Found while implementing Plan 6a: **a lost answer of a report that split the posting.** The wyo server knows the parts only from that
-  answer; when it is lost, the report is not recorded, and a real Ozon that then shows the original `cancelled_from_split_pending` would
-  have it passed on as a cancellation (the rule for a split made in the cabinet). The fake Ozon keeps the original as part 1 unless told
-  otherwise, so no test sees it. Decided after item 34 shows how the original looks after a split.
 - Found while implementing Plan 6a: **the original of the wyo server's own split shows as cancelled on the page «Заказы»**: the reading of
-  states takes `cancelled_from_split_pending` as a cancellation (`internal/marketplace/ozon/orders.go`). The exchange no longer passes it
-  on; how the order list should show it is to decide after item 34.
-- Found while implementing Plan 6a: **a Wildberries supply that lost an order before closing** (for example, the buyer cancelled it, if
-  Wildberries then drops it from the supply — not sourced) now has «move» run once more instead of being closed: the step «close»
-  compares the supply with the hand-over for every marketplace. No test covers a Wildberries supply losing an order.
+  states takes `cancelled_from_split_pending` as a cancellation (`internal/marketplace/ozon/orders.go`). The exchange does not pass it
+  on. How the order list should show it waits for the maintainer's answer (asked 2026-11-19).
 
 ### 37. What the smoke test of Plan 6 found and Plan 6 left (2026-11-18)
 

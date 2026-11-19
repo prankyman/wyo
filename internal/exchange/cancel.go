@@ -27,7 +27,9 @@ func (s *Service) passCancellations(ctx context.Context, sess *session) error {
 
 		// An order the report of its packing split is no order of its own at the marketplace any more, which may show it
 		// cancelled because of the split: its parts are read instead (packState), and a part cancelled is the owner's problem.
-		if parts, err := s.splitParts(ctx, o); err != nil || len(parts) > 0 {
+		// So is an order whose report was sent and not yet seen packed: the packing's own reading tells a split from a
+		// cancellation (packState) and passes a cancellation on itself.
+		if parts, err := s.splitParts(ctx, o); err != nil || len(parts) > 0 || (!o.x.PackSentAt.IsZero() && o.x.PackedAt.IsZero()) {
 			continue
 		}
 

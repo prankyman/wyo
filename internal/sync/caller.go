@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"slices"
 	"time"
 
 	"github.com/prankyman/wyo/internal/clock"
@@ -135,6 +136,10 @@ func (d *doer) Do(req *http.Request) (*http.Response, error) {
 		return nil, fmt.Errorf("%w: %s %s", ErrNotDeclared, req.Method, journal.Placeholders(req.URL.Path))
 	}
 
+	if !listsHost(adapter, host) {
+		return nil, fmt.Errorf("%w: %s %s goes to a host the adapter does not list", ErrNotDeclared, req.Method, journal.Placeholders(req.URL.Path))
+	}
+
 	limit, ok := adapter.Limit(route.Group, d.target.Test)
 	if !ok {
 		return nil, fmt.Errorf("%w: the limit group %q of %s is not declared", ErrNotDeclared, route.Group, route.Template)
@@ -158,6 +163,25 @@ func (d *doer) Do(req *http.Request) (*http.Response, error) {
 			return a.res, err
 		}
 	}
+}
+
+// hostLister is an endpoint that lists the hosts it calls; every marketplace adapter does (marketplace.Adapter.Hosts). The
+// fulfilment centre's endpoint does not: it is called through the client of its own purpose, at the owner's address.
+type hostLister interface{ Hosts() []string }
+
+// listsHost says whether a request may go to the host: every request goes only to a host its own adapter lists. The
+// outbound gate's list is the union of the hosts of all the adapters, so a route that names no host would otherwise carry
+// one adapter's key to another adapter's host; only this check keeps it off. An empty entry never counts. An endpoint that
+// lists no hosts is not checked here; its own client's gate is.
+func listsHost(e Endpoint, host string) bool {
+	lister, ok := e.(hostLister)
+	if !ok {
+		return true
+	}
+
+	return slices.ContainsFunc(lister.Hosts(), func(pattern string) bool {
+		return pattern != "" && marketplace.HostMatches(pattern, host)
+	})
 }
 
 // decide says whether to send the request again, after waiting as needed, or what to hand back.

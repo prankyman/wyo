@@ -63,10 +63,10 @@ describe('ProblemLine', () => {
         expect(screen.getByTestId('problem')).toHaveTextContent('Не хватает: —. Лишнее: 200-1, 200-2.');
     });
 
-    it('words a problem of parts the marketplace made and wyo lost the numbers of', () => {
+    it('words a problem of parts the marketplace made that wyo cannot match to the parcels', () => {
         draw(exchangeProblemOf({ code: 'pack_parts_unknown', params: {}, marketplaceCode: undefined }));
 
-        expect(screen.getByTestId('problem')).toHaveTextContent('номера частей заказа неизвестны');
+        expect(screen.getByTestId('problem')).toHaveTextContent('неизвестно, какая часть заказа в какой посылке');
     });
 
     it('words a refusal of the marketplace with the step named, and shows its words and its code beside the sentence', () => {

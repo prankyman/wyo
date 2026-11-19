@@ -89,3 +89,33 @@ func TestTheShipSplitControlRefusesAFieldItDoesNotKnow(t *testing.T) {
 
 	r.controlRefused("ship-split", map[string]any{"original": true})
 }
+
+func TestABareAnswerAfterTheShipSplitControlNamesThePartsLastFirstWithoutTheirProductsAndTheyStillHoldThem(t *testing.T) {
+	t.Parallel()
+
+	r := twoLineRig(t)
+	r.control("ship-split", map[string]any{"original_split_pending": true, "bare_answer": true}, nil)
+
+	out, got := r.ship("100-1", true, pack(5001, 2), pack(5002, 1))
+
+	same(t, "the report answers", got.status, 200)
+	sameStrings(t, "the parts' numbers, last first", out.Result, []string{"100-3", "100-2"})
+	same(t, "no additional data although it was asked for", len(out.AdditionalData), 0)
+
+	for number, sku := range map[string]int64{"100-2": 5001, "100-3": 5002} {
+		part := r.getPosting(number)
+
+		same(t, number+" products", len(part.Products), 1)
+		same(t, number+" product", part.Products[0].SKU, sku)
+	}
+
+	// A report that does not split the posting is answered as always.
+	r.newPosting("200-1", 24, map[string]any{
+		"order_number": "200",
+		"products":     []map[string]any{line(5001, "ART-1", "Product one", 2), line(5002, "ART-2", "Product two", 1)},
+	})
+
+	one, _ := r.ship("200-1", true, pack(5001, 2, 5002, 1))
+	sameStrings(t, "one package", one.Result, []string{"200-1"})
+	same(t, "its additional data", len(one.AdditionalData), 1)
+}

@@ -27,6 +27,8 @@ func TestABadControlCallIsRefused(t *testing.T) {
 		{name: "a new sticker of an order that is not there", method: http.MethodPost, path: "/__control/orders/999/new-sticker"},
 		{name: "a reshipment of an order that is not there", method: http.MethodPost, path: "/__control/orders/999/reshipment"},
 		{name: "a scan of a supply that is not there", method: http.MethodPost, path: "/__control/supplies/WB-GI-9999999/scan"},
+		{name: "a drop from a supply that is not there", method: http.MethodPost, path: "/__control/supplies/WB-GI-9999999/drop", body: map[string]any{"order_id": 1}},
+		{name: "a drop with an unknown field", method: http.MethodPost, path: "/__control/supplies/WB-GI-9999999/drop", body: map[string]any{"colour": "red"}},
 		{name: "a feed row with an unknown field", method: http.MethodPost, path: "/__control/feed", body: map[string]any{"rows": []map[string]any{{"colour": "red"}}}},
 		{name: "a feed row without a warehouse type that exists", method: http.MethodPost, path: "/__control/feed", body: map[string]any{"rows": []map[string]any{{"srid": "x", "warehouse_type": "Склад Луны"}}}},
 	}
@@ -122,4 +124,41 @@ func TestANewStickerCommandGivesTheOrderAnotherStickerWhileTheOthersKeepTheirs(t
 	if after.Stickers[0].File == before.Stickers[0].File {
 		t.Fatal("the picture did not change with the sticker's number")
 	}
+}
+
+func TestADropTakesOneOrderOutOfItsSupplyAndLeavesTheOthersAndTheOrderItself(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(t)
+	first, second := r.newOrder(map[string]any{}), r.newOrder(map[string]any{})
+	supply := r.supplyWith(first, second)
+
+	r.control(http.MethodPost, "/__control/supplies/"+supply+"/drop", map[string]any{"order_id": second}, nil)
+
+	var held struct {
+		OrderIDs []int64 `json:"orderIds"`
+	}
+
+	r.rawJSON(http.MethodGet, "/api/marketplace/v3/supplies/"+supply+"/order-ids", "", http.StatusOK, &held)
+	same(t, "the orders the supply holds", held.OrderIDs, []int64{first})
+
+	// An order the supply does not hold cannot be dropped from it.
+	if err := r.ctl.Do(r.ctx(), http.MethodPost, "/__control/supplies/"+supply+"/drop", map[string]any{"order_id": second}, nil); err == nil {
+		t.Fatal("an order that the supply no longer held was dropped")
+	}
+
+	// The order is not cancelled and not in delivery: it is an order that no supply holds, and a supply takes it again.
+	var states struct {
+		Orders []struct {
+			ID             int64  `json:"id"`
+			SupplierStatus string `json:"supplierStatus"`
+		} `json:"orders"`
+	}
+
+	r.rawJSON(http.MethodPost, "/api/v3/orders/status", ids(second), http.StatusOK, &states)
+	same(t, "the order's state", states.Orders[0].SupplierStatus, "confirm")
+
+	r.rawJSON(http.MethodPatch, "/api/marketplace/v3/supplies/"+supply+"/orders", ids(second), http.StatusNoContent, nil)
+	r.rawJSON(http.MethodGet, "/api/marketplace/v3/supplies/"+supply+"/order-ids", "", http.StatusOK, &held)
+	same(t, "the orders the supply holds after the second was put in again", held.OrderIDs, []int64{first, second})
 }

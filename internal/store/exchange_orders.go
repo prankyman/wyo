@@ -41,10 +41,13 @@ type ExchangeOrder struct {
 	SupplyID       int64
 	ConfirmedAt    time.Time
 	PackReportedAt time.Time
-	PackTries      int64
-	PackNextAt     time.Time
-	CodesResends   int64
-	PackedAt       time.Time
+	// PackSentAt is when the packing report was last sent, written before it leaves: set with no PackReportedAt, it says a report
+	// was sent whose answer was never recorded.
+	PackSentAt   time.Time
+	PackTries    int64
+	PackNextAt   time.Time
+	CodesResends int64
+	PackedAt     time.Time
 	// ShipBySent is the deadline last sent to the fulfilment centre; zero before the order was sent.
 	ShipBySent   time.Time
 	CodesState   string
@@ -121,7 +124,8 @@ func exchangeOrder(r db.ExchangeOrder) ExchangeOrder {
 			At: optionalMoment(r.ProblemAt), Sent: r.ProblemSent == 1,
 		},
 		FailedStep: r.FailedStep, SupplyID: r.SupplyID.Int64, ConfirmedAt: optionalMoment(r.ConfirmedAt),
-		PackReportedAt: optionalMoment(r.PackReportedAt), PackTries: r.PackTries, PackNextAt: optionalMoment(r.PackNextAt),
+		PackReportedAt: optionalMoment(r.PackReportedAt), PackSentAt: optionalMoment(r.PackSentAt), PackTries: r.PackTries,
+		PackNextAt:   optionalMoment(r.PackNextAt),
 		CodesResends: r.CodesResends, PackedAt: optionalMoment(r.PackedAt), ShipBySent: optionalMoment(r.ShipBySent),
 		CodesState: r.CodesState, CodesSentAt: optionalMoment(r.CodesSentAt),
 		NextCheckAt: optionalMoment(r.NextCheckAt), CancelAnswer: r.CancelAnswer, HandedOverAt: optionalMoment(r.HandedOverAt),
@@ -142,7 +146,8 @@ func (q *Queries) SaveExchangeOrder(ctx context.Context, x ExchangeOrder) error 
 		ProblemMpCode: x.Problem.MpCode, ProblemWords: cut(x.Problem.Words, maxWords), ProblemAt: optionalSeconds(x.Problem.At),
 		ProblemSent: boolInt(x.Problem.Sent), FailedStep: x.FailedStep, SupplyID: optionalNumber(x.SupplyID),
 		ConfirmedAt:    optionalSeconds(x.ConfirmedAt),
-		PackReportedAt: optionalSeconds(x.PackReportedAt), PackTries: x.PackTries, PackNextAt: optionalSeconds(x.PackNextAt),
+		PackReportedAt: optionalSeconds(x.PackReportedAt), PackSentAt: optionalSeconds(x.PackSentAt), PackTries: x.PackTries,
+		PackNextAt:   optionalSeconds(x.PackNextAt),
 		CodesResends: x.CodesResends, PackedAt: optionalSeconds(x.PackedAt), ShipBySent: optionalSeconds(x.ShipBySent),
 		CodesState: x.CodesState, CodesSentAt: optionalSeconds(x.CodesSentAt), NextCheckAt: optionalSeconds(x.NextCheckAt),
 		CancelAnswer: x.CancelAnswer, HandedOverAt: optionalSeconds(x.HandedOverAt), SentAt: seconds(x.SentAt),
