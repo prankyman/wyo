@@ -879,6 +879,10 @@ components:
                 parentNumber:
                     type: string
                     description: The number of the order the marketplace split this one from.
+                parts:
+                    type: array
+                    description: The numbers of the orders the marketplace split this one into; absent when it was not split.
+                    items: { type: string }
                 state: { $ref: '#/components/schemas/OrderState' }
                 cancelledBy: { $ref: '#/components/schemas/CancelledBy' }
                 marketplaceStatus: { $ref: '#/components/schemas/MarketplaceStatus' }

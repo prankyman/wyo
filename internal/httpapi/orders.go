@@ -71,8 +71,17 @@ func orderBody(v store.OrderView) gen.Order {
 		Number: v.Number, Basket: text(v.Basket), Warehouse: text(v.Warehouse), Lines: linesBody(v.Lines), CreatedAt: v.CreatedAt,
 		DeadlineAt: moment(v.DeadlineAt), ShipBy: moment(v.ShipBy), ParentNumber: text(v.Parent), State: gen.OrderState(v.State),
 		CancelledBy: cancelledBy(v.CancelledBy), MarketplaceStatus: statusBody(v.SellerStatus, v.MarketplaceStatus),
-		UpdatedAt: moment(v.UpdatedAt),
+		UpdatedAt: moment(v.UpdatedAt), Parts: optionalWords(v.Parts),
 	}
+}
+
+// optionalWords is a list the API leaves out when it is empty.
+func optionalWords(list []string) *[]string {
+	if len(list) == 0 {
+		return nil
+	}
+
+	return &list
 }
 
 // linesBody is an order's products as the API gives them.
@@ -166,13 +175,6 @@ func (a *api) writeOrder(w http.ResponseWriter, r *http.Request, id int64, statu
 		return
 	}
 
-	parts, err := q.OrderParts(r.Context(), v.AccountID, v.Number)
-	if err != nil {
-		a.fail(w, r, err)
-
-		return
-	}
-
 	details, has, err := a.deps.Exchange.Details(r.Context(), v)
 	if err != nil {
 		a.fail(w, r, err)
@@ -180,7 +182,7 @@ func (a *api) writeOrder(w http.ResponseWriter, r *http.Request, id int64, statu
 		return
 	}
 
-	body := gen.OrderDetails{Order: orderBody(v), Events: make([]gen.OrderEvent, 0, len(events)), Parts: words(parts)}
+	body := gen.OrderDetails{Order: orderBody(v), Events: make([]gen.OrderEvent, 0, len(events)), Parts: words(v.Parts)}
 	if has {
 		parcels, err := q.ParcelsOf(r.Context(), id)
 		if err != nil {

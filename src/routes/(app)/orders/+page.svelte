@@ -6,7 +6,7 @@
     import MarketplaceMark from '$lib/components/marketplaces/MarketplaceMark.svelte';
     import DeadlineCell from '$lib/components/orders/DeadlineCell.svelte';
     import OrderDetails from '$lib/components/orders/OrderDetails.svelte';
-    import OrderStateBadge from '$lib/components/orders/OrderStateBadge.svelte';
+    import OrderStateCell from '$lib/components/orders/OrderStateCell.svelte';
     import ProductCell from '$lib/components/orders/ProductCell.svelte';
     import RefreshButton from '$lib/components/orders/RefreshButton.svelte';
     import SchemeBadge from '$lib/components/orders/SchemeBadge.svelte';
@@ -314,13 +314,7 @@
                     {:else if column.key === 'deadline'}
                         <DeadlineCell {lang} deadlineAt={row.order.deadlineAt} state={row.order.state} />
                     {:else if column.key === 'state'}
-                        <OrderStateBadge
-                            {lang}
-                            state={row.order.state}
-                            cancelledBy={row.order.cancelledBy}
-                            marketplaceStatus={row.order.marketplaceStatus}
-                            testId="orders-list-state"
-                        />
+                        <OrderStateCell {lang} order={row.order} testId="orders-list-state" />
                     {:else if column.key === 'product'}
                         <ProductCell {lang} lines={row.order.lines} testId="orders-list-product" />
                     {:else if column.key === 'exchange' && row.order.scheme === 'fbs' && !exchangeSupported(adapterOf(row.order.marketplace))}
