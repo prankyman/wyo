@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.9](https://github.com/prankyman/wyo/compare/v0.0.8...v0.0.9) (2026-11-19)
+
+### Bug Fixes
+
+* the Ozon exchange items left open by Plan 6a (register item 38) ([de7340b](https://github.com/prankyman/wyo/commit/de7340bbec1535e4a86b37dbfad04e11e5deec08))
+
 ## [0.0.8](https://github.com/prankyman/wyo/compare/v0.0.7...v0.0.8) (2026-11-19)
 
 ### Bug Fixes
