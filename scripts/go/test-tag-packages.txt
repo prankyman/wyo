@@ -1,0 +1,15 @@
+# The Go packages whose tests run different code in the release build and in the build with the test tag `wyotest`:
+# their own files differ between the two builds, or their tests hold a package whose files do. Only these run a second
+# time, with the tag (scripts/go/test.sh, scripts/go/coverage.sh); every other package would run the very same code
+# again. internal/archtest (TestTheRunWithTheTestTagHoldsExactlyThePackagesThatDifferBetweenTheBuilds) fails when this
+# list is not exactly those packages, sorted.
+./cmd/wyo
+./cmd/wyofakes
+./internal/buildinfo
+./internal/cli
+./internal/outbound
+./internal/release
+./internal/server
+./internal/sync
+./internal/tlsauto
+./internal/webui

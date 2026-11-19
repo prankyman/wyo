@@ -164,7 +164,7 @@ again.
 | Command                           | What it does                                                                         |
 | --------------------------------- | ------------------------------------------------------------------------------------ |
 | `pnpm go:test <package>`          | `go test -race -shuffle=on -count=1` for ONE package: use while writing and fixing   |
-| `pnpm go:test`                    | The same for `./cmd/... ./internal/... ./tools/...` — main agent only                |
+| `pnpm go:test`                    | The same for every Go package — main agent only                                      |
 | `pnpm test:coverage`              | Interface and Go tests with coverage — main agent only                               |
 | `pnpm coverage:enforce`           | The two floor scripts: `scripts/coverage-check.cjs` and `tools/covercheck`           |
 | `pnpm lint`                       | ESLint, `gofumpt -l`, `golangci-lint run`, `go vet` — main agent over the whole tree |
@@ -173,6 +173,11 @@ again.
 | `pnpm tools:install`              | Install the Go tools at the pinned versions into `.tools/bin`                        |
 | `go vet ./<package>/...`          | A subagent may run it over its own package                                           |
 | `go build ./<package>/...`        | A subagent may run it over its own package                                           |
+
+Both `pnpm go:test` and `pnpm test:coverage` run every package as the release build, and a second time, with the `wyotest` tag,
+only the packages of `scripts/go/test-tag-packages.txt`: the ones whose code differs between the two builds. Any other package
+would run the very same code again. A package that starts to differ (a file with a `wyotest` build line, or a test that comes to
+hold such a package) fails `internal/archtest` until it is added to the list.
 
 - **Never** a bare tool when a script exists. Go tools are used from `.tools/bin` through the scripts, never from a global install.
 - **Never `go test ./...` over the whole module, and never `golangci-lint run` over the whole module, in a subagent.** Only the main
