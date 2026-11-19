@@ -22,8 +22,10 @@ SELECT * FROM order_lines WHERE order_id IN (sqlc.slice(order_ids)) ORDER BY ord
 -- name: UpdateOrderShipBy :execrows
 UPDATE orders SET ship_by = ?, updated_at = ? WHERE id = ?;
 
--- name: ListOrderParts :many
-SELECT number FROM orders WHERE account_id = ? AND parent_number = ? AND parent_number <> '' ORDER BY number;
+-- name: ListOrderPartsOf :many
+SELECT account_id, parent_number, number FROM orders
+WHERE parent_number IN (sqlc.slice(parent_numbers)) AND parent_number <> ''
+ORDER BY account_id, parent_number, number;
 
 -- name: ListOrdersOfNumbers :many
 SELECT * FROM orders WHERE account_id = ? AND number IN (sqlc.slice(numbers));

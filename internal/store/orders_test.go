@@ -255,24 +255,35 @@ func TestAnOrderOfSeveralLinesKeepsThemInOrderWithTheMarketplacesDeadlineAndItsS
 		insertOrder(t, s, part)
 	}
 
+	// Another account's order split from an order of the same number is not a part of this one.
+	stranger := anOrder(insertAccount(t, s, anAccount("orders.5.other")).ID, "89491381-0072-9", "fbs", noon())
+	stranger.Parent = original.Number
+	insertOrder(t, s, stranger)
+
+	parts := []string{"89491381-0072-2", "89491381-0072-3"}
+
 	view, err := s.Read().OrderView(ctx, id)
-	if err != nil || !reflect.DeepEqual(view.Lines, original.Lines) || !view.DeadlineAt.Equal(shipBy) || !view.ShipBy.Equal(shipBy) {
-		t.Fatalf("OrderView: %+v, %v; want the three lines in order and the marketplace's deadline", view, err)
-	}
-
-	parts, err := s.Read().OrderParts(ctx, account, original.Number)
-	if err != nil || !reflect.DeepEqual(parts, []string{"89491381-0072-2", "89491381-0072-3"}) {
-		t.Fatalf("OrderParts = %v, %v", parts, err)
-	}
-
-	if none, _ := s.Read().OrderParts(ctx, account, ""); len(none) != 0 {
-		t.Fatalf("the orders split from no order were listed as parts: %v", none)
+	if err != nil || !reflect.DeepEqual(view.Lines, original.Lines) || !view.DeadlineAt.Equal(shipBy) || !view.ShipBy.Equal(shipBy) ||
+		!reflect.DeepEqual(view.Parts, parts) {
+		t.Fatalf("OrderView: %+v, %v; want the three lines in order, the marketplace's deadline and the two parts", view, err)
 	}
 
 	for _, search := range []string{"SOCKS", "4600003", "1003"} {
 		views, err := s.Read().OrderViews(ctx, store.OrderFilter{Search: search})
-		if err != nil || len(views) != 1 || views[0].ID != id || len(views[0].Lines) != 3 {
-			t.Fatalf("search %q: %+v, %v; want the order by its second or third line", search, views, err)
+		if err != nil || len(views) != 1 || views[0].ID != id || len(views[0].Lines) != 3 || !reflect.DeepEqual(views[0].Parts, parts) {
+			t.Fatalf("search %q: %+v, %v; want the order by its second or third line, with its two parts", search, views, err)
+		}
+	}
+
+	// A part, and every order split from no order, has no parts of its own.
+	views, err := s.Read().OrderViews(ctx, store.OrderFilter{AccountID: account})
+	if err != nil || len(views) != 3 {
+		t.Fatalf("the account's orders: %+v, %v", views, err)
+	}
+
+	for _, v := range views {
+		if v.ID != id && len(v.Parts) != 0 {
+			t.Fatalf("the order %s has the parts %v", v.Number, v.Parts)
 		}
 	}
 

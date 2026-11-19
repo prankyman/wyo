@@ -73,6 +73,25 @@ describe('«Заказы»', () => {
         expect(screen.getByTestId('orders-pagination')).toHaveTextContent('Показано 1–50 из 120');
     });
 
+    it('names the parts of a split order under its state, and no parts under an order that was not split', () => {
+        renderPageWith(
+            Page,
+            pageData({
+                orders: [
+                    orderOf({ id: 101, number: '70-1', state: 'cancelled', parts: ['70-2', '70-3'] }),
+                    orderOf({ id: 102, number: '70-2', parentNumber: '70-1' })
+                ]
+            })
+        );
+
+        const rows = within(screen.getByTestId('orders-list-table')).getAllByTestId('orders-list-row');
+        expect(within(rows[0]).getByTestId('orders-list-state')).toHaveTextContent('Отменён');
+        expect(within(rows[0]).getByTestId('orders-list-state-parts')).toHaveTextContent(
+            'Разделён на части: 70-2, 70-3'
+        );
+        expect(within(rows[1]).queryByTestId('orders-list-state-parts')).toBeNull();
+    });
+
     it('draws the product of each order with the product cell: the first product, its quantity, and the count of the rest', () => {
         renderPageWith(
             Page,

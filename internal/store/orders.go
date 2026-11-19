@@ -72,7 +72,7 @@ type OrderEvent struct {
 	Source            string
 }
 
-// OrderView is an order as the list shows it: with its account, the warehouse's name and the deadline (zero for an order
+// OrderView is an order as the list shows it: with its account, the warehouse's name, its parts and the deadline (zero for an order
 // that is not packed by the seller): the marketplace's own when it gave one, otherwise the creation plus the account's
 // hours.
 type OrderView struct {
@@ -82,6 +82,8 @@ type OrderView struct {
 	Marketplace string
 	Warehouse   string
 	DeadlineAt  time.Time
+	// Parts are the numbers of the orders the marketplace split this one into, none when it was not split.
+	Parts []string
 }
 
 // OrderFilter narrows the order list; a zero field does not narrow it. CreatedFrom is included, CreatedBefore is not.
@@ -215,11 +217,38 @@ func (q *Queries) UpdateOrderShipBy(ctx context.Context, id int64, shipBy, at ti
 	return changedOne(q.q.UpdateOrderShipBy(ctx, db.UpdateOrderShipByParams{ShipBy: optionalSeconds(shipBy), UpdatedAt: seconds(at), ID: id}))
 }
 
-// OrderParts lists the numbers of the account's orders the marketplace split off the order of this number.
-func (q *Queries) OrderParts(ctx context.Context, accountID int64, number string) ([]string, error) {
-	list, err := q.q.ListOrderParts(ctx, db.ListOrderPartsParams{AccountID: accountID, ParentNumber: number})
+// withParts gives each order the numbers of the orders of its account the marketplace split off it, in the order of the numbers.
+func (q *Queries) withParts(ctx context.Context, views []OrderView) error {
+	numbers := make([]string, 0, len(views))
+	for _, v := range views {
+		numbers = append(numbers, v.Number)
+	}
 
-	return list, kind(err)
+	if len(numbers) == 0 {
+		return nil
+	}
+
+	rows, err := q.q.ListOrderPartsOf(ctx, numbers)
+	if err != nil {
+		return kind(err)
+	}
+
+	type key struct {
+		account int64
+		number  string
+	}
+
+	parts := map[key][]string{}
+	for _, r := range rows {
+		k := key{r.AccountID, r.ParentNumber}
+		parts[k] = append(parts[k], r.Number)
+	}
+
+	for i := range views {
+		views[i].Parts = parts[key{views[i].AccountID, views[i].Number}]
+	}
+
+	return nil
 }
 
 // InsertOrderEvent records one change of an order's state.
@@ -299,9 +328,18 @@ func (q *Queries) OrderView(ctx context.Context, id int64) (OrderView, error) {
 	view := viewOf(o, r.AccountName, r.Marketplace, r.DeadlineHours, r.KnownWarehouseName)
 
 	lines, err := q.linesOf(ctx, []int64{view.ID})
-	view.Lines = lines[view.ID]
+	if err != nil {
+		return OrderView{}, err
+	}
 
-	return view, err
+	view.Lines = lines[view.ID]
+	views := []OrderView{view}
+
+	if err := q.withParts(ctx, views); err != nil {
+		return OrderView{}, err
+	}
+
+	return views[0], nil
 }
 
 // nullable turns a zero value into NULL, which the list queries read as "not narrowed".
@@ -373,6 +411,10 @@ func (q *Queries) OrderViews(ctx context.Context, f OrderFilter) ([]OrderView, e
 
 	for i := range list {
 		list[i].Lines = lines[list[i].ID]
+	}
+
+	if err := q.withParts(ctx, list); err != nil {
+		return nil, err
 	}
 
 	return list, nil

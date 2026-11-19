@@ -34,14 +34,15 @@ final review of Plan 6 found and left nine items here. The maintainer, 2026-11-1
   own reading until the packing is confirmed.
 - Fixed (found in Plan 6a): **a Wildberries supply that lost an order before closing** — tested both ways (taken back, then closed; not
   taken back, never closed, the problem names the order: `TestAWildberriesSupplyThatLostAnOrderBeforeClosingGetsItBackOrIsNeverClosed`).
+- Fixed (found in Plan 6a): **the original of the wyo server's own split shows as cancelled on the page «Заказы»** — the maintainer,
+  2026-11-19, took the recommendation: «Отменён» stays, and the list shows under it the line «Разделён на части» with the parts'
+  numbers (`src/lib/components/orders/OrderStateCell.svelte`); the details' line has the same name. The branch
+  `fix/orders-list-shows-parts-of-a-split-order`.
 
 Still open:
 
 - **Documents `error` / `cancelled` wait and are asked again every 5 minutes**; how Ozon wants them «запрошены повторно» is not sourced
   (item 34).
-- Found while implementing Plan 6a: **the original of the wyo server's own split shows as cancelled on the page «Заказы»**: the reading of
-  states takes `cancelled_from_split_pending` as a cancellation (`internal/marketplace/ozon/orders.go`). The exchange does not pass it
-  on. How the order list should show it waits for the maintainer's answer (asked 2026-11-19).
 
 ### 37. What the smoke test of Plan 6 found and Plan 6 left (2026-11-18)
 

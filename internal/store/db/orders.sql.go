@@ -539,28 +539,41 @@ func (q *Queries) ListOrderLinesOf(ctx context.Context, orderIds []int64) ([]Ord
 	return items, nil
 }
 
-const listOrderParts = `-- name: ListOrderParts :many
-SELECT number FROM orders WHERE account_id = ? AND parent_number = ? AND parent_number <> '' ORDER BY number
+const listOrderPartsOf = `-- name: ListOrderPartsOf :many
+SELECT account_id, parent_number, number FROM orders
+WHERE parent_number IN (/*SLICE:parent_numbers*/?) AND parent_number <> ''
+ORDER BY account_id, parent_number, number
 `
 
-type ListOrderPartsParams struct {
+type ListOrderPartsOfRow struct {
 	AccountID    int64
 	ParentNumber string
+	Number       string
 }
 
-func (q *Queries) ListOrderParts(ctx context.Context, arg ListOrderPartsParams) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, listOrderParts, arg.AccountID, arg.ParentNumber)
+func (q *Queries) ListOrderPartsOf(ctx context.Context, parentNumbers []string) ([]ListOrderPartsOfRow, error) {
+	query := listOrderPartsOf
+	var queryParams []interface{}
+	if len(parentNumbers) > 0 {
+		for _, v := range parentNumbers {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:parent_numbers*/?", strings.Repeat(",?", len(parentNumbers))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:parent_numbers*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []string
+	var items []ListOrderPartsOfRow
 	for rows.Next() {
-		var number string
-		if err := rows.Scan(&number); err != nil {
+		var i ListOrderPartsOfRow
+		if err := rows.Scan(&i.AccountID, &i.ParentNumber, &i.Number); err != nil {
 			return nil, err
 		}
-		items = append(items, number)
+		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

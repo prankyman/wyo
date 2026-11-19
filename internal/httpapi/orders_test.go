@@ -185,6 +185,15 @@ func TestAnOrderOfSeveralProductsShowsThemTheMarketplacesDeadlineAndItsSplit(t *
 	if fmt.Sprint(numbersOf(list)) != "[70-2 70-1]" || list.Orders[0].ParentNumber == nil || *list.Orders[0].ParentNumber != "70-1" {
 		t.Fatalf("a search by the second product's article: %+v", list)
 	}
+
+	// The list names the parts of the split order beside its state, and gives none to an order that was not split.
+	if list.Orders[1].Parts == nil || fmt.Sprint(*list.Orders[1].Parts) != "[70-2]" || list.Orders[0].Parts != nil {
+		t.Fatalf("the parts in the list: %v of the original, %v of the part", list.Orders[1].Parts, list.Orders[0].Parts)
+	}
+
+	if order.Parts == nil || fmt.Sprint(*order.Parts) != "[70-2]" {
+		t.Fatalf("the parts of the opened order: %v", order.Parts)
+	}
 }
 
 func TestTheHistorySaysWhoCancelled(t *testing.T) {

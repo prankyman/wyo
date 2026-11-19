@@ -799,6 +799,8 @@ export interface components {
             shipBy?: string;
             /** @description The number of the order the marketplace split this one from. */
             parentNumber?: string;
+            /** @description The numbers of the orders the marketplace split this one into; absent when it was not split. */
+            parts?: string[];
             state: components["schemas"]["OrderState"];
             cancelledBy?: components["schemas"]["CancelledBy"];
             marketplaceStatus: components["schemas"]["MarketplaceStatus"];
