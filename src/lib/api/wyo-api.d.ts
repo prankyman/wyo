@@ -634,6 +634,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/hooks/marketplace/{text}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                text: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A marketplace's notification for one account, at the account's own address text. Open without signing in; accepted only from the networks the marketplace's adapter declares, at an address text the wyo server made, and at most 256 KB - anything else is answered `not_found`, so the address tells a stranger nothing. The notification is stored first and answered at once with the body the marketplace wants; a body the adapter cannot read is answered 400 with its reason in the marketplace's own form. */
+        post: operations["receiveMarketplaceNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hooks/marketplace/{text}/notification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                text: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The same address followed by the name of the marketplace's method, `notification`: whether a marketplace adds it to the address the seller enters is not sourced, so both are answered alike. */
+        post: operations["receiveMarketplaceNotificationAtItsMethod"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -663,6 +701,39 @@ export interface components {
             exchangeFlow: "confirm" | "pack";
             /** @description The steps of a hand-over the adapter needs, in the order they run; the strip of a hand-over draws these and no others. */
             handoverSteps: components["schemas"]["HandoverStep"][];
+            /** @description The marketplace sends the wyo server a notification when an order appears or changes, at the address of each account (`Account.notifications`); the orders are then read at once, and a safety reading every 15 minutes finds whatever a notification lost. */
+            receivesNotifications: boolean;
+            /** @description A header of the marketplace's own in which every request names the program, `wyo/<version>`, beside `User-Agent`; absent when the marketplace asks for none. */
+            programHeader?: string;
+        };
+        Shop: {
+            /** @description The marketplace's own number of the shop. */
+            number: string;
+            name: string;
+            /** @description The shop's scheme in the marketplace's words, e.g. `FBS`; the text is `orders.scheme.<scheme>` in lower case. */
+            scheme: string;
+            /** @description The marketplace has switched the shop's API off; its orders are not read. */
+            apiOff: boolean;
+        };
+        /** @description The account's notification address and whether notifications arrive. Only for a marketplace that sends them; the path is shown only to the signed-in owner. */
+        AccountNotifications: {
+            /** @description The path of the account's own notification address on the wyo server, `/hooks/marketplace/<text>`; the full address is the wyo server's own address followed by it. */
+            path: string;
+            /**
+             * @description `waiting` - no notification has arrived yet; `working` - they arrive; `lost` - a safety reading found an order change that no notification named. The text is `accounts.notifications.<state>`.
+             * @enum {string}
+             */
+            state: "waiting" | "working" | "lost";
+            /**
+             * Format: date-time
+             * @description When the last notification arrived.
+             */
+            seenAt?: string;
+            /**
+             * Format: date-time
+             * @description When a safety reading last found a change lost.
+             */
+            lostAt?: string;
         };
         SettingField: {
             name: string;
@@ -702,6 +773,11 @@ export interface components {
             keyFields?: components["schemas"]["ShownKeyField"][];
             /** @description How many of the account's warehouses the seller delivers from to the buyer itself; their orders are never read, because they need the buyer's address. */
             sellerDeliversWarehouses?: number;
+            /** @description How many of the account's warehouses a courier takes orders from one by one within hours. */
+            expressWarehouses?: number;
+            /** @description The shops of an account whose marketplace keeps several shops in one account. */
+            shops?: components["schemas"]["Shop"][];
+            notifications?: components["schemas"]["AccountNotifications"];
             /** @description The key's type as the adapter names it, e.g. `personal`, `test`. */
             keyType?: string;
             /** Format: date-time */
@@ -751,10 +827,10 @@ export interface components {
             deadlineHours?: number;
         };
         /**
-         * @description `fbs` - the seller packs the order and hands it to the marketplace; `fbo` - the goods lie in the marketplace's own warehouse (read-only).
+         * @description `fbs` - the seller packs the order and hands it to the marketplace; `fbo` - the goods lie in the marketplace's own warehouse (read-only); `express` - the seller packs the order and a courier takes it alone within hours (passed on as `fbs`); `fby` - the marketplace's own warehouse as Яндекс Маркет names it (read-only, as `fbo`). The text is `orders.scheme.<scheme>`.
          * @enum {string}
          */
-        OrderScheme: "fbs" | "fbo";
+        OrderScheme: "fbs" | "fbo" | "express" | "fby";
         /**
          * @description The connector's own states, the same for every marketplace; the text is `orders.state.<state>`.
          * @enum {string}
@@ -783,6 +859,8 @@ export interface components {
             /** @description The buyer's basket number. */
             basket?: string;
             warehouse?: string;
+            /** @description The marketplace's own text of the order's warehouse, given when `warehouse` is absent because the warehouse cannot be told by its number (shown beside «Склад не определён»). */
+            warehouseText?: string;
             /** @description The order's products, each with how many units; at least one. */
             lines: components["schemas"]["OrderLine"][];
             /** Format: date-time */
@@ -808,6 +886,8 @@ export interface components {
             updatedAt?: string;
             /** @description The exchange with the fulfilment centre; only for `fbs` orders. */
             exchange?: components["schemas"]["OrderExchange"];
+            /** @description A test order, made by the seller in the marketplace's cabinet to try the connection: no buyer, no money; shown and passed on, marked, and counted in no total. */
+            test: boolean;
         };
         OrderLine: {
             /** @description The marketplace's own product number. */
@@ -900,6 +980,8 @@ export interface components {
             overdue: number;
             /** @description Orders whose marketplace state the table does not hold. */
             unknownStates: number;
+            /** @description Test orders, which none of the numbers above counts. */
+            testOrders: number;
             /** Format: date-time */
             lastSuccessAt?: string;
         };
@@ -1896,6 +1978,8 @@ export interface operations {
                 q?: string;
                 /** @description Only the orders that need the owner. */
                 attention?: boolean;
+                /** @description `only` - only the test orders; `none` - without them. */
+                test?: "only" | "none";
                 page?: number;
             };
             header?: never;
@@ -2439,6 +2523,90 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    receiveMarketplaceNotification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                text: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Stored; the orders it names are read afterwards. The body is the marketplace's own form. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description The body cannot be read; the reason in the marketplace's own form. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["Refusal"];
+        };
+    };
+    receiveMarketplaceNotificationAtItsMethod: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                text: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Stored; the orders it names are read afterwards. The body is the marketplace's own form. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description The body cannot be read; the reason in the marketplace's own form. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
             };
             default: components["responses"]["Refusal"];
         };

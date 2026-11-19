@@ -17,6 +17,7 @@ import (
 	"github.com/prankyman/wyo/internal/logging"
 	"github.com/prankyman/wyo/internal/marketplace"
 	"github.com/prankyman/wyo/internal/schedule"
+	"github.com/prankyman/wyo/internal/version"
 )
 
 const (
@@ -32,6 +33,9 @@ const (
 	// fileLinkPath is how the journal names the path of a request to a file link (a route with NoKey): the link holds a
 	// token, so neither its path nor its query is ever written.
 	fileLinkPath = "{label file}"
+	// programName is how a request names the program in a marketplace's own header (Description.ProgramHeader), before
+	// its version; User-Agent names it the same way (internal/outbound).
+	programName = "wyo"
 )
 
 // repeatDelays are the waits before the second and the third attempt of a reading that met no answer or a server error;
@@ -65,6 +69,7 @@ type CallerOptions struct {
 type Caller struct {
 	opts   CallerOptions
 	budget *Budget
+	places *places
 }
 
 // NewCaller returns the caller.
@@ -77,7 +82,7 @@ func NewCaller(o CallerOptions) *Caller {
 		o.Random = schedule.CryptoRandom{}
 	}
 
-	return &Caller{opts: o, budget: NewBudget()}
+	return &Caller{opts: o, budget: NewBudget(), places: newPlaces()}
 }
 
 // Endpoint is what the caller needs of the side it calls: the requests it may send, their limits, how the key goes into a
@@ -105,16 +110,20 @@ type Target struct {
 	Client     marketplace.Doer
 	// Missing are the categories the account's key lacked at its last check (marketplace.Conn.Missing).
 	Missing []string
+	// Profile is the seller profile the account's key belongs to (marketplace.Conn.Profile).
+	Profile string
 }
 
 // Conn gives an adapter the caller for one target.
 func (c *Caller) Conn(t Target) marketplace.Conn {
-	return marketplace.Conn{Doer: &doer{caller: c, target: t}, Test: t.Test, Missing: t.Missing}
+	return marketplace.Conn{Doer: &doer{caller: c, target: t, desc: t.Adapter.Describe()}, Test: t.Test, Missing: t.Missing, Profile: t.Profile}
 }
 
 type doer struct {
 	caller *Caller
 	target Target
+	// desc is the endpoint's description, asked once for the Conn and not at every request.
+	desc marketplace.Description
 }
 
 // attempt is one request sent and what came of it.
@@ -260,7 +269,20 @@ func (d *doer) send(req *http.Request, route marketplace.Route, key BudgetKey, l
 		return attempt{}, err
 	}
 
-	ctx, cancel := context.WithTimeout(req.Context(), callDeadline)
+	ctx, cancelDeadline := context.WithTimeout(req.Context(), callDeadline)
+
+	free, err := d.place(req.Context(), ctx)
+	if err != nil {
+		cancelDeadline()
+
+		return attempt{}, err
+	}
+
+	// The attempt ends, and its place among the account's requests in flight is free, when its answer is read.
+	cancel := func() {
+		free()
+		cancelDeadline()
+	}
 
 	out, err := prepared(ctx, req)
 	if err != nil {
@@ -269,9 +291,13 @@ func (d *doer) send(req *http.Request, route marketplace.Route, key BudgetKey, l
 		return attempt{}, err
 	}
 
+	if header := d.desc.ProgramHeader; header != "" {
+		out.Header.Set(header, programName+"/"+version.Version)
+	}
+
 	// The secret store keeps one text per key; the adapter is given the key's fields (marketplace.UnpackKey), and the
 	// journal is told every secret field, so that none of them is ever written.
-	fields := d.target.Adapter.Describe().KeyFields
+	fields := d.desc.KeyFields
 	unpacked := marketplace.UnpackKey(fields, secret)
 	secrets := unpacked.Secrets(fields)
 
@@ -290,7 +316,7 @@ func (d *doer) send(req *http.Request, route marketplace.Route, key BudgetKey, l
 	elapsed := clk.Now().Sub(started)
 
 	entry := journal.Entry{
-		AccountID: d.target.AccountID, Marketplace: d.target.Adapter.Describe().Code, Method: req.Method, Path: journalPath(route),
+		AccountID: d.target.AccountID, Marketplace: d.desc.Code, Method: req.Method, Path: journalPath(route),
 		Duration: elapsed, Job: d.target.Job,
 	}
 
@@ -307,7 +333,7 @@ func (d *doer) send(req *http.Request, route marketplace.Route, key BudgetKey, l
 		return attempt{outcome: journal.NoConnection}, nil
 	}
 
-	a := d.read(res, cancel)
+	a := d.read(res, limit, cancel)
 	a.retry429 = d.caller.budget.Observe(key, limit, clk.Now(), res.StatusCode, res.Header)
 
 	entry.Status, entry.Outcome, entry.ErrorCode, entry.ErrorText = a.status, a.outcome, a.code, a.text
@@ -345,8 +371,8 @@ func failureText(err error, route marketplace.Route) string {
 
 // read classifies an answer. A success keeps its body for the adapter (the call's deadline ends when the adapter closes
 // it); anything else has its body read for the refusal's code and text and handed on as read.
-func (d *doer) read(res *http.Response, cancel context.CancelFunc) attempt {
-	a := attempt{res: res, status: res.StatusCode, outcome: journal.OutcomeOf(res.StatusCode)}
+func (d *doer) read(res *http.Response, limit marketplace.LimitGroup, cancel context.CancelFunc) attempt {
+	a := attempt{res: res, status: res.StatusCode, outcome: journal.OutcomeOf(res.StatusCode, limit.LimitStatus)}
 
 	if res.StatusCode < http.StatusMultipleChoices {
 		res.Body = &cancelOnClose{ReadCloser: res.Body, cancel: cancel}

@@ -256,7 +256,7 @@ func TestAnAddressThatCannotBeListenedOnEndsTheProgramAndFreesTheOther(t *testin
 	}
 }
 
-func TestOneAddressServesTheFakeWildberriesAndTheFakeOzon(t *testing.T) {
+func TestOneAddressServesTheFakeWildberriesTheFakeOzonAndTheFakeYandexMarket(t *testing.T) {
 	t.Parallel()
 
 	s := start(t, []string{"--marketplaces", "127.0.0.1:18795", "--fulfilment", "127.0.0.1:18796"}, nil)
@@ -281,6 +281,15 @@ func TestOneAddressServesTheFakeWildberriesAndTheFakeOzon(t *testing.T) {
 	// the fake Wildberries would refuse it in its own («token is missing»).
 	if got := httpkit.Get(t, addr, "/api-seller.ozon.ru/v1/roles"); got.Status != http.StatusUnauthorized || !strings.Contains(got.Body, "Invalid Api-Key") {
 		t.Fatalf("GET /api-seller.ozon.ru/v1/roles answered %d %s, want the fake Ozon's 401 for an invalid key", got.Status, got.Body)
+	}
+
+	// The fake Яндекс Маркет: its control calls answer under its host, and a call without a key is refused in its own error body.
+	if got := httpkit.Get(t, addr, "/api.partner.market.yandex.ru/__control/health"); got.Status != http.StatusOK || got.Body != `{"status":"ok"}` {
+		t.Fatalf("GET /api.partner.market.yandex.ru/__control/health answered %d %s", got.Status, got.Body)
+	}
+
+	if got := httpkit.Get(t, addr, "/api.partner.market.yandex.ru/v2/campaigns"); got.Status != http.StatusUnauthorized || !strings.Contains(got.Body, `"status":"ERROR"`) {
+		t.Fatalf("GET /api.partner.market.yandex.ru/v2/campaigns answered %d %s, want the fake Яндекс Маркет's 401 in its error body", got.Status, got.Body)
 	}
 
 	s.stop()

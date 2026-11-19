@@ -43,7 +43,8 @@ export const MARKETPLACE: TMarketplace = {
     ],
     givesDeadline: false,
     exchangeFlow: 'confirm',
-    handoverSteps: ['batch', 'move', 'boxes', 'shipping', 'close', 'documents']
+    handoverSteps: ['batch', 'move', 'boxes', 'shipping', 'close', 'documents'],
+    receivesNotifications: false
 };
 
 /**
@@ -61,7 +62,25 @@ export const SECOND_MARKETPLACE: TMarketplace = {
     handoverSettings: [],
     givesDeadline: true,
     exchangeFlow: 'confirm',
-    handoverSteps: ['batch', 'move', 'boxes', 'shipping', 'close', 'documents']
+    handoverSteps: ['batch', 'move', 'boxes', 'shipping', 'close', 'documents'],
+    receivesNotifications: false
+};
+
+/** A third adapter: its key is one secret value, it gives each order its own deadline and it sends notifications. */
+export const THIRD_MARKETPLACE_CODE = 'yandex';
+/** The third adapter's name, as `marketplace.<code>.name` words it. */
+export const THIRD_MARKETPLACE_NAME = 'Яндекс Маркет';
+
+export const THIRD_MARKETPLACE: TMarketplace = {
+    code: THIRD_MARKETPLACE_CODE,
+    mark: 'yellow',
+    keyFields: [{ name: 'api_key', secret: true }],
+    capabilities: ['key.check', 'warehouses.read', 'orders.changes', 'orders.named', 'notifications.receive'],
+    handoverSettings: [],
+    givesDeadline: true,
+    exchangeFlow: 'confirm',
+    handoverSteps: ['batch', 'move', 'boxes', 'shipping', 'close', 'documents'],
+    receivesNotifications: true
 };
 
 /**
@@ -134,6 +153,7 @@ export function orderOf(overrides: Partial<TOrder> = {}): TOrder {
         accountName: 'Магазин одежды',
         marketplace: MARKETPLACE_CODE,
         scheme: 'fbs',
+        test: false,
         number: '4455667788',
         basket: '1234567',
         warehouse: 'Склад на Ленина',

@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
-import { MARKETPLACE_CODE, SECOND_MARKETPLACE_CODE } from '$test/support/marketplaces';
+import { MARKETPLACE_CODE, SECOND_MARKETPLACE_CODE, THIRD_MARKETPLACE_CODE } from '$test/support/marketplaces';
 import KeyHelpSteps from './KeyHelpSteps.svelte';
 
 /** How a seller makes the key a marketplace's adapter asks for: a folded section with the strip of steps and each step in full. */
@@ -32,6 +32,22 @@ describe('KeyHelpSteps', () => {
         expect(steps[4]).toHaveTextContent('Admin read only');
         expect(steps[5]).toHaveTextContent('для личного пользования');
         expect(steps[7]).toHaveTextContent('Разрешённые сети');
+    });
+
+    it('draws the third adapter’s steps: one key for every shop of a cabinet, who may make it, how many there can be, and the levels to tick', () => {
+        render(KeyHelpSteps, { props: { lang: 'ru', code: THIRD_MARKETPLACE_CODE, id: 'key-help', open: true } });
+
+        expect(screen.getByTestId('key-help-intro')).toHaveTextContent('не имеет срока действия');
+        const steps = within(screen.getByTestId('key-help-list')).getAllByRole('listitem');
+        expect(steps).toHaveLength(5);
+        expect(steps[0]).toHaveTextContent('Токены авторизации');
+        expect(steps[1]).toHaveTextContent('владелец кабинета или менеджер кабинета');
+        expect(steps[1]).toHaveTextContent('30 токенов');
+        expect(steps[2]).toHaveTextContent('Создать новый токен');
+        expect(steps[3]).toHaveTextContent('Просмотр информации о заказах');
+        expect(steps[3]).toHaveTextContent('Просмотр товаров и карточек');
+        expect(steps[3]).toHaveTextContent('Обработка заказов и учёт товаров');
+        expect(steps[4]).toHaveTextContent('Api-Key-токен');
     });
 
     it('draws nothing for an adapter whose steps the interface has no texts for', () => {

@@ -12,6 +12,25 @@ This file exists because a request the maintainer makes while testing one plan m
 
 ## Open
 
+### 41. Яндекс Маркет's notifications about returns, cancellation requests, reviews and chats (2026-11-19)
+
+Left out of Plan 7 (`.agents/plans/wyo-yandex-market-key-reading-orders-notifications-safety-read-test-orders-fake-yandex-market.md`,
+«Not in this plan»): the wyo server answers them `200` and reads nothing of them. Returns belong to a later stage (sales and
+returns, item 2); cancellation requests are DBS's (item 19); reviews and chats were not asked for.
+
+### 40. The checks of Plan 7 on the first real Яндекс Маркет cabinet (2026-11-19)
+
+Plan 7 is built against the fake Яндекс Маркет only (no real cabinet yet). Only reading calls are made, and test orders made in
+the cabinet, so the check is safe on a working shop (the plan's «After the release»): which of Яндекс Маркет's numbers ties an
+order to its warehouse (`delivery.warehouseId`, a text, against the warehouses' numbers; the research
+`.agents/research/yandex-market-official-partner-api-check-2026-11-19.md`, «YMC», §14 point 1 — until then an order whose shop has
+two warehouses of its scheme shows «Склад не определён» with the order's own `delivery.warehouseId` beside it); the time zone of
+the shipment's day and time (read as Moscow time; a day without a time is its end); whether Яндекс Маркет accepts the wyo server's
+Let's Encrypt certificate for notifications (YMC §14 point 2) and calls only from its three networks; whether it sends to the address
+as entered or adds `/notification` (YMC §15; both are answered); the `PING` and the order notifications as they really come;
+whether `orderIds` alone returns a test order (both kinds are asked); the real limit headers and the budget's agreement with them;
+how a shop with its API off answers. What they find becomes Plan 8's premises.
+
 ### 38. What the final review of Plan 6 left (2026-11-19)
 
 Plan 6a (`.agents/plans/wyo-plan-6a-ozon-exchange-review-fixes-endless-retries-shipment-recheck-split-original-docs.md`) fixed what the
@@ -94,17 +113,12 @@ text can be sent with the label); when Ozon lets a shipment be made, and a secon
 `Posting FBS` the level to add); what automatic assembly does to a posting the fulfilment centre still packs
 (`.agents/research/ozon-official-seller-api-check-2026-11-18.md`, §10, points 5 to 9). What they find becomes the next plan's premises.
 
-### 33. The fulfilment-centre client ignores the neutral API's `Retry-After` (2026-11-18)
-
-Found by Plan 5 (`.agents/plans/wyo-ozon-key-reading-adapter-orders-with-several-products-fake-ozon.md`) when every adapter came to
-name its own limit headers: the neutral API answers `429 rate_limited` with `Retry-After` (`api/fulfilment-centre.yaml`), but the
-fulfilment-centre client's limit group names no header, so after a 429 the caller waits one second, doubling, as it always did. Plan 5
-kept that behaviour unchanged. To decide: name `Retry-After` in the group of `internal/fulfilment/endpoint.go`, with its test.
-
 ### 32. Ozon's notifications to a public address (2026-11-18)
 
 Left out of Plan 5: Ozon's «пуш-уведомления». Ozon itself says the notice of a new order may come late and the lists must be read
 regularly (`#tag/push_types` of `api/ozon/seller-api.json`); wyo reads the lists. To be taken up if the reading proves too slow.
+Plan 7 (2026-11-19) built the shared part `notifications.receive` and the address `/hooks/marketplace/<text>`; an Ozon adapter that
+claims it needs only its own reading of the body and its networks.
 
 ### 31. Ozon's FBO orders older than 30 days (2026-11-18)
 
@@ -178,6 +192,9 @@ items, a label cut to its width), so Plan 3 did not change it. To decide: a shor
 
 ### 20. Wildberries' product cards, prices of orders, old orders (2026-11-18)
 
+Widened by Plan 7 (2026-11-19): Яндекс Маркет's product cards and prices; an order's lines show the article, the name and the
+barcodes (read by `getOfferMappings` when the key has the level «Просмотр товаров и карточек»).
+
 Widened by Plan 5 (2026-11-18): Ozon's product cards and prices; an Ozon order's lines show the name and the barcodes, the cards are the
 contract part `products.read` of a later stage.
 
@@ -188,6 +205,9 @@ high-level plan); orders older than 90 days and Wildberries' archive are not rea
 installation was not asked for.
 
 ### 19. Orders the seller delivers to the buyer itself; tokens «Базовый» and «Сервисный» (2026-11-18)
+
+Widened by Plan 7 (2026-11-19): Яндекс Маркет's DBS orders (and its cancellation requests, which only DBS has) are never read, a
+warehouse of DBS only is stored with the mark «доставляет продавец»; LaaS orders are not asked for either.
 
 Widened by Plan 5 (2026-11-18): Ozon's rFBS warehouses (`is_rfbs`) are stored with the mark «доставляет продавец» and their orders are
 never read, for the same reason; the account's card counts them.
@@ -332,6 +352,11 @@ warehouses, and the fulfilment centre's free stock sent to every marketplace tha
 offer. Needs the stock part of the neutral fulfilment-centre API, which Plan 1 does not write. A plan of its own, written when Stage 1
 (Plans 2, 3 and 4) is released.
 
+**2026-11-19 — Plan 7 implemented** (branch `feat/yandex-market-accounts-orders`): the Яндекс Маркет key, its shops and
+warehouses, FBS, Express and FBY orders read by changes and by notifications with a safety read, test orders marked and counted
+nowhere, the fake Яндекс Маркет. Plan 8 (the writing calls and the exchange) is next, after the maintainer's fulfilment software
+adds what its plan names.
+
 **2026-11-19 — Яндекс Маркет written as two plans** (the maintainer: «write the plan for Яндекс Маркет», «2»), not started:
 Plan 7 (`.agents/plans/wyo-yandex-market-key-reading-orders-notifications-safety-read-test-orders-fake-yandex-market.md`) — the key,
 reading orders, notifications with a safety read every 15 minutes, test orders marked and counted nowhere, the fake Яндекс Маркет; it
@@ -343,6 +368,18 @@ maintainer's other repository). Research: `.agents/research/yandex-market-offici
 here after both.
 
 ## Closed
+
+### 33. The fulfilment-centre client ignores the neutral API's `Retry-After` (2026-11-18)
+
+Found by Plan 5 (`.agents/plans/wyo-ozon-key-reading-adapter-orders-with-several-products-fake-ozon.md`) when every adapter came to
+name its own limit headers: the neutral API answers `429 rate_limited` with `Retry-After` (`api/fulfilment-centre.yaml`), but the
+fulfilment-centre client's limit group names no header, so after a 429 the caller waits one second, doubling, as it always did. Plan 5
+kept that behaviour unchanged. To decide: name `Retry-After` in the group of `internal/fulfilment/endpoint.go`, with its test.
+
+Closed by Plan 7 (`.agents/plans/wyo-yandex-market-key-reading-orders-notifications-safety-read-test-orders-fake-yandex-market.md`,
+section A.1), 2026-11-19, at its merge: the fulfilment centre's limit group names `Retry-After`, read by the one reading of a wait
+header (`waitOf`, `internal/sync/budget.go`; `TestATooManyRequestsAnswerIsWaitedOutAsLongAsItsRetryAfterSays`,
+`internal/fulfilment`).
 
 ### 22. A fulfilment centre that names transport boxes (2026-11-18)
 

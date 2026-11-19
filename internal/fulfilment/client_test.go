@@ -337,3 +337,22 @@ func TestANewDeadlineIsPassedOnToTheOrderThroughADeclaredRoute(t *testing.T) {
 		t.Fatal("the journal has no row for the PATCH")
 	}
 }
+
+// TestATooManyRequestsAnswerIsWaitedOutAsLongAsItsRetryAfterSays is register item 33: the neutral API answers 429 with
+// Retry-After (api/fulfilment-centre.yaml), and the caller waits the seconds it says instead of one second.
+func TestATooManyRequestsAnswerIsWaitedOutAsLongAsItsRetryAfterSays(t *testing.T) {
+	t.Parallel()
+
+	r := newFcRig(t)
+	if err := r.ctl.QueueFault(t.Context(), fakekit.Fault{Kind: fakekit.FaultRateLimited, RetryAfterSeconds: 7}); err != nil {
+		t.Fatalf("QueueFault: %v", err)
+	}
+
+	if _, err := r.client.Account(t.Context()); err != nil {
+		t.Fatalf("Account after a 429: %v", err)
+	}
+
+	if waits := r.kit.Waits(); len(waits) != 1 || waits[0] != 7*time.Second {
+		t.Fatalf("waits %v, want the 7 seconds of Retry-After", waits)
+	}
+}

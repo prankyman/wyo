@@ -78,6 +78,9 @@ func TestRunRefusesAWrongCall(t *testing.T) {
 		{name: "a file that is not there", args: []string{dir + "/none.json", dir + "/out.json"}, wantCode: 2, wantErr: "none.json"},
 		{name: "a type no rule knows", args: []string{unknown, dir + "/out.json"}, wantCode: 1, wantErr: "money"},
 		{name: "a copy that cannot be written", args: []string{"../../api/ozon/seller-api.json", dir + "/no/such/out.json"}, wantCode: 2, wantErr: "out.json"},
+		{name: "join without its two files", args: []string{"join", dir + "/openapi.yaml"}, wantCode: 2, wantErr: "usage"},
+		{name: "join of a tree that is not there", args: []string{"join", dir + "/openapi.yaml", dir + "/out.yaml"}, wantCode: 1, wantErr: "openapi.yaml"},
+		{name: "a joined copy that cannot be written", args: []string{"join", "../../api/yandex/openapi.yaml", dir + "/no/such/out.yaml"}, wantCode: 2, wantErr: "out.yaml"},
 	}
 
 	for _, tc := range cases {
@@ -89,5 +92,38 @@ func TestRunRefusesAWrongCall(t *testing.T) {
 				t.Fatalf("run = %d, %q; want %d naming %s", code, stderr.String(), tc.wantCode, tc.wantErr)
 			}
 		})
+	}
+}
+
+// TestYandexMarketsTreeIsJoinedIntoOneFileWithNoReferenceToAFile joins the committed tree of Яндекс Маркет's description
+// (api/yandex/README.md): every path and component is in the one file, and no reference to a file is left.
+func TestYandexMarketsTreeIsJoinedIntoOneFileWithNoReferenceToAFile(t *testing.T) {
+	t.Parallel()
+
+	out := t.TempDir() + "/openapi.yaml"
+
+	var stdout, stderr bytes.Buffer
+	if code := run([]string{"join", "../../api/yandex/openapi.yaml", out}, &stdout, &stderr); code != 0 {
+		t.Fatalf("run = %d: %s", code, stderr.String())
+	}
+
+	raw, err := os.ReadFile(out) //nolint:gosec // G304: the test's own temporary file
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	text := string(raw)
+	if strings.Contains(text, ".yaml'") || strings.Contains(text, ".yaml\n") || strings.Count(text, "$ref: '#/components/") < 1000 {
+		t.Fatalf("the joined file still names a file, or holds too few internal references (%d)", strings.Count(text, "$ref: '#/components/"))
+	}
+
+	for _, operation := range []string{"getAuthTokenInfo", "getCampaigns", "getBusinessOrders", "getPartnerWarehouses", "getOfferMappings"} {
+		if !strings.Contains(text, "operationId: "+operation+"\n") {
+			t.Errorf("the joined file lacks the method %s", operation)
+		}
+	}
+
+	if !strings.HasPrefix(stdout.String(), "joined ") {
+		t.Errorf("stdout = %q, want the count of files joined", stdout.String())
 	}
 }

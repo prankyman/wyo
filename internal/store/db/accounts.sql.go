@@ -33,6 +33,15 @@ func (q *Queries) DeleteAccount(ctx context.Context, id int64) (int64, error) {
 	return result.RowsAffected()
 }
 
+const deleteShopsOfAccount = `-- name: DeleteShopsOfAccount :exec
+DELETE FROM marketplace_shops WHERE account_id = ?
+`
+
+func (q *Queries) DeleteShopsOfAccount(ctx context.Context, accountID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteShopsOfAccount, accountID)
+	return err
+}
+
 const deleteWarehousesOfAccount = `-- name: DeleteWarehousesOfAccount :exec
 DELETE FROM marketplace_warehouses WHERE account_id = ?
 `
@@ -43,7 +52,7 @@ func (q *Queries) DeleteWarehousesOfAccount(ctx context.Context, accountID int64
 }
 
 const getAccount = `-- name: GetAccount :one
-SELECT id, marketplace, name, state, test, seller_name, seller_profile_id, secret_name, key_last4, key_type, key_expires_at, categories, missing_categories, read_only, deadline_hours, last_check_at, last_check_outcome, last_success_at, last_refusal_code, last_refusal_status, last_refusal_at, failures_in_row, created_at, handover_settings, shipping_point, key_fields FROM marketplace_accounts WHERE id = ?
+SELECT id, marketplace, name, state, test, seller_name, seller_profile_id, secret_name, key_last4, key_type, key_expires_at, categories, missing_categories, read_only, deadline_hours, last_check_at, last_check_outcome, last_success_at, last_refusal_code, last_refusal_status, last_refusal_at, failures_in_row, created_at, handover_settings, shipping_point, key_fields, hook_text, notifications_seen_at, notifications_lost_at FROM marketplace_accounts WHERE id = ?
 `
 
 func (q *Queries) GetAccount(ctx context.Context, id int64) (MarketplaceAccount, error) {
@@ -76,6 +85,50 @@ func (q *Queries) GetAccount(ctx context.Context, id int64) (MarketplaceAccount,
 		&i.HandoverSettings,
 		&i.ShippingPoint,
 		&i.KeyFields,
+		&i.HookText,
+		&i.NotificationsSeenAt,
+		&i.NotificationsLostAt,
+	)
+	return i, err
+}
+
+const getAccountByHookText = `-- name: GetAccountByHookText :one
+SELECT id, marketplace, name, state, test, seller_name, seller_profile_id, secret_name, key_last4, key_type, key_expires_at, categories, missing_categories, read_only, deadline_hours, last_check_at, last_check_outcome, last_success_at, last_refusal_code, last_refusal_status, last_refusal_at, failures_in_row, created_at, handover_settings, shipping_point, key_fields, hook_text, notifications_seen_at, notifications_lost_at FROM marketplace_accounts WHERE hook_text = ? AND hook_text <> ''
+`
+
+func (q *Queries) GetAccountByHookText(ctx context.Context, hookText string) (MarketplaceAccount, error) {
+	row := q.db.QueryRowContext(ctx, getAccountByHookText, hookText)
+	var i MarketplaceAccount
+	err := row.Scan(
+		&i.ID,
+		&i.Marketplace,
+		&i.Name,
+		&i.State,
+		&i.Test,
+		&i.SellerName,
+		&i.SellerProfileID,
+		&i.SecretName,
+		&i.KeyLast4,
+		&i.KeyType,
+		&i.KeyExpiresAt,
+		&i.Categories,
+		&i.MissingCategories,
+		&i.ReadOnly,
+		&i.DeadlineHours,
+		&i.LastCheckAt,
+		&i.LastCheckOutcome,
+		&i.LastSuccessAt,
+		&i.LastRefusalCode,
+		&i.LastRefusalStatus,
+		&i.LastRefusalAt,
+		&i.FailuresInRow,
+		&i.CreatedAt,
+		&i.HandoverSettings,
+		&i.ShippingPoint,
+		&i.KeyFields,
+		&i.HookText,
+		&i.NotificationsSeenAt,
+		&i.NotificationsLostAt,
 	)
 	return i, err
 }
@@ -100,9 +153,9 @@ const insertAccount = `-- name: InsertAccount :one
 INSERT INTO marketplace_accounts (
     marketplace, name, state, test, seller_name, seller_profile_id, secret_name, key_last4, key_type, key_expires_at,
     categories, missing_categories, read_only, deadline_hours, last_check_at, last_check_outcome, last_success_at,
-    created_at, key_fields
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING id, marketplace, name, state, test, seller_name, seller_profile_id, secret_name, key_last4, key_type, key_expires_at, categories, missing_categories, read_only, deadline_hours, last_check_at, last_check_outcome, last_success_at, last_refusal_code, last_refusal_status, last_refusal_at, failures_in_row, created_at, handover_settings, shipping_point, key_fields
+    created_at, key_fields, hook_text
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, marketplace, name, state, test, seller_name, seller_profile_id, secret_name, key_last4, key_type, key_expires_at, categories, missing_categories, read_only, deadline_hours, last_check_at, last_check_outcome, last_success_at, last_refusal_code, last_refusal_status, last_refusal_at, failures_in_row, created_at, handover_settings, shipping_point, key_fields, hook_text, notifications_seen_at, notifications_lost_at
 `
 
 type InsertAccountParams struct {
@@ -125,6 +178,7 @@ type InsertAccountParams struct {
 	LastSuccessAt     sql.NullInt64
 	CreatedAt         int64
 	KeyFields         string
+	HookText          string
 }
 
 func (q *Queries) InsertAccount(ctx context.Context, arg InsertAccountParams) (MarketplaceAccount, error) {
@@ -148,6 +202,7 @@ func (q *Queries) InsertAccount(ctx context.Context, arg InsertAccountParams) (M
 		arg.LastSuccessAt,
 		arg.CreatedAt,
 		arg.KeyFields,
+		arg.HookText,
 	)
 	var i MarketplaceAccount
 	err := row.Scan(
@@ -177,13 +232,41 @@ func (q *Queries) InsertAccount(ctx context.Context, arg InsertAccountParams) (M
 		&i.HandoverSettings,
 		&i.ShippingPoint,
 		&i.KeyFields,
+		&i.HookText,
+		&i.NotificationsSeenAt,
+		&i.NotificationsLostAt,
 	)
 	return i, err
 }
 
+const insertShop = `-- name: InsertShop :exec
+INSERT INTO marketplace_shops (account_id, number, name, scheme, api_off, updated_at) VALUES (?, ?, ?, ?, ?, ?)
+`
+
+type InsertShopParams struct {
+	AccountID int64
+	Number    string
+	Name      string
+	Scheme    string
+	ApiOff    int64
+	UpdatedAt int64
+}
+
+func (q *Queries) InsertShop(ctx context.Context, arg InsertShopParams) error {
+	_, err := q.db.ExecContext(ctx, insertShop,
+		arg.AccountID,
+		arg.Number,
+		arg.Name,
+		arg.Scheme,
+		arg.ApiOff,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
 const insertWarehouse = `-- name: InsertWarehouse :exec
-INSERT INTO marketplace_warehouses (account_id, number, name, seller_delivers, label_type, auto_assembly, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?)
+INSERT INTO marketplace_warehouses (account_id, number, name, seller_delivers, label_type, auto_assembly, express, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type InsertWarehouseParams struct {
@@ -193,6 +276,7 @@ type InsertWarehouseParams struct {
 	SellerDelivers int64
 	LabelType      string
 	AutoAssembly   int64
+	Express        int64
 	UpdatedAt      int64
 }
 
@@ -204,13 +288,14 @@ func (q *Queries) InsertWarehouse(ctx context.Context, arg InsertWarehouseParams
 		arg.SellerDelivers,
 		arg.LabelType,
 		arg.AutoAssembly,
+		arg.Express,
 		arg.UpdatedAt,
 	)
 	return err
 }
 
 const listAccounts = `-- name: ListAccounts :many
-SELECT id, marketplace, name, state, test, seller_name, seller_profile_id, secret_name, key_last4, key_type, key_expires_at, categories, missing_categories, read_only, deadline_hours, last_check_at, last_check_outcome, last_success_at, last_refusal_code, last_refusal_status, last_refusal_at, failures_in_row, created_at, handover_settings, shipping_point, key_fields FROM marketplace_accounts ORDER BY id
+SELECT id, marketplace, name, state, test, seller_name, seller_profile_id, secret_name, key_last4, key_type, key_expires_at, categories, missing_categories, read_only, deadline_hours, last_check_at, last_check_outcome, last_success_at, last_refusal_code, last_refusal_status, last_refusal_at, failures_in_row, created_at, handover_settings, shipping_point, key_fields, hook_text, notifications_seen_at, notifications_lost_at FROM marketplace_accounts ORDER BY id
 `
 
 func (q *Queries) ListAccounts(ctx context.Context) ([]MarketplaceAccount, error) {
@@ -249,6 +334,43 @@ func (q *Queries) ListAccounts(ctx context.Context) ([]MarketplaceAccount, error
 			&i.HandoverSettings,
 			&i.ShippingPoint,
 			&i.KeyFields,
+			&i.HookText,
+			&i.NotificationsSeenAt,
+			&i.NotificationsLostAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listShops = `-- name: ListShops :many
+SELECT account_id, number, name, scheme, api_off, updated_at FROM marketplace_shops WHERE account_id = ? ORDER BY name, number
+`
+
+func (q *Queries) ListShops(ctx context.Context, accountID int64) ([]MarketplaceShop, error) {
+	rows, err := q.db.QueryContext(ctx, listShops, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MarketplaceShop
+	for rows.Next() {
+		var i MarketplaceShop
+		if err := rows.Scan(
+			&i.AccountID,
+			&i.Number,
+			&i.Name,
+			&i.Scheme,
+			&i.ApiOff,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -264,7 +386,7 @@ func (q *Queries) ListAccounts(ctx context.Context) ([]MarketplaceAccount, error
 }
 
 const listWarehouses = `-- name: ListWarehouses :many
-SELECT account_id, number, name, updated_at, seller_delivers, label_type, auto_assembly FROM marketplace_warehouses WHERE account_id = ? ORDER BY name, number
+SELECT account_id, number, name, updated_at, seller_delivers, label_type, auto_assembly, express FROM marketplace_warehouses WHERE account_id = ? ORDER BY name, number
 `
 
 func (q *Queries) ListWarehouses(ctx context.Context, accountID int64) ([]MarketplaceWarehouse, error) {
@@ -284,6 +406,7 @@ func (q *Queries) ListWarehouses(ctx context.Context, accountID int64) ([]Market
 			&i.SellerDelivers,
 			&i.LabelType,
 			&i.AutoAssembly,
+			&i.Express,
 		); err != nil {
 			return nil, err
 		}
@@ -408,6 +531,83 @@ type RecordAccountSuccessParams struct {
 // A success moves the state only of an account that is being read: never one switched off or with a refused key.
 func (q *Queries) RecordAccountSuccess(ctx context.Context, arg RecordAccountSuccessParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, recordAccountSuccess, arg.State, arg.LastSuccessAt, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const recordNotificationSeen = `-- name: RecordNotificationSeen :execrows
+UPDATE marketplace_accounts
+SET notifications_seen_at = max(COALESCE(notifications_seen_at, 0), ?1)
+WHERE id = ?2
+`
+
+type RecordNotificationSeenParams struct {
+	At interface{}
+	ID int64
+}
+
+func (q *Queries) RecordNotificationSeen(ctx context.Context, arg RecordNotificationSeenParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, recordNotificationSeen, arg.At, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const recordNotificationsLost = `-- name: RecordNotificationsLost :execrows
+UPDATE marketplace_accounts SET notifications_lost_at = ? WHERE id = ?
+`
+
+type RecordNotificationsLostParams struct {
+	NotificationsLostAt sql.NullInt64
+	ID                  int64
+}
+
+func (q *Queries) RecordNotificationsLost(ctx context.Context, arg RecordNotificationsLostParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, recordNotificationsLost, arg.NotificationsLostAt, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const setAccountHookText = `-- name: SetAccountHookText :execrows
+UPDATE marketplace_accounts SET hook_text = ? WHERE id = ?
+`
+
+type SetAccountHookTextParams struct {
+	HookText string
+	ID       int64
+}
+
+func (q *Queries) SetAccountHookText(ctx context.Context, arg SetAccountHookTextParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, setAccountHookText, arg.HookText, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const setShopAPIOff = `-- name: SetShopAPIOff :execrows
+UPDATE marketplace_shops SET api_off = ?, updated_at = ? WHERE account_id = ? AND number = ?
+`
+
+type SetShopAPIOffParams struct {
+	ApiOff    int64
+	UpdatedAt int64
+	AccountID int64
+	Number    string
+}
+
+func (q *Queries) SetShopAPIOff(ctx context.Context, arg SetShopAPIOffParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, setShopAPIOff,
+		arg.ApiOff,
+		arg.UpdatedAt,
+		arg.AccountID,
+		arg.Number,
+	)
 	if err != nil {
 		return 0, err
 	}

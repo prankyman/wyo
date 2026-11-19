@@ -338,3 +338,66 @@ func TestTheLinesOfAnOrderThatDoesNotExistAreRefused(t *testing.T) {
 		t.Fatal("lines were kept for an order that does not exist")
 	}
 }
+
+func TestATestOrderIsKeptMarkedFilteredAndLeftOutOfTheCountsAndASchemeIsFoundByItsOwnName(t *testing.T) {
+	t.Parallel()
+
+	s := storekit.Open(t)
+	ctx := t.Context()
+	account := insertAccount(t, s, anAccount("orders.test.key")).ID
+
+	real := anOrder(account, "500", "fbs", noon().Add(-72*time.Hour))
+	insertOrder(t, s, real)
+
+	test := anOrder(account, "501", "fbs", noon().Add(-72*time.Hour))
+	test.Test, test.SchemeName = true, "express"
+	insertOrder(t, s, test)
+
+	fby := anOrder(account, "502", "fbo", noon())
+	fby.SchemeName, fby.State = "fby", "in_delivery"
+	insertOrder(t, s, fby)
+
+	cases := []struct {
+		name   string
+		filter store.OrderFilter
+		want   []string
+	}{
+		{name: "only the test orders", filter: store.OrderFilter{Test: store.TestOnly}, want: []string{"501"}},
+		{name: "without the test orders", filter: store.OrderFilter{Test: store.TestNone}, want: []string{"502", "500"}},
+		{name: "every order", filter: store.OrderFilter{}, want: []string{"502", "501", "500"}},
+		{name: "the scheme by the marketplace's own name", filter: store.OrderFilter{Scheme: "express"}, want: []string{"501"}},
+		{name: "the connector's scheme holds its own names", filter: store.OrderFilter{Scheme: "fbo"}, want: []string{"502"}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			views, err := s.Read().OrderViews(ctx, tc.filter)
+			if err != nil {
+				t.Fatalf("OrderViews: %v", err)
+			}
+
+			var got []string
+			for _, v := range views {
+				got = append(got, v.Number)
+			}
+
+			total, err := s.Read().CountOrderViews(ctx, tc.filter)
+			if !reflect.DeepEqual(got, tc.want) || err != nil || total != int64(len(tc.want)) {
+				t.Fatalf("numbers %v (counted %d, %v), want %v", got, total, err, tc.want)
+			}
+		})
+	}
+
+	o, err := s.Read().OrderByNumber(ctx, account, "501")
+	if err != nil || !o.Test || o.SchemeName != "express" || o.Scheme != "fbs" {
+		t.Fatalf("the test order read back: %+v, %v", o, err)
+	}
+
+	counts, err := s.Read().OrderCounts(ctx, noon())
+	if want := map[string]int64{"new": 1, "in_delivery": 1}; err != nil || !reflect.DeepEqual(counts.ByState, want) || counts.Overdue != 1 ||
+		counts.Tests != 1 {
+		t.Fatalf("OrderCounts = %+v, %v; want %v, one overdue real order and one test order left out", counts, err, want)
+	}
+}

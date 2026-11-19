@@ -7,6 +7,7 @@ import (
 	"github.com/prankyman/wyo/internal/accounts"
 	"github.com/prankyman/wyo/internal/httpapi/gen"
 	"github.com/prankyman/wyo/internal/marketplace"
+	"github.com/prankyman/wyo/internal/store"
 )
 
 // moment is a pointer to a moment, nil when it is zero: the description leaves such a field out.
@@ -54,6 +55,7 @@ func marketplaceBody(d marketplace.Description) gen.Marketplace {
 	body := gen.Marketplace{
 		Code: d.Code, Mark: d.Mark, KeyFields: []gen.KeyField{}, Capabilities: []string{}, HandoverSettings: []gen.SettingField{},
 		GivesDeadline: d.GivesDeadline, ExchangeFlow: exchangeFlow(d), HandoverSteps: declaredSteps(d),
+		ReceivesNotifications: d.Supports(marketplace.NotificationsReceive), ProgramHeader: text(d.ProgramHeader),
 	}
 
 	for _, f := range d.HandoverSettings {
@@ -96,6 +98,22 @@ func accountBody(v accounts.View) gen.Account {
 		count := v.SellerDelivers
 		body.SellerDeliversWarehouses = &count
 	}
+
+	if v.Express > 0 {
+		count := v.Express
+		body.ExpressWarehouses = &count
+	}
+
+	if len(v.Shops) > 0 {
+		shops := make([]gen.Shop, 0, len(v.Shops))
+		for _, s := range v.Shops {
+			shops = append(shops, gen.Shop{Number: s.Number, Name: s.Name, Scheme: s.Scheme, ApiOff: s.APIOff})
+		}
+
+		body.Shops = &shops
+	}
+
+	body.Notifications = notificationsBody(v.Account)
 
 	if v.LastRefusal.Code != "" {
 		body.LastRefusal = &gen.AccountRefusal{Code: v.LastRefusal.Code, At: v.LastRefusal.At}
@@ -226,4 +244,28 @@ func (a *api) DisableAccount(w http.ResponseWriter, r *http.Request, id int64) {
 func (a *api) EnableAccount(w http.ResponseWriter, r *http.Request, id int64) {
 	v, err := a.deps.Accounts.Enable(r.Context(), id)
 	a.answerAccount(w, r, http.StatusOK, v, err)
+}
+
+// HookPrefix is the path of an account's notification address before its text (api/wyo.yaml, /hooks/marketplace/{text}).
+const HookPrefix = "/hooks/marketplace/"
+
+// notificationsBody is an account's notification address and whether notifications arrive; none for an account whose
+// marketplace sends none.
+func notificationsBody(a store.Account) *gen.AccountNotifications {
+	if a.HookText == "" {
+		return nil
+	}
+
+	state := gen.AccountNotificationsStateWaiting
+
+	switch {
+	case a.NotificationsWork():
+		state = gen.AccountNotificationsStateWorking
+	case !a.NotificationsLostAt.IsZero():
+		state = gen.AccountNotificationsStateLost
+	}
+
+	return &gen.AccountNotifications{
+		Path: HookPrefix + a.HookText, State: state, SeenAt: moment(a.NotificationsSeenAt), LostAt: moment(a.NotificationsLostAt),
+	}
 }

@@ -18,8 +18,8 @@ import (
 // Rule R3, alone by default (plan 3, section F; plan 5, section F): the wyo server's scheduler runs through a made-up day
 // with «External API» empty, behind an outbound gate that records every address its clients are asked to call. With
 // accounts, only the hosts of their marketplaces appear (here through the fakes on one address), besides the release
-// address and the certificate authority; a marketplace with no account is never reached; with no account, no
-// marketplace host appears at all.
+// address and the certificate authority; a marketplace with no account is never reached (Яндекс Маркет's host among them);
+// with no account, no marketplace host appears at all.
 func TestAMadeUpDayReachesOnlyTheMarketplacesOfTheAccounts(t *testing.T) {
 	t.Parallel()
 
@@ -27,10 +27,12 @@ func TestAMadeUpDayReachesOnlyTheMarketplacesOfTheAccounts(t *testing.T) {
 		name        string
 		wildberries int
 		ozon        int
+		yandex      int
 	}{
 		{name: "no account"},
 		{name: "two Wildberries accounts", wildberries: 2},
 		{name: "a Wildberries and an Ozon account", wildberries: 1, ozon: 1},
+		{name: "a Wildberries, an Ozon and a Яндекс Маркет account", wildberries: 1, ozon: 1, yandex: 1},
 	}
 
 	for _, tc := range cases {
@@ -57,6 +59,10 @@ func TestAMadeUpDayReachesOnlyTheMarketplacesOfTheAccounts(t *testing.T) {
 				addOzonAccount(t, app, fake.URL, "east", clk.Now())
 			}
 
+			for range tc.yandex {
+				addYandexAccount(t, app, fake.URL, "west", clk.Now())
+			}
+
 			// One party per job: the copy's, the engine's and the exchange's (which do nothing while «Внешний API» is empty).
 			day = daykit.New(clk, 1+len(app.Engine.Jobs())+len(app.Exchange.Jobs()), clk.Now().Add(24*time.Hour))
 
@@ -79,7 +85,7 @@ func TestAMadeUpDayReachesOnlyTheMarketplacesOfTheAccounts(t *testing.T) {
 				t.Fatalf("JournalEntries: %v", err)
 			}
 
-			if tc.wildberries+tc.ozon == 0 {
+			if tc.wildberries+tc.ozon+tc.yandex == 0 {
 				if len(recorded) != 0 || len(rows) != 0 {
 					t.Fatalf("with no account the wyo server reached %v and journaled %d requests", recorded, len(rows))
 				}
@@ -100,6 +106,10 @@ func TestAMadeUpDayReachesOnlyTheMarketplacesOfTheAccounts(t *testing.T) {
 
 			if reached[ozonHost] != (tc.ozon > 0) {
 				t.Fatalf("Ozon's host reached: %v, with %d Ozon accounts; hosts %v", reached[ozonHost], tc.ozon, reached)
+			}
+
+			if reached[yandexHost] != (tc.yandex > 0) {
+				t.Fatalf("Яндекс Маркет's host reached: %v, with %d accounts of it; hosts %v", reached[yandexHost], tc.yandex, reached)
 			}
 		})
 	}

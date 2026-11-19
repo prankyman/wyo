@@ -41,7 +41,7 @@ A smoke test that passed is not repeated without a reason.
 Each plan that adds a screen adds its rows here and its steps to Phase 2, in the same plan. Plan 2 added sign-in and the three pages;
 Plan 3 adds the keys and the order list; Plan 4 «External API».
 
-The fakes (`cmd/wyofakes`): the fake Wildberries and the fake Ozon on one address, `127.0.0.1:8791` (the fake Ozon under `/api-seller.ozon.ru/`), the fake fulfilment centre on `127.0.0.1:8792`. Both answer
+The fakes (`cmd/wyofakes`): the fake Wildberries, the fake Ozon and the fake Яндекс Маркет on one address, `127.0.0.1:8791` (the fake Ozon under `/api-seller.ozon.ru/`, the fake Яндекс Маркет under `/api.partner.market.yandex.ru/`, which also sends its notifications to the address its control call `/__control/notifications` gives — the account card's address), the fake fulfilment centre on `127.0.0.1:8792`. Both answer
 `/__control/health` when up, `/__control/reset` empties their state, `/__control/calls` lists the calls they received (without keys).
 
 ## Where the smoke test runs

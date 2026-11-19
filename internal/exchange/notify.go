@@ -8,6 +8,7 @@ import (
 
 	"github.com/prankyman/wyo/internal/fulfilment"
 	"github.com/prankyman/wyo/internal/notices"
+	"github.com/prankyman/wyo/internal/notify"
 	"github.com/prankyman/wyo/internal/store"
 )
 
@@ -47,23 +48,15 @@ func (s *Service) Receive(ctx context.Context, text string, n fulfilment.Notific
 		return ErrBadNotification
 	}
 
-	err = s.opts.Store.Do(ctx, func(q *store.Queries) error {
-		if _, err := q.InsertFcEvent(ctx, row); err != nil {
-			return err
-		}
+	return notify.StoreThenKick(ctx, s.kick, func(ctx context.Context) error {
+		return s.opts.Store.Do(ctx, func(q *store.Queries) error {
+			if _, err := q.InsertFcEvent(ctx, row); err != nil {
+				return err
+			}
 
-		return q.TouchNotification(ctx, s.opts.Clock.Now(), e.Type == eventPing)
+			return q.TouchNotification(ctx, s.opts.Clock.Now(), e.Type == eventPing)
+		})
 	})
-	if err != nil {
-		return err
-	}
-
-	select {
-	case s.kick <- struct{}{}:
-	default:
-	}
-
-	return nil
 }
 
 // Retry is «Передать заново»: the step of an order that failed, for a reason the owner has removed, is repeated.

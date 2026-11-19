@@ -77,6 +77,40 @@ describe('OrderDetails', () => {
         );
     });
 
+    it('says «Склад не определён» and the marketplace’s own text of the warehouse for an order the seller packs, and leaves both out for an order the marketplace packs', () => {
+        const { unmount } = render(OrderDetails, {
+            props: {
+                lang: 'ru',
+                details: orderDetailsOf({ order: orderOf({ warehouse: undefined, warehouseText: 'Склад Подольск-2' }) })
+            }
+        });
+
+        expect(screen.getByTestId('order-facts-warehouse')).toHaveTextContent('Склад не определён');
+        expect(screen.getByTestId('order-facts-warehouseText')).toHaveTextContent('Склад Подольск-2');
+        expect(screen.getByTestId('order-facts-warehouseText-help-button').getAttribute('aria-label')).toContain(
+            'собственное название склада'
+        );
+        unmount();
+
+        render(OrderDetails, {
+            props: { lang: 'ru', details: orderDetailsOf({ order: orderOf({ scheme: 'fby', warehouse: undefined }) }) }
+        });
+        expect(screen.queryByTestId('order-facts-warehouse')).toBeNull();
+        expect(screen.queryByTestId('order-facts-warehouseText')).toBeNull();
+    });
+
+    it('marks a test order in the heading beside its scheme, and no other order', () => {
+        const { unmount } = render(OrderDetails, {
+            props: { lang: 'ru', details: orderDetailsOf({ order: orderOf({ test: true }) }) }
+        });
+
+        expect(screen.getByTestId('order-test')).toHaveTextContent('Тестовый заказ');
+        unmount();
+
+        render(OrderDetails, { props: { lang: 'ru', details: orderDetailsOf() } });
+        expect(screen.queryByTestId('order-test')).toBeNull();
+    });
+
     it('leaves out the deadline of an order no longer waiting to be handed over', () => {
         render(OrderDetails, {
             props: {

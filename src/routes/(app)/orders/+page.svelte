@@ -10,6 +10,8 @@
     import ProductCell from '$lib/components/orders/ProductCell.svelte';
     import RefreshButton from '$lib/components/orders/RefreshButton.svelte';
     import SchemeBadge from '$lib/components/orders/SchemeBadge.svelte';
+    import TestOrderBadge from '$lib/components/orders/TestOrderBadge.svelte';
+    import WarehouseCell from '$lib/components/orders/WarehouseCell.svelte';
     import type { TOrder, TOrderDetails } from '$lib/components/orders/types';
     import Button from '$lib/components/ui/Button.svelte';
     import DataList from '$lib/components/ui/DataList.svelte';
@@ -36,7 +38,13 @@
     import { addressWith, filterChips } from '$lib/lists/list-address';
     import { accountNameOf, accountOptions } from '$lib/marketplaces/account-options';
     import { exchangeSupported } from '$lib/marketplaces/exchange-support';
-    import { ORDER_FILTER_ID, ORDER_SCHEMES, ORDER_STATES, orderFilterSchema } from '$lib/validation/list-filters';
+    import {
+        ORDER_FILTER_ID,
+        ORDER_SCHEMES,
+        ORDER_STATES,
+        ORDER_TESTS,
+        orderFilterSchema
+    } from '$lib/validation/list-filters';
     import { onDestroy } from 'svelte';
     import type { PageData } from './$types';
 
@@ -47,7 +55,8 @@
      * «Обновить» reads the orders at once, at most once in 5 minutes (`RefreshButton`); after a press the page reads its list
      * again a few seconds later, when the first answers are in. Every empty list says why it is empty and what to do. The product
      * of an order is `ProductCell` (its first product and how many more it has), the details beside the list show every product
-     * (`OrderDetails`), and an FBS order of a marketplace whose adapter has no part of the exchange says «не передаётся» in the
+     * (`OrderDetails`), a test order is marked beside its scheme (`TestOrderBadge`) and the filter offers only the test orders or
+     * none of them, an order the seller packs with no warehouse says «Склад не определён» (`WarehouseCell`), and an FBS order of a marketplace whose adapter has no part of the exchange says «не передаётся» in the
      * column «Обмен», with the reason behind a «?».
      */
     let { data }: { data: PageData } = $props();
@@ -82,7 +91,12 @@
             custom: true
         },
         { key: 'scheme', labelKey: 'orders.column.scheme', helpKey: 'orders.column.scheme.help', custom: true },
-        { key: 'warehouse', labelKey: 'orders.column.warehouse', helpKey: 'orders.column.warehouse.help' },
+        {
+            key: 'warehouse',
+            labelKey: 'orders.column.warehouse',
+            helpKey: 'orders.column.warehouse.help',
+            custom: true
+        },
         { key: 'created', labelKey: 'orders.column.created', helpKey: 'orders.column.created.help' },
         { key: 'deadline', labelKey: 'orders.column.deadline', helpKey: 'orders.column.deadline.help', custom: true },
         { key: 'state', labelKey: 'orders.column.state', helpKey: 'orders.column.state.help', custom: true },
@@ -96,7 +110,6 @@
             href: addressWith(page.url, { order: String(order.id) }, { keep: ['page'] }),
             cells: {
                 number: order.number,
-                warehouse: order.warehouse ?? null,
                 created: formatDateTime(order.createdAt, lang)
             },
             attributes: { 'data-order-id': String(order.id), 'data-state': order.state, 'data-scheme': order.scheme }
@@ -118,6 +131,12 @@
                 key: 'scheme',
                 label: data.filter.scheme
                     ? t('orders.chip.scheme', lang, { value: t(`orders.scheme.${data.filter.scheme}`, lang) })
+                    : null
+            },
+            {
+                key: 'test',
+                label: data.filter.test
+                    ? t('orders.chip.test', lang, { value: t(`orders.filter.test.${data.filter.test}`, lang) })
                     : null
             },
             {
@@ -219,6 +238,23 @@
                             />
                         </Field>
                         <Field
+                            label={t('orders.filter.test', lang)}
+                            help={t('orders.filter.test.help', lang)}
+                            for="orders-filter-test"
+                        >
+                            <SelectBox
+                                id="orders-filter-test"
+                                name="test"
+                                bind:value={$filters.test}
+                                blank={any}
+                                options={ORDER_TESTS.map((test) => ({
+                                    value: test,
+                                    label: t(`orders.filter.test.${test}`, lang)
+                                }))}
+                                dataTest="orders-filter-test"
+                            />
+                        </Field>
+                        <Field
                             label={t('orders.filter.state', lang)}
                             help={t('orders.column.state.help', lang)}
                             for="orders-filter-state"
@@ -310,7 +346,20 @@
                             <span class="text-xs text-ink-600">{row.order.accountName}</span>
                         </span>
                     {:else if column.key === 'scheme'}
-                        <SchemeBadge {lang} scheme={row.order.scheme} />
+                        <span class="inline-flex flex-wrap items-center gap-1">
+                            <SchemeBadge {lang} scheme={row.order.scheme} testId="orders-list-scheme" />
+                            {#if row.order.test}
+                                <TestOrderBadge {lang} testId="orders-list-test" />
+                            {/if}
+                        </span>
+                    {:else if column.key === 'warehouse'}
+                        <WarehouseCell
+                            {lang}
+                            scheme={row.order.scheme}
+                            warehouse={row.order.warehouse}
+                            warehouseText={row.order.warehouseText}
+                            testId="orders-list-warehouse"
+                        />
                     {:else if column.key === 'deadline'}
                         <DeadlineCell {lang} deadlineAt={row.order.deadlineAt} state={row.order.state} />
                     {:else if column.key === 'state'}

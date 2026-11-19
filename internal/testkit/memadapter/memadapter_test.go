@@ -316,3 +316,70 @@ func TestABatchThatWasHandedOverIsNeverFoundAgainByItsName(t *testing.T) {
 		t.Fatalf("MakeBatch after the first was handed over = %q, %v; want a new batch, not %q", second, err, first)
 	}
 }
+
+func TestTheMarketplaceReadByChangesGivesTheOrdersChangedSinceAMomentAndTheNamedOnes(t *testing.T) {
+	t.Parallel()
+
+	noon := time.Date(2026, 11, 19, 12, 0, 0, 0, time.FixedZone("MSK", 3*60*60))
+	m := memadapter.NewChanging(2)
+
+	if d := m.Describe(); d.Supports(marketplace.OrdersNew) || !d.Supports(marketplace.OrdersChanges) || !d.Supports(marketplace.OrdersNamed) ||
+		!m.Capable(marketplace.OrdersNamed, false) || m.MaxNamed() != 2 {
+		t.Fatalf("the parts: %+v", d.Capabilities)
+	}
+
+	old := m.AddChangedOrder(marketplace.Order{CreatedAt: noon, Lines: []marketplace.Line{{Article: "A", Quantity: 1}}}, noon.Add(-time.Hour))
+	test := m.AddChangedOrder(marketplace.Order{Scheme: marketplace.SchemeExpress, Test: true, CreatedAt: noon}, noon)
+	m.ChangeStatus(old, marketplace.Status{State: marketplace.StateCancelled, CancelledBy: marketplace.CancelledByBuyer}, noon.Add(time.Minute))
+
+	list, err := m.Changes(t.Context(), marketplace.Conn{}, noon)
+	if err != nil || len(list) != 2 || list[0].Status.State != marketplace.StateCancelled || !list[0].ChangedAt.Equal(noon.Add(time.Minute)) ||
+		list[1].Number != test || !list[1].Test || list[1].Scheme != marketplace.SchemeExpress {
+		t.Fatalf("Changes = %+v, %v", list, err)
+	}
+
+	named, err := m.Named(t.Context(), marketplace.Conn{}, []string{test, "missing"})
+	if err != nil || len(named) != 1 || named[0].Number != test || len(m.NamedCalls()) != 1 || len(m.Since()) != 1 {
+		t.Fatalf("Named = %+v, %v; calls %v, since %v", named, err, m.NamedCalls(), m.Since())
+	}
+
+	m.Fail(errors.New("down"))
+
+	if _, err := m.Changes(t.Context(), marketplace.Conn{}, noon); err == nil {
+		t.Fatal("a failing marketplace answered its changes")
+	}
+
+	if _, err := m.Named(t.Context(), marketplace.Conn{}, []string{test}); err == nil {
+		t.Fatal("a failing marketplace answered the named orders")
+	}
+}
+
+func TestTheMarketplaceThatNotifiesReadsItsOwnBodiesAndAnswersInItsOwnForm(t *testing.T) {
+	t.Parallel()
+
+	n := memadapter.NewNotifying(5)
+
+	if !n.Describe().Supports(marketplace.NotificationsReceive) || !n.Capable(marketplace.NotificationsReceive, false) ||
+		n.Changing.Describe().Supports(marketplace.NotificationsReceive) || len(n.NotificationNetworks()) != 1 {
+		t.Fatalf("the parts: %+v", n.Describe().Capabilities)
+	}
+
+	got, err := n.ReadNotification([]byte(`{"kind":"ORDER","numbers":["7"]}`))
+	if err != nil || got.Ping || !reflect.DeepEqual(got.Numbers, []string{"7"}) {
+		t.Fatalf("an order's notification: %+v, %v", got, err)
+	}
+
+	if ping, err := n.ReadNotification([]byte(`{"kind":"PING"}`)); err != nil || !ping.Ping {
+		t.Fatalf("the check: %+v, %v", ping, err)
+	}
+
+	if _, err := n.ReadNotification([]byte(`nonsense`)); err == nil {
+		t.Fatal("a body that is no notification was read")
+	}
+
+	noon := time.Date(2026, 11, 19, 12, 0, 0, 0, time.UTC)
+	if string(n.NotificationAnswer("1.0", noon)) != `{"version":"1.0","time":"2026-11-19T12:00:00Z"}` ||
+		string(n.NotificationRefusal("why")) != `{"reason":"why"}` {
+		t.Fatalf("answers: %s %s", n.NotificationAnswer("1.0", noon), n.NotificationRefusal("why"))
+	}
+}

@@ -1,11 +1,20 @@
 <!--
 Sync Impact Report:
-- Version change: 1.5.0 → 1.6.0 (MINOR) — the maintainer, 2026-11-19: «Add to wyo constitution principles, if not there yet, that
+- Version change: 1.6.0 → 1.7.0 (MINOR) — Plan 7
+  (`.agents/plans/wyo-yandex-market-key-reading-orders-notifications-safety-read-test-orders-fake-yandex-market.md`): rules
+  widened, nothing removed. Principle VI names Яндекс Маркет's tree of description files, its comparison by commit and the rule
+  «join» of the temporary copy; principle X — the parts `orders.changes`, `orders.named`, `notifications.receive`, a limit
+  group's own limit status, wait form and cost of a server error, the requests of an account at once, a marketplace's own
+  program header, shops, and «a test order is counted in no total» (`TestATestOrderIsCountedInNoTotal`); principle XI — the
+  limiter of requests at once, the safety read and its periods, the notified orders read at once; rule R5's header test is one
+  table over every adapter; the 1.6.0 rule names its built test (`TestEveryPlanReportListsWhatWasFoundWhileImplementing`);
+  «Where code lives» gained `internal/marketplace/yandex`, `internal/fakes/yandex`, `internal/notify`, `api/yandex/`.
+- Earlier: 1.5.0 → 1.6.0 (MINOR) — the maintainer, 2026-11-19: «Add to wyo constitution principles, if not there yet, that
   if executing plan implementation model finds issues during implementation, it must resolve them, if possible, at once, while
   implementing the current plan!» A rule tightened, nothing removed: «Plan Implementation Workflow», step 2 — an issue found on the
   way is fixed in the plan at once, or, when it cannot be fixed inside the plan, goes to the register with its reason; the plan's
   report lists every finding under «Found while implementing». Its policy test
-  (`TestEveryPlanReportListsWhatWasFoundWhileImplementing`) is added by the next plan that adds code (Plan 7).
+  (`TestEveryPlanReportListsWhatWasFoundWhileImplementing`) was added by Plan 7.
 - Earlier: 1.4.0 → 1.5.0 (MINOR) — Plan 6
   (`.agents/plans/wyo-ozon-fbs-exchange-with-a-fulfilment-centre-codes-packing-labels-shipment.md`): a rule widened, nothing
   removed. Principle XII: the exchange's flow is chosen by the parts an adapter claims (a marketplace that confirms an order, or one
@@ -69,11 +78,11 @@ Sync Impact Report:
 After the seller types the marketplaces' own keys, it periodically reads the seller's orders from the marketplaces, shows them in one
 list and, only when its setting «External API» is filled, exchanges orders, labels, statuses and marking codes with a fulfilment
 centre's system through a neutral, documented format. It is written in Go (the wyo server, one file) with a SvelteKit interface (the wyo
-interface) carried inside that file. The marketplaces are Wildberries and Ozon; more follow (`.agents/plans/Marketplace_connector_plan.md`,
+interface) carried inside that file. The marketplaces are Wildberries, Ozon and Яндекс Маркет; more follow (`.agents/plans/Marketplace_connector_plan.md`,
 «Stages»).
 
-- **The parts, always named so:** the wyo server; the wyo interface; the installer (Plan 2); the fake Wildberries and the fake
-  fulfilment centre (`cmd/wyofakes`). Never "the app".
+- **The parts, always named so:** the wyo server; the wyo interface; the installer (Plan 2); the fake Wildberries, the fake Ozon,
+  the fake Яндекс Маркет and the fake fulfilment centre (`cmd/wyofakes`). Never "the app".
 - **The people:** the seller owns the server and types the keys; the owner is the person who signs in; the maintainer runs this project
   and decides its questions. A fulfilment centre's staff never install the program for a seller and never hold a seller's key.
 - **The repository** is `https://github.com/prankyman/wyo`; the licence is Apache-2.0.
@@ -133,9 +142,11 @@ The program names itself and its version in every request, keeps inside each mar
 marketplace's answer tells it. No request disguising, no proxies, no rotation of addresses. Polling moments are spread at random only so
 that many installations do not ask in the same second.
 
-- **Tests:** `TestEveryRequestNamesTheProgramAndCarriesTheKeyOnlyInItsHeader` (`internal/sync`, against the fake Wildberries) and
-  `TestEveryOzonRequestNamesTheProgramAndCarriesTheKeyOnlyInItsHeader` (against the fake Ozon),
-  `TestAnHourOfReadingsOf500OzonPostingsNeverExceedsOzonsLimit` (50 requests a second per Client ID) and
+- **Tests:** `TestEveryRequestNamesTheProgramAndCarriesTheKeyOnlyInItsHeader` (`internal/sync`, one row for every adapter
+  against its fake; a marketplace's own program header, Яндекс Маркет's `X-Market-Integration`, among what it checks),
+  `TestAnHourOfReadingsOf500OzonPostingsNeverExceedsOzonsLimit` (50 requests a second per Client ID),
+  `TestAnHourAtFullLoadOf500YandexMarketOrdersNeverExceedsItsLimits` (notified orders read at once and the safety read, against
+  the fake's hourly limits) and
   `TestAnHourAtFullLoadNeverExceedsWildberriesBudget` (`internal/sync`: the engine driven for a made-up hour at full load against the
   fake's own arithmetic — 300 requests a minute, an error counted as 10); the outbound gate's marketplace purpose uses no proxy
   (`internal/outbound`).
@@ -294,6 +305,13 @@ address and the date it was read; a gap is marked "not documented" and never fil
 accepted. Wildberries and the fulfilment-centre API: Go code generated by oapi-codegen v2.8.2 (premise 4 of Plan 1, proven 2026-11-17: it reads Wildberries' files with `include-operation-ids` and `resolve-type-name-collisions`; one package per Wildberries file, because the files share type names). Generated
 code is never edited by hand, and `pnpm generate:check` fails when a committed generated file differs from a fresh one.
 
+- **Яндекс Маркет's description** is a tree of files (`api/yandex/`: `openapi.yaml`, `paths/`, `components/`), committed exactly as
+  its own repository publishes it at one commit; `api/yandex/README.md` gives the address, the commit, the day and the checksum of
+  `openapi.yaml`, and how a later version is taken: the newest commit's tree is compared with the committed one and every
+  difference in a method the wyo server calls is read before it is accepted. The generator stops on the tree as published, so
+  `pnpm generate` joins it into one temporary file (the rule «join» of `internal/specfix`): every reference to a component file
+  becomes an internal one, nothing else changes, and a reference of another kind stops the generation
+  (`TestAReferenceThatIsNeitherAComponentFileNorAPathFileStopsTheJoin`, `TestYandexMarketsTreeIsJoinedIntoOneFileWithNoReferenceToAFile`).
 - **Ozon's file** (`api/ozon/seller-api.json`) is committed exactly as Ozon publishes it; `api/ozon/README.md` gives its address,
   day and checksum, and how a later version is taken: the copy of the day is read as JSON beside the committed file and every
   difference in a method the wyo server calls is read before it is accepted. The file departs from OpenAPI where the generator
@@ -376,10 +394,23 @@ adapter drops a buyer's name, phone, e-mail, address, comment and region at its 
   (`marketplace.<code>.refusal.<code>`, `marketplace.<code>.note.<code>`), then in the shared one, by one function
   (`src/lib/marketplaces/refusals.ts`); a shared text holds only neutral words.
 - **Shared helpers** of adapters live once in `internal/adapterkit`, never copied into an adapter.
+- **Read by changes and notified (Plan 7).** An adapter may claim `orders.changes` (every order changed since a moment, read in
+  place of `orders.new` and `orders.states`), `orders.named` (the orders a notification names) and `notifications.receive` (it
+  reads a marketplace's notification and writes the answer the marketplace wants, and declares the networks notifications come
+  from). A limit group declares the status by which its marketplace says the limit is met (429 when it names none), whether
+  its wait header is seconds or a date, and whether a server error costs nothing; a description declares how many requests of
+  an account may be in flight at once and a header of the marketplace's own that names the program. An account whose
+  marketplace keeps several shops in one account keeps them (`marketplace_shops`), each with whether its API is off.
+- **A test order is counted in no total.** An order the seller made in a marketplace's cabinet to try the connection is read,
+  shown and passed on, marked everywhere it shows, and left out of every total, report and summary; it stays where the owner acts
+  on an order (the order list, «Требуют внимания»). (`TestATestOrderIsCountedInNoTotal`, `internal/store`: every counting query
+  over orders keeps `test = 0` or is on its allow-list with its reason.)
 - **Tests:** `RunAdapterContract` (`internal/marketplace/contracttest`) is written once and run for every adapter against its fake: an
-  adapter that claims a part passes that part's cases (`TestTheAdapterKeepsTheContractAgainstTheFake` for Wildberries and for Ozon);
+  adapter that claims a part passes that part's cases (`TestTheAdapterKeepsTheContractAgainstTheFake` for Wildberries, for Ozon and
+  for Яндекс Маркет);
   `TestANewOrderIsReadWithoutTheBuyersAddressOrComment`, `TestANewPostingOfSeveralProductsIsOneOrderWithItsLinesAndWithoutTheBuyer`
-  and `TestAnOzonKeyStaysInTheApiKeyHeaderAndTheBuyerNowhere`; the packed key's tests (`internal/marketplace`); the architecture
+  `TestAnOzonKeyStaysInTheApiKeyHeaderAndTheBuyerNowhere` and
+  `TestAYandexMarketKeyStaysInTheApiKeyHeaderItsNotificationsBringOrdersAndTheBuyerIsNowhere`; the packed key's tests (`internal/marketplace`); the architecture
   tests of rule R6.
 
 ### XI. One synchronisation engine: one caller, one budget, one journal (NON-NEGOTIABLE)
@@ -395,9 +426,22 @@ a lock of their own, so an account that waits for its budget never holds up anot
 its deadline, its lines — so a reading that changed nothing writes nothing but its record of the reading
 (`TestAReadingThatChangedNothingWritesNothingButItsRecordOfTheReading`).
 
+**One limiter of requests at once** keeps an account within the requests in flight its adapter declares, for the readings, the
+exchange and the hand-over alike: a request waits for a place within its 30-second deadline and never goes over. **The safety
+read** reads an account read by changes every 15 minutes while its marketplace's notifications arrive, otherwise every 5 minutes
+while «Внешний API» is filled and every 30 minutes while it is empty, from 10 minutes before its last good reading; it finds
+what a lost notification named, and a change older than 10 minutes that no notification named makes the notifications «не
+доходят» until the next one arrives. A notification is stored before it is answered, and the orders it names are read at once
+afterwards (the one store-then-kick of `internal/notify`); it is accepted only from the networks the adapter declares, at an
+address text the wyo server made for the account, and anything else is answered as an address that does not exist.
+
 - **Tests:** the tests of `internal/sync` (among them `TestAReadingIsRepeatedAfterOneAndThreeSecondsButAClientErrorOrAWriteNever`,
   `TestATooManyRequestsAnswerStopsTheGroupAndTheWaitDoublesWhenItRepeats`,
-  `TestFiveFailedReadingsInARowMakeTheAccountWithoutConnectionAndOneGoodReadingMends`, `TestRefreshIsAnsweredAtMostOnceInFiveMinutes`),
+  `TestFiveFailedReadingsInARowMakeTheAccountWithoutConnectionAndOneGoodReadingMends`, `TestRefreshIsAnsweredAtMostOnceInFiveMinutes`,
+  `TestAtMostTheDeclaredNumberOfRequestsOfAnAccountAreInFlightAtOnceAndEachNamesTheProgramInItsOwnHeader`,
+  `TestTheSafetyReadComesEveryFifteenMinutesWhileNotificationsWorkFiveWhileTheExchangeIsOnAndThirtyOtherwise`,
+  `TestAChangeThatNoNotificationNamedFoundByTheSafetyReadStopsTheNotificationsUntilTheNextOne`), the tests of `internal/notify`,
+  `TestAReleasedServerTakesANotificationOnlyFromTheMarketplacesOwnNetworks` (`internal/server`),
   `TestARowKeepsWhatHappenedAndNeverTheKeyAQueryOrALongText` (`internal/journal`), `TestAMadeUpDayReachesOnlyTheMarketplacesOfTheAccounts`
   (rule R3, `internal/server`) and the canary test of rule R4 in `internal/server`.
 
@@ -436,7 +480,8 @@ through the adapter contract's writing parts. It knows no marketplace and no ful
   marking code, reaches a log line, a journal row or an answer; the browser never sees a marking code.
 - **Tests:** the tests of `internal/exchange` (the whole walk with both fakes, every branch, every step interrupted in turn with no write
   made twice, the events, the budget of a made-up hour); `TestNeitherKeyNorAMarkingCodeLeavesItsOwnSide` (`internal/server`);
-  `TestTheCancelMethodOfWildberriesIsCalledNowhereInThisRepository`, `TestTheCancelMethodsOfOzonAreNeverGeneratedInThisRepository` and
+  `TestTheCancelMethodOfWildberriesIsCalledNowhereInThisRepository`, `TestTheCancelMethodsOfOzonAreNeverGeneratedInThisRepository`,
+  `TestTheMethodsThatCutOrMoveAYandexMarketOrderAreNeverGeneratedInThisRepository` and
   the other architecture tests of rule R6; the contract suite's
   cases of the writing parts (`RunAdapterContract`), run for both adapters; for Ozon's flow:
   `TestAWalkInterruptedByALostCallAfterEveryWriteInTurnEndsRightAndWritesNothingTwice` (`internal/exchange`),
@@ -624,16 +669,18 @@ internal/version/, clock/, config/, logging/
 internal/marketplace/         the one adapter contract and the registry; contracttest/ is the contract's one test suite
 internal/marketplace/wildberries/          the Wildberries adapter; wbapi/ is generated from api/wildberries/*.yaml
 internal/marketplace/ozon/    the Ozon adapter; ozonapi/ is generated from api/ozon/seller-api.json through internal/specfix
+internal/marketplace/yandex/  the Яндекс Маркет adapter; yandexapi/ is generated from api/yandex/ joined by internal/specfix
+internal/notify/              the one store-then-kick of notifications and the receiver of the marketplaces' notifications
 internal/adapterkit/          the helpers every adapter shares      internal/specfix/, tools/specfix/  a description file corrected for the generator
 internal/sync/                the synchronisation engine: the one caller, the budget, the jobs, the marks
 internal/journal/             the journal of every request sent to a marketplace
 internal/accounts/            the seller's marketplace accounts
 internal/fulfilment/          the one fulfilment-centre client; fcapi/ is generated from api/fulfilment-centre.yaml
 internal/exchange/, handover/ the exchange with a fulfilment centre and the hand-overs' steps (principle XII)
-internal/fakes/fakekit/, fulfilment/, wildberries/, ozon/
+internal/fakes/fakekit/, fulfilment/, wildberries/, ozon/, yandex/
 internal/archtest/            the architecture tests
 tools/covercheck/             the Go coverage floors
-api/                          wyo.yaml, fulfilment-centre.yaml, wildberries/*.yaml, ozon/seller-api.json
+api/                          wyo.yaml, fulfilment-centre.yaml, wildberries/*.yaml, ozon/seller-api.json, yandex/ (a tree)
 src/lib/components/ui/        the component library          src/lib/forms/, validation/, i18n/, api/, stores/, utils/
 src/routes/                   (app)/ pages, auth/login, /showcase  src/test/ (support, harnesses, mocks)
 scripts/install.sh            the installer                  scripts/ci/ (the pipeline's installer job)
@@ -711,7 +758,8 @@ Every approved plan is carried out in exactly this order, by every AI agent and 
    decision, a fact not sourced yet, a real account, or a change in another repository. Then it goes to the register the same day,
    with its reason. The plan's report has the section «Found while implementing», which names every finding and says either how it
    was fixed and which test proves it, or why it could not be fixed and which register item holds it
-   (`TestEveryPlanReportListsWhatWasFoundWhileImplementing`, added by the next plan that adds code).
+   (`TestEveryPlanReportListsWhatWasFoundWhileImplementing`, `internal/archtest`; the reports written before the rule are its
+   allow-list).
 3. **The test flow** of `AGENTS.md`, «The test flow of every plan». `nproc` and `free -g` are read at the start of the plan: fewer than
    6 cores, or 16 GB of memory or less, is a **limited** machine; anything bigger is a **big** machine. First focused runs of exactly
    the files that changed or failed; then, by the main agent only, `pnpm precommit` once on a big machine (a limited machine never runs
@@ -765,4 +813,4 @@ file records every amendment with its version change and the request that caused
 pull request's description. The version follows semantic versioning of the rules: a principle added or a rule tightened raises the
 second number, a wording change the third; the first number is raised only by the maintainer.
 
-**Version**: 1.6.0 | **Ratified**: 2026-11-17 | **Last Amended**: 2026-11-19
+**Version**: 1.7.0 | **Ratified**: 2026-11-17 | **Last Amended**: 2026-11-19

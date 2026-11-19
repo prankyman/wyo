@@ -325,6 +325,10 @@ paths:
                 - { name: to, in: query, schema: { type: string, format: date } }
                 - { name: q, in: query, schema: { type: string } }
                 - { name: attention, in: query, schema: { type: boolean }, description: Only the orders that need the owner. }
+                - name: test
+                  in: query
+                  schema: { type: string, enum: [only, none] }
+                  description: '`only` - only the test orders; `none` - without them.'
                 - { name: page, in: query, schema: { type: integer, minimum: 1 } }
             responses:
                 '200':
@@ -645,6 +649,55 @@ paths:
             responses:
                 '204': { description: Stored; applied afterwards. }
                 default: { $ref: '#/components/responses/Refusal' }
+    /hooks/marketplace/{text}:
+        parameters:
+            - { name: text, in: path, required: true, schema: { type: string } }
+        post:
+            operationId: receiveMarketplaceNotification
+            summary: >-
+                A marketplace's notification for one account, at the account's own address text. Open without signing in;
+                accepted only from the networks the marketplace's adapter declares, at an address text the wyo server made,
+                and at most 256 KB - anything else is answered `not_found`, so the address tells a stranger nothing. The
+                notification is stored first and answered at once with the body the marketplace wants; a body the adapter
+                cannot read is answered 400 with its reason in the marketplace's own form.
+            requestBody:
+                required: true
+                content: { application/json: { schema: { type: object, additionalProperties: true } } }
+            responses:
+                '200':
+                    {
+                        description: "Stored; the orders it names are read afterwards. The body is the marketplace's own form.",
+                        content: { application/json: { schema: { type: object, additionalProperties: true } } }
+                    }
+                '400':
+                    {
+                        description: "The body cannot be read; the reason in the marketplace's own form.",
+                        content: { application/json: { schema: { type: object, additionalProperties: true } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
+    /hooks/marketplace/{text}/notification:
+        parameters:
+            - { name: text, in: path, required: true, schema: { type: string } }
+        post:
+            operationId: receiveMarketplaceNotificationAtItsMethod
+            summary: >-
+                The same address followed by the name of the marketplace's method, `notification`: whether a marketplace
+                adds it to the address the seller enters is not sourced, so both are answered alike.
+            requestBody:
+                required: true
+                content: { application/json: { schema: { type: object, additionalProperties: true } } }
+            responses:
+                '200':
+                    {
+                        description: "Stored; the orders it names are read afterwards. The body is the marketplace's own form.",
+                        content: { application/json: { schema: { type: object, additionalProperties: true } } }
+                    }
+                '400':
+                    {
+                        description: "The body cannot be read; the reason in the marketplace's own form.",
+                        content: { application/json: { schema: { type: object, additionalProperties: true } } }
+                    }
+                default: { $ref: '#/components/responses/Refusal' }
 components:
     schemas:
         KeyField:
@@ -659,7 +712,18 @@ components:
         Marketplace:
             type: object
             additionalProperties: false
-            required: [code, mark, keyFields, capabilities, handoverSettings, givesDeadline, exchangeFlow, handoverSteps]
+            required:
+                [
+                    code,
+                    mark,
+                    keyFields,
+                    capabilities,
+                    handoverSettings,
+                    givesDeadline,
+                    exchangeFlow,
+                    handoverSteps,
+                    receivesNotifications
+                ]
             properties:
                 code:
                     type: string
@@ -698,6 +762,52 @@ components:
                         The steps of a hand-over the adapter needs, in the order they run; the strip of a hand-over draws these
                         and no others.
                     items: { $ref: '#/components/schemas/HandoverStep' }
+                receivesNotifications:
+                    type: boolean
+                    description: >-
+                        The marketplace sends the wyo server a notification when an order appears or changes, at the address
+                        of each account (`Account.notifications`); the orders are then read at once, and a safety reading
+                        every 15 minutes finds whatever a notification lost.
+                programHeader:
+                    type: string
+                    description: >-
+                        A header of the marketplace's own in which every request names the program, `wyo/<version>`, beside
+                        `User-Agent`; absent when the marketplace asks for none.
+        Shop:
+            type: object
+            additionalProperties: false
+            required: [number, name, scheme, apiOff]
+            properties:
+                number: { type: string, description: "The marketplace's own number of the shop." }
+                name: { type: string }
+                scheme:
+                    type: string
+                    description: "The shop's scheme in the marketplace's words, e.g. `FBS`; the text is `orders.scheme.<scheme>` in lower case."
+                apiOff:
+                    type: boolean
+                    description: The marketplace has switched the shop's API off; its orders are not read.
+        AccountNotifications:
+            type: object
+            additionalProperties: false
+            required: [path, state]
+            description: >-
+                The account's notification address and whether notifications arrive. Only for a marketplace that sends
+                them; the path is shown only to the signed-in owner.
+            properties:
+                path:
+                    type: string
+                    description: >-
+                        The path of the account's own notification address on the wyo server, `/hooks/marketplace/<text>`;
+                        the full address is the wyo server's own address followed by it.
+                state:
+                    type: string
+                    enum: [waiting, working, lost]
+                    description: >-
+                        `waiting` - no notification has arrived yet; `working` - they arrive; `lost` - a safety reading
+                        found an order change that no notification named. The text is `accounts.notifications.<state>`.
+                seenAt: { type: string, format: date-time, description: When the last notification arrived. }
+                lostAt:
+                    { type: string, format: date-time, description: When a safety reading last found a change lost. }
         SettingField:
             type: object
             additionalProperties: false
@@ -769,6 +879,14 @@ components:
                     description: >-
                         How many of the account's warehouses the seller delivers from to the buyer itself; their orders
                         are never read, because they need the buyer's address.
+                expressWarehouses:
+                    type: integer
+                    description: How many of the account's warehouses a courier takes orders from one by one within hours.
+                shops:
+                    type: array
+                    description: The shops of an account whose marketplace keeps several shops in one account.
+                    items: { $ref: '#/components/schemas/Shop' }
+                notifications: { $ref: '#/components/schemas/AccountNotifications' }
                 keyType:
                     { type: string, description: "The key's type as the adapter names it, e.g. `personal`, `test`." }
                 keyExpiresAt: { type: string, format: date-time }
@@ -829,10 +947,12 @@ components:
                 deadlineHours: { type: integer }
         OrderScheme:
             type: string
-            enum: [fbs, fbo]
+            enum: [fbs, fbo, express, fby]
             description: >-
                 `fbs` - the seller packs the order and hands it to the marketplace; `fbo` - the goods lie in the
-                marketplace's own warehouse (read-only).
+                marketplace's own warehouse (read-only); `express` - the seller packs the order and a courier takes it
+                alone within hours (passed on as `fbs`); `fby` - the marketplace's own warehouse as Яндекс Маркет names
+                it (read-only, as `fbo`). The text is `orders.scheme.<scheme>`.
         OrderState:
             type: string
             enum: [new, assembling, in_delivery, received, cancelled, unknown]
@@ -851,7 +971,7 @@ components:
         Order:
             type: object
             additionalProperties: false
-            required: [id, accountId, accountName, marketplace, scheme, number, lines, createdAt, state, marketplaceStatus]
+            required: [id, accountId, accountName, marketplace, scheme, number, lines, createdAt, state, marketplaceStatus, test]
             properties:
                 id: { type: integer, format: int64 }
                 accountId: { type: integer, format: int64 }
@@ -861,6 +981,11 @@ components:
                 number: { type: string, description: The marketplace's own number of the order. }
                 basket: { type: string, description: The buyer's basket number. }
                 warehouse: { type: string }
+                warehouseText:
+                    type: string
+                    description: >-
+                        The marketplace's own text of the order's warehouse, given when `warehouse` is absent because the
+                        warehouse cannot be told by its number (shown beside «Склад не определён»).
                 lines:
                     type: array
                     description: The order's products, each with how many units; at least one.
@@ -890,6 +1015,11 @@ components:
                 exchange:
                     $ref: '#/components/schemas/OrderExchange'
                     description: The exchange with the fulfilment centre; only for `fbs` orders.
+                test:
+                    type: boolean
+                    description: >-
+                        A test order, made by the seller in the marketplace's cabinet to try the connection: no buyer, no
+                        money; shown and passed on, marked, and counted in no total.
         OrderLine:
             type: object
             additionalProperties: false
@@ -991,7 +1121,7 @@ components:
         MarketplacesOverview:
             type: object
             additionalProperties: false
-            required: [accounts, attention, newOrders, assembling, overdue, unknownStates]
+            required: [accounts, attention, newOrders, assembling, overdue, unknownStates, testOrders]
             properties:
                 accounts: { type: integer, description: Accounts that are not switched off. }
                 attention:
@@ -1001,6 +1131,9 @@ components:
                 assembling: { type: integer }
                 overdue: { type: integer, description: FBS orders past their deadline and not yet handed over. }
                 unknownStates: { type: integer, description: Orders whose marketplace state the table does not hold. }
+                testOrders:
+                    type: integer
+                    description: Test orders, which none of the numbers above counts.
                 lastSuccessAt: { type: string, format: date-time }
         ExternalApiState:
             type: string

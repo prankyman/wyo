@@ -63,14 +63,19 @@ func New(st *store.Store, clk clock.Clock, log *slog.Logger) *Journal {
 	return &Journal{store: st, clock: clk, log: log}
 }
 
-// OutcomeOf names the outcome of an answer's status; 0 is no answer at all.
-func OutcomeOf(status int) string {
+// OutcomeOf names the outcome of an answer's status; 0 is no answer at all. limitStatus is the status by which the request's
+// limit group says its limit is met (marketplace.LimitGroup.LimitStatus): 429 Too Many Requests when it is 0.
+func OutcomeOf(status, limitStatus int) string {
+	if limitStatus == 0 {
+		limitStatus = http.StatusTooManyRequests
+	}
+
 	switch {
 	case status == 0:
 		return NoConnection
 	case status == http.StatusUnauthorized:
 		return KeyRefused
-	case status == http.StatusTooManyRequests:
+	case status == limitStatus:
 		return Limited
 	case status >= http.StatusInternalServerError:
 		return ServerError
@@ -138,7 +143,8 @@ func isVersion(segment string) bool {
 	return len(segment) > 1 && segment[0] == 'v' && strings.IndexFunc(segment[1:], func(r rune) bool { return !unicode.IsDigit(r) }) < 0
 }
 
-// Prune deletes the rows older than Retention and says how many went.
+// Prune deletes the rows older than Retention, and the marketplaces' notifications of the same age, and says how many rows
+// of the journal went.
 func (j *Journal) Prune(ctx context.Context) (int64, error) {
 	var deleted int64
 
@@ -146,6 +152,12 @@ func (j *Journal) Prune(ctx context.Context) (int64, error) {
 		var err error
 
 		deleted, err = q.DeleteJournalBefore(ctx, j.clock.Now().Add(-Retention))
+		if err != nil {
+			return err
+		}
+
+		// The marketplaces' notifications are kept as long as the journal's rows (migration 0007).
+		_, err = q.DeleteNotificationsBefore(ctx, j.clock.Now().Add(-Retention))
 
 		return err
 	})

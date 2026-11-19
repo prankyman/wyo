@@ -25,7 +25,8 @@ const NO_ACCOUNTS: TMarketplacesOverview = {
     newOrders: 0,
     assembling: 0,
     overdue: 0,
-    unknownStates: 0
+    unknownStates: 0,
+    testOrders: 0
 };
 
 const EXTERNAL_API_EMPTY: TExternalApiOverview = { state: 'empty', attention: 0, handoversWaiting: 0 };

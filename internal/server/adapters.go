@@ -5,6 +5,7 @@ import (
 	"github.com/prankyman/wyo/internal/marketplace"
 	"github.com/prankyman/wyo/internal/marketplace/ozon"
 	"github.com/prankyman/wyo/internal/marketplace/wildberries"
+	"github.com/prankyman/wyo/internal/marketplace/yandex"
 )
 
 // adapters is THE list of the marketplace adapters the wyo server holds, each pointed at testBase — the fake
@@ -15,6 +16,7 @@ func adapters(testBase string, clk clock.Clock) (*marketplace.Registry, error) {
 	return registryOf(
 		wildberries.New(wildberries.Options{TestBase: testBase}),
 		ozon.New(ozon.Options{TestBase: testBase, Clock: clk}),
+		yandex.New(yandex.Options{TestBase: testBase, Clock: clk}),
 	)
 }
 

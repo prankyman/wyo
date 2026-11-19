@@ -7,7 +7,10 @@ import {
     PACKING_MARKETPLACE,
     SECOND_MARKETPLACE,
     SECOND_MARKETPLACE_CODE,
-    SECOND_MARKETPLACE_NAME
+    SECOND_MARKETPLACE_NAME,
+    THIRD_MARKETPLACE,
+    THIRD_MARKETPLACE_CODE,
+    THIRD_MARKETPLACE_NAME
 } from '$test/support/marketplaces';
 
 vi.mock('$lib/api/api', async (original) => ({
@@ -42,6 +45,18 @@ const secondProps = (change: Partial<Parameters<typeof accountOf>[0]> = {}) => (
         ...change
     }),
     marketplace: SECOND_MARKETPLACE
+});
+
+/** An account of the third adapter: a cabinet of several shops whose marketplace sends notifications. */
+const thirdProps = (change: Partial<Parameters<typeof accountOf>[0]> = {}) => ({
+    ...props({
+        marketplace: THIRD_MARKETPLACE_CODE,
+        keyLast4: 'q7r8',
+        keyType: undefined,
+        keyExpiresAt: undefined,
+        ...change
+    }),
+    marketplace: THIRD_MARKETPLACE
 });
 
 /** One marketplace account on «Маркетплейсы»: what its key and its readings say, and what the owner can do with it. */
@@ -251,5 +266,74 @@ describe('AccountCard', () => {
             props: secondProps({ lastRefusal: { code: 'never_heard_of_it', at: '2026-11-18T11:00:00' } })
         });
         expect(screen.getByTestId('account-facts-lastRefusal')).toHaveTextContent('у wyo нет описания этого отказа');
+    });
+
+    it('draws the list of shops under the facts when the account has shops, and none when it has none', () => {
+        const shops = [
+            { number: '21001', name: 'Одежда на Ленина', scheme: 'FBS', apiOff: false },
+            { number: '21002', name: 'Склад курьеров', scheme: 'FBY', apiOff: true }
+        ];
+        const { unmount } = render(AccountCard, { props: thirdProps({ shops }) });
+
+        expect(within(screen.getByTestId('account-card')).getByTestId('account-shops')).toBeInTheDocument();
+        expect(screen.getByTestId('account-shops-api-off-21002')).toBeInTheDocument();
+        unmount();
+
+        render(AccountCard, { props: thirdProps() });
+        expect(screen.queryByTestId('account-shops')).toBeNull();
+    });
+
+    it('draws the notification address under the facts when the account has one, and none when it has none', () => {
+        const { unmount } = render(AccountCard, {
+            props: thirdProps({ notifications: { path: '/hooks/marketplace/k3x9Q2mZp7', state: 'waiting' } })
+        });
+
+        expect(screen.getByTestId('account-notifications-address')).toHaveTextContent(
+            `${window.location.origin}/hooks/marketplace/k3x9Q2mZp7`
+        );
+        expect(screen.getByTestId('account-notifications-state')).toHaveTextContent('Уведомления не подключены');
+        unmount();
+
+        render(AccountCard, { props: thirdProps() });
+        expect(screen.queryByTestId('account-notifications')).toBeNull();
+    });
+
+    it.each([
+        [3, '3'],
+        [1, '1']
+    ] as const)(
+        'counts the warehouses a courier takes orders from within hours, and says nothing when there are none: %i',
+        (count, value) => {
+            const { unmount } = render(AccountCard, { props: thirdProps({ expressWarehouses: count }) });
+
+            expect(screen.getByTestId('account-facts-expressWarehouses')).toHaveTextContent(value);
+            expect(screen.getByText('Складов Экспресс')).toBeInTheDocument();
+            expect(screen.getByTestId('account-facts-expressWarehouses-help-button')).toBeInTheDocument();
+            unmount();
+
+            render(AccountCard, { props: thirdProps({ expressWarehouses: undefined }) });
+            expect(screen.queryByTestId('account-facts-expressWarehouses')).toBeNull();
+        }
+    );
+
+    it('says in the third marketplace’s own words what a key without the products level or the changing level hides, and why the key was refused', () => {
+        render(AccountCard, {
+            props: thirdProps({
+                name: 'Кабинет',
+                missingCategories: ['products', 'orders_write'],
+                readOnly: true,
+                lastRefusal: { code: 'key_revoked', at: '2026-11-18T11:00:00', status: 401 }
+            })
+        });
+
+        expect(screen.getByTestId('account-mark')).toHaveTextContent(THIRD_MARKETPLACE_NAME);
+        expect(screen.getByTestId('account-note-missing-products')).toHaveTextContent('Просмотр товаров и карточек');
+        expect(screen.getByTestId('account-note-missing-products')).toHaveTextContent('штрихкоды');
+        expect(screen.getByTestId('account-note-missing-orders_write')).toHaveTextContent(
+            'Обработка заказов и учёт товаров'
+        );
+        expect(screen.getByTestId('account-facts-lastRefusal')).toHaveTextContent('Api-Key token is revoked');
+        expect(screen.queryByTestId('account-facts-access')).toBeNull();
+        expect(screen.queryByTestId('account-facts-deadlineHours')).toBeNull();
     });
 });

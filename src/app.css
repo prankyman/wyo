@@ -104,6 +104,7 @@
      */
     --color-mark-plum: oklch(48% 0.2 330);
     --color-mark-azure: oklch(52% 0.17 235);
+    --color-mark-yellow: oklch(70% 0.16 95);
 
     --breakpoint-xs: 30rem;
 

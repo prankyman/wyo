@@ -158,7 +158,7 @@ func (e *Engine) recordCheckFailure(ctx context.Context, row store.Account, err 
 
 	switch {
 	case errors.As(err, &refusal):
-		outcome = journal.OutcomeOf(refusal.Status)
+		outcome = journal.OutcomeOf(refusal.Status, 0)
 		if refusal.Status == 0 {
 			outcome = journal.Refused
 		}

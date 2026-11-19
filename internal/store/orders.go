@@ -36,6 +36,13 @@ type Order struct {
 	ItemID   string
 	Required []string
 	Optional []string
+	// Test marks an order the seller made in the marketplace's cabinet to try a connection: shown and passed on, counted in
+	// no total. SchemeName is the marketplace's own name of the scheme when it is not Scheme ("express", "fby"); Scheme
+	// keeps who packs the order, which every reading and the exchange go by.
+	Test       bool
+	SchemeName string
+	// WarehouseText is the marketplace's own text of the order's warehouse, kept when its number cannot be told.
+	WarehouseText string
 }
 
 // OrderStatus is the connector's state of an order with the marketplace's own words beside it.
@@ -97,15 +104,37 @@ type OrderFilter struct {
 	Search        string
 	// AttentionAt keeps only the orders that need the owner at that moment (the filter «Требуют внимания»).
 	AttentionAt time.Time
-	Page        int
-	PageSize    int
+	// Test keeps only the test orders (TestOnly) or only the real ones (TestNone); empty keeps both.
+	Test     string
+	Page     int
+	PageSize int
 }
 
 // OrderCounts are the numbers of «Обзор»: the orders of the accounts that are not switched off, by state, and the
-// orders packed by the seller that are past their deadline and not handed over yet.
+// orders packed by the seller that are past their deadline and not handed over yet — test orders in neither. Tests says how
+// many test orders those numbers leave out.
 type OrderCounts struct {
 	ByState map[string]int64
 	Overdue int64
+	Tests   int64
+}
+
+// The values of OrderFilter.Test.
+const (
+	TestOnly = "only"
+	TestNone = "none"
+)
+
+// testFilter is the list queries' value of OrderFilter.Test: NULL keeps every order.
+func testFilter(v string) any {
+	switch v {
+	case TestOnly:
+		return int64(1)
+	case TestNone:
+		return int64(0)
+	default:
+		return nil
+	}
 }
 
 // DefaultPageSize is the length of a page of a list.
@@ -120,7 +149,8 @@ func order(row db.Order) Order {
 		WarehouseNumber: row.WarehouseNumber, WarehouseName: row.WarehouseName, CreatedAt: moment(row.CreatedAt),
 		ShipBy: optionalMoment(row.ShipBy), Parent: row.ParentNumber, State: row.State, CancelledBy: row.CancelledBy,
 		SellerStatus: row.SellerStatus, MarketplaceStatus: row.MarketplaceStatus, UpdatedAt: moment(row.UpdatedAt), Group: row.Grp,
-		ItemID: row.ItemID, Required: wordsOf(row.RequiredIds), Optional: wordsOf(row.OptionalIds),
+		ItemID: row.ItemID, Required: wordsOf(row.RequiredIds), Optional: wordsOf(row.OptionalIds), Test: row.Test == 1,
+		SchemeName: row.SchemeName, WarehouseText: row.WarehouseText,
 	}
 }
 
@@ -132,7 +162,8 @@ func (q *Queries) InsertOrder(ctx context.Context, o Order) (int64, bool, error)
 		WarehouseNumber: o.WarehouseNumber, WarehouseName: o.WarehouseName, CreatedAt: seconds(o.CreatedAt),
 		ShipBy: optionalSeconds(o.ShipBy), ParentNumber: o.Parent, State: o.State, CancelledBy: o.CancelledBy,
 		SellerStatus: o.SellerStatus, MarketplaceStatus: o.MarketplaceStatus, UpdatedAt: seconds(o.UpdatedAt), Grp: o.Group,
-		ItemID: o.ItemID, RequiredIds: words(o.Required), OptionalIds: words(o.Optional),
+		ItemID: o.ItemID, RequiredIds: words(o.Required), OptionalIds: words(o.Optional), Test: boolInt(o.Test),
+		SchemeName: o.SchemeName, WarehouseText: o.WarehouseText,
 	})
 	if errors.Is(err, sql.ErrNoRows) {
 		existing, err := q.OrderByNumber(ctx, o.AccountID, o.Number)
@@ -322,7 +353,7 @@ func (q *Queries) OrderView(ctx context.Context, id int64) (OrderView, error) {
 		WarehouseNumber: r.WarehouseNumber, WarehouseName: r.WarehouseName, CreatedAt: r.CreatedAt, State: r.State,
 		CancelledBy: r.CancelledBy, SellerStatus: r.SellerStatus, MarketplaceStatus: r.MarketplaceStatus, UpdatedAt: r.UpdatedAt,
 		Grp: r.Grp, ItemID: r.ItemID, RequiredIds: r.RequiredIds, OptionalIds: r.OptionalIds, ShipBy: r.ShipBy,
-		ParentNumber: r.ParentNumber,
+		ParentNumber: r.ParentNumber, Test: r.Test, SchemeName: r.SchemeName, WarehouseText: r.WarehouseText,
 	}
 
 	view := viewOf(o, r.AccountName, r.Marketplace, r.DeadlineHours, r.KnownWarehouseName)
@@ -380,7 +411,7 @@ func (q *Queries) OrderViews(ctx context.Context, f OrderFilter) ([]OrderView, e
 	rows, err := q.q.ListOrderViews(ctx, db.ListOrderViewsParams{
 		AccountID: nullable(f.AccountID), Scheme: nullable(f.Scheme), State: nullable(f.State),
 		CreatedFrom: nullableSeconds(f.CreatedFrom), CreatedBefore: nullableSeconds(f.CreatedBefore), Search: nullable(f.Search),
-		AttentionNow: nullableSeconds(f.AttentionAt), PageSize: size, PageOffset: offset,
+		AttentionNow: nullableSeconds(f.AttentionAt), Test: testFilter(f.Test), PageSize: size, PageOffset: offset,
 	})
 	if err != nil {
 		return nil, kind(err)
@@ -394,7 +425,7 @@ func (q *Queries) OrderViews(ctx context.Context, f OrderFilter) ([]OrderView, e
 			WarehouseNumber: r.WarehouseNumber, WarehouseName: r.WarehouseName, CreatedAt: r.CreatedAt, State: r.State,
 			CancelledBy: r.CancelledBy, SellerStatus: r.SellerStatus, MarketplaceStatus: r.MarketplaceStatus, UpdatedAt: r.UpdatedAt,
 			Grp: r.Grp, ItemID: r.ItemID, RequiredIds: r.RequiredIds, OptionalIds: r.OptionalIds, ShipBy: r.ShipBy,
-			ParentNumber: r.ParentNumber,
+			ParentNumber: r.ParentNumber, Test: r.Test, SchemeName: r.SchemeName, WarehouseText: r.WarehouseText,
 		}
 		list = append(list, viewOf(o, r.AccountName, r.Marketplace, r.DeadlineHours, r.KnownWarehouseName))
 	}
@@ -425,7 +456,7 @@ func (q *Queries) CountOrderViews(ctx context.Context, f OrderFilter) (int64, er
 	n, err := q.q.CountOrderViews(ctx, db.CountOrderViewsParams{
 		AccountID: nullable(f.AccountID), Scheme: nullable(f.Scheme), State: nullable(f.State),
 		CreatedFrom: nullableSeconds(f.CreatedFrom), CreatedBefore: nullableSeconds(f.CreatedBefore), Search: nullable(f.Search),
-		AttentionNow: nullableSeconds(f.AttentionAt),
+		AttentionNow: nullableSeconds(f.AttentionAt), Test: testFilter(f.Test),
 	})
 
 	return n, kind(err)
@@ -445,6 +476,11 @@ func (q *Queries) OrderCounts(ctx context.Context, now time.Time) (OrderCounts, 
 	}
 
 	counts.Overdue, err = q.q.CountOverdueOrders(ctx, seconds(now))
+	if err != nil {
+		return OrderCounts{}, kind(err)
+	}
+
+	counts.Tests, err = q.q.CountTestOrders(ctx)
 
 	return counts, kind(err)
 }

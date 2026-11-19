@@ -17,6 +17,7 @@ src/lib/api/wyo-api.d.ts
 
 # Saved from the outside, kept as published
 api/wildberries/**
+api/yandex/**
 docs/marketplaces/**
 
 # Go

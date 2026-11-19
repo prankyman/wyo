@@ -126,3 +126,49 @@ func TestTheBellTellsOfKeysThatEndAndAccountsThatCannotBeRead(t *testing.T) {
 		})
 	}
 }
+
+func TestTheBellTellsOfNotificationsThatStoppedArrivingUntilTheNextOneArrives(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(t)
+	ctx := t.Context()
+	now := r.kit.Clock.Now()
+	id := r.account(t, "Маркет", marketplace.AccountWorking, time.Time{})
+
+	lines := func() []notices.Notice {
+		list, err := r.service.Notices(ctx)
+		if err != nil {
+			t.Fatalf("Notices: %v", err)
+		}
+
+		return list
+	}
+
+	if err := r.kit.Store.Do(ctx, func(q *store.Queries) error { return q.RecordNotificationSeen(ctx, id, now.Add(-time.Hour)) }); err != nil {
+		t.Fatal(err)
+	}
+
+	if got := lines(); len(got) != 0 {
+		t.Fatalf("notifications that arrive gave lines: %+v", got)
+	}
+
+	if err := r.kit.Store.Do(ctx, func(q *store.Queries) error { return q.RecordNotificationsLost(ctx, id, now) }); err != nil {
+		t.Fatal(err)
+	}
+
+	want := []notices.Notice{{
+		ID: fmt.Sprintf("accounts:%d:notifications_lost:%d", id, now.Unix()), Source: notices.SourceAccounts,
+		Code: "account_notifications_lost", Tone: notices.ToneWarn, Params: map[string]any{"account": "Маркет"},
+	}}
+	if got := lines(); !reflect.DeepEqual(got, want) {
+		t.Fatalf("notices %+v, want %+v", got, want)
+	}
+
+	if err := r.kit.Store.Do(ctx, func(q *store.Queries) error { return q.RecordNotificationSeen(ctx, id, now.Add(time.Minute)) }); err != nil {
+		t.Fatal(err)
+	}
+
+	if got := lines(); len(got) != 0 {
+		t.Fatalf("after the next notification the line stays: %+v", got)
+	}
+}

@@ -1,0 +1,17 @@
+description: Информация о стоимости услуг.
+type: object
+properties:
+  type:
+    description: Услуга.
+    $ref: ./OrdersStatsCommissionType.yaml
+  actual:
+    description: >
+      Сумма начисления или корректировки.
+
+
+      Корректировки размещения услуг магазина (`SHOP_SERVICE_PLACEMENT`)
+      возвращаются отдельными элементами и могут быть отрицательными.
+
+
+      Точность — два знака после запятой.
+    type: number

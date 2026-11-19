@@ -28,6 +28,7 @@ var generatedOwners = map[string][]string{
 	"internal/marketplace/wildberries/wbapi/orders":  {"internal/marketplace/wildberries", "internal/fakes/wildberries"},
 	"internal/marketplace/wildberries/wbapi/reports": {"internal/marketplace/wildberries", "internal/fakes/wildberries"},
 	"internal/marketplace/ozon/ozonapi":              {"internal/marketplace/ozon", "internal/fakes/ozon"},
+	"internal/marketplace/yandex/yandexapi":          {"internal/marketplace/yandex", "internal/fakes/yandex"},
 }
 
 func loadRepository(t *testing.T) []archtest.Package {
@@ -98,6 +99,7 @@ func TestEveryAdapterStandsAloneInThisRepository(t *testing.T) {
 var namedIn = map[string][]string{
 	"wildberries": {"internal/marketplace/wildberries", "internal/fakes", "cmd/wyofakes", "internal/server/adapters.go"},
 	"ozon":        {"internal/marketplace/ozon", "internal/fakes", "cmd/wyofakes", "internal/server/adapters.go"},
+	"yandex":      {"internal/marketplace/yandex", "internal/fakes", "cmd/wyofakes", "internal/server/adapters.go"},
 }
 
 func TestEveryMarketplaceIsNamedOnlyByItsAdapterInThisRepository(t *testing.T) {
@@ -284,29 +286,7 @@ var ozonCancels = []string{"PostingAPI_CancelFbsPosting", "PostingAPI_CancelFbsP
 func TestTheCancelMethodsOfOzonAreNeverGeneratedInThisRepository(t *testing.T) {
 	t.Parallel()
 
-	config, err := os.ReadFile(moduleRoot + "/api/codegen/ozon.cfg.yaml")
-	if err != nil {
-		t.Fatalf("read the generator's list: %v", err)
-	}
-
-	generated, err := os.ReadFile(moduleRoot + "/internal/marketplace/ozon/ozonapi/ozonapi.gen.go")
-	if err != nil {
-		t.Fatalf("read the generated client: %v", err)
-	}
-
-	if !strings.Contains(string(config), "include-operation-ids:") {
-		t.Fatal("the generator's list names no operation: every operation of Ozon's file would be generated")
-	}
-
-	for _, op := range ozonCancels {
-		if strings.Contains(string(config), op) {
-			t.Errorf("api/codegen/ozon.cfg.yaml lists %s, a method that cancels a posting at Ozon", op)
-		}
-
-		if goName := strings.ReplaceAll(op, "_", ""); strings.Contains(string(generated), goName) {
-			t.Errorf("the generated client holds %s, a method that cancels a posting at Ozon", goName)
-		}
-	}
+	ozon.neverListed(t, ozonCancels, "a method that cancels a posting at Ozon")
 }
 
 // ozonMethods are the operations of Ozon's description file the generator's list must name, each the research's section 5 (OZC)
@@ -325,19 +305,90 @@ var ozonMethods = []string{
 func TestTheGeneratorsListOfOzonMethodsNamesExactlyTheMethodsThePlansNeed(t *testing.T) {
 	t.Parallel()
 
-	config, err := os.ReadFile(moduleRoot + "/api/codegen/ozon.cfg.yaml")
+	ozon.listsExactly(t, ozonMethods)
+}
+
+// yandexNever are the operations of Яндекс Маркет's description that the wyo server never calls (YMC §5): each removes goods
+// from an order, accepts a cancellation or moves orders out of a shipment, which lowers the shop's quality index or cannot be
+// undone. The cancelling status of updateOrderStatus is refused by a test of Plan 8, which first generates that method.
+var yandexNever = []string{"updateOrderItems", "acceptOrderCancellation", "transferOrdersFromShipment"}
+
+// yandexMethods are the operations the generator's list must name: the reading ones of Plan 7 (YMC §5).
+var yandexMethods = []string{"getAuthTokenInfo", "getCampaigns", "getBusinessOrders", "getPartnerWarehouses", "getOfferMappings"}
+
+func TestTheMethodsThatCutOrMoveAYandexMarketOrderAreNeverGeneratedInThisRepository(t *testing.T) {
+	t.Parallel()
+
+	yandex.neverListed(t, yandexNever, "a method that cuts, cancels or moves an order at Яндекс Маркет")
+}
+
+func TestTheGeneratorsListOfYandexMarketMethodsNamesExactlyTheMethodsThePlansNeed(t *testing.T) {
+	t.Parallel()
+
+	yandex.listsExactly(t, yandexMethods)
+}
+
+// generator is one marketplace's generator list (api/codegen/<name>.cfg.yaml), the client it generates, and how an
+// operation's name becomes the client's call.
+type generator struct {
+	config, client string
+	goName         func(operation string) string
+}
+
+var (
+	ozon   = generator{config: "ozon", client: "ozon/ozonapi/ozonapi", goName: func(op string) string { return strings.ReplaceAll(op, "_", "") }}
+	yandex = generator{config: "yandex", client: "yandex/yandexapi/yandexapi", goName: func(op string) string {
+		return strings.ToUpper(op[:1]) + op[1:]
+	}}
+)
+
+// read gives the generator's list and the generated client.
+func (g generator) read(t *testing.T) (string, string) {
+	t.Helper()
+
+	config, err := os.ReadFile(moduleRoot + "/api/codegen/" + g.config + ".cfg.yaml")
 	if err != nil {
 		t.Fatalf("read the generator's list: %v", err)
 	}
 
-	generated, err := os.ReadFile(moduleRoot + "/internal/marketplace/ozon/ozonapi/ozonapi.gen.go")
+	generated, err := os.ReadFile(moduleRoot + "/internal/marketplace/" + g.client + ".gen.go")
 	if err != nil {
 		t.Fatalf("read the generated client: %v", err)
 	}
 
+	if !strings.Contains(string(config), "include-operation-ids:") {
+		t.Fatal("the generator's list names no operation: every operation of the description would be generated")
+	}
+
+	return string(config), string(generated)
+}
+
+// neverListed fails when the list names, or the client holds, one of the operations.
+func (g generator) neverListed(t *testing.T, operations []string, what string) {
+	t.Helper()
+
+	config, generated := g.read(t)
+
+	for _, op := range operations {
+		if strings.Contains(config, op) {
+			t.Errorf("api/codegen/%s.cfg.yaml lists %s, %s", g.config, op, what)
+		}
+
+		if strings.Contains(generated, g.goName(op)) {
+			t.Errorf("the generated client holds %s, %s", g.goName(op), what)
+		}
+	}
+}
+
+// listsExactly fails when the list names other operations than these, or the client lacks the call of one.
+func (g generator) listsExactly(t *testing.T, operations []string) {
+	t.Helper()
+
+	config, generated := g.read(t)
+
 	var listed []string
 
-	for line := range strings.Lines(string(config)) {
+	for line := range strings.Lines(config) {
 		if name, found := strings.CutPrefix(strings.TrimSpace(line), "- "); found {
 			listed = append(listed, name)
 		}
@@ -345,17 +396,16 @@ func TestTheGeneratorsListOfOzonMethodsNamesExactlyTheMethodsThePlansNeed(t *tes
 
 	slices.Sort(listed)
 
-	want := append([]string{}, ozonMethods...)
+	want := slices.Clone(operations)
 	slices.Sort(want)
 
 	if strings.Join(listed, "\n") != strings.Join(want, "\n") {
 		t.Errorf("the generator's list names\n%s\nwant\n%s", strings.Join(listed, "\n"), strings.Join(want, "\n"))
 	}
 
-	// A method that is listed has its call in the generated client: the client's call is the operation's name without its
-	// underscores, followed by WithResponse.
-	for _, op := range ozonMethods {
-		if goName := strings.ReplaceAll(op, "_", "") + "WithResponse"; !strings.Contains(string(generated), goName) {
+	// A method that is listed has its call in the generated client, followed by WithResponse.
+	for _, op := range operations {
+		if goName := g.goName(op) + "WithResponse"; !strings.Contains(generated, goName) {
 			t.Errorf("the generated client has no %s for %s: run pnpm generate", goName, op)
 		}
 	}

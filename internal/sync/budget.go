@@ -81,20 +81,21 @@ func (b *Budget) Take(key BudgetKey, l marketplace.LimitGroup, now time.Time) ti
 }
 
 // Observe corrects the budget by an answer, reading the headers the limit group names (each marketplace names its own,
-// marketplace.LimitGroup): a client error costs ErrorCost calls in all, the remaining-calls header lowers the count to
-// what the marketplace says, and a 429 stops the group for the retry header's seconds (1 when it is not given or the
-// group names none), twice as long for every 429 in a row. It returns the wait a 429 set, or 0.
+// marketplace.LimitGroup): a client error costs ErrorCost calls in all, a server error nothing when the group says so, the
+// remaining-calls header lowers the count to what the marketplace says, and the group's limit status (429 unless it names
+// another) stops the group for as long as the retry header says (waitOf), twice as long for every such answer in a row. It
+// returns the wait the limit set, or 0.
 func (b *Budget) Observe(key BudgetKey, l marketplace.LimitGroup, now time.Time, status int, h http.Header) time.Duration {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
 	bk := b.bucket(key, l, now)
 
-	if status == http.StatusTooManyRequests {
+	if l.MetBy(status) {
 		bk.streak++
 		bk.credit = 0
 
-		wait := time.Duration(headerInt(h, l.RetryHeader, 1)) * time.Second << min(bk.streak-1, maxDoublings)
+		wait := waitOf(l, h, now) << min(bk.streak-1, maxDoublings)
 		bk.blocked = now.Add(wait)
 
 		return wait
@@ -102,8 +103,11 @@ func (b *Budget) Observe(key BudgetKey, l marketplace.LimitGroup, now time.Time,
 
 	bk.streak = 0
 
-	if status >= http.StatusBadRequest && status < http.StatusInternalServerError && l.ErrorCost > 1 {
+	switch {
+	case status >= http.StatusBadRequest && status < http.StatusInternalServerError && l.ErrorCost > 1:
 		bk.credit -= time.Duration(l.ErrorCost-1) * l.Interval
+	case status >= http.StatusInternalServerError && l.ServerErrorFree:
+		bk.credit = min(capacity(l), bk.credit+l.Interval)
 	}
 
 	if remaining := headerInt(h, l.RemainingHeader, -1); remaining >= 0 {
@@ -111,6 +115,27 @@ func (b *Budget) Observe(key BudgetKey, l marketplace.LimitGroup, now time.Time,
 	}
 
 	return 0
+}
+
+// waitOf is how long a met limit holds, as the group's retry header tells it: a number of seconds, or the date until which
+// the limit holds when the group says its header is a date (marketplace.LimitGroup.RetryIsDate). A header the group does not
+// name, one that is missing or cannot be read, and a date that has passed are one second. It is the one reading of a wait
+// header: every marketplace's and the fulfilment centre's.
+func waitOf(l marketplace.LimitGroup, h http.Header, now time.Time) time.Duration {
+	if !l.RetryIsDate {
+		return time.Duration(headerInt(h, l.RetryHeader, 1)) * time.Second
+	}
+
+	if l.RetryHeader == "" {
+		return time.Second
+	}
+
+	until, err := http.ParseTime(h.Get(l.RetryHeader))
+	if err != nil || !until.After(now) {
+		return time.Second
+	}
+
+	return until.Sub(now)
 }
 
 // headerInt reads a whole number from a header; fallback when the group names no header, or it is missing or not a number.

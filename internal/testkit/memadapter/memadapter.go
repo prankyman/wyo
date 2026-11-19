@@ -37,7 +37,9 @@ type Adapter struct {
 	shipBy     map[string]time.Time
 	// groups says the orders carry the group and the item number the confirm flow needs (NewConfirming).
 	groups bool
-	w      writing
+	// shops are the shops the check gives and the reading of the warehouses reads (SetShops).
+	shops []marketplace.Shop
+	w     writing
 }
 
 // New returns an adapter that answers at most maxStates numbers a call.
@@ -223,9 +225,10 @@ func (a *Adapter) CheckKey(_ context.Context, _ marketplace.Conn, facts marketpl
 	if !a.keyEnd.IsZero() {
 		facts.ExpiresAt = a.keyEnd
 	}
+	shops := slices.Clone(a.shops)
 	a.mu.Unlock()
 
-	return marketplace.CheckedKey{KeyFacts: facts, SellerName: "Memory seller"}, nil
+	return marketplace.CheckedKey{KeyFacts: facts, SellerName: "Memory seller", Shops: shops}, nil
 }
 
 func (a *Adapter) failure() error {
@@ -233,6 +236,14 @@ func (a *Adapter) failure() error {
 	defer a.mu.Unlock()
 
 	return a.fail
+}
+
+// SetShops replaces the shops the check gives and, for a marketplace read by changes, the reading of the warehouses reads.
+func (a *Adapter) SetShops(list []marketplace.Shop) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	a.shops = slices.Clone(list)
 }
 
 // SetWarehouses replaces the warehouses the marketplace lists.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/netip"
 	"slices"
 	"time"
 )
@@ -33,6 +34,12 @@ const (
 	// and its labels exist only after that).
 	OrdersPack Capability = "orders.pack"
 
+	// Plan 7: every order changed since a moment, new and changed together (read in place of orders.new and
+	// orders.states); the orders a notification names; and the marketplace's notifications to the wyo server.
+	OrdersChanges        Capability = "orders.changes"
+	OrdersNamed          Capability = "orders.named"
+	NotificationsReceive Capability = "notifications.receive"
+
 	// Stages 2 to 5 of the high-level plan: named, not supported by any adapter yet.
 	StockPush        Capability = "stock.push"
 	StockRead        Capability = "stock.read"
@@ -47,6 +54,7 @@ const (
 var supportedNow = []Capability{
 	KeyCheck, WarehousesRead, OrdersNew, OrdersStates, OrdersFeed,
 	OrdersConfirm, LabelsFetch, CodesReport, CodesVerdict, HandoverGroup, HandoverClose, HandoverDocuments, OrdersPack,
+	OrdersChanges, OrdersNamed, NotificationsReceive,
 }
 
 // AllCapabilities lists every part of the contract, the supported ones first.
@@ -114,6 +122,11 @@ type Description struct {
 	// OrdersPeriod and StatesPeriod are how often the exchange reads the new orders and the states of the open orders of
 	// the adapter's accounts; zero means the defaults, one minute and five minutes.
 	OrdersPeriod, StatesPeriod time.Duration
+	// MaxInFlight is how many requests of one account may be in flight at once; zero means no limit.
+	MaxInFlight int
+	// ProgramHeader names a header of the marketplace's own in which every request of the adapter names the program,
+	// wyo/<version>, beside User-Agent; empty when the marketplace asks for none.
+	ProgramHeader string
 }
 
 // MessageKey is the family of the adapter's texts in messages/: <family>.name, <family>.help, <family>.key.<field>.*.
@@ -133,16 +146,30 @@ func (d Description) NeedsStep(step string) bool {
 }
 
 // LimitGroup is one of a marketplace's request limits: a burst of calls that refills one call every Interval. A call
-// answered with a client error costs ErrorCost calls. RemainingHeader names the header by which the marketplace tells how
-// many calls remain, and RetryHeader the one by which it tells, on 429 Too Many Requests, how many seconds to wait;
-// empty when it tells none.
+// answered with a client error costs ErrorCost calls; a call answered with a server error costs one, or nothing when
+// ServerErrorFree. LimitStatus is the status by which the marketplace says the limit is met (429 Too Many Requests when
+// it is 0). RemainingHeader names the header by which the marketplace tells how many calls remain, and RetryHeader the one
+// by which it tells, with the limit's status, how long to wait: a number of seconds, or, when RetryIsDate, the date until
+// which the limit holds (RFC 822); empty when it tells none.
 type LimitGroup struct {
 	Name            string
 	Interval        time.Duration
 	Burst           int
 	ErrorCost       int
+	ServerErrorFree bool
+	LimitStatus     int
 	RemainingHeader string
 	RetryHeader     string
+	RetryIsDate     bool
+}
+
+// MetBy says whether an answer's status says the group's limit is met.
+func (l LimitGroup) MetBy(status int) bool {
+	if l.LimitStatus == 0 {
+		return status == http.StatusTooManyRequests
+	}
+
+	return status == l.LimitStatus
 }
 
 // Route is one request an adapter may send: its method, its path with a {placeholder} for every value, the limit
@@ -170,12 +197,14 @@ type Doer interface {
 }
 
 // Conn is what an adapter is given to reach its marketplace for one account and one job: the caller, which adds the
-// key, keeps the budget and writes the journal, whether the account's key is a test key, and the categories (the
-// adapter's own codes) its key was found to lack at its last check, so that the part needing one is not asked.
+// key, keeps the budget and writes the journal, whether the account's key is a test key, the categories (the
+// adapter's own codes) its key was found to lack at its last check, so that the part needing one is not asked, and the
+// seller profile the account's key was found to belong to (empty for a key checked before it is saved).
 type Conn struct {
 	Doer    Doer
 	Test    bool
 	Missing []string
+	Profile string
 }
 
 // Lacks says whether the account's key lacks a category.
@@ -228,6 +257,51 @@ type StateReader interface {
 // FeedReader is the part orders.feed: orders of every scheme, read on from a mark. An empty mark starts at since.
 type FeedReader interface {
 	Feed(ctx context.Context, conn Conn, mark string, since time.Time) (FeedPage, error)
+}
+
+// ChangesReader is the part orders.changes: every order of the account that appeared or changed at or after a moment, new
+// and changed together, each once, with its lines, its state and its deadline. An adapter that claims it is read with it
+// in place of orders.new and orders.states.
+type ChangesReader interface {
+	Changes(ctx context.Context, conn Conn, since time.Time) ([]Order, error)
+}
+
+// NamedReader is the part orders.named: the orders of the numbers given, as orders.changes gives them, at most MaxNamed
+// numbers a call; a number of no order is left out.
+type NamedReader interface {
+	Named(ctx context.Context, conn Conn, numbers []string) ([]Order, error)
+	MaxNamed() int
+}
+
+// NotificationReceiver is the part notifications.receive: the marketplace sends the wyo server a notification when an
+// order appears or changes, and the wyo server reads the orders it names.
+type NotificationReceiver interface {
+	// NotificationNetworks lists the networks the marketplace's notifications come from; a call from anywhere else is
+	// answered as if the address did not exist.
+	NotificationNetworks() []netip.Prefix
+	// ReadNotification reads a notification's body; an error, which names what is wrong in plain words for the marketplace,
+	// for a body it cannot read.
+	ReadNotification(body []byte) (Notification, error)
+	// NotificationAnswer is the body of the answer the marketplace wants for a notification taken, with the program's
+	// version and the moment.
+	NotificationAnswer(version string, now time.Time) []byte
+	// NotificationRefusal is the body of the answer to a notification that cannot be read, with the reason.
+	NotificationRefusal(reason string) []byte
+}
+
+// Notification is what a marketplace's notification says: its kind in the marketplace's words, whether it is the
+// marketplace's check that the address answers, and the numbers of the orders to read (none for a kind the wyo server does
+// not read).
+type Notification struct {
+	Kind    string
+	Ping    bool
+	Numbers []string
+}
+
+// ShopReader is read with warehouses.read by an adapter whose marketplace keeps several shops in one account: the shops,
+// with whether the marketplace has switched a shop's API off.
+type ShopReader interface {
+	Shops(ctx context.Context, conn Conn) ([]Shop, error)
 }
 
 // Refusal is a marketplace's refusal as the adapter reads it: a code of the adapter's refusals (with Params), the field

@@ -55,6 +55,18 @@ describe('noticeLines', () => {
             'Маркетплейс не принял ключ аккаунта «Магазин», поэтому wyo не читает его заказы. Проверьте ключ в кабинете маркетплейса и замените его в разделе «Маркетплейсы» кнопкой «Заменить ключ».'
         ],
         [
+            'a marketplace’s notifications stopped arriving',
+            notice({
+                source: 'accounts',
+                code: 'account_notifications_lost',
+                tone: 'warn',
+                params: { account: 'Кабинет' }
+            }),
+            'attention',
+            '/marketplaces',
+            'Уведомления маркетплейса по аккаунту «Кабинет» перестали приходить, поэтому заказы доходят до wyo позже, чем могли бы. Пока следующее уведомление не придёт, wyo читает заказы сама каждые 5 минут, а если раздел «Внешний API» не заполнен, каждые 30 минут. Что проверить в кабинете маркетплейса, написано на карточке аккаунта в разделе «Маркетплейсы».'
+        ],
+        [
             'the fulfilment centre does not answer',
             notice({ source: 'external_api', code: 'fc_no_answer', tone: 'warn' }),
             'attention',

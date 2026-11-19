@@ -136,7 +136,7 @@ func TestAnOrderIsShownWithEveryFieldAndItsHistory(t *testing.T) {
 		`"lines":[{"article":"ART-7","barcodes":["4600000000017","4600000000024"],"brand":"Север","kind":"Футболки","productId":"777",`+
 		`"quantity":1,"size":"M"}],"marketplace":"memory",`+
 		`"marketplaceStatus":{"marketplace":"waiting","seller":"new"},"number":"5001","scheme":"fbs",`+
-		`"state":"new","updatedAt":%q,"warehouse":"Москва"},"parts":[]}`,
+		`"state":"new","test":false,"updatedAt":%q,"warehouse":"Москва"},"parts":[]}`,
 		created, hourAgo, account, created, deadline, ids[0], noon)
 	if got.Body != want {
 		t.Fatalf("got  %s\nwant %s", got.Body, want)
@@ -225,7 +225,7 @@ func TestTheOverviewCountsTheAccountsAndTheOrders(t *testing.T) {
 
 	o := signedIn(t)
 
-	if empty := o.call(t, http.MethodGet, "/api/v1/overview/marketplaces", ""); empty.Body != `{"accounts":0,"assembling":0,"attention":0,"newOrders":0,"overdue":0,"unknownStates":0}` {
+	if empty := o.call(t, http.MethodGet, "/api/v1/overview/marketplaces", ""); empty.Body != `{"accounts":0,"assembling":0,"attention":0,"newOrders":0,"overdue":0,"testOrders":0,"unknownStates":0}` {
 		t.Fatalf("nothing yet: %d %s", empty.Status, empty.Body)
 	}
 
@@ -247,7 +247,7 @@ func TestTheOverviewCountsTheAccountsAndTheOrders(t *testing.T) {
 	o.cookie = o.f.SignIn(t)
 
 	noon := apikit.Noon().UTC().Format(time.RFC3339)
-	want := `{"accounts":2,"assembling":1,"attention":1,"lastSuccessAt":"` + noon + `","newOrders":1,"overdue":1,"unknownStates":0}`
+	want := `{"accounts":2,"assembling":1,"attention":1,"lastSuccessAt":"` + noon + `","newOrders":1,"overdue":1,"testOrders":0,"unknownStates":0}`
 
 	if got := o.call(t, http.MethodGet, "/api/v1/overview/marketplaces", ""); got.Status != http.StatusOK || got.Body != want {
 		t.Fatalf("got  %s\nwant %s", got.Body, want)

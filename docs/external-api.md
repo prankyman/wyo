@@ -1,7 +1,7 @@
 # «Внешний API»: the exchange with a fulfilment centre, step by step
 
 This page is for a seller's engineer who wants to know exactly what the wyo server does once «Внешний API» is filled, and for a
-fulfilment centre's developer whose system will be called. The seller's own instructions are the README, section 11
+fulfilment centre's developer whose system will be called. The seller's own instructions are the README, section 12
 («Работа с фулфилмент-центром»). The format on the fulfilment centre's side is `docs/fulfilment-centre-api.md`; the plans that built
 this are `.agents/plans/wyo-external-api-wildberries-fbs-exchange-with-a-fulfilment-centre-orders-stickers-codes-hand-over.md` (Plan 4,
 the walk of a marketplace that confirms orders, Wildberries: steps 1 to 5 below) and

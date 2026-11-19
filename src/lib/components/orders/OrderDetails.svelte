@@ -9,15 +9,17 @@
     import { hasMessage, t } from '$lib/i18n/i18n';
     import type { TLocale } from '$lib/i18n/types';
     import { deadlineMatters } from '$lib/orders/deadline';
+    import { sellerPacks } from '$lib/orders/scheme';
     import DeadlineCell from './DeadlineCell.svelte';
     import OrderLines from './OrderLines.svelte';
     import OrderStateBadge from './OrderStateBadge.svelte';
     import SchemeBadge from './SchemeBadge.svelte';
+    import TestOrderBadge from './TestOrderBadge.svelte';
     import type { TOrderDetails } from './types';
 
     /**
-     * One order's details beside the order list (`GET /api/v1/orders/{id}`): the marketplace, the scheme and the state; the
-     * deadline of an FBS order while it waits to be handed over (new or assembling); every field the order has — the field it lacks is left out, not drawn empty —
+     * One order's details beside the order list (`GET /api/v1/orders/{id}`): the marketplace, the scheme, the mark of a test
+     * order (`TestOrderBadge`) and the state; the deadline of an FBS order while it waits to be handed over (new or assembling); every field the order has — the field it lacks is left out, not drawn empty —
      * and, after them, its products with their quantities (`OrderLines`); the order a split order came from and the orders a
      * split order was split into; the marketplace's own words for the state as received; and the history of states, oldest first,
      * each in the list's words (with who cancelled) and with where the change came from. An FBS order that has an exchange with a fulfilment centre draws it last
@@ -45,7 +47,16 @@
         add('number', 'orders.column.number', order.number, 'orders.column.number.help');
         add('account', 'orders.field.account', order.accountName);
         add('basket', 'orders.field.basket', order.basket);
-        add('warehouse', 'orders.column.warehouse', order.warehouse, 'orders.column.warehouse.help');
+        const unknownWarehouse = order.warehouse === undefined && sellerPacks(order.scheme);
+        add(
+            'warehouse',
+            'orders.column.warehouse',
+            unknownWarehouse ? t('orders.warehouse.unknown', lang) : order.warehouse,
+            'orders.column.warehouse.help'
+        );
+        if (unknownWarehouse) {
+            add('warehouseText', 'orders.warehouse.text', order.warehouseText, 'orders.warehouse.text.help');
+        }
         add('parent', 'orders.field.parent', order.parentNumber, 'orders.field.parent.help');
         add('parts', 'orders.field.parts', details.parts.join(', '), 'orders.field.parts.help');
         add('createdAt', 'orders.column.created', formatDateTime(order.createdAt, lang), 'orders.column.created.help');
@@ -67,6 +78,9 @@
     <div class="flex flex-wrap items-center gap-2">
         <MarketplaceMark {lang} code={order.marketplace} mark={marketplace?.mark} dataTest="order-mark" />
         <SchemeBadge {lang} scheme={order.scheme} testId="order-scheme" />
+        {#if order.test}
+            <TestOrderBadge {lang} testId="order-test" />
+        {/if}
         <OrderStateBadge
             {lang}
             state={order.state}

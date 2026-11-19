@@ -34,8 +34,8 @@ Always a script of `package.json`, never an ad-hoc command, and never `--` befor
 - `pnpm go:test [flags] [package]` — `go test -race -shuffle=on -count=1` for the packages given, or for every Go package, as the
   release build; then the packages of `scripts/go/test-tag-packages.txt`, the only ones whose code differs in the build with the
   `wyotest` tag, again with that tag (`pnpm test:coverage` does the same). `internal/archtest` keeps the list exact.
-- `pnpm go:measure` — the memory of the wyo server with three accounts and 10 000 orders, reading the fake Wildberries at the
-  synchronisation's periods for a made-up day; it prints one line that starts with `wyo-memory:` (the peak memory of the test process,
+- `pnpm go:measure` — the memory of the wyo server with four accounts (two of Wildberries, one of Ozon, one of Яндекс Маркет) and 10 000
+  orders, reading the fakes at the synchronisation's periods for a made-up day; it prints one line that starts with `wyo-memory:` (the peak memory of the test process,
   which also holds the fake, so it is an upper bound). The pipeline runs it after the browser tests.
 - `pnpm test:coverage` — both sides with coverage.
 - `pnpm coverage:enforce` — the two coverage floors: `scripts/coverage-check.cjs` (interface) and `tools/covercheck` (Go).
@@ -56,13 +56,13 @@ runs `pnpm precommit` and the whole browser suite locally. Never `pnpm test` (it
 
 ## Ports
 
-| What                                       | Address                 |
-| ------------------------------------------ | ----------------------- |
-| The wyo server (development, tests)        | `127.0.0.1:8790`        |
-| Vite dev server (passes `/api` on to 8790) | `127.0.0.1:5190`        |
-| The fake Wildberries and the fake Ozon     | `127.0.0.1:8791`        |
-| The fake fulfilment centre                 | `127.0.0.1:8792`        |
-| Browser tests, one wyo server per worker   | `127.0.0.1:8800` and up |
+| What                                         | Address                 |
+| -------------------------------------------- | ----------------------- |
+| The wyo server (development, tests)          | `127.0.0.1:8790`        |
+| Vite dev server (passes `/api` on to 8790)   | `127.0.0.1:5190`        |
+| The fake Wildberries, Ozon and Яндекс Маркет | `127.0.0.1:8791`        |
+| The fake fulfilment centre                   | `127.0.0.1:8792`        |
+| Browser tests, one wyo server per worker     | `127.0.0.1:8800` and up |
 
 Open `http://127.0.0.1:5190` while `pnpm dev` runs and sign in as `owner` with the password `development-password`: the first
 `pnpm dev` makes the data folder `.dev-data/` (not committed) with `wyo init` and that owner with `wyo owner create`; later runs keep it.
@@ -86,6 +86,10 @@ internal/auth/, settings/, notices/, schedule/, backup/, datadir/, datalock/, is
 internal/marketplace/         the one adapter contract, the registry; contracttest/ is the contract's one test suite
 internal/marketplace/wildberries/  the Wildberries adapter (the only package that knows Wildberries)
 internal/marketplace/ozon/    the Ozon adapter (the only package that knows Ozon)
+internal/marketplace/yandex/ the Яндекс Маркет adapter (the only package that knows Яндекс Маркет): the key and its access levels, the
+                              shops and warehouses, the orders read by their last change or by number, the notifications
+internal/notify/              the one store-then-kick of every notification (the fulfilment centre's and the marketplaces'), and the
+                              receiver of the marketplaces' notifications at /hooks/marketplace/<text>; it knows no marketplace
 internal/adapterkit/          the helpers every adapter shares (optional fields, numbers as text, cutting a list into requests); knows no marketplace
 internal/sync/                the synchronisation engine: the one caller, the request budget, the jobs, the marks, the intake
 internal/journal/             the journal of every request sent to a marketplace (inserts only; 30 days)
@@ -99,12 +103,15 @@ internal/tlsauto/, certstatus/  the certificate the wyo server obtains itself (C
 internal/version/, clock/, config/, logging/
 internal/marketplace/wildberries/wbapi/    generated from api/wildberries/*.yaml
 internal/marketplace/ozon/ozonapi/         generated from api/ozon/seller-api.json (through a corrected temporary copy)
+internal/marketplace/yandex/yandexapi/     generated from api/yandex/ (through a joined temporary copy)
 internal/fulfilment/fcapi/    generated from api/fulfilment-centre.yaml
-internal/fakes/fakekit/, fulfilment/, ozon/, wildberries/
+internal/fakes/fakekit/, fulfilment/, ozon/, wildberries/, yandex/
 internal/archtest/            the architecture tests (they read the import graph)
 tools/covercheck/             the Go coverage floors
-tools/specfix/, internal/specfix/  the corrections of Ozon's description file that the generator needs (see below)
-api/                          wyo.yaml, fulfilment-centre.yaml, wildberries/*.yaml, ozon/seller-api.json; codegen/ holds the generator's configurations
+tools/specfix/, internal/specfix/  the corrections of Ozon's description file and the joining of Яндекс Маркет's files, which the generator
+                              needs (see below)
+api/                          wyo.yaml, fulfilment-centre.yaml, wildberries/*.yaml, ozon/seller-api.json, yandex/ (a tree of files);
+                              codegen/ holds the generator's configurations
 src/lib/components/ui/        the component library (see docs/library-layout.md)
 src/lib/forms/, validation/, i18n/, api/, stores/, utils/
 src/routes/                   (app)/ — «Обзор», «Настройки», «Мой профиль»; auth/login; /showcase
@@ -130,6 +137,18 @@ docs/, .agents/, .specify/, .github/workflows/ci-cd.yml, .husky/
   from, its checksum, how a later version is taken (the third party's daily copy on GitHub, both files read as JSON, every difference in a
   method the wyo server calls read before it is accepted) and the full table of corrections are in `api/ozon/README.md`; what the wyo
   server calls, and how often, is in `docs/ozon.md`.
+- **Яндекс Маркет's description** is Яндекс Маркет's own tree, committed exactly as Яндекс Маркет publishes it: the folder `openapi/` of
+  `https://github.com/yandex-market/yandex-market-partner-api` at the commit named in `api/yandex/README.md` (1 087 files: `openapi.yaml`,
+  `paths/*.yaml`, `components/{schemas,parameters,responses}/*.yaml`; licence BSD-3-Clause), and never edited. The generator (oapi-codegen
+  v2.8.2) stops with «fatal error: stack overflow» on the tree as published, so `scripts/generate.sh` runs `tools/specfix join` first
+  (the rule «join» of `internal/specfix`, `join.go`), which writes one joined temporary file and nothing else: it puts every path file where
+  `openapi.yaml` names it, makes every component file an entry of `components/<kind>`, and writes every reference to a component file as
+  `#/components/<kind>/<Name>`. A reference that is neither a component file nor, in the paths of `openapi.yaml`, a path file stops the
+  generation, so a person reads a new kind of reference before a rule is added. The generator reads the joined copy, and the copy is
+  deleted. It builds only the five reading methods that `api/codegen/yandex.cfg.yaml` lists; a test reads that file to keep the three
+  methods that change an order or a shipment (`updateOrderItems`, `acceptOrderCancellation`, `transferOrdersFromShipment`) out of it. How a
+  later version is taken (the clone, the difference by commit, every difference in a method the wyo server calls read before it is
+  accepted) is in `api/yandex/README.md`; what the wyo server calls, and how often, is in `docs/yandex.md`.
 - **`fetch` is called only inside `src/lib/api/`,** and only for the wyo server's own addresses. The form library is imported only by
   `src/lib/forms/super-form.ts`.
 - **Every visible text is a key in `messages/ru.json`.** The wyo server never writes a sentence; it answers codes.
@@ -167,6 +186,17 @@ No test and no development run ever calls a real marketplace or a real fulfilmen
   the made-up buyer (`ozon.BuyerValues()`) in every posting answer so that the wyo server's dropping of buyer data can be proven.
   Ozon's documents do not give the HTTP status of its key errors; the fake chooses them (401 for an invalid key, 403 for the others)
   and says so in its code.
+- **The fake Яндекс Маркет** (`internal/fakes/yandex`, `127.0.0.1:8791`, the same address as the other two fake marketplaces) answers the
+  five methods the Яндекс Маркет adapter uses, in the shapes of Яндекс Маркет's own description files (`api/yandex/`): the key's access
+  levels, the cabinet's shops, its warehouses, the orders (FBS, Express, FBY and DBS, real and test) and the products' barcodes. Test
+  orders are made by a seller in the cabinet, not in a test environment (YMC §9), so the fake makes them as orders with `fake: true`
+  (`/__control/orders`). It keeps Яндекс Маркет's limits for one key — the five methods' amounts are 100, 1 000, 10 000 and 100 calls an
+  hour and 100 calls a minute — on the injected clock, answers `420` with the three headers `X-RateLimit-Resource-Limit`, `-Until` (a date) and
+  `-Remaining` (and `420` for a fifth request at once, because only four may run at once), and puts the made-up buyer comment, delivery
+  address and courier name and telephone (`yandex.BuyerValues()`) in every answer about orders so that the wyo server's dropping of them
+  can be proven. Яндекс Маркет's documents do not give the words and codes of most errors; where the fake had to choose, its code says «the
+  fake's choice, not Яндекс Маркет's». **It also sends notifications:** `POST` with a JSON body, from inside the control call that caused
+  them, to the address a test set (see the control calls below), as Яндекс Маркет does to the address a seller enters in the cabinet.
 - **The fake fulfilment centre** (`internal/fakes/fulfilment`, `127.0.0.1:8792`) implements the neutral fulfilment-centre API
   (`docs/fulfilment-centre-api.md`, `api/fulfilment-centre.yaml`): it takes orders in, holds one whose product a test marked unknown,
   and on a test's command moves an order through its steps and sends the signed notifications.
@@ -198,18 +228,64 @@ test a key of its own.
   answer of such a report names only the parts' numbers, last part first, without `additional_data`), `postings/deadline`
   and `fbo-postings`.
   The package `internal/fakes/ozon` lists them in the comment above `controlRoutes`; `e2e/support/fake-ozon.ts` is the browser tests' side.
+- the fake Яндекс Маркет's control calls, all `POST` under `/__control/` with a JSON body; a field the fake does not know, and a value
+  Яндекс Маркет's schema does not allow, is refused with `400` and the reason, and a setup that is refused changes nothing. Each answers
+  `{"status": "ok"}`; a call marked «notifies» answers `{"status": "ok", "notifications": [{"type", "status"}]}` as well, with what was
+  sent and what the address answered (`0` when the notification was lost or the address could not be reached). Until a `setup` is made, every
+  call of the key is refused as an invalid key. A change of an order moves its `updateDate` to the clock's now.
+    - `setup` — `business` `{id, name}` (the cabinet); `scopes` (the key's access levels as `getAuthTokenInfo` reports them, for example
+      `["INVENTORY_AND_ORDER_PROCESSING_READ_ONLY"]`; at least one); `token_name`; `key_state` (`""`, `"invalid"` or `"revoked"`: every call
+      of that key answers `401`); `campaigns` `[{id, name, placement_type, api_off}]` (the shops; `placement_type` is `FBS`, `FBY`, `DBS` or
+      `LAAS`, `FBS` when left out; `api_off` makes the shop's `apiAvailability` not `AVAILABLE`); `warehouses`
+      `[{id, name, models: [{placement_type, campaign_id}]}]` (`placement_type` is `FBS`, `DBS` or `EXPRESS`); `offers`
+      `[{offer_id, barcodes}]`. It replaces the parts it names.
+    - `orders` (notifies `ORDER_CREATED`) — a new order: `order_id` (numbered by the fake when left out), `campaign_id`, `program_type` (`FBS`
+      when left out; `FBS`, `EXPRESS`, `FBY`, `DBS` or `LAAS`), `fake` (a test order), `status` and `substatus` (`PROCESSING` and `STARTED`
+      when left out), `shipment_date` (`YYYY-MM-DD`), `shipment_time` (`HH:MM`; needs a date), `warehouse_id` (a text), `items`
+      `[{offer_id, offer_name, count, required_instance_types}]` (at least one line; a line without a name is named after its article).
+      It answers the `order_id` too. The answers about orders write their moments in Moscow time.
+    - `orders/status` (notifies `ORDER_STATUS_UPDATED`) — `order_id`, `status`, `substatus` (a status other than `PROCESSING` needs its
+      substatus). `orders/cancel` (notifies `ORDER_CANCELLED`) — `order_id`, `substatus` (the reason, such as `SHOP_FAILED`): sets the
+      status `CANCELLED`. `orders/shipment` (notifies `ORDER_UPDATED` with the update type `SHIPMENT_DATE_UPDATED`) — `order_id`,
+      `shipment_date`, `shipment_time`.
+    - `campaigns/api-off` — `campaign_id`, `off`: turns a shop's API off or on, so that its `apiAvailability` and the answers that name the
+      shop change.
+    - `notifications` (notifies) — `address` (the URL to `POST` to, `http` or `https`; setting it sends one `PING`), `lose_next` and
+      `duplicate_next` (how many of the next notifications are lost, and how many are sent twice; they count the notifications sent after
+      this call), `send_ignored` (`true`: sends one `CHAT_CREATED`, a kind the wyo server answers and ignores).
+    - the faults of the kit (`POST /__control/faults`) work as for the other fakes; a `rate_limited` fault answers `420` with the headers
+      above.
+      The package `internal/fakes/yandex` lists them in the comment above `controlRoutes` (`control.go`);
+      `e2e/support/fake-yandex.ts` is the browser tests' side.
 - `/__control/setup`, `/__control/products` (fake fulfilment centre), `/__control/verdicts`, `/__control/feed` (fake Wildberries) —
   the account, the products, the verdict of a marking code, the rows of the orders feed. The fake Wildberries' `setup` takes
   `token_refused` (`expired` or `invalid`: every call of that token answers 401 as Wildberries does; `""` lifts it); a row of its `feed`
   may carry the buyer's `region_name`, which the wyo server must drop. The packages `internal/fakes/fulfilment` and
   `internal/fakes/wildberries` list every control call in the comment above the function that registers it.
 
-**One address for the fake marketplaces.** The fake Wildberries and the fake Ozon are served on one address, `127.0.0.1:8791` (the flag
-`--marketplaces` of `cmd/wyofakes`). A request whose first path segment is the host of the fake Ozon, `api-seller.ozon.ru`, goes to
-the fake Ozon, which takes the host off the path (so `/api-seller.ozon.ru/v1/roles` and `/v1/roles` are one call), and everything else,
-the root `/__control/health` included, goes to the fake Wildberries. Its control calls are at
+**One address for the fake marketplaces.** The fake Wildberries, the fake Ozon and the fake Яндекс Маркет are served on one address,
+`127.0.0.1:8791` (the flag `--marketplaces` of `cmd/wyofakes`; `cmd/wyofakes` now serves three fake marketplaces on that one address). A
+request whose first path segment is the host of the fake Ozon, `api-seller.ozon.ru`, goes to the fake Ozon, which takes the host off the
+path (so `/api-seller.ozon.ru/v1/roles` and `/v1/roles` are one call); a request whose first path segment is the host of the fake
+Яндекс Маркет, `api.partner.market.yandex.ru`, goes to the fake Яндекс Маркет, which does the same; and everything else, the root
+`/__control/health` included, goes to the fake Wildberries. The fake Ozon's control calls are at
 `http://127.0.0.1:8791/api-seller.ozon.ru/__control/…`, with the API key as `Authorization`; its API calls carry `Api-Key` and `Client-Id`.
-This is the form every adapter already uses in a test build (`marketplace.Origin`), so a later fake marketplace needs only its host.
+The fake Яндекс Маркет's are at `http://127.0.0.1:8791/api.partner.market.yandex.ru/__control/…`, with the key as `Authorization`; its
+API calls carry only `Api-Key`, and a call may leave the host off the path as well. This is the form every adapter already uses in a test
+build (`marketplace.Origin`), so a later fake marketplace needs only its host (`fakekit.HostRouter`).
+
+**The fake Яндекс Маркет's notifications.** Set an address with `POST …/__control/notifications`, for example the wyo server's own
+`http://127.0.0.1:8790/hooks/marketplace/<text>` (the text is on the account's card and in `GET /api/v1/accounts`): the fake sends one
+`PING`, and from then on one notification for every order it makes or changes through the calls above — `ORDER_CREATED`,
+`ORDER_STATUS_UPDATED`, `ORDER_CANCELLED` and `ORDER_UPDATED` — each with the body of Яндекс Маркет's own page about it (YMC §15,
+`notificationType`, `campaignId`, `orderId` and the fields of the kind). The notification is sent from inside the control call that
+caused it, so when that call answers, the wyo server has answered the notification; a notification times out after 1 second for a `PING`
+and 10 seconds for the others, as Яндекс Маркет's do. Its faults, on command: `lose_next` — the next N notifications are never sent
+(to prove that the wyo server's safety read finds the orders they named, and that «Уведомления не доходят» appears); `duplicate_next` —
+the next N are sent twice (Яндекс Маркет may send several about one event); `send_ignored` — one `CHAT_CREATED`, a kind the wyo server
+answers and ignores. A failed notification is not sent again, because for how long Яндекс Маркет sends it again is not in its documents.
+A `wyotest` build accepts the notification from `127.0.0.1` besides Яндекс Маркет's three networks; a released wyo server does not (a
+test of the release build proves it), and a call from any other address, with a wrong text or over 256 KB, is answered `404`.
 
 **Pointing a generated Wildberries client at the fake.** The real API lives on several hosts; the fake serves every path on one
 listener. A test gives the generated client the fake's address as its server (`http://127.0.0.1:8791`). To give each client the host it

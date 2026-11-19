@@ -37,7 +37,26 @@ const (
 	SchemeFBS Scheme = "fbs"
 	// SchemeFBO: the goods lie in the marketplace's own warehouse; the order is read-only.
 	SchemeFBO Scheme = "fbo"
+	// SchemeExpress: the seller packs the order and a courier takes it alone within hours; it is read and passed on as
+	// an order of SchemeFBS.
+	SchemeExpress Scheme = "express"
+	// SchemeFBY: the marketplace's own warehouse as Яндекс Маркет names it; read-only as an order of SchemeFBO.
+	SchemeFBY Scheme = "fby"
 )
+
+// Base is who packs an order of the scheme, the connector's own two schemes: every reading and the exchange go by it. A
+// scheme of a marketplace's own name is shown by that name.
+func (s Scheme) Base() Scheme {
+	switch s {
+	case SchemeExpress:
+		return SchemeFBS
+	case SchemeFBY:
+		return SchemeFBO
+	case SchemeFBS, SchemeFBO:
+	}
+
+	return s
+}
 
 // Who cancelled an order.
 const (
@@ -93,6 +112,12 @@ type Order struct {
 	ItemID          string
 	Required        []string
 	Optional        []string
+	// Test marks an order the seller made in the marketplace's cabinet to try the connection: no buyer, no money, counted
+	// in no total. ChangedAt is when the marketplace last changed the order, when it says (orders.changes).
+	Test      bool
+	ChangedAt time.Time
+	// WarehouseText is the marketplace's own text of the order's warehouse when the warehouse cannot be told by number.
+	WarehouseText string
 }
 
 // OrderStatus is the present state of one known order, and its deadline when the marketplace gives one (zero: unchanged).
@@ -135,6 +160,18 @@ type Warehouse struct {
 	SellerDelivers bool
 	LabelType      string
 	AutoAssembly   bool
+	// Express says a courier takes the warehouse's orders one by one within hours.
+	Express bool
+}
+
+// Shop is one shop of an account whose marketplace keeps several shops in one account: the marketplace's own number and
+// name, its scheme in the marketplace's words, and whether the marketplace has switched its API off (its orders are not
+// read).
+type Shop struct {
+	Number string
+	Name   string
+	Scheme string
+	APIOff bool
 }
 
 // KeyFacts is what a key says about itself: its type in the adapter's words, whether it is a test key, its end of life
@@ -150,9 +187,11 @@ type KeyFacts struct {
 	ReadOnly          bool
 }
 
-// CheckedKey is a key that the marketplace accepted, with the seller's name it gave.
+// CheckedKey is a key that the marketplace accepted, with the seller's name it gave and, for a marketplace that keeps
+// several shops in one account, the shops the key opens.
 type CheckedKey struct {
 	KeyFacts
 
 	SellerName string
+	Shops      []Shop
 }

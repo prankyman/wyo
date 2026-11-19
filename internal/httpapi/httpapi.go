@@ -25,6 +25,7 @@ import (
 	"github.com/prankyman/wyo/internal/httpapi/gen"
 	"github.com/prankyman/wyo/internal/marketplace"
 	"github.com/prankyman/wyo/internal/notices"
+	"github.com/prankyman/wyo/internal/notify"
 	"github.com/prankyman/wyo/internal/refusal"
 	"github.com/prankyman/wyo/internal/settings"
 	"github.com/prankyman/wyo/internal/store"
@@ -66,6 +67,8 @@ type Deps struct {
 	Accounts *accounts.Service
 	// Exchange is the exchange with the fulfilment centre of «Внешний API».
 	Exchange *exchange.Service
+	// Hooks receives the marketplaces' notifications at each account's address; nil answers every such call 404.
+	Hooks *notify.Marketplace
 	// Refresher is «Обновить»; its readings run under Lifetime, the wyo server's own lifetime, never under the call's,
 	// which ends with the answer.
 	Refresher Refresher
@@ -194,7 +197,7 @@ type sessionKey struct{}
 // prolonged only when the call carries PersonHeader. A call the table does not know is treated as the owner's.
 func (a *api) guard(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if access, known := a.access[r.Pattern]; known && (access == AccessPublic || access == AccessSigned) {
+		if access, known := a.access[r.Pattern]; known && (access == AccessPublic || access == AccessSigned || access == AccessMarketplaceHook) {
 			next.ServeHTTP(w, r)
 
 			return

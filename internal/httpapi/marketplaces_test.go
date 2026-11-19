@@ -70,7 +70,8 @@ func TestTheMarketplacesAreListedFromTheirAdapters(t *testing.T) {
 	// The memory adapter confirms an order (it does not claim to pack it) and declares no hand-over steps, so it needs all six.
 	want := `{"marketplaces":[{"capabilities":["key.check","warehouses.read","orders.new","orders.states","orders.feed"],` +
 		`"code":"memory","exchangeFlow":"confirm","givesDeadline":false,"handoverSettings":[],` +
-		`"handoverSteps":["batch","move","boxes","shipping","close","documents"],"keyFields":[{"name":"token","secret":true}],"mark":"ink"}]}`
+		`"handoverSteps":["batch","move","boxes","shipping","close","documents"],"keyFields":[{"name":"token","secret":true}],"mark":"ink",` +
+		`"receivesNotifications":false}]}`
 	if got.Status != http.StatusOK || got.Body != want {
 		t.Fatalf("status %d\n got  %s\n want %s", got.Status, got.Body, want)
 	}
