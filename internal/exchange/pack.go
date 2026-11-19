@@ -67,6 +67,7 @@ const (
 	problemPackContents    = "pack_contents_differ"
 	problemPackReopened    = "pack_reopened_after_report"
 	problemPackParts       = "pack_parts_unknown"
+	problemPackPartGone    = "pack_part_cancelled"
 	problemLabelsNotMade   = "labels_not_made"
 	problemCodesNotChecked = "codes_not_checked"
 )
@@ -241,6 +242,103 @@ func (s *Service) packLater(ctx context.Context, o *order) {
 	s.save(ctx, o)
 }
 
+// packProblem records a problem of the packing step. The packing is read no more: «Передать заново» or the next
+// order.packing_finished starts it again, so that nothing refused is read, reported or told to the fulfilment centre again
+// every 20 seconds.
+func (s *Service) packProblem(ctx context.Context, sess *session, o *order, p store.Problem) {
+	o.x.PackNextAt = time.Time{}
+	s.problem(ctx, sess, o, p, stepPack)
+}
+
+// packFailed is a call of the packing step the marketplace did not answer with success: its refusal is a problem and the
+// packing is read no more (packProblem); another failure (no connection, a limit) is read again later.
+func (s *Service) packFailed(ctx context.Context, sess *session, o *order, err error) {
+	o.x.PackNextAt = time.Time{}
+
+	if !s.marketplaceProblem(ctx, sess, o, stepPack, err) {
+		s.packLater(ctx, o)
+	}
+}
+
+// splitParts are the numbers of the parts the marketplace split the order into when the wyo server reported its packing,
+// one for each parcel; none when the report did not split it (one parcel keeps the order's own number) or when a part's
+// number is not known.
+func (s *Service) splitParts(ctx context.Context, o *order) ([]string, error) {
+	if o.x.PackReportedAt.IsZero() {
+		return nil, nil
+	}
+
+	rows, err := s.opts.Store.Read().ParcelsOf(ctx, o.x.OrderID)
+	if err != nil {
+		return nil, err
+	}
+
+	numbers := make([]string, 0, len(rows))
+	split := false
+
+	for _, p := range rows {
+		if p.MpNumber == "" {
+			return nil, nil
+		}
+
+		numbers = append(numbers, p.MpNumber)
+		split = split || p.MpNumber != o.row.Number
+	}
+
+	if !split {
+		return nil, nil
+	}
+
+	return numbers, nil
+}
+
+// packState reads how the order's packing stands at the marketplace. After a report that split the order, the parts are
+// read by their own numbers: packed when every part is, failed when one is, with the lines of all; a part cancelled is
+// named in gone, with its words in the state, and is never a cancellation of the order (the owner decides; the wyo server
+// never guesses one). The order the report split is then no order of its own, whatever it shows. Otherwise the order is read
+// by its own number, and an order split before any report (in the marketplace's cabinet) is a cancellation: its parts come
+// as orders of their own.
+func (s *Service) packState(ctx context.Context, packer marketplace.OrderPacker, conn marketplace.Conn, o *order) (marketplace.PackState, string, error) {
+	parts, err := s.splitParts(ctx, o)
+	if err != nil {
+		return marketplace.PackState{}, "", err
+	}
+
+	if len(parts) == 0 {
+		state, err := packer.PackState(ctx, conn, o.row.Number)
+		state.Cancelled = state.Cancelled || state.Split
+
+		return state, "", err
+	}
+
+	all := marketplace.PackState{Packed: true}
+
+	for _, number := range parts {
+		state, err := packer.PackState(ctx, conn, number)
+		if err != nil {
+			return marketplace.PackState{}, "", err
+		}
+
+		if state.Cancelled || state.Split {
+			return marketplace.PackState{Words: state.Words}, number, nil
+		}
+
+		all.Packed = all.Packed && state.Packed
+		if state.Failed && !all.Failed {
+			all.Failed, all.Words = true, state.Words
+		}
+
+		all.Lines = append(all.Lines, state.Lines...)
+	}
+
+	return all, "", nil
+}
+
+// partGone is the problem of a part of the order the marketplace cancelled after the report split the order.
+func partGone(part string, state marketplace.PackState) store.Problem {
+	return store.Problem{Code: problemPackPartGone, Params: map[string]any{"part": part}, Words: state.Words}
+}
+
 // packStep is step 3, done when the codes are accepted (or none is needed) and by the job while the packing is read: the
 // order is read at the marketplace; a cancelled one is passed on, a packed one has its labels planned, one the report did not
 // take (or that was never reported) is reported, and one reported and not yet packed is read again later. Nothing is
@@ -258,16 +356,16 @@ func (s *Service) packStep(ctx context.Context, sess *session, o *order) {
 		return
 	}
 
-	state, err := packer.PackState(ctx, conn, o.row.Number)
+	state, gone, err := s.packState(ctx, packer, conn, o)
 	if err != nil {
-		if !s.marketplaceProblem(ctx, sess, o, stepPack, err) {
-			s.packLater(ctx, o)
-		}
+		s.packFailed(ctx, sess, o, err)
 
 		return
 	}
 
 	switch {
+	case gone != "":
+		s.packProblem(ctx, sess, o, partGone(gone, state))
 	case state.Cancelled:
 		o.x.PackNextAt = time.Time{}
 		s.passCancel(ctx, sess, o)
@@ -294,13 +392,18 @@ func (s *Service) settledAtMarketplace(ctx context.Context, sess *session, o *or
 		return false
 	}
 
-	state, err := packer.PackState(ctx, conn, o.row.Number)
+	state, gone, err := s.packState(ctx, packer, conn, o)
 	if err != nil {
 		// The codes step meets the same failure and says what to do about it.
 		return false
 	}
 
 	switch {
+	case gone != "":
+		o.x.NextCheckAt = time.Time{}
+		s.packProblem(ctx, sess, o, partGone(gone, state))
+
+		return true
 	case state.Cancelled:
 		// The checking ends; the cancellation is passed on once, whoever noticed it first.
 		o.x.NextCheckAt = time.Time{}
@@ -329,11 +432,9 @@ func (s *Service) settledAtMarketplace(ctx context.Context, sess *session, o *or
 // times is a problem in the marketplace's words.
 func (s *Service) report(ctx context.Context, sess *session, o *order, packer marketplace.OrderPacker, conn marketplace.Conn, state marketplace.PackState) {
 	if state.Failed && o.x.PackTries >= packTriesMax {
-		// The reading of the packing ends here: «Передать заново» starts the reports again.
-		o.x.PackNextAt = time.Time{}
-		s.problem(ctx, sess, o, store.Problem{
+		s.packProblem(ctx, sess, o, store.Problem{
 			Code: problemMarketplace, Params: map[string]any{"step": stepPack}, MpCode: "packing_not_taken", Words: state.Words,
-		}, stepPack)
+		})
 
 		return
 	}
@@ -341,7 +442,7 @@ func (s *Service) report(ctx context.Context, sess *session, o *order, packer ma
 	fc, err := sess.fc.Order(ctx, o.x.FcID)
 	if err != nil {
 		if !s.failed(ctx, err) {
-			s.problem(ctx, sess, o, fcProblem(stepPack, err), stepPack)
+			s.packProblem(ctx, sess, o, fcProblem(stepPack, err))
 
 			return
 		}
@@ -361,16 +462,14 @@ func (s *Service) report(ctx context.Context, sess *session, o *order, packer ma
 
 	parcels := parcelsOf(o, fc)
 	if !sameLines(parcels, state.Lines) {
-		s.problem(ctx, sess, o, store.Problem{Code: problemPackContents}, stepPack)
+		s.packProblem(ctx, sess, o, store.Problem{Code: problemPackContents})
 
 		return
 	}
 
 	parts, err := packer.Pack(ctx, conn, o.row.Number, parcels)
 	if err != nil {
-		if !s.marketplaceProblem(ctx, sess, o, stepPack, err) {
-			s.packLater(ctx, o)
-		}
+		s.packFailed(ctx, sess, o, err)
 
 		return
 	}
@@ -393,6 +492,17 @@ func (s *Service) report(ctx context.Context, sess *session, o *order, packer ma
 	o.added = append(o.added, store.ExchangeHistory{At: now, State: o.x.State, Code: "packing_reported"})
 	s.clearProblem(ctx, sess, o)
 	s.packLater(ctx, o)
+}
+
+// clearSettled clears the problem that a packing the marketplace shows packed, or a label attached, settles. A parcel reopened
+// after the packing was reported is settled by neither: its problem stays, here and at the fulfilment centre, until the
+// owner's «Передать заново».
+func (s *Service) clearSettled(ctx context.Context, sess *session, o *order) {
+	if o.x.Problem.Code == problemPackReopened {
+		return
+	}
+
+	s.clearProblem(ctx, sess, o)
 }
 
 // packConfirmed notes that the marketplace shows the order packed and plans the labels of its parcels, which the
@@ -426,8 +536,7 @@ func (s *Service) packConfirmed(ctx context.Context, sess *session, o *order) {
 	// was lost (or the packing was reported before the wyo server did) the numbers are not known and no label can be asked for: the
 	// owner is told, and nothing is guessed.
 	if slices.ContainsFunc(rows, func(p store.Parcel) bool { return p.MpNumber == "" }) {
-		o.x.PackNextAt = time.Time{}
-		s.problem(ctx, sess, o, store.Problem{Code: problemPackParts}, stepPack)
+		s.packProblem(ctx, sess, o, store.Problem{Code: problemPackParts})
 
 		return
 	}
@@ -442,7 +551,7 @@ func (s *Service) packConfirmed(ctx context.Context, sess *session, o *order) {
 
 	o.x.PackedAt, o.x.PackNextAt = now, time.Time{}
 	o.added = append(o.added, store.ExchangeHistory{At: now, State: o.x.State, Code: "packing_confirmed"})
-	s.clearProblem(ctx, sess, o)
+	s.clearSettled(ctx, sess, o)
 	s.save(ctx, o)
 }
 
@@ -460,236 +569,6 @@ func (s *Service) checkPacking(ctx context.Context, sess *session, at time.Time)
 		}
 
 		s.packStep(ctx, sess, o)
-	}
-
-	return nil
-}
-
-// labelsLater sets when a parcel's labels task is read next: every 10 seconds during the first 5 minutes after it was asked,
-// then every 5 minutes.
-func (s *Service) labelsLater(p *store.Parcel) {
-	now := s.opts.Clock.Now()
-
-	wait := labelSlow
-	if p.LabelAskedAt.IsZero() || now.Sub(p.LabelAskedAt) < labelFastFor {
-		wait = labelFast
-	}
-
-	p.LabelNextAt = now.Add(wait)
-}
-
-// checkLabels asks for and reads the labels of the parcels due, one order at a time.
-func (s *Service) checkLabels(ctx context.Context, sess *session, at time.Time) error {
-	due, err := s.opts.Store.Read().DueLabelChecks(ctx, at, batch)
-	if err != nil {
-		return err
-	}
-
-	var seen []int64
-
-	for _, p := range due {
-		if slices.Contains(seen, p.OrderID) {
-			continue
-		}
-
-		seen = append(seen, p.OrderID)
-
-		x, err := s.opts.Store.Read().ExchangeOrder(ctx, p.OrderID)
-		if err != nil {
-			return err
-		}
-
-		o, err := s.load(ctx, x)
-		if err != nil {
-			return err
-		}
-
-		s.labelStep(ctx, sess, o, at)
-	}
-
-	return nil
-}
-
-// labelTypeOf is the kind of label the order's warehouse wants (the marketplace's word for it), empty when it names none.
-func (s *Service) labelTypeOf(ctx context.Context, o *order) string {
-	list, err := s.opts.Store.Read().Warehouses(ctx, o.row.AccountID)
-	if err != nil {
-		return ""
-	}
-
-	for _, w := range list {
-		if w.Number == o.row.WarehouseNumber {
-			return w.LabelType
-		}
-	}
-
-	return ""
-}
-
-// labelStep is step 3's labels for one order: for each parcel whose label is not sent yet the label is asked for (one ticket
-// for each parcel, so that each parcel gets the file of its own part), then the ticket is read until the label is made, and
-// the label is attached to its parcel at the fulfilment centre.
-func (s *Service) labelStep(ctx context.Context, sess *session, o *order, at time.Time) {
-	rows, err := s.opts.Store.Read().ParcelsOf(ctx, o.x.OrderID)
-	if err != nil {
-		s.opts.Log.Error("the parcels could not be read", "order", o.x.OrderID, "err", err)
-
-		return
-	}
-
-	adapter, conn, err := s.conn(ctx, o, jobVerdicts)
-	if err != nil {
-		return
-	}
-
-	maker, ok := part[marketplace.LabelMaker](adapter, marketplace.LabelsFetch, conn.Test)
-	if !ok {
-		return
-	}
-
-	for i := range rows {
-		if !rows[i].LabelSentAt.IsZero() || rows[i].LabelNextAt.IsZero() || rows[i].LabelNextAt.After(at) {
-			continue
-		}
-
-		var stop bool
-
-		if rows[i].Ticket == "" {
-			stop = s.askLabel(ctx, sess, o, maker, conn, &rows[i])
-		} else {
-			stop = s.readLabel(ctx, sess, o, maker, conn, &rows[i])
-		}
-
-		if stop {
-			return
-		}
-	}
-
-	s.labelsDone(ctx, sess, o)
-}
-
-// saveParcel writes one parcel of an order.
-func (s *Service) saveParcel(ctx context.Context, p store.Parcel) {
-	s.write(ctx, func(q *store.Queries) error { return q.SaveParcel(ctx, p) })
-}
-
-// askLabel asks for the label of one parcel and keeps the ticket on it. It says whether the order's labels stop here (a
-// problem was recorded).
-func (s *Service) askLabel(ctx context.Context, sess *session, o *order, maker marketplace.LabelMaker, conn marketplace.Conn, p *store.Parcel) bool {
-	ticket, err := maker.AskLabels(ctx, conn, []string{p.MpNumber}, s.labelTypeOf(ctx, o))
-	if err != nil {
-		if s.marketplaceProblem(ctx, sess, o, stepLabels, err) {
-			return true
-		}
-
-		s.labelsLater(p)
-		s.saveParcel(ctx, *p)
-
-		return false
-	}
-
-	now := s.opts.Clock.Now()
-	p.Ticket, p.LabelAskedAt, p.LabelTries, p.LabelNextAt = ticket, now, p.LabelTries+1, now.Add(labelFast)
-	s.saveParcel(ctx, *p)
-
-	// The history says once that the labels were asked for, not once for each parcel: it is told at the first parcel's.
-	if p.Number == 1 {
-		s.write(ctx, func(q *store.Queries) error {
-			return q.InsertExchangeHistory(ctx, o.x.OrderID, store.ExchangeHistory{At: now, State: o.x.State, Code: "labels_asked"})
-		})
-	}
-
-	return false
-}
-
-// readLabel reads the labels task of one parcel. A label that is made is attached at the fulfilment centre to its parcel; one
-// the marketplace could not make is a problem in its words. It says whether the order's labels stop here.
-func (s *Service) readLabel(ctx context.Context, sess *session, o *order, maker marketplace.LabelMaker, conn marketplace.Conn, p *store.Parcel) bool {
-	state, err := maker.ReadLabels(ctx, conn, p.Ticket)
-	if err != nil {
-		if s.marketplaceProblem(ctx, sess, o, stepLabels, err) {
-			return true
-		}
-
-		s.labelsLater(p)
-		s.saveParcel(ctx, *p)
-
-		return false
-	}
-
-	switch {
-	case state.Failed:
-		s.problem(ctx, sess, o, store.Problem{Code: problemLabelsNotMade, MpCode: "labels_task_failed", Words: state.Words}, stepLabels)
-
-		return true
-	case !state.Ready:
-		s.labelsLater(p)
-		s.saveParcel(ctx, *p)
-
-		return false
-	}
-
-	if words, unmade := state.Unmade[p.MpNumber]; unmade {
-		s.problem(ctx, sess, o, store.Problem{Code: problemLabelsNotMade, MpCode: "label_not_made", Words: words}, stepLabels)
-
-		return true
-	}
-
-	j := slices.IndexFunc(state.Labels, func(l marketplace.Label) bool { return l.Number == p.MpNumber })
-	if j < 0 {
-		s.problem(ctx, sess, o, store.Problem{Code: problemLabelsNotMade, MpCode: "label_missing"}, stepLabels)
-
-		return true
-	}
-
-	if err := sess.fc.PutLabel(ctx, o.x.FcID, int(p.Number), state.Labels[j].ContentType, state.Labels[j].Data); err != nil {
-		if !s.failed(ctx, err) {
-			s.problem(ctx, sess, o, fcProblem(stepLabels, err), stepLabels)
-		}
-
-		return true
-	}
-
-	p.LabelPrint, p.LabelSentAt, p.LabelNextAt = state.Labels[j].Print(), s.opts.Clock.Now(), time.Time{}
-	s.saveParcel(ctx, *p)
-
-	return false
-}
-
-// labelsDone moves the order on when every parcel has its label.
-func (s *Service) labelsDone(ctx context.Context, sess *session, o *order) {
-	rows, err := s.opts.Store.Read().ParcelsOf(ctx, o.x.OrderID)
-	if err != nil || len(rows) == 0 || slices.ContainsFunc(rows, func(p store.Parcel) bool { return p.LabelSentAt.IsZero() }) {
-		return
-	}
-
-	s.clearProblem(ctx, sess, o)
-
-	// An order whose fulfilment centre reported it packed before its codes were sent (it takes none) is «packed» until now.
-	if o.x.State == stateReserved || o.x.State == stateCodesAccepted || o.x.State == statePacked ||
-		(o.x.State == stateCodesChecking && o.x.CodesState == codesNotTaken) {
-		s.note(o, stateLabelSent, "label_sent")
-	} else {
-		o.added = append(o.added, store.ExchangeHistory{At: s.opts.Clock.Now(), State: o.x.State, Code: "label_sent"})
-	}
-
-	s.save(ctx, o)
-}
-
-// resetLabels makes the labels of an order be asked for again (the owner pressed «Передать заново»).
-func (s *Service) resetLabels(ctx context.Context, o *order) error {
-	rows, err := s.opts.Store.Read().ParcelsOf(ctx, o.x.OrderID)
-	if err != nil {
-		return err
-	}
-
-	now := s.opts.Clock.Now()
-
-	for i := range rows {
-		if rows[i].LabelSentAt.IsZero() {
-			rows[i].Ticket, rows[i].LabelNextAt = "", now
-			s.saveParcel(ctx, rows[i])
-		}
 	}
 
 	return nil

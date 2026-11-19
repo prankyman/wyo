@@ -420,3 +420,80 @@ func TestAPostingOzonShowsPackedWhileItsCodesAreBeingCheckedHasNoVerdictToWaitFo
 		t.Fatalf("the verdict was asked %d more times", got-asked)
 	}
 }
+
+func TestAfterItsOwnSplitTheWyoServerReadsThePartsAndNeverPassesTheOriginalOnAsACancellation(t *testing.T) {
+	t.Parallel()
+
+	t.Run("the original is shown split", func(t *testing.T) {
+		t.Parallel()
+
+		r := newOzonRig(t)
+		r.connect(t)
+		r.ozControl(t, "/__control/ship-split", map[string]any{"original_split_pending": true})
+
+		number := r.packed(t, 1, ozUnit{1, ozCodeA, 1}, ozUnit{2, "", 1}, ozUnit{1, ozCodeB, 2})
+		rows := r.untilLabels(t, number)
+
+		if len(rows) != 2 || rows[0].MpNumber == number || rows[1].MpNumber == number || rows[0].MpNumber == rows[1].MpNumber {
+			t.Fatalf("the parcels: %+v, want two parts with numbers of their own", rows)
+		}
+
+		if status, _ := r.postingState(t, number); status != "cancelled_from_split_pending" {
+			t.Fatalf("the original is %q at Ozon", status)
+		}
+
+		// The states of the open orders are read again and again: the split original is never a cancellation.
+		r.halfAnHour(t)
+
+		x := r.exchanged(t, number)
+		if x.State != "label_sent" || x.Problem.Code != "" || x.CancelAnswer != "" {
+			t.Fatalf("the order: %+v", x)
+		}
+
+		if got := count(r.fcWrites(t), "POST /api/v1/orders/{id}/cancel"); got != 0 {
+			t.Fatalf("the order was cancelled at the fulfilment centre %d times", got)
+		}
+
+		for i := range 2 {
+			if _, _, text := r.fcLabel(t, number, i+1); !strings.Contains(text, "postings: "+rows[i].MpNumber+"\n") {
+				t.Fatalf("the label of parcel %d: %q, want the part %s", i+1, text, rows[i].MpNumber)
+			}
+		}
+	})
+
+	t.Run("a part is cancelled", func(t *testing.T) {
+		t.Parallel()
+
+		r := newOzonRig(t)
+		r.connect(t)
+		r.ozControl(t, "/__control/ship-split", map[string]any{"original_split_pending": true})
+
+		number := r.packed(t, 1, ozUnit{1, ozCodeA, 1}, ozUnit{2, "", 1}, ozUnit{1, ozCodeB, 2})
+		rows := r.parcels(t, number)
+
+		if len(rows) != 2 || rows[1].MpNumber == "" {
+			t.Fatalf("the parcels after the report: %+v", rows)
+		}
+
+		r.ozCancelled(t, rows[1].MpNumber, "client", true)
+		r.halfAnHour(t)
+
+		p := r.problem(t, number)
+		if p.Code != "pack_part_cancelled" || p.Params["part"] != rows[1].MpNumber || !p.Sent {
+			t.Fatalf("the problem: %+v, want the part %s named", p, rows[1].MpNumber)
+		}
+
+		x := r.exchanged(t, number)
+		if x.State == "cancelled" || x.CancelAnswer != "" || x.Attention != "problem" {
+			t.Fatalf("the order: %+v", x)
+		}
+
+		if got := count(r.fcWrites(t), "POST /api/v1/orders/{id}/cancel"); got != 0 {
+			t.Fatalf("the order was cancelled at the fulfilment centre %d times", got)
+		}
+
+		if got := count(r.fcWrites(t), "PUT /api/v1/orders/{id}/problem"); got != 1 {
+			t.Fatalf("the problem was reported to the fulfilment centre %d times, want once", got)
+		}
+	})
+}

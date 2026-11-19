@@ -51,6 +51,18 @@ describe('ProblemLine', () => {
         expect(screen.getByTestId('problem')).toHaveTextContent('Не хватает: —. Лишнее: 200-1.');
     });
 
+    it('names the postings of a shipment the wyo server sends as one text, as it sends them', () => {
+        draw(
+            exchangeProblemOf({
+                code: 'marketplace_refused',
+                params: { step: 'close', missing: '', extra: '200-1, 200-2' },
+                marketplaceCode: 'batch_differs'
+            })
+        );
+
+        expect(screen.getByTestId('problem')).toHaveTextContent('Не хватает: —. Лишнее: 200-1, 200-2.');
+    });
+
     it('words a problem of parts the marketplace made and wyo lost the numbers of', () => {
         draw(exchangeProblemOf({ code: 'pack_parts_unknown', params: {}, marketplaceCode: undefined }));
 
@@ -112,6 +124,10 @@ describe('ProblemLine', () => {
             { code: 'pack_reopened_after_report' },
             'открыл заказ заново после того, как упаковка уже была передана маркетплейсу'
         ],
+        [
+            { code: 'pack_part_cancelled', params: { part: '100-3' } },
+            'Маркетплейс отменил часть 100-3 заказа, который разделился при упаковке на несколько посылок.'
+        ],
         [{ code: 'labels_not_made' }, 'Маркетплейс не смог сделать этикетку посылки.'],
         [{ code: 'codes_not_checked' }, 'Маркетплейс не успел проверить коды маркировки.'],
         [{ code: 'batch_waits' }, 'Маркетплейс пока не может создать партию заказов на этот день.'],
@@ -136,6 +152,10 @@ describe('ProblemLine', () => {
         [{ code: 'identifier_unsupported', params: { identifier: 'multibox' } }, 'количество коробок для этого заказа'],
         [{ code: 'pack_contents_differ' }, 'Уберите отсутствующие товары из заказа в кабинете маркетплейса сами'],
         [{ code: 'pack_reopened_after_report' }, 'Изменить их у маркетплейса после этого из wyo нельзя'],
+        [
+            { code: 'pack_part_cancelled', params: { part: '100-3' } },
+            'скажите фулфилмент-центру, что делать с посылкой части 100-3'
+        ],
         [{ code: 'labels_not_made' }, 'wyo запросит этикетки у маркетплейса ещё раз'],
         [{ code: 'codes_not_checked' }, 'wyo отправит весь набор кодов ещё раз'],
         [{ code: 'batch_waits' }, 'wyo сама повторяет попытку каждые 5 минут'],

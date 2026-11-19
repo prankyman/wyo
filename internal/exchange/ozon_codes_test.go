@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/prankyman/wyo/internal/fakes/fakekit"
 )
 
 func TestAPostingWhoseProductsTakeNoCodeIsReportedAtOnceAndNoCodeIsSentToOzon(t *testing.T) {
@@ -330,4 +332,83 @@ func TestAParcelReopenedBeforeThePackingIsReportedSendsTheFullSetAgainAndAfterIt
 			t.Fatalf("Ozon was written to after the reopening:\n before %v\n after  %v", before, after)
 		}
 	})
+}
+
+func TestAParcelReopenedAfterTheReportKeepsItsProblemWhenOzonThenShowsThePostingPacked(t *testing.T) {
+	t.Parallel()
+
+	r := newOzonRig(t)
+	r.connect(t)
+
+	number := r.walkPosting(t, 1)
+	x := r.reserved(t, number)
+
+	// Ozon shows the report's effect only at the fourth reading: the parcel is reopened before it does.
+	r.ozControl(t, "/__control/postings/ship", map[string]any{"posting_number": number, "readings": 3})
+	r.packWith(t, number, shirtsAndSocks([2]int{1, 1}, 1)...)
+	r.until(t, "the packing is reported", func() bool { return len(r.reports(t, number)) == 1 })
+
+	r.step(t, x.FcID, "reopen")
+	r.events(t)
+
+	if p := r.problem(t, number); p.Code != "pack_reopened_after_report" {
+		t.Fatalf("the problem after the reopening: %+v", p)
+	}
+
+	// Ozon now shows the posting packed and its label is attached: the reopening is still the owner's to see, here and at the
+	// fulfilment centre.
+	r.halfAnHour(t)
+
+	if got := r.parcels(t, number); len(got) != 1 || got[0].LabelSentAt.IsZero() {
+		t.Fatalf("the parcel's label was not attached: %+v", got)
+	}
+
+	if p := r.problem(t, number); p.Code != "pack_reopened_after_report" || !p.Sent {
+		t.Fatalf("the problem after Ozon showed the posting packed: %+v", p)
+	}
+
+	if got := r.fcOrderProblem(t, number); got == nil || got.Code != "pack_reopened_after_report" {
+		t.Fatalf("the problem at the fulfilment centre: %+v", got)
+	}
+
+	if got := count(r.fcWrites(t), "DELETE /api/v1/orders/{id}/problem"); got != 0 {
+		t.Fatalf("the problem was cleared at the fulfilment centre %d times", got)
+	}
+}
+
+func TestAResendOfTheCodesThatNeverReachedOzonIsNotCountedAndIsMadeAtTheNextCheck(t *testing.T) {
+	t.Parallel()
+
+	r := newOzonRig(t)
+	r.connect(t)
+
+	number := r.walkPosting(t, 1)
+	r.reserved(t, number)
+	r.ozControl(t, "/__control/postings/exemplar-check", map[string]any{"posting_number": number, "failed_sets": 1})
+	r.packWith(t, number, shirtsAndSocks([2]int{1, 1}, 1)...)
+
+	if got := count(r.ozWrites(t), "/v6/fbs/posting/product/exemplar/set"); got != 1 {
+		t.Fatalf("the codes were sent %d times before the check, want once", got)
+	}
+
+	// Ozon did not manage to check the first set, and the resend meets no answer.
+	if err := r.oz.QueueFault(t.Context(), fakekit.Fault{Kind: fakekit.FaultServerError, PathPrefix: "/v6/fbs/posting/product/exemplar/set"}); err != nil {
+		t.Fatalf("QueueFault: %v", err)
+	}
+
+	if got := r.untilState(t, number, "label_sent"); got.Problem.Code != "" {
+		t.Fatalf("a problem stands: %+v", got.Problem)
+	}
+
+	if got := count(r.ozWrites(t), "/v6/fbs/posting/product/exemplar/set"); got != 2 {
+		t.Fatalf("the codes were sent %d times, want twice: once and the resend that reached Ozon", got)
+	}
+
+	if got := len(r.ozCallsTo(t, "/v6/fbs/posting/product/exemplar/set")); got != 3 {
+		t.Fatalf("the codes were tried %d times, want 3: once, the lost resend and the resend at the next check", got)
+	}
+
+	if got := count(r.history(t, number), "problem"); got != 0 {
+		t.Fatalf("the history holds %d problem rows: %v", got, r.history(t, number))
+	}
 }

@@ -146,16 +146,18 @@ it changes is read first and what is done is skipped. The calls, in the order th
     - No product takes a code: nothing is sent; the order's codes are recorded as not taken and the packing is reported at once (step 6).
 5. **The verdict:** `POST /v5/fbs/posting/product/exemplar/status`, every 20 seconds for 10 minutes, then every 5 minutes. A 200 of `set`
    only means Ozon took the task (OZC §7). `ship_available` → «коды приняты» and step 6; `validation_in_process` or a mark `processing` →
-   asked again; a mark `failed` («система не успела обработать запрос», OZC §7) → the full set is sent once more, a second `failed` is a
-   problem; a mark with `error_codes` → fulfilment centre: `PUT /api/v1/orders/{id}/problem` with Ozon's codes in Ozon's words (their words
+   asked again; a mark `failed` («система не успела обработать запрос», OZC §7) → the full set is sent once more (a resend that never reached Ozon is
+   not counted and is made at the next check), a second `failed` is a problem; a mark with `error_codes` → fulfilment centre: `PUT /api/v1/orders/{id}/problem` with Ozon's codes in Ozon's words (their words
    are not sourced, OZC §7), cleared with `DELETE /api/v1/orders/{id}/problem` when corrected codes arrive with a new
    `order.packing_finished`. `order.reopened` before the report writes nothing to Ozon (the next `order.packing_finished` sends the full set
-   again); after the report it is a problem that says changing codes at Ozon is not sourced.
+   again); after the report it is a problem that says changing codes at Ozon is not sourced, and it stays when Ozon then shows the posting
+   packed — only «Передать заново» clears it.
 6. **The packing is reported.**
     - Fulfilment centre: `GET /api/v1/orders/{id}` for the parcels. If the parcels' contents are not exactly Ozon's lines (the fulfilment
       centre cut the order, `order.reduced`), the report is not made and the order gets a problem; the owner removes the products in the Ozon
       cabinet.
-    - Ozon: `POST /v3/posting/fbs/get` (a posting already `awaiting_deliver` is not reported again; a cancelled one is passed on, step 9),
+    - Ozon: `POST /v3/posting/fbs/get` (a posting already `awaiting_deliver` is not reported again; a cancelled one is passed on, step 9; after a report that split the
+      posting, each part is read by its own number, and a part cancelled is a problem naming it, never a cancellation passed on),
       then **`POST /v4/posting/fbs/ship`**: one package for each parcel with its products by SKU and quantity, and `with.additional_data`.
       **Several parcels split the posting**: Ozon makes a posting of each parcel's contents (OZC §7), and its answer names each part's number.
       A 200 is not the end («Ответ с кодом 200 не гарантирует успешную сборку заказа», OZC §7): `POST /v3/posting/fbs/get` is read every
@@ -182,8 +184,9 @@ it changes is read first and what is done is skipped. The calls, in the order th
       `POST /v1/carriage/set-postings` rewrites its list to exactly the parts of the hand-over's parcels (a posting Ozon refuses is a
       problem naming it), and `POST /v2/posting/fbs/act/get-postings` reads it back and compares it both ways: a difference is a problem
       that names the postings, and a shipment with other postings is never approved. Ozon says the method is not available to sellers
-      outside Russia (OZC §9): its refusal is a problem. **Close** — `POST /v1/carriage/get`, and `POST /v1/carriage/approve` unless it is
-      already approved (without `containers_count`, which is for entrusted acceptance only, OZC §9). **Documents** — `POST
+      outside Russia (OZC §9): its refusal is a problem. **Close** — `POST /v1/carriage/get` and the shipment's list read again and compared with the hand-over's both
+      ways (a difference rewrites the list once more; a second difference is the problem naming the postings, and nothing is approved),
+      and `POST /v1/carriage/approve` unless it is already approved (without `containers_count`, which is for entrusted acceptance only, OZC §9). **Documents** — `POST
 /v2/posting/fbs/act/check-status` until `ready` (`in_process`, `error` and `cancelled` wait and ask again, as Ozon says; a posting of
       the hand-over among `removed_from_act` is a problem that names it), then `POST /v2/posting/fbs/act/get-barcode/text`, `POST
 /v2/posting/fbs/act/get-barcode` and `POST /v2/posting/fbs/act/get-pdf`. Whether the last two answer with the file itself or with an

@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"slices"
+	"strings"
 	"time"
 )
 
@@ -163,12 +165,13 @@ type PackedPart struct {
 }
 
 // PackState is how an order's packing stands at the marketplace now. Failed says the marketplace did not take the report
-// (the report is made again); Cancelled says the order was cancelled; Words are the marketplace's own words about either,
+// (the report is made again); Cancelled says the order was cancelled; Split says the order was split into parts and is no
+// longer an order of its own (its parts are read by their own numbers); Words are the marketplace's own words about either,
 // as received; Lines are the order's lines at the marketplace now.
 type PackState struct {
-	Packed, Failed, Cancelled bool
-	Words                     string
-	Lines                     []ParcelLine
+	Packed, Failed, Cancelled, Split bool
+	Words                            string
+	Lines                            []ParcelLine
 }
 
 // OrderPacker is the part orders.pack: the marketplace takes the report that an order is packed, with the contents of each
@@ -328,4 +331,33 @@ func (l Label) Print() string {
 	}
 
 	return hex.EncodeToString(sum.Sum(nil))
+}
+
+// CodeBatchDiffers is the refusal code of a batch that holds other orders than the hand-over's.
+const CodeBatchDiffers = "batch_differs"
+
+// BatchDiffers compares the numbers a batch should hold with the numbers it holds, both ways. It is nil when the two are the
+// same set (the order does not matter; a number named twice counts once). Otherwise it is the refusal that names the numbers the
+// batch lacks («missing») and the ones it holds that were not asked for («extra»), each once and in the order it was met. It is
+// the one comparison a marketplace's filling of a batch and the hand-over's closing of it both make.
+func BatchDiffers(wanted, held []string) *Refusal {
+	missing, extra := Without(wanted, held), Without(held, wanted)
+	if len(missing) == 0 && len(extra) == 0 {
+		return nil
+	}
+
+	return &Refusal{Code: CodeBatchDiffers, Params: map[string]any{"missing": strings.Join(missing, ", "), "extra": strings.Join(extra, ", ")}}
+}
+
+// Without lists, once each and in order, what is in the first list and not in the second.
+func Without(from, other []string) []string {
+	var out []string
+
+	for _, n := range from {
+		if !slices.Contains(other, n) && !slices.Contains(out, n) {
+			out = append(out, n)
+		}
+	}
+
+	return out
 }

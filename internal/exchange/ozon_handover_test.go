@@ -204,6 +204,81 @@ func TestAPostingThatFallsIntoTheShipmentAfterTheRewriteStopsTheHandOverAndNames
 	}
 }
 
+func TestAPostingThatFallsIntoTheShipmentBetweenTheMoveAndTheCloseIsTakenOutAndTheShipmentIsApprovedWithExactlyTheHandOversPostings(t *testing.T) {
+	t.Parallel()
+
+	r := newOzonRig(t)
+	r.connect(t)
+
+	number := r.labelled(t, 1)
+
+	// Another posting of the warehouse is ready for shipment; it falls into the shipment after the move has written and read back
+	// its list, once, as a posting that became ready would.
+	other := r.posting(t, 2, ozLine{ozCoat, 1})
+	r.ozStatus(t, other, "awaiting_deliver", "")
+	r.ozControl(t, "/__control/carriages", map[string]any{"late_on_reads": []string{other}})
+
+	h := r.ask(t, number)
+	if h.State != handover.StateDocumentsSent || !h.Closed || h.Problem.Code != "" {
+		t.Fatalf("the hand-over: %+v", h)
+	}
+
+	// The move ran twice: the second rewrite took the late posting out. One shipment was made and approved once.
+	writes := r.ozWrites(t)
+	if got := count(writes, "/v1/carriage/create"); got != 1 {
+		t.Fatalf("%d shipments were made", got)
+	}
+
+	if got := count(writes, "/v1/carriage/set-postings"); got != 2 {
+		t.Fatalf("the list of the shipment was written %d times, want 2", got)
+	}
+
+	if got := count(writes, "/v1/carriage/approve"); got != 1 {
+		t.Fatalf("the shipment was approved %d times, want 1", got)
+	}
+
+	if got := r.postedPostings(t); len(got) != 2 || !slices.Equal(got[0], []string{number}) || !slices.Equal(got[1], []string{number}) {
+		t.Fatalf("the shipment was given the postings %v, want exactly %s twice", got, number)
+	}
+
+	if got := r.inShipment(t, r.shipment(t, h).Number); !slices.Equal(got, []string{number}) {
+		t.Fatalf("the approved shipment holds %v, want exactly %s", got, number)
+	}
+}
+
+func TestAPostingThatFallsIntoTheShipmentAgainAfterTheSecondMoveStopsTheHandOverBeforeTheApprovalAndNamesIt(t *testing.T) {
+	t.Parallel()
+
+	r := newOzonRig(t)
+	r.connect(t)
+
+	number := r.labelled(t, 1)
+
+	other := r.posting(t, 2, ozLine{ozCoat, 1})
+	r.ozStatus(t, other, "awaiting_deliver", "")
+	r.ozControl(t, "/__control/carriages", map[string]any{"late_on_reads": []string{other, other}})
+
+	h := r.ask(t, number)
+	if h.State != handover.StateProblem || h.Step != "close" || h.Closed {
+		t.Fatalf("the hand-over: %+v", h)
+	}
+
+	p := h.Problem
+	if p.Code != "marketplace_refused" || p.Params["step"] != "close" || p.MpCode != "batch_differs" ||
+		p.Params["extra"] != other || p.Params["missing"] != "" || !p.Sent {
+		t.Fatalf("the problem: %+v", p)
+	}
+
+	writes := r.ozWrites(t)
+	if got := count(writes, "/v1/carriage/set-postings"); got != 2 {
+		t.Fatalf("the list of the shipment was written %d times, want 2", got)
+	}
+
+	if got := count(writes, "/v1/carriage/approve"); got != 0 {
+		t.Fatalf("the shipment was approved %d times", got)
+	}
+}
+
 func TestAPostingTakenOutOfTheActIsAProblemThatNamesItAndNoDocumentIsSent(t *testing.T) {
 	t.Parallel()
 

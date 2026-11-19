@@ -155,6 +155,10 @@ type state struct {
 	labels   labelPlan
 	fetches  []fileFetch
 
+	// splitOriginal is what a test commanded for the key's reports that split a posting (control.go, ship-split): every part gets
+	// a new number and the original becomes cancelled_from_split_pending.
+	splitOriginal bool
+
 	// The shipments (carriage.go) and what a test commanded for them.
 	carriages    []*carriage
 	nextCarriage int64

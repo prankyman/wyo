@@ -191,7 +191,9 @@ test a key of its own.
   with their methods, `key_state` — `deactivated`, `ip_restricted` or `offer_not_signed` —, `warehouses`, `products`; a key is
   refused as an invalid one until a setup gives it its `client_id`), `postings` (a new FBS posting with several products), `postings/status`
   (a new status, and who cancelled), `postings/split` (the split made in the seller's cabinet: the original becomes
-  `cancelled_from_split_pending`, the parts are new postings with `parent_posting_number`), `postings/deadline` and `fbo-postings`.
+  `cancelled_from_split_pending`, the parts are new postings with `parent_posting_number`), `ship-split` (`original_split_pending`: after a
+  report of several packages every part gets a new number and the original becomes `cancelled_from_split_pending`), `postings/deadline`
+  and `fbo-postings`.
   The package `internal/fakes/ozon` lists them in the comment above `controlRoutes`; `e2e/support/fake-ozon.ts` is the browser tests' side.
 - `/__control/setup`, `/__control/products` (fake fulfilment centre), `/__control/verdicts`, `/__control/feed` (fake Wildberries) —
   the account, the products, the verdict of a marking code, the rows of the orders feed. The fake Wildberries' `setup` takes

@@ -1,11 +1,13 @@
 package ozon_test
 
 import (
+	"net/http"
 	"reflect"
 	"slices"
 	"strings"
 	"testing"
 
+	"github.com/prankyman/wyo/internal/fakes/fakekit"
 	"github.com/prankyman/wyo/internal/marketplace"
 	"github.com/prankyman/wyo/internal/marketplace/ozon"
 )
@@ -178,6 +180,91 @@ func TestACancelledPostingAndAReportThatDidNotTakeEffectAreRead(t *testing.T) {
 	cancelled, err := r.adapter.PackState(t.Context(), conn, "44444444-0005-2")
 	if err != nil || !cancelled.Cancelled || cancelled.Packed || cancelled.Failed || cancelled.Words == "" {
 		t.Fatalf("PackState of a cancelled posting = %+v, %v; want cancelled with Ozon's reason", cancelled, err)
+	}
+}
+
+func TestAPostingSplitIntoPartsReadsSplitAndNeverCancelled(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(t)
+	key := r.key(t)
+	conn := r.conn(t, key)
+
+	// The split made in the cabinet: Ozon shows the original as cancelled_from_split_pending (OZC §6), which is no cancellation.
+	r.posting(t, key, "44444444-0008-1", warehouseFBS, product(2002, "SOCKS", 2))
+	r.control(t, key, "/__control/postings/split", map[string]any{
+		"posting_number": "44444444-0008-1",
+		"parts": []map[string]any{
+			{"posting_number": "44444444-0008-2", "products": []map[string]any{{"sku": 2002, "quantity": 1}}},
+			{"posting_number": "44444444-0008-3", "products": []map[string]any{{"sku": 2002, "quantity": 1}}},
+		},
+	})
+
+	split, err := r.adapter.PackState(t.Context(), conn, "44444444-0008-1")
+	if err != nil || !split.Split || split.Cancelled || split.Packed || split.Failed {
+		t.Fatalf("PackState of a split original = %+v, %v; want only Split", split, err)
+	}
+
+	// A posting that is cancelled stays Cancelled and is not Split.
+	r.posting(t, key, "44444444-0008-4", warehouseFBS, product(2002, "SOCKS", 1))
+	r.control(t, key, "/__control/postings/status", map[string]any{"posting_number": "44444444-0008-4", "status": "cancelled", "cancellation_type": "customer"})
+
+	cancelled, err := r.adapter.PackState(t.Context(), conn, "44444444-0008-4")
+	if err != nil || !cancelled.Cancelled || cancelled.Split {
+		t.Fatalf("PackState of a cancelled posting = %+v, %v; want Cancelled and not Split", cancelled, err)
+	}
+}
+
+func TestAnOriginalOfOurOwnSplitReadsSplitAndEveryPartPacked(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(t)
+	key := r.key(t)
+	conn := r.conn(t, key)
+
+	r.posting(t, key, "44444444-0009-1", warehouseFBS, product(2002, "SOCKS", 2))
+	r.control(t, key, "/__control/ship-split", map[string]any{"original_split_pending": true})
+
+	parts, err := r.adapter.Pack(t.Context(), conn, "44444444-0009-1", []marketplace.Parcel{
+		{Lines: []marketplace.ParcelLine{{ItemID: "2002", Quantity: 1}}}, {Lines: []marketplace.ParcelLine{{ItemID: "2002", Quantity: 1}}},
+	})
+	if err != nil || len(parts) != 2 || parts[0].Number != "44444444-0009-2" || parts[1].Number != "44444444-0009-3" {
+		t.Fatalf("Pack = %+v, %v; want two parts with new numbers", parts, err)
+	}
+
+	original, err := r.adapter.PackState(t.Context(), conn, "44444444-0009-1")
+	if err != nil || !original.Split || original.Cancelled || original.Packed {
+		t.Fatalf("PackState of the original = %+v, %v; want only Split", original, err)
+	}
+
+	for _, part := range parts {
+		if state, err := r.adapter.PackState(t.Context(), conn, part.Number); err != nil || !state.Packed || state.Split || state.Cancelled {
+			t.Fatalf("PackState(%s) = %+v, %v; want packed", part.Number, state, err)
+		}
+	}
+}
+
+func TestAMissingRoleOnTheReadingOfAPostingNamesTheReadLevelAndNotTheWriteLevel(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(t)
+	key := r.key(t)
+	conn := r.conn(t, key)
+
+	r.posting(t, key, "44444444-0010-1", warehouseFBS, product(2002, "SOCKS", 1))
+
+	if err := fakekit.NewControl(r.kit.URL, key["api_key"], r.kit.HTTP).QueueFault(t.Context(), fakekit.Fault{
+		Kind: fakekit.FaultRefuse, PathPrefix: "/v3/posting/fbs/get", Status: http.StatusForbidden,
+		Body: `{"code":7,"message":"Api-Key is missing a required role for a method","details":[]}`,
+	}); err != nil {
+		t.Fatalf("QueueFault: %v", err)
+	}
+
+	_, err := r.adapter.PackState(t.Context(), conn, "44444444-0010-1")
+
+	refusal := asRefusal(t, err)
+	if refusal.Code != "access_level_missing" || refusal.Params["level"] != "Posting FBS read-only" {
+		t.Fatalf("a missing role on /v3/posting/fbs/get is refused as %+v, want access_level_missing naming «Posting FBS read-only»", refusal)
 	}
 }
 

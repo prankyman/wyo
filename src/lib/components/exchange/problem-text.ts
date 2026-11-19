@@ -4,6 +4,19 @@ import type { TLocale } from '$lib/i18n/types';
 import type { TProblem } from './types';
 
 /**
+ * A list a problem names (orders, postings): the wyo server sends it as a list or as one text of numbers joined by commas; an empty
+ * text is an empty list. `null` when the parameter is neither.
+ */
+function listOf(value: unknown): string[] | null {
+    if (Array.isArray(value)) return value.map(String);
+    if (typeof value !== 'string') return null;
+    return value
+        .split(',')
+        .map((item) => item.trim())
+        .filter((item) => item !== '');
+}
+
+/**
  * The parameters of a problem's sentence as texts: a step or an identifier is written out in words and a list is joined, so the
  * sentence reads the same wherever it is drawn (`ProblemLine`, the list of hand-overs).
  */
@@ -13,8 +26,8 @@ function paramsOf(problem: TProblem, lang: TLocale): Record<string, string | num
     if (typeof given.step === 'string') filled.step = t(`exchange.step.${given.step}`, lang);
     if (typeof given.identifier === 'string') filled.identifier = t(`exchange.identifier.${given.identifier}`, lang);
     for (const name of ['orders', 'postings', 'missing', 'extra']) {
-        const list = given[name];
-        if (Array.isArray(list)) filled[name] = list.length > 0 ? list.join(', ') : '—';
+        const list = listOf(given[name]);
+        if (list) filled[name] = list.length > 0 ? list.join(', ') : '—';
     }
     return filled;
 }
@@ -35,7 +48,7 @@ function keyOf(problem: TProblem, lang: TLocale): string | null {
         ['missing', 'differs'],
         ['extra', 'differs']
     ] as const) {
-        if (Array.isArray(given[name]) && hasMessage(`problem.${problem.code}.${suffix}`, lang)) {
+        if (listOf(given[name]) && hasMessage(`problem.${problem.code}.${suffix}`, lang)) {
             return `problem.${problem.code}.${suffix}`;
         }
     }

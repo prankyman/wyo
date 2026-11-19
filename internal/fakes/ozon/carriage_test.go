@@ -527,3 +527,47 @@ func TestAPostingThatBecomesReadyRightAfterTheRewriteFallsIntoTheShipmentAndShow
 	r.mustCall(pathCarriageSet, map[string]any{"carriage_id": id, "posting_numbers": []string{"100-1"}})
 	sameStrings(t, "the list after the next rewrite", r.inCarriage(id), []string{"100-1"})
 }
+
+func TestAPostingThatBecomesReadyAfterTheListWasReadBackFallsIntoTheShipmentAtTheNextReadingOfItEachOnce(t *testing.T) {
+	t.Parallel()
+
+	r := shipmentRig(t)
+	r.control("carriages", map[string]any{"late_on_reads": []string{"200-1", "300-1", "200-1"}}, nil)
+
+	id := r.createCarriage(1001)
+	r.mustCall(pathCarriageSet, map[string]any{"carriage_id": id, "posting_numbers": []string{"100-1"}})
+
+	// Writing the list and reading its postings do not bring the late posting: only a reading of the shipment itself does.
+	sameStrings(t, "the list after the rewrite", r.inCarriage(id), []string{"100-1"})
+
+	r.mustCall(pathCarriageGet, map[string]any{"carriage_id": id})
+	sameStrings(t, "the list after the first reading", r.inCarriage(id), []string{"100-1", "200-1"})
+
+	// The second reading uses up a posting of another warehouse: nothing is added. The list read again is the same.
+	r.mustCall(pathCarriageGet, map[string]any{"carriage_id": id})
+	sameStrings(t, "the list after the second reading", r.inCarriage(id), []string{"100-1", "200-1"})
+
+	// The third posting is the one that is already there; the fourth reading has none left.
+	r.mustCall(pathCarriageGet, map[string]any{"carriage_id": id})
+	r.mustCall(pathCarriageGet, map[string]any{"carriage_id": id})
+	sameStrings(t, "the list after all readings", r.inCarriage(id), []string{"100-1", "200-1"})
+
+	// The next rewrite is exactly what is asked, and no posting is left to fall in.
+	r.mustCall(pathCarriageSet, map[string]any{"carriage_id": id, "posting_numbers": []string{"100-1"}})
+	r.mustCall(pathCarriageGet, map[string]any{"carriage_id": id})
+	sameStrings(t, "the list after the next rewrite and reading", r.inCarriage(id), []string{"100-1"})
+}
+
+func TestAPostingThatFallsInAtAReadingNeverJoinsAShipmentThatIsApproved(t *testing.T) {
+	t.Parallel()
+
+	r := shipmentRig(t)
+	r.control("carriages", map[string]any{"late_on_reads": []string{"200-1"}}, nil)
+
+	id := r.createCarriage(1001)
+	r.mustCall(pathCarriageSet, map[string]any{"carriage_id": id, "posting_numbers": []string{"100-1"}})
+	r.mustCall(pathCarriageApprove, map[string]any{"carriage_id": id})
+	r.mustCall(pathCarriageGet, map[string]any{"carriage_id": id})
+
+	sameStrings(t, "the approved shipment's list", r.inCarriage(id), []string{"100-1"})
+}

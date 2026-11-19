@@ -151,8 +151,10 @@ func (st *state) shipRefusal(p *posting, req shipRequest) (string, bool) {
 // partsOf makes the parts of the report: one for each package. The first keeps the posting's number and the others take the next
 // numbers of the order. Which number each part of a split gets, and whether the first keeps the original's, is not documented
 // (OZC section 7, section 10 point 5): this is the fake's choice, and the answer's additional_data names every part either way.
+// When a test commanded that the original is no part of a split (control ship-split), a report with several packages gives
+// every part a new number.
 func (st *state) partsOf(p *posting, packages []ozonapi.FbsPostingShipV4RequestPackage) []shipPart {
-	numbers := st.partNumbers(p.number, len(packages))
+	numbers := st.partNumbers(p.number, len(packages), !st.splitOriginal || len(packages) < 2)
 	parts := make([]shipPart, len(packages))
 
 	for i, pk := range packages {
@@ -175,9 +177,9 @@ func (st *state) partsOf(p *posting, packages []ozonapi.FbsPostingShipV4RequestP
 	return parts
 }
 
-// partNumbers gives the number of the posting and the count-1 next numbers of its order: 100-1 is followed by 100-2, 100-3, each
-// the next one no posting uses.
-func (st *state) partNumbers(original string, count int) []string {
+// partNumbers gives the count numbers of the parts: with keepOriginal the posting's own number and the count-1 next numbers of
+// its order (100-1 is followed by 100-2, 100-3, each the next one no posting uses), without it the count next numbers.
+func (st *state) partNumbers(original string, count int, keepOriginal bool) []string {
 	prefix, last := original, 1
 
 	if i := strings.LastIndex(original, "-"); i >= 0 {
@@ -186,7 +188,11 @@ func (st *state) partNumbers(original string, count int) []string {
 		}
 	}
 
-	out := []string{original}
+	var out []string
+
+	if keepOriginal {
+		out = append(out, original)
+	}
 
 	for next := last + 1; len(out) < count; next++ {
 		number := prefix + "-" + strconv.Itoa(next)
@@ -213,7 +219,8 @@ func (st *state) resolveShip(p *posting) {
 }
 
 // applyShip puts the posting into the parts the report made: the posting keeps the first part, the others are new postings
-// whose parent is the posting. All are awaiting_deliver, and each takes the exemplars of its products from the posting's.
+// whose parent is the posting. All are awaiting_deliver, and each takes the exemplars of its products from the posting's. When
+// the first part has a number of its own (control ship-split), every part is a new posting and the original is marked split.
 func (st *state) applyShip(p *posting, parts []shipPart) {
 	pool := p.exemplars
 	given := map[int64]int{}
@@ -231,9 +238,16 @@ func (st *state) applyShip(p *posting, parts []shipPart) {
 	}
 
 	original := *p
-	p.items, p.status, p.substatus, p.exemplars = parts[0].lines, statusAwaitingDeliver, "", take(parts[0].lines)
+	rest := parts
 
-	for _, part := range parts[1:] {
+	if parts[0].number == p.number {
+		p.items, p.status, p.substatus, p.exemplars = parts[0].lines, statusAwaitingDeliver, "", take(parts[0].lines)
+		rest = parts[1:]
+	} else {
+		st.markSplit(p)
+	}
+
+	for _, part := range rest {
 		st.postings = append(st.postings, &posting{
 			seq: st.newSeq(), number: part.number, orderNumber: original.orderNumber, parent: original.number,
 			status: statusAwaitingDeliver, warehouseID: original.warehouseID, inProcessAt: original.inProcessAt,
