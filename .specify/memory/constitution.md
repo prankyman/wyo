@@ -1,6 +1,12 @@
 <!--
 Sync Impact Report:
-- Version change: 1.4.0 → 1.5.0 (MINOR) — Plan 6
+- Version change: 1.5.0 → 1.6.0 (MINOR) — the maintainer, 2026-11-19: «Add to wyo constitution principles, if not there yet, that
+  if executing plan implementation model finds issues during implementation, it must resolve them, if possible, at once, while
+  implementing the current plan!» A rule tightened, nothing removed: «Plan Implementation Workflow», step 2 — an issue found on the
+  way is fixed in the plan at once, or, when it cannot be fixed inside the plan, goes to the register with its reason; the plan's
+  report lists every finding under «Found while implementing». Its policy test
+  (`TestEveryPlanReportListsWhatWasFoundWhileImplementing`) is added by the next plan that adds code (Plan 7).
+- Earlier: 1.4.0 → 1.5.0 (MINOR) — Plan 6
   (`.agents/plans/wyo-ozon-fbs-exchange-with-a-fulfilment-centre-codes-packing-labels-shipment.md`): a rule widened, nothing
   removed. Principle XII: the exchange's flow is chosen by the parts an adapter claims (a marketplace that confirms an order, or one
   whose label exists only after the packing is reported), a marketplace may declare that a second sending of codes replaces the
@@ -697,6 +703,15 @@ Every approved plan is carried out in exactly this order, by every AI agent and 
 2. **Implement** the plan. All test work follows the testing skills (`sveltekit-testing`, `go-testing`, `smoke-testing`), tests first
    and failing first; every component is reused, never rewritten; a progress checklist naming each stage's work is printed after every
    stage.
+   **An issue found on the way is fixed in this plan, at once** (the maintainer, 2026-11-19: «if executing plan implementation model
+   finds issues during implementation, it must resolve them, if possible, at once, while implementing the current plan»). Whatever the
+   agent finds while implementing — a defect, a failing or missing test, a copy that should be one component, a wrong or stale text,
+   a document that no longer tells the truth — is fixed on the plan's branch and in its one commit, with its test written first,
+   whether the plan caused it or not. It is left unfixed only when it cannot be fixed inside the plan: it needs the maintainer's
+   decision, a fact not sourced yet, a real account, or a change in another repository. Then it goes to the register the same day,
+   with its reason. The plan's report has the section «Found while implementing», which names every finding and says either how it
+   was fixed and which test proves it, or why it could not be fixed and which register item holds it
+   (`TestEveryPlanReportListsWhatWasFoundWhileImplementing`, added by the next plan that adds code).
 3. **The test flow** of `AGENTS.md`, «The test flow of every plan». `nproc` and `free -g` are read at the start of the plan: fewer than
    6 cores, or 16 GB of memory or less, is a **limited** machine; anything bigger is a **big** machine. First focused runs of exactly
    the files that changed or failed; then, by the main agent only, `pnpm precommit` once on a big machine (a limited machine never runs
@@ -750,4 +765,4 @@ file records every amendment with its version change and the request that caused
 pull request's description. The version follows semantic versioning of the rules: a principle added or a rule tightened raises the
 second number, a wording change the third; the first number is raised only by the maintainer.
 
-**Version**: 1.5.0 | **Ratified**: 2026-11-17 | **Last Amended**: 2026-11-18
+**Version**: 1.6.0 | **Ratified**: 2026-11-17 | **Last Amended**: 2026-11-19

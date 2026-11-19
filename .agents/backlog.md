@@ -331,6 +331,16 @@ warehouses, and the fulfilment centre's free stock sent to every marketplace tha
 offer. Needs the stock part of the neutral fulfilment-centre API, which Plan 1 does not write. A plan of its own, written when Stage 1
 (Plans 2, 3 and 4) is released.
 
+**2026-11-19 — Яндекс Маркет written as two plans** (the maintainer: «write the plan for Яндекс Маркет», «2»), not started:
+Plan 7 (`.agents/plans/wyo-yandex-market-key-reading-orders-notifications-safety-read-test-orders-fake-yandex-market.md`) — the key,
+reading orders, notifications with a safety read every 15 minutes, test orders marked and counted nowhere, the fake Яндекс Маркет; it
+starts after the fixes of item 38 are merged. Plan 8
+(`.agents/plans/wyo-yandex-market-fbs-and-express-exchange-with-a-fulfilment-centre-codes-labels-daily-shipment-courier-code.md`) — the
+FBS and Express exchange; it starts after Plan 7 and after the release of the maintainer's fulfilment software that adds the label
+size of each warehouse, orders a courier collects after a code check, and the test mark to its seller API (its plan is kept in the
+maintainer's other repository). Research: `.agents/research/yandex-market-official-partner-api-check-2026-11-19.md`. Stock stays open
+here after both.
+
 ## Closed
 
 ### 22. A fulfilment centre that names transport boxes (2026-11-18)
