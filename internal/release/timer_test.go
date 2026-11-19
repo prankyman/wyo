@@ -6,9 +6,7 @@ import (
 	"github.com/prankyman/wyo/internal/release"
 )
 
-func TestTheTimerIsReadAgainBySystemdAndRestarted(t *testing.T) {
-	t.Parallel()
-
+func TestTheTimerIsReadAgainBySystemdAndRestarted(t *testing.T) { // runs alone: fakeSystemctl
 	command, logPath := fakeSystemctl(t, nil)
 
 	if err := release.ReloadTimer(command)(t.Context()); err != nil {

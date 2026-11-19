@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 import { expect, test } from '../fixtures/test.js';
 import { addOzonAccountThroughApi, readOrdersNow } from '../helpers/accounts.js';
 import { OZON_READING_METHODS } from '../helpers/external-api.js';
+import { orderRowOf } from '../helpers/order-rows.js';
 import { openScreen } from '../helpers/open-screen.js';
 import { sweepScreen } from '../helpers/sweep.js';
 import {
@@ -224,7 +225,7 @@ test('an Ozon order of three products, its split made in the cabinet and a cance
 
     await openScreen(page, '/orders');
     await page.getByTestId('orders-refresh').click();
-    const row = page.locator('[data-test="orders-list-row"]', { hasText: '31400001-0001-1' });
+    const row = orderRowOf(page, '31400001-0001-1');
     await expect(row).toHaveCount(1, { timeout: 15_000 });
     // Ozon takes part in the exchange: no «пока не поддерживается»; with «Внешний API» empty the order is simply not passed on.
     await expect(row.getByTestId('orders-list-exchange-unsupported')).toHaveCount(0);
@@ -261,16 +262,21 @@ test('an Ozon order of three products, its split made in the cabinet and a cance
     await readOrdersNow(page.context(), server);
     await openScreen(page, '/orders');
 
-    const cancelled = page.locator('[data-test="orders-list-row"]', { hasText: '31400002-0001-1' });
+    const cancelled = orderRowOf(page, '31400002-0001-1');
     await expect(cancelled.getByTestId('orders-list-state')).toHaveText(ruText('orders.state.cancelled.buyer'));
 
-    const part = page.locator('[data-test="orders-list-row"]', { hasText: '31400001-0001-3' });
+    const part = orderRowOf(page, '31400001-0001-3');
     await part.getByTestId('orders-list-link').click();
     await expect(panel.getByTestId('order-facts-parent')).toHaveText('31400001-0001-1');
     await page.getByTestId('order-details-close').click();
 
-    const original = page.locator('[data-test="orders-list-row"]', { hasText: '31400001-0001-1' });
-    await original.first().getByTestId('orders-list-link').click();
+    // The original stays «Отменён», and its row names the parts it was split into.
+    const original = orderRowOf(page, '31400001-0001-1');
+    await expect(original.getByTestId('orders-list-state')).toHaveText(ruText('orders.state.cancelled'));
+    await expect(original.getByTestId('orders-list-state-parts')).toHaveText(
+        `${ruText('orders.field.parts')}: 31400001-0001-2, 31400001-0001-3`
+    );
+    await original.getByTestId('orders-list-link').click();
     await expect(panel.getByTestId('order-state')).toHaveText(ruText('orders.state.cancelled'));
     await expect(panel.getByTestId('order-facts-parts')).toHaveText('31400001-0001-2, 31400001-0001-3');
 });
