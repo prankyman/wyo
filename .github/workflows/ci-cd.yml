@@ -1,8 +1,12 @@
 name: CI/CD
 
-# The whole gate on a clean machine (every pull request and every push to main), and the release (a push to main whose
-# commits since the last version tag hold a `feat` or a `fix`). Standard GitHub-hosted runners are free for a public
-# repository: https://docs.github.com/en/billing/concepts/product-billing/github-actions
+# Every check and test runs on the Mac mini before the push (`pnpm remote:gate`, AGENTS.md «The test flow of every plan»):
+# GitHub runners took 16 to 28 minutes for the same run (the maintainer, 2026-11-19: «на GH - отключи их все»). Here, for
+# every pull request and every push to main: the secret scan, the installer on three clean Ubuntu machines, and the release
+# (a push to main whose commits since the last version tag hold a `feat` or a `fix`). Nothing here checks that the Mac's run
+# passed: the agent runs it before every push, as in the maintainer's other repository (the maintainer, 2026-11-19: «сделай
+# так же, без отметки»). Standard GitHub-hosted runners are free for a public repository:
+# https://docs.github.com/en/billing/concepts/product-billing/github-actions
 
 on:
     pull_request:
@@ -112,7 +116,7 @@ jobs:
         runs-on: ubuntu-24.04
         needs: check-skip-ci
         if: needs.check-skip-ci.outputs.skip_ci == 'false' && needs.check-skip-ci.outputs.tested != 'true'
-        timeout-minutes: 40
+        timeout-minutes: 10
         steps:
             - name: Checkout
               uses: actions/checkout@v7
@@ -129,51 +133,6 @@ jobs:
                   ./gitleaks detect --redact --no-banner --config .gitleaks.toml \
                     --log-opts="${{ needs.check-skip-ci.outputs.from }}..${{ needs.check-skip-ci.outputs.to }}"
                   rm -f gitleaks "$ARCHIVE"
-
-            - uses: pnpm/action-setup@v6
-            - uses: actions/setup-node@v7
-              with:
-                  node-version-file: .nvmrc
-                  cache: pnpm
-            - uses: actions/setup-go@v7
-              with:
-                  go-version-file: go.mod
-                  cache: true
-
-            - name: Install the interface's packages
-              run: pnpm install --frozen-lockfile
-
-            - name: Commit messages of the pushed commits
-              run: |
-                  pnpm exec commitlint --from "${{ needs.check-skip-ci.outputs.from }}" \
-                    --to "${{ needs.check-skip-ci.outputs.to }}" --verbose
-
-            - name: Install the Go tools
-              run: pnpm tools:install
-
-            - name: Install the browser for the browser tests
-              run: pnpm exec playwright install --with-deps chromium
-
-            - name: Generate, lint, type checks, tests with coverage, build
-              run: pnpm precommit
-
-            - name: Browser tests
-              run: pnpm test:e2e
-
-            - name: Memory of the wyo server with three accounts and 10 000 orders for a made-up day
-              run: pnpm go:measure
-
-            - name: Keep the reports
-              if: always()
-              uses: actions/upload-artifact@v7
-              with:
-                  name: reports-${{ github.run_id }}
-                  path: |
-                      coverage/
-                      playwright-report/
-                      test-results/
-                  if-no-files-found: ignore
-                  retention-days: 14
 
     # The installer and the updater of this commit, on clean machines with systemd, against a test certificate authority
     # (Pebble) and a local server of release files signed with a key made for the run (Plan 2, section L). Nothing here
@@ -306,7 +265,7 @@ jobs:
                   echo "The signature is accepted by a committed public key."
 
             # Only now, with the release built and signed, is the version committed and tagged: a missing secret stops the
-            # release before anything is pushed. The gate job above ran every check; the hooks of .husky/ would only run them again, without the Go tools.
+            # release before anything is pushed. The Mac mini ran every check before the push; the hooks of .husky/ would only run them again, without the Go tools.
             - name: Commit and tag the version
               env:
                   HUSKY: 0

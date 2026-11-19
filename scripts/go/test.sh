@@ -20,11 +20,13 @@ if [ "${#packages[@]}" -eq 0 ]; then
     packages=("${GO_PACKAGES[@]}")
 fi
 
-go test -race -shuffle=on -count=1 "${flags[@]}" "${packages[@]}"
+# ${flags[@]+…}: bash 3.2 (the Mac mini's) calls an empty array unbound under set -u.
+go test -race -shuffle=on -count=1 ${flags[@]+"${flags[@]}"} "${packages[@]}"
 
-mapfile -t tagged < <(grep -F -x -f <(go list "${TEST_TAG_PACKAGES[@]}") <(go list "${packages[@]}") || true)
+tagged=()
+while IFS= read -r line; do tagged+=("$line"); done < <(grep -F -x -f <(go list "${TEST_TAG_PACKAGES[@]}") <(go list "${packages[@]}") || true)
 if [ "${#tagged[@]}" -eq 0 ]; then
     echo "The code of these packages is the same in the build with the wyotest tag: one run is enough."
     exit 0
 fi
-go test -race -shuffle=on -count=1 -tags wyotest "${flags[@]}" "${tagged[@]}"
+go test -race -shuffle=on -count=1 -tags wyotest ${flags[@]+"${flags[@]}"} "${tagged[@]}"

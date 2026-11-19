@@ -90,19 +90,25 @@ machine is **big**.
    ESLint on the changed files, `pnpm test:headless <file>` for one interface test file, `pnpm go:test <package>` for one Go package,
    `pnpm test:e2e e2e/specs/<file>.spec.ts` for one browser test file. Every new source file has its unit test beside it. At most 2–3
    test files run in one go; a failure is fixed with another focused run of the failed file.
-2. **The whole local gate, `pnpm precommit`, once, by the main agent, as the final local step — on a big machine only.** A limited
-   machine never runs `pnpm precommit` (it holds `pnpm check`): it keeps to focused runs, and the pull request's run is its first whole
-   gate. **On a limited machine the whole-project type checks — `pnpm check`, `svelte-check`, any `tsc` with any configuration — never
-   run locally** (they ran the earlier machine out of memory); they run in the pull request's GitHub Actions run. Write test code and helpers type-safely (a typed
-   stub, no tuple index on an untyped mock, no property a union type may lack), and never fix a type error blind: read every error the
-   pull request's run prints, fix all of them, push again. A big machine runs `pnpm precommit` and the whole browser suite
-   (`pnpm test:e2e`) locally until both pass.
-3. **The pull request's run in GitHub Actions is the gate on a clean machine** (`.github/workflows/ci-cd.yml`). Commit with
-   `git commit --no-verify` (later `--amend --no-verify --no-edit`), push, open the pull request, watch the run to its end. A failure is
-   fixed locally with focused runs of the failed files, amended and pushed again (`git push --force-with-lease --no-verify`, the plan's
-   own branch only). **A run in GitHub Actions is never used to find out whether one test passes.** Measured on the first green
-   run (2026-11-17, Plan 1): the whole gate took 4 min 31 s on `ubuntu-24.04` — `pnpm precommit` 2 min 15 s, the browser's install
-   50 s, the browser tests under 15 s.
+2. **The whole gate runs on the Mac mini M4, once per commit: `pnpm remote:gate`** (the maintainer, 2026-11-19: «гонять финальные тесты
+   сначала на mac mini m4 … а на GH - отключи их все»). Commit first (`git commit --no-verify`, later `--amend --no-verify --no-edit`):
+   the run carries the committed HEAD as a git bundle over SSH and runs on the Mac, in its own clone `~/wyo-runs/wyo`, everything the
+   pull request's run in GitHub Actions used to run: the commit messages, `pnpm precommit`, the whole browser suite and
+   `pnpm go:measure` (`scripts/remote/mac-gate.sh`). The report comes back into `.remote-runs/<stamp>/summary.md`. A failure is fixed
+   locally with focused runs of the failed files, amended, and `pnpm remote:gate` runs again. **The Mac is never used to find out
+   whether one test passes.** On a limited machine the whole-project type checks — `pnpm check`, `svelte-check`, any `tsc` — never run
+   locally; they run on the Mac. Write test code type-safely and never fix a type error blind: read every error the run prints. The
+   Mac's address lives in `scripts/remote/hosts.env` (ignored by git; `hosts.env.example`), its tools are set up once by
+   `pnpm remote:setup`. Only the main agent starts a Mac run.
+3. **Push only a commit the Mac passed.** Nothing in GitHub Actions checks it (the maintainer, 2026-11-19: «сделай так же, без
+   отметки»): the agent pushes a commit only after `pnpm remote:gate` printed `PASSED` for that very commit, and runs it again after an
+   amend or rebase that changes code. Every run costs the maintainer about 6 minutes, so it is repeated only when what the run tests
+   changed: an amend or rebase that touches only documents (`*.md`, `.agents/`, `.specify/`) or `.github/workflows/` needs no new run
+   (the maintainer, 2026-11-19: «твое изменение сейчас было не в коде, а в правилах … делаешь лишнюю проверку»). The pull request's run
+   in GitHub Actions (`.github/workflows/ci-cd.yml`) only scans for secrets and tests the installer on three clean Ubuntu machines. **A
+   pull request is merged only when its run's own conclusion is `success`** (`gh run view <id> --json conclusion`): on 2026-11-19 a
+   watcher's exit code was read for the run's and a failed gate was merged. A run in GitHub Actions is never used to find out whether
+   one test passes.
 4. **The smoke test** runs locally against the built wyo server and the fakes, one browser (`smoke-testing` skill). It is skipped for
    work that is documents only.
 

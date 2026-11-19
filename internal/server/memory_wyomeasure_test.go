@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -26,7 +27,8 @@ import (
 // (`pnpm go:measure`, the build tag wyomeasure), because it measures, not checks: the pipeline prints its line, and the
 // README's requirements take the number with the date.
 //
-// What the number is: the peak resident memory of the whole test process (VmHWM of /proc/self/status) and the Go heap
+// What the number is: the peak resident memory of the whole test process (VmHWM of /proc/self/status on Linux; the system's
+// getrusage elsewhere, on the Mac mini of the final runs, where the current resident memory is not known) and the Go heap
 // in use after the day. The process also holds the fakes and the test itself, so the number is an upper bound of the wyo
 // server's own memory.
 func TestTheMemoryOfADayWithFourAccountsAndTenThousandOrders(t *testing.T) {
@@ -114,8 +116,9 @@ func TestTheMemoryOfADayWithFourAccountsAndTenThousandOrders(t *testing.T) {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
 
-	t.Logf("wyo-memory: peak_rss_kb=%d rss_kb=%d go_heap_in_use_kb=%d go_sys_kb=%d accounts=%d orders=%d journal_rows=%d day=%s",
-		status(t, "VmHWM"), status(t, "VmRSS"), mem.HeapInuse/1024, mem.Sys/1024, accountCount, orders, rows, clk.Now().Format(time.RFC3339))
+	peak, current := resident(t)
+	t.Logf("wyo-memory: peak_rss_kb=%d rss_kb=%s go_heap_in_use_kb=%d go_sys_kb=%d accounts=%d orders=%d journal_rows=%d day=%s system=%s/%s",
+		peak, current, mem.HeapInuse/1024, mem.Sys/1024, accountCount, orders, rows, clk.Now().Format(time.RFC3339), runtime.GOOS, runtime.GOARCH)
 
 	if orders < orderCount || rows == 0 {
 		t.Fatalf("the day did not run as measured: %d orders, %d journal rows", orders, rows)
@@ -167,6 +170,28 @@ func seedOrders(t *testing.T, app *server.App, accounts []int64, count int, now 
 	}); err != nil {
 		t.Fatalf("seed the orders: %v", err)
 	}
+}
+
+// resident is the peak resident memory of the process in kB and its current one: from /proc/self/status on Linux; elsewhere the
+// peak from getrusage (whose unit is the byte on macOS, the kB on Linux) and "unknown" for the current one.
+func resident(t *testing.T) (int, string) {
+	t.Helper()
+
+	if _, err := os.Stat("/proc/self/status"); err == nil {
+		return status(t, "VmHWM"), strconv.Itoa(status(t, "VmRSS"))
+	}
+
+	var usage syscall.Rusage
+	if err := syscall.Getrusage(syscall.RUSAGE_SELF, &usage); err != nil {
+		t.Fatalf("getrusage: %v", err)
+	}
+
+	peak := int(usage.Maxrss)
+	if runtime.GOOS == "darwin" {
+		peak /= 1024
+	}
+
+	return peak, "unknown"
 }
 
 // status reads one value in kB from /proc/self/status (Linux).

@@ -149,15 +149,22 @@ export function superForm<
         }),
         // The form's own check ran in the browser before this: `onUpdate` is where the values are sent. The form's own
         // handler comes first and may refuse (a rule only it knows); a refused form is not sent.
-        ...(send && {
-            onUpdate: async (event) => {
-                await formOptions.onUpdate?.(event);
-                if (!event.form.valid) return;
-                const result = await send(event.form.data);
-                if (result.ok) setSaved(event.form, saved);
-                else applyRefusal(event.form, result.refusal, refusals);
+        //
+        // A form its own check refused is not sent, but the library still writes `event.form.data` - the values as they were
+        // at the press - back into the boxes, a moment after the refusal is drawn. A value typed in that moment was lost:
+        // on 2026-11-19 a browser test on the Mac mini typed the next password within 2 ms of seeing the message, and the
+        // old one came back into the box (`keepTypedValues`).
+        onUpdate: async (event) => {
+            await formOptions.onUpdate?.(event);
+            if (!event.form.valid) {
+                keepTypedValues(event.form, instance);
+                return;
             }
-        }),
+            if (!send) return;
+            const result = await send(event.form.data);
+            if (result.ok) setSaved(event.form, saved);
+            else applyRefusal(event.form, result.refusal, refusals);
+        },
         // `?? ` and not a merge: a form that handles its own errors has said something more useful than this could, and two
         // toasts for one failure is worse than one.
         onError: formOptions.onError ?? reportTransportFailure,
@@ -273,6 +280,17 @@ export function spaForm<S extends ZodValidationSchema>(
 ): SuperForm<Infer<S, 'zod4'>> {
     const start = initial ? defaults(initial as never, zod4(schema)) : defaults(zod4(schema));
     return superForm(start as never, { validators: zod4Client(schema), ...options } as never) as never;
+}
+
+/**
+ * A refused press writes the boxes' values as they are now, not as they were at the press: what the person typed after pressing
+ * stays in the boxes (the library would otherwise put the pressed values back).
+ */
+function keepTypedValues<T extends Record<string, unknown>, M>(
+    validated: SuperValidated<T, M>,
+    instance: SuperForm<T, M>
+): void {
+    validated.data = get(instance.form);
 }
 
 /** One internal shape for every form, whatever its data type; only the stores below are read. */

@@ -11,6 +11,7 @@ vi.mock('$lib/components/ui/disclosure-form', () => ({ disclosureFormOf: () => a
 
 import { applyRefusal, defaults, setMessage, zod4 } from './super-form';
 import { z } from 'zod';
+import { get } from 'svelte/store';
 
 type TMade = SuperForm<{ name: string }>;
 
@@ -61,6 +62,22 @@ describe('superForm in the single-page mode', () => {
         await typeAndSend('a');
 
         await vi.waitFor(() => expect(screen.getByTestId('spa-form-name-error')).toHaveTextContent(invalid));
+        expect(send).not.toHaveBeenCalled();
+    });
+
+    it('keeps a value typed right after a press its own check refused, instead of putting the pressed value back', async () => {
+        const send = vi.fn(async (): Promise<TApiResult<unknown>> => ({ ok: true, data: {} }));
+        let made: TMade | undefined;
+        render(SpaFormTestHarness, { props: { options: { send }, onMade: (form: TMade) => (made = form) } });
+
+        // The next value goes in before the refused press has finished (a browser test on a fast machine did it within 2 ms).
+        await typeAndSend('a');
+        await fireEvent.input(screen.getByTestId('spa-form-name'), { target: { value: 'abc' } });
+
+        await vi.waitFor(() => expect(made && get(made.submitting)).toBe(false));
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        expect(screen.getByTestId('spa-form-name')).toHaveValue('abc');
+        expect(made && get(made.form).name).toBe('abc');
         expect(send).not.toHaveBeenCalled();
     });
 
