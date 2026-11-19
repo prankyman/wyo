@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.10](https://github.com/prankyman/wyo/compare/v0.0.9...v0.0.10) (2026-11-19)
+
+### Bug Fixes
+
+* the order list names the parts of an order the marketplace split ([ce24c19](https://github.com/prankyman/wyo/commit/ce24c19f82ce86f45d65e95ea8140b45f4a6e5ca))
+* three tests that failed in GitHub Actions: systemctl, Ozon split, server start ([c7ffc38](https://github.com/prankyman/wyo/commit/c7ffc38eb70e92861ed38b286a3c942c1117fb96)), references [#13](https://github.com/prankyman/wyo/issues/13) [#13](https://github.com/prankyman/wyo/issues/13)
+
 ## [0.0.9](https://github.com/prankyman/wyo/compare/v0.0.8...v0.0.9) (2026-11-19)
 
 ### Bug Fixes
