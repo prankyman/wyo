@@ -360,3 +360,44 @@ func TestTheGeneratorsListOfOzonMethodsNamesExactlyTheMethodsThePlansNeed(t *tes
 		}
 	}
 }
+
+// The Go tests run a second time with the test tag `wyotest` only for the packages listed in
+// scripts/go/test-tag-packages.txt, and the list is exactly the packages whose tests run different code in the two builds:
+// one missing would lose the tests that exist only in the test build, one too many runs the same code twice for nothing
+// (the maintainer, 2026-11-19: «run only the 10 packages twice», after a pull request's run took 25 minutes).
+func TestTheRunWithTheTestTagHoldsExactlyThePackagesThatDifferBetweenTheBuilds(t *testing.T) {
+	t.Parallel()
+
+	release, err := archtest.LoadBuild(t.Context(), moduleRoot, modulePath, "")
+	if err != nil {
+		t.Fatalf("LoadBuild of the release build: %v", err)
+	}
+
+	test, err := archtest.LoadBuild(t.Context(), moduleRoot, modulePath, "wyotest")
+	if err != nil {
+		t.Fatalf("LoadBuild of the test build: %v", err)
+	}
+
+	want := archtest.DifferBetweenBuilds(release, test)
+	if len(want) == 0 {
+		t.Fatal("no package differs between the builds: the rule would guard nothing")
+	}
+
+	list, err := os.ReadFile(moduleRoot + "/scripts/go/test-tag-packages.txt")
+	if err != nil {
+		t.Fatalf("read the list: %v", err)
+	}
+
+	var listed []string
+
+	for line := range strings.Lines(string(list)) {
+		if name := strings.TrimSpace(line); name != "" && !strings.HasPrefix(name, "#") {
+			listed = append(listed, strings.TrimPrefix(name, "./"))
+		}
+	}
+
+	if !slices.Equal(listed, want) {
+		t.Errorf("scripts/go/test-tag-packages.txt lists, in this order,\n%s\nwant\n%s",
+			strings.Join(listed, "\n"), strings.Join(want, "\n"))
+	}
+}

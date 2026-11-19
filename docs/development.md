@@ -31,7 +31,9 @@ Always a script of `package.json`, never an ad-hoc command, and never `--` befor
 - `pnpm generate` — makes the generated code (the clients and server skeletons of `api/*.yaml`, the interface's API types).
 - `pnpm generate:check` — fails when a committed generated file differs from a fresh one.
 - `pnpm test:headless [file]` — Vitest once, both projects, or one file.
-- `pnpm go:test [package]` — `go test -race -shuffle=on -count=1` for one package, or for `./cmd/... ./internal/... ./tools/...`.
+- `pnpm go:test [flags] [package]` — `go test -race -shuffle=on -count=1` for the packages given, or for every Go package, as the
+  release build; then the packages of `scripts/go/test-tag-packages.txt`, the only ones whose code differs in the build with the
+  `wyotest` tag, again with that tag (`pnpm test:coverage` does the same). `internal/archtest` keeps the list exact.
 - `pnpm go:measure` — the memory of the wyo server with three accounts and 10 000 orders, reading the fake Wildberries at the
   synchronisation's periods for a made-up day; it prints one line that starts with `wyo-memory:` (the peak memory of the test process,
   which also holds the fake, so it is an upper bound). The pipeline runs it after the browser tests.

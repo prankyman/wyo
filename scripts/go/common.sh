@@ -10,6 +10,9 @@ export PATH="$root/.tools/bin:$PATH"
 
 # The Go packages the checks run over.
 GO_PACKAGES=(./cmd/... ./internal/... ./tools/... ./messages/...)
+# The packages whose tests run different code in the build with the test tag `wyotest` than in the release build
+# (scripts/go/test-tag-packages.txt, kept exact by internal/archtest). Only they run a second time, with the tag.
+mapfile -t TEST_TAG_PACKAGES < <(grep -v -e '^#' -e '^$' "$root/scripts/go/test-tag-packages.txt")
 # The same places as folders, for tools that take paths.
 GO_FOLDERS=(cmd internal tools messages)
 
