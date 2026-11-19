@@ -69,6 +69,9 @@ type carriagePlan struct {
 	docsAsObject bool
 	// late are postings that fall into a shipment right after its list is rewritten, each once.
 	late []string
+	// lateOnReads are postings that fall into a shipment right before a reading of it (/v1/carriage/get), one posting for each
+	// reading, in order: a posting that became ready after the list was written and read back.
+	lateOnReads []string
 }
 
 type refusedPosting struct{ posting, words string }
@@ -348,6 +351,22 @@ func (st *state) addLatePostings(car *carriage) {
 	}
 }
 
+// addLateOnRead puts the next posting a test commanded to fall into the shipment right before a reading of it: a posting that
+// became ready after the list was written and read back. It falls only into a shipment that is still new, and only when it can be
+// there (as addLatePostings); the posting is used up either way.
+func (st *state) addLateOnRead(car *carriage) {
+	if len(st.carr.lateOnReads) == 0 {
+		return
+	}
+
+	number := st.carr.lateOnReads[0]
+	st.carr.lateOnReads = st.carr.lateOnReads[1:]
+
+	if car.status == carriageNew && st.setPostingRefusal(car, number) == "" && !slices.Contains(car.postings, number) {
+		car.postings = append(car.postings, number)
+	}
+}
+
 // setPostingRefusal says why a posting cannot be in the shipment; empty when it can. The order of the checks is the fake's.
 func (st *state) setPostingRefusal(car *carriage, number string) string {
 	p := st.postingOf(number)
@@ -415,6 +434,8 @@ func (c *call) carriageGet() {
 	if !ok {
 		return
 	}
+
+	c.st.addLateOnRead(car)
 
 	actions := []string{}
 	cancel := ozonapi.CarriageCarriageGetResponseCancelAvailability{IsCancelAvailable: new(false), Reason: new("the shipment is " + car.status)}

@@ -399,6 +399,17 @@ func ordersPack(t *testing.T, f Fixture) {
 	if f.NewSplittableOrder != nil {
 		splitIntoParcels(t, f, packer, s)
 	}
+
+	if f.SplitOrder != nil {
+		expect(t, f.NewSplittableOrder != nil, "the fixture splits an order but cannot make one that can be split")
+
+		number := f.NewSplittableOrder(t, s.key)
+		f.SplitOrder(t, s.key, number)
+
+		split, err := packer.PackState(t.Context(), s.conn, number)
+		expect(t, err == nil && split.Split && !split.Cancelled && !split.Packed && !split.Failed,
+			"the state of an order the marketplace split into parts: %+v, %v: want Split, and neither Cancelled nor Packed", split, err)
+	}
 }
 
 // splitIntoParcels packs an order of several units with one parcel for each unit: the marketplace makes one part of each.

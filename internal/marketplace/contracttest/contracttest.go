@@ -50,6 +50,9 @@ type Fixture struct {
 	LabelType string
 	// NewSplittableOrder makes a new order of at least two units, which the packing report can split into parcels.
 	NewSplittableOrder func(t *testing.T, key map[string]string) string
+	// SplitOrder makes the marketplace split that order (made by NewSplittableOrder) into parts of its own, as the seller's
+	// cabinet does: the order is then no longer an order of its own, and the marketplace shows it as split, not as cancelled.
+	SplitOrder func(t *testing.T, key map[string]string, number string)
 	// ExtraVerdicts are the verdicts beyond the four every adapter can be told that the fake can be told (VerdictAgain).
 	ExtraVerdicts []marketplace.VerdictKind
 	// NoVerdicts are the verdicts of the four the marketplace has no word for, so that no fake can be told to give them (a

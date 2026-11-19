@@ -368,7 +368,9 @@ func (s *Service) sendProductCodes(ctx context.Context, sess *session, o *order,
 	return nil
 }
 
-// checkedAgain is the marketplace's «did not manage to check»: the full set is sent once more; a second time is a problem.
+// checkedAgain is the marketplace's «did not manage to check»: the full set is sent once more; a second time is a problem. A
+// resend that did not reach the marketplace (no connection, a limit) is not counted and is made at the next check: the codes
+// replace what the marketplace holds, so a resend after a lost answer writes nothing wrong.
 func (s *Service) checkedAgain(ctx context.Context, sess *session, o *order, words string) {
 	if o.x.CodesResends >= codesResendsMax {
 		o.x.CodesState, o.x.NextCheckAt = codesRefused, time.Time{}
@@ -377,9 +379,6 @@ func (s *Service) checkedAgain(ctx context.Context, sess *session, o *order, wor
 		return
 	}
 
-	o.x.CodesResends++
-	s.save(ctx, o)
-
 	units, err := s.opts.Store.Read().OrderCodes(ctx, o.x.OrderID)
 	if err != nil {
 		s.opts.Log.Error("the codes could not be read", "order", o.x.OrderID, "err", err)
@@ -387,7 +386,13 @@ func (s *Service) checkedAgain(ctx context.Context, sess *session, o *order, wor
 		return
 	}
 
-	_ = keepStopped(s.sendCodes(ctx, sess, o, units))
+	// The resend is counted with its outcome, which the sending saves.
+	o.x.CodesResends++
+
+	if err := s.sendCodes(ctx, sess, o, units); errors.Is(err, errStopped) {
+		o.x.CodesResends--
+		s.later(ctx, o)
+	}
 }
 
 // reopenedForPacking is order.reopened for an adapter that reports the packing. Before the report nothing was written to the

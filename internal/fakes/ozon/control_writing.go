@@ -35,7 +35,10 @@ import (
 //	                                          the barcode are answered as an object holding the file in base64, not as the file),
 //	                                          late_postings (postings that fall into a shipment right after the next rewrite of its
 //	                                          list, as a posting that became ready would: each once, and only a packed posting of
-//	                                          the shipment's warehouse that no shipment holds); replaces the key's plan, whose
+//	                                          the shipment's warehouse that no shipment holds), late_on_reads (postings that fall into
+//	                                          a shipment still new right before a reading of it, /v1/carriage/get, one posting for each
+//	                                          reading, in order, under the same conditions: a posting that became ready after the list
+//	                                          was written and read back); replaces the key's plan, whose
 //	                                          documents part holds for shipments approved after it
 //	GET  /__control/label-files               every request for a label file: its path and with_key, whether it carried a key header
 //	GET  /__control/exemplars?posting_number  the posting's exemplars with the codes they carry, as create-or-get answers them
@@ -107,6 +110,7 @@ type carriagePlanRequest struct {
 	RemovedFromAct    []string `json:"removed_from_act"`
 	DocumentsAsObject bool     `json:"documents_as_object"`
 	LatePostings      []string `json:"late_postings"`
+	LateOnReads       []string `json:"late_on_reads"`
 }
 
 func (st *state) planCarriages(in carriagePlanRequest) error {
@@ -123,6 +127,7 @@ func (st *state) planCarriages(in carriagePlanRequest) error {
 	plan := carriagePlan{
 		notReady: in.NotReady, docReadings: in.DocumentReadings, docStatuses: slices.Clone(in.DocumentStatuses),
 		removedFrom: slices.Clone(in.RemovedFromAct), docsAsObject: in.DocumentsAsObject, late: slices.Clone(in.LatePostings),
+		lateOnReads: slices.Clone(in.LateOnReads),
 	}
 
 	for _, r := range in.RefusedPostings {

@@ -143,7 +143,7 @@ func partsOf(additional, result any) []marketplace.PackedPart {
 }
 
 // posting reads one posting with /v3/posting/fbs/get; a refusal comes back as a refusal in Ozon's words (POSTING_NOT_FOUND
-// among them).
+// among them). The method is in the read category, so a missing role names «Posting FBS read-only», as orders.go does.
 func (a *Adapter) posting(ctx context.Context, conn marketplace.Conn, number string) (*ozonapi.V3FbsPostingDetail, error) {
 	client, err := a.client(conn)
 	if err != nil {
@@ -157,7 +157,7 @@ func (a *Adapter) posting(ctx context.Context, conn marketplace.Conn, number str
 	}
 
 	if res.StatusCode() != http.StatusOK || res.JSON200 == nil || res.JSON200.Result == nil {
-		return nil, writeRefusal(res.StatusCode(), res.Body)
+		return nil, wordRefusal(res.StatusCode(), res.Body, categoryPostingFBS)
 	}
 
 	return res.JSON200.Result, nil
@@ -165,8 +165,10 @@ func (a *Adapter) posting(ctx context.Context, conn marketplace.Conn, number str
 
 // PackState implements marketplace.OrderPacker: /v3/posting/fbs/get. Packed is the status awaiting_deliver; Failed the
 // substatus ship_failed («Если в ответе указан result.substatus = ship_failed, повторите сборку заказа», OZC §7), with Ozon's
-// substatus as the words; Cancelled the status cancelled or cancelled_from_split_pending (OZC §6), with Ozon's reason as the
-// words. The lines are the posting's products now, by SKU. Several parts of a split are each read as a posting of their own.
+// substatus as the words; Cancelled the status cancelled (OZC §6), with Ozon's reason as the words; Split the status
+// cancelled_from_split_pending («отменён из-за разделения отправления», OZC §6): the posting was split into parts and is no
+// longer an order of its own, and it is never read as Cancelled. The lines are the posting's products now, by SKU. The parts of
+// a split are not found from the original: the caller reads each part by its own number.
 func (a *Adapter) PackState(ctx context.Context, conn marketplace.Conn, number string) (marketplace.PackState, error) {
 	p, err := a.posting(ctx, conn, number)
 	if err != nil {
@@ -177,7 +179,8 @@ func (a *Adapter) PackState(ctx context.Context, conn marketplace.Conn, number s
 	state := marketplace.PackState{
 		Packed:    status == statusAwaitingDeliver,
 		Failed:    substatus == substatusShipFailed,
-		Cancelled: status == statusCancelled || status == statusCancelledBySplit,
+		Cancelled: status == statusCancelled,
+		Split:     status == statusCancelledBySplit,
 	}
 
 	switch {

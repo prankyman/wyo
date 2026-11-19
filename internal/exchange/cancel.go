@@ -25,6 +25,12 @@ func (s *Service) passCancellations(ctx context.Context, sess *session) error {
 			return err
 		}
 
+		// An order the report of its packing split is no order of its own at the marketplace any more, which may show it
+		// cancelled because of the split: its parts are read instead (packState), and a part cancelled is the owner's problem.
+		if parts, err := s.splitParts(ctx, o); err != nil || len(parts) > 0 {
+			continue
+		}
+
 		if s.passCancel(ctx, sess, o) {
 			return nil
 		}

@@ -79,6 +79,14 @@ func TestALabelOzonDoesNotMakeIsAProblemInOzonsWordsAndTheRetryFetchesIt(t *test
 				t.Fatalf("%d label tasks were made, want 1 while the problem stands", got)
 			}
 
+			if got := count(r.fcWrites(t), "PUT /api/v1/orders/{id}/problem"); got != 1 {
+				t.Fatalf("the problem was reported to the fulfilment centre %d times, want once", got)
+			}
+
+			if got := count(r.history(t, number), "problem"); got != 1 {
+				t.Fatalf("the history holds %d problem rows, want one: %v", got, r.history(t, number))
+			}
+
 			// Ozon can make the label now; the owner presses «Передать заново».
 			r.ozControl(t, "/__control/labels", map[string]any{})
 

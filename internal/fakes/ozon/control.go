@@ -25,6 +25,11 @@ import (
 //	                                    system or delivery: only with the status cancelled), cancelled_after_ship
 //	POST /__control/postings/split      the split made in the seller's cabinet: posting_number, parts [{posting_number, products
 //	                                    [{sku, quantity}]}]
+//	POST /__control/ship-split          original_split_pending (true or false): for the key's next reports of a packing with several
+//	                                    packages, the split gives EVERY part a new number and the original posting becomes
+//	                                    cancelled_from_split_pending, as after a split made in the cabinet (what a real Ozon shows
+//	                                    for the original after its own split is not sourced: OZC section 10, point 5); false, the
+//	                                    default, keeps the original as part 1; replaces the key's setting
 //	POST /__control/postings/deadline   posting_number, shipment_date
 //	POST /__control/postings/cut        the seller takes products off a posting in the cabinet: posting_number, products [{sku,
 //	                                    quantity}] (the quantity the posting has of the product now; 0 takes the line off); not every
@@ -38,6 +43,7 @@ func (s *Server) controlRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /__control/postings", controlCall(s, (*state).addPosting))
 	mux.HandleFunc("POST /__control/postings/status", controlCall(s, (*state).setStatus))
 	mux.HandleFunc("POST /__control/postings/split", controlCall(s, (*state).split))
+	mux.HandleFunc("POST /__control/ship-split", controlCall(s, (*state).setShipSplit))
 	mux.HandleFunc("POST /__control/postings/deadline", controlCall(s, (*state).setDeadline))
 	mux.HandleFunc("POST /__control/postings/cut", controlCall(s, (*state).cutProducts))
 	mux.HandleFunc("POST /__control/fbo-postings", controlCall(s, (*state).addFBO))
@@ -359,8 +365,25 @@ func (st *state) split(in splitRequest) error {
 		return fmt.Errorf("the parts hold %v units by SKU, the posting has %v", given, units)
 	}
 
-	original.status, original.substatus = statusCancelledFromSplit, substatusSplitPending
+	st.markSplit(original)
 	st.postings = append(st.postings, made...)
+
+	return nil
+}
+
+// markSplit makes the posting what Ozon shows for a posting that was split: cancelled_from_split_pending with the substatus
+// posting_split_pending (OZC section 6). Its products stay on it: what Ozon shows of them is not sourced.
+func (st *state) markSplit(original *posting) {
+	original.status, original.substatus = statusCancelledFromSplit, substatusSplitPending
+}
+
+type shipSplitRequest struct {
+	OriginalSplitPending bool `json:"original_split_pending"`
+}
+
+// setShipSplit sets whether the reports of the key that split a posting leave the original out of the parts (ship.go).
+func (st *state) setShipSplit(in shipSplitRequest) error {
+	st.splitOriginal = in.OriginalSplitPending
 
 	return nil
 }

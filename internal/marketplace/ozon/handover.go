@@ -233,27 +233,11 @@ func (a *Adapter) FillBatch(ctx context.Context, conn marketplace.Conn, batch st
 		return err
 	}
 
-	missing := without(numbers, held)
-	extra := without(held, numbers)
-
-	if len(missing) > 0 || len(extra) > 0 {
-		return ownRefusal(codeBatchDiffers, "", map[string]any{"missing": strings.Join(missing, ", "), "extra": strings.Join(extra, ", ")})
+	if refusal := marketplace.BatchDiffers(numbers, held); refusal != nil {
+		return refusal
 	}
 
 	return nil
-}
-
-// without lists, once each and in order, what is in the first list and not in the second.
-func without(from, other []string) []string {
-	var out []string
-
-	for _, n := range from {
-		if !slices.Contains(other, n) && !slices.Contains(out, n) {
-			out = append(out, n)
-		}
-	}
-
-	return out
 }
 
 // batchPostings reads the numbers of the postings a shipment holds: /v2/posting/fbs/act/get-postings. The request's «id» has

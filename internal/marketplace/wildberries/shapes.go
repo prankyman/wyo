@@ -2,7 +2,6 @@ package wildberries
 
 import (
 	"context"
-	"slices"
 
 	"github.com/prankyman/wyo/internal/marketplace"
 )
@@ -23,14 +22,7 @@ func (a *Adapter) FillBatch(ctx context.Context, conn marketplace.Conn, batch st
 		return err
 	}
 
-	var missing []string
-
-	for _, n := range numbers {
-		if !slices.Contains(state.Orders, n) {
-			missing = append(missing, n)
-		}
-	}
-
+	missing := marketplace.Without(numbers, state.Orders)
 	if len(missing) == 0 {
 		return nil
 	}

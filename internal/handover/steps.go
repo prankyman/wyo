@@ -118,7 +118,7 @@ func (rn *run) group(g group) (string, error) {
 		case StepShipping:
 			stepErr = rn.ship(g, p, sup)
 		case StepClose:
-			stepErr = rn.close(p, sup)
+			stepErr = rn.close(g, p, sup)
 		}
 
 		if stepErr != nil {
@@ -310,14 +310,34 @@ func (rn *run) ship(g group, p parts, sup store.Supply) error {
 	return nil
 }
 
-// close hands the supply to delivery, unless it is closed already.
-func (rn *run) close(p parts, sup store.Supply) error {
+// close hands the supply to delivery, unless it is closed already. Before that it reads what the batch holds and compares it
+// with the hand-over's orders both ways (principle XII: a batch that holds another order is never closed): a marketplace may put an
+// order into the batch after the step «move» read it back. A difference does not close: the step «move» runs once more, which
+// rewrites the list, and the batch is read and compared again. A second difference stops the hand-over with the problem
+// «batch_differs», which names the missing and the extra orders.
+func (rn *run) close(g group, p parts, sup store.Supply) error {
 	state, err := p.reader.Batch(rn.ctx, p.conn, sup.Number)
 	if err != nil {
 		return rn.refused(StepClose, err)
 	}
 
 	if !state.Closed {
+		wanted := numbersOf(g.orders)
+
+		if marketplace.BatchDiffers(wanted, state.Orders) != nil {
+			if err := rn.move(g, p, sup); err != nil {
+				return err
+			}
+
+			if state, err = p.reader.Batch(rn.ctx, p.conn, sup.Number); err != nil {
+				return rn.refused(StepClose, err)
+			}
+
+			if refusal := marketplace.BatchDiffers(wanted, state.Orders); refusal != nil {
+				return rn.refused(StepClose, refusal)
+			}
+		}
+
 		if err := p.closer.CloseBatch(rn.ctx, p.conn, sup.Number); err != nil {
 			return rn.refused(StepClose, err)
 		}

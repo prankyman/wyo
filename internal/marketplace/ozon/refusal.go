@@ -36,7 +36,6 @@ const (
 	codeFileTooLarge      = "file_too_large"
 	codeFileNotAFile      = "file_not_a_label_or_document"
 	codePostingRefused    = "posting_refused"
-	codeBatchDiffers      = "batch_differs"
 	codeBatchCancelled    = "batch_cancelled"
 	codeBatchApproved     = "batch_approved"
 	codePostingsRemoved   = "postings_removed_from_act"
@@ -126,7 +125,14 @@ func keyRefusal(code string, status int) *marketplace.Refusal {
 // 300 characters and otherwise as received, in Params["text"]; an answer whose message is not a single word keeps the code
 // request_refused with the status. Ozon's «details» are never kept: they may name the buyer's data.
 func writeRefusal(status int, body []byte) error {
-	err := refusalOf(status, body, categoryPostingFBSWrite)
+	return wordRefusal(status, body, categoryPostingFBSWrite)
+}
+
+// wordRefusal is writeRefusal for a call of any category: the same refusal of refusalOf, with Ozon's error word as its code,
+// and the access level of the category named when the key lacks it. A reading in the read category (the reading of a posting)
+// names the read level, never the write level.
+func wordRefusal(status int, body []byte, category string) error {
+	err := refusalOf(status, body, category)
 
 	var refusal *marketplace.Refusal
 	if !errors.As(err, &refusal) || refusal.Code != codeRequestRefused {

@@ -47,6 +47,15 @@ func TestTheAdapterKeepsTheContractAgainstTheFake(t *testing.T) {
 		NewSplittableOrder: func(t *testing.T, key map[string]string) string {
 			return newPosting(t, key, product(skuPlain, "SOCKS", 2))
 		},
+		SplitOrder: func(t *testing.T, key map[string]string, number string) {
+			r.control(t, key, "/__control/postings/split", map[string]any{
+				"posting_number": number,
+				"parts": []map[string]any{
+					{"posting_number": number + "-a", "products": []map[string]any{{"sku": skuPlain, "quantity": 1}}},
+					{"posting_number": number + "-b", "products": []map[string]any{{"sku": skuPlain, "quantity": 1}}},
+				},
+			})
+		},
 		NeedsOtherIdentifier: func(t *testing.T, key map[string]string) (string, string) {
 			return newPosting(t, key, product(skuCustoms, "CUSTOMS", 1)), marketplace.IdentifierCustoms
 		},
