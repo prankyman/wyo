@@ -66,7 +66,19 @@ func TestWithADomainTheServerListensOnItsOwnPorts(t *testing.T) {
 
 	var body string
 
-	for range 100 {
+	// The start takes about a second on an idle machine and several on a busy one (more than five once in GitHub Actions,
+	// with the race detector beside other packages' tests): the test waits for the answer, for the server's exit, or for
+	// half a minute, whichever comes first.
+	wall := clock.Real{}
+	deadline := wall.Now().Add(30 * time.Second)
+
+	for body == "" && wall.Now().Before(deadline) {
+		select {
+		case code := <-done:
+			t.Fatalf("the server stopped before it answered: exit %d; log:\n%s", code, stderr.String())
+		default:
+		}
+
 		req, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, address, nil)
 		if resp, err := client.Do(req); err == nil {
 			data, _ := io.ReadAll(resp.Body)

@@ -12,6 +12,10 @@ import (
 
 // fakeSystemctl writes a small program that records its arguments and answers as the test says, so the real command
 // runner is tested without a service manager.
+//
+// A test that uses it never calls t.Parallel, and so runs while every parallel test of the package waits. Run beside each other,
+// one test's process start copies another test's program while that program is still open for writing, and running that program
+// then fails with «text file busy» (https://github.com/golang/go/issues/22315).
 func fakeSystemctl(t *testing.T, exitFor map[string]int) (command, logPath string) {
 	t.Helper()
 
@@ -37,8 +41,6 @@ func fakeSystemctl(t *testing.T, exitFor map[string]int) (command, logPath strin
 }
 
 func TestSystemctlStopsAndStartsTheUnit(t *testing.T) {
-	t.Parallel()
-
 	command, logPath := fakeSystemctl(t, nil)
 	service := release.Systemctl{Command: command, Unit: "wyo.service"}
 
@@ -56,8 +58,6 @@ func TestSystemctlStopsAndStartsTheUnit(t *testing.T) {
 }
 
 func TestSystemctlSaysWhetherTheUnitIsActive(t *testing.T) {
-	t.Parallel()
-
 	cases := []struct {
 		name    string
 		exit    int
@@ -71,8 +71,6 @@ func TestSystemctlSaysWhetherTheUnitIsActive(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
 			command, _ := fakeSystemctl(t, map[string]int{"is-active": tc.exit})
 
 			got, err := release.Systemctl{Command: command, Unit: "wyo.service"}.Active(t.Context())
@@ -84,8 +82,6 @@ func TestSystemctlSaysWhetherTheUnitIsActive(t *testing.T) {
 }
 
 func TestSystemctlReportsAFailedStop(t *testing.T) {
-	t.Parallel()
-
 	command, _ := fakeSystemctl(t, map[string]int{"stop": 1})
 
 	err := release.Systemctl{Command: command, Unit: "wyo.service"}.Stop(t.Context())
@@ -95,8 +91,6 @@ func TestSystemctlReportsAFailedStop(t *testing.T) {
 }
 
 func TestSystemctlReportsAMissingCommand(t *testing.T) {
-	t.Parallel()
-
 	err := release.Systemctl{Command: filepath.Join(t.TempDir(), "absent"), Unit: "wyo.service"}.Start(t.Context())
 	if err == nil {
 		t.Fatal("a missing command was not reported")
