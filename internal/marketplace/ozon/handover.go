@@ -3,6 +3,7 @@ package ozon
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"slices"
 	"strconv"
@@ -411,7 +412,10 @@ func (a *Adapter) DeleteBatch(ctx context.Context, conn marketplace.Conn, batch 
 //     would not hold the hand-over's posting.
 //  2. /v2/posting/fbs/act/get-pdf, the shipping list and the waybill, as the kind act; /v2/posting/fbs/act/get-barcode, the
 //     picture the receiving point scans, as the kind handover_code, with the text /v2/posting/fbs/act/get-barcode/text as its
-//     scan text. Each file is read by fileOf, which takes the file's own bytes or the object holding it.
+//     scan text. The two files are not read through the generated calls that read a whole answer into memory: each answer is
+//     read by readFile, which stops at what a file of 5 MB takes in either form and refuses a longer answer as too large
+//     without reading the rest, and which gives the bytes to fileOf, which takes the file's own bytes or the object holding
+//     it. An answer that is not a success is Ozon's refusal, in Ozon's words (at most 64 KiB of them are read).
 func (a *Adapter) Documents(ctx context.Context, conn marketplace.Conn, batch string) ([]marketplace.Document, error) {
 	if err := mayWrite(conn); err != nil {
 		return nil, err
@@ -436,30 +440,16 @@ func (a *Adapter) Documents(ctx context.Context, conn marketplace.Conn, batch st
 		return nil, err
 	}
 
-	picture, err := client.PostingAPIPostingFBSGetBarcodeWithResponse(ctx, &ozonapi.PostingAPIPostingFBSGetBarcodeParams{}, ozonapi.V2PostingFBSGetBarcodeRequest{Id: id})
+	pngFile, err := documentFile(kindPNG, func() (*http.Response, error) {
+		return client.PostingAPIPostingFBSGetBarcode(ctx, &ozonapi.PostingAPIPostingFBSGetBarcodeParams{}, ozonapi.V2PostingFBSGetBarcodeRequest{Id: id})
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	if picture.StatusCode() != http.StatusOK {
-		return nil, writeRefusal(picture.StatusCode(), picture.Body)
-	}
-
-	pngFile, err := fileOf(picture.Body, kindPNG)
-	if err != nil {
-		return nil, err
-	}
-
-	act, err := client.PostingAPIPostingFBSGetActWithResponse(ctx, &ozonapi.PostingAPIPostingFBSGetActParams{}, ozonapi.PostingPostingFBSGetActRequest{Id: id})
-	if err != nil {
-		return nil, err
-	}
-
-	if act.StatusCode() != http.StatusOK {
-		return nil, writeRefusal(act.StatusCode(), act.Body)
-	}
-
-	pdfFile, err := fileOf(act.Body, kindPDF)
+	pdfFile, err := documentFile(kindPDF, func() (*http.Response, error) {
+		return client.PostingAPIPostingFBSGetAct(ctx, &ozonapi.PostingAPIPostingFBSGetActParams{}, ozonapi.PostingPostingFBSGetActRequest{Id: id})
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -507,4 +497,26 @@ func (a *Adapter) barcodeText(ctx context.Context, client *ozonapi.ClientWithRes
 	}
 
 	return adapterkit.Value(res.JSON200.Result), nil
+}
+
+// documentFile makes a call of the hand-over's documents, reads the file of its answer and closes the answer. A call that did
+// not succeed is Ozon's refusal in its words; a success goes through readFile.
+func documentFile(kind fileKind, call func() (*http.Response, error)) ([]byte, error) {
+	res, err := call()
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() { _ = res.Body.Close() }()
+
+	if res.StatusCode != http.StatusOK {
+		words, err := io.ReadAll(io.LimitReader(res.Body, maxErrorWords))
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, writeRefusal(res.StatusCode, words)
+	}
+
+	return readFile(res.Body, kind)
 }

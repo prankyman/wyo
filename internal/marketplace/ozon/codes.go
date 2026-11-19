@@ -102,8 +102,10 @@ func otherIdentifier(p ozonapi.FbsPostingProductExemplarCreateOrGetV6ResponsePro
 //   - otherwise /v6/fbs/posting/product/exemplar/set is sent with the FULL set («Всегда передавайте полный набор данных по
 //     экземплярам и продуктам», OZC §7): every product of the posting with every exemplar, each unit's code on its own
 //     exemplar of its product, and what Ozon already held on the exemplars left as it was. A code is never sent for a product
-//     that takes none («MANDATORY_MARK_REDUNDANT»): it is dropped. Ozon replaces what it held, so nothing is removed first. A 200
-//     only means Ozon took the task (OZC §7): Verdicts reads what it made of it.
+//     of the posting that takes none («MANDATORY_MARK_REDUNDANT»): it is dropped. Ozon replaces what it held, so nothing is
+//     removed first. A 200 only means Ozon took the task (OZC §7): Verdicts reads what it made of it;
+//   - a code given for a product that is not in the posting at all is a refusal of the adapter (codes_product_not_in_posting),
+//     naming the product, and nothing is sent: a code is never dropped without a word where there is no product to put it on.
 //
 // A code goes into the request as it was scanned: the request is written by encoding/json, which writes the group separator
 // (character 29) as the six characters \u001d once, as Ozon asks («Символ <GS> должен кодироваться как последовательность
@@ -178,16 +180,21 @@ type marks struct {
 }
 
 // marksOf puts each unit's code on its own exemplar of its product. The units of a product are given in order and take the
-// product's exemplars in order. A product that takes no code (neither needs nor may take one) gets none: its units' codes are
-// dropped. A product that needs a code and has fewer codes than exemplars is a missing marking code; more codes than
-// exemplars is a refusal of the adapter (the posting has fewer units than the fulfilment centre scanned).
+// product's exemplars in order. A product of the posting that takes no code (neither needs nor may take one) gets none: its
+// units' codes are dropped. A product that needs a code and has fewer codes than exemplars is a missing marking code; more codes
+// than exemplars is a refusal of the adapter (the posting has fewer units than the fulfilment centre scanned). These checks come
+// first; after them, a unit whose product is not in the posting at all is a refusal of the adapter too (codeCodesProduct).
 func marksOf(products []ozonapi.FbsPostingProductExemplarCreateOrGetV6ResponseProduct, units []marketplace.UnitCode) (marks, error) {
-	var out marks
+	var (
+		out   marks
+		known []string
+	)
 
 	for _, p := range products {
 		exemplars := adapterkit.Value(p.Exemplars)
 		takes := adapterkit.Value(p.IsMandatoryMarkNeeded) || adapterkit.Value(p.IsMandatoryMarkPossible)
 		sku := adapterkit.Number(p.ProductId)
+		known = append(known, sku)
 
 		var codes []string
 
@@ -220,6 +227,12 @@ func marksOf(products []ozonapi.FbsPostingProductExemplarCreateOrGetV6ResponsePr
 		}
 
 		out.products = append(out.products, product)
+	}
+
+	for _, u := range units {
+		if !slices.Contains(known, u.ItemID) {
+			return marks{}, ownRefusal(codeCodesProduct, "", map[string]any{"product": u.ItemID})
+		}
 	}
 
 	return out, nil

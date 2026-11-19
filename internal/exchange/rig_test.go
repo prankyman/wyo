@@ -587,6 +587,10 @@ type breaker struct {
 	// after makes the failed write reach the fake and be made there: only its answer is lost.
 	after   bool
 	isWrite func(req *http.Request) bool
+	// onWrite, when set, is told every write as it reaches the fake, before the fake makes it.
+	onWrite func(req *http.Request)
+	// answerLostOf, when set, makes the next write whose path ends so be made and its answer be lost, once.
+	answerLostOf string
 }
 
 var readPosts = []string{"/orders/status", "/orders/meta", "/orders/stickers", "/trbx/stickers"}
@@ -608,11 +612,22 @@ func (b *breaker) wrap(next http.Handler) http.Handler {
 			b.writes++
 			b.attempts = append(b.attempts, req.Method+" "+strings.TrimPrefix(req.URL.Path, "/"+fakeozon.Host))
 			fail := b.writes == b.failAt
+			after := b.after
+
+			if b.answerLostOf != "" && strings.HasSuffix(req.URL.Path, b.answerLostOf) {
+				fail, after, b.answerLostOf = true, true, ""
+			}
+
 			b.failed = b.failed || fail
+			hook := b.onWrite
 			b.mu.Unlock()
 
+			if hook != nil {
+				hook(req)
+			}
+
 			if fail {
-				if b.after {
+				if after {
 					// The fake makes the write; the answer never comes back.
 					next.ServeHTTP(httptest.NewRecorder(), req)
 				}
@@ -633,6 +648,14 @@ func (r *rig) failWriteAnswer(n int) {
 	defer r.brk.mu.Unlock()
 
 	r.brk.failAt, r.brk.after = n, true
+}
+
+// loseAnswerOf makes the next write whose path ends as given be made and its answer be lost.
+func (r *rig) loseAnswerOf(suffix string) {
+	r.brk.mu.Lock()
+	defer r.brk.mu.Unlock()
+
+	r.brk.answerLostOf = suffix
 }
 
 // failWrite makes the n-th write from now on fail.

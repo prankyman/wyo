@@ -88,7 +88,7 @@ func (adapter) Limit(group string, _ bool) (marketplace.LimitGroup, bool) {
 
 func (adapter) Capable(marketplace.Capability, bool) bool    { return true }
 func (adapter) Authorize(h http.Header, key marketplace.Key) { h.Set("Authorization", key["token"]) }
-func (adapter) Hosts() []string                              { return nil }
+func (adapter) Hosts() []string                              { return []string{"127.0.0.1"} }
 
 func (adapter) ErrorOf(_ int, body []byte) (string, string) {
 	code, rest, _ := strings.Cut(strings.TrimPrefix(string(body), `{"code":"`), `","message":"`)

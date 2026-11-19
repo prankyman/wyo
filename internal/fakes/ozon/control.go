@@ -29,7 +29,9 @@ import (
 //	                                    packages, the split gives EVERY part a new number and the original posting becomes
 //	                                    cancelled_from_split_pending, as after a split made in the cabinet (what a real Ozon shows
 //	                                    for the original after its own split is not sourced: OZC section 10, point 5); false, the
-//	                                    default, keeps the original as part 1; replaces the key's setting
+//	                                    default, keeps the original as part 1; bare_answer (true or false): the answer of such a
+//	                                    report names only the parts' numbers, last part first, and leaves additional_data out
+//	                                    (whether Ozon always gives it is not sourced); replaces the key's settings
 //	POST /__control/postings/deadline   posting_number, shipment_date
 //	POST /__control/postings/cut        the seller takes products off a posting in the cabinet: posting_number, products [{sku,
 //	                                    quantity}] (the quantity the posting has of the product now; 0 takes the line off); not every
@@ -379,11 +381,13 @@ func (st *state) markSplit(original *posting) {
 
 type shipSplitRequest struct {
 	OriginalSplitPending bool `json:"original_split_pending"`
+	BareAnswer           bool `json:"bare_answer"`
 }
 
-// setShipSplit sets whether the reports of the key that split a posting leave the original out of the parts (ship.go).
+// setShipSplit sets whether the reports of the key that split a posting leave the original out of the parts, and whether their
+// answer names the parts' numbers only (ship.go).
 func (st *state) setShipSplit(in shipSplitRequest) error {
-	st.splitOriginal = in.OriginalSplitPending
+	st.splitOriginal, st.splitBare = in.OriginalSplitPending, in.BareAnswer
 
 	return nil
 }

@@ -192,7 +192,8 @@ test a key of its own.
   refused as an invalid one until a setup gives it its `client_id`), `postings` (a new FBS posting with several products), `postings/status`
   (a new status, and who cancelled), `postings/split` (the split made in the seller's cabinet: the original becomes
   `cancelled_from_split_pending`, the parts are new postings with `parent_posting_number`), `ship-split` (`original_split_pending`: after a
-  report of several packages every part gets a new number and the original becomes `cancelled_from_split_pending`), `postings/deadline`
+  report of several packages every part gets a new number and the original becomes `cancelled_from_split_pending`; `bare_answer`: the
+  answer of such a report names only the parts' numbers, last part first, without `additional_data`), `postings/deadline`
   and `fbo-postings`.
   The package `internal/fakes/ozon` lists them in the comment above `controlRoutes`; `e2e/support/fake-ozon.ts` is the browser tests' side.
 - `/__control/setup`, `/__control/products` (fake fulfilment centre), `/__control/verdicts`, `/__control/feed` (fake Wildberries) —
@@ -240,7 +241,8 @@ for «Внешний API», so the page takes the fake fulfilment centre, `http:
 run every minute; a `wyotest` build also answers `POST /__test/exchange/run` (no sign-in) by running every job of the exchange at once,
 so a browser test or a person at `pnpm dev` plays the fulfilment centre's part with its control calls (reserve, pack with
 `marking_code`s, request a hand-over's documents) and sees the result at once. The fake Wildberries changes an order's sticker on
-`POST /__control/orders/{id}/new-sticker`, and `/__control/setup` with `shipping_points` makes a shipping point disappear. A released wyo
+`POST /__control/orders/{id}/new-sticker`, takes an order out of an open supply on `POST /__control/supplies/{supplyId}/drop`
+(`{"order_id": …}`), and `/__control/setup` with `shipping_points` makes a shipping point disappear. A released wyo
 server answers neither the test address nor a plain `http://` address.
 
 A fact about a marketplace is written only from its official documents with the address and the date read (`docs/marketplaces/` holds the

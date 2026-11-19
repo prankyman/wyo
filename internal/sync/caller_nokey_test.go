@@ -23,6 +23,8 @@ func (fileAdapter) Routes() []marketplace.Route {
 	}
 }
 
+func (fileAdapter) Hosts() []string { return []string{"127.0.0.1", "*.files.test"} }
+
 func (fileAdapter) Authorize(h http.Header, key marketplace.Key) {
 	h.Set("Authorization", key["token"])
 	h.Set("X-Api-Key", key["token"])

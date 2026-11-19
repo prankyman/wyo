@@ -183,6 +183,28 @@ func TestACodeIsOnlyAskedForAndSentWhereAProductTakesOne(t *testing.T) {
 	}
 }
 
+func TestACodeOfAProductThatIsNotInThePostingIsRefusedAndNothingIsSent(t *testing.T) {
+	t.Parallel()
+
+	r := newRig(t)
+	key := r.key(t, withWriting)
+	conn := r.conn(t, key)
+
+	// The posting holds one product that may take a code; the second code is for a product that is not in the posting at all.
+	r.posting(t, key, "55555555-0003-1", warehouseFBS, product(skuMayMark, "MAYMARK", 1))
+
+	sent, err := r.adapter.ReportProductCodes(t.Context(), conn, "55555555-0003-1", marketplace.IdentifierMarking,
+		[]marketplace.UnitCode{{ItemID: "2005", Code: codeA}, {ItemID: "2004", Code: codeB}})
+
+	if refusal := asRefusal(t, err); sent || refusal.Code != "codes_product_not_in_posting" || refusal.Params["product"] != "2004" {
+		t.Fatalf("sent %v, %+v; want the refusal codes_product_not_in_posting naming the product 2004", sent, refusal)
+	}
+
+	if n := len(r.calls(t, key, "/v6/fbs/posting/product/exemplar/set")); n != 0 {
+		t.Fatalf("%d sets were sent for a refused set of codes, want none", n)
+	}
+}
+
 func TestTheSeparatorOfACodeIsWrittenOnceAsUnicodeEscapeAndNeverEscapedAgain(t *testing.T) {
 	t.Parallel()
 

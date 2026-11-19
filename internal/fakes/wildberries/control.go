@@ -24,6 +24,9 @@ import (
 //	                                             sticker that changes on command)
 //	POST /__control/verdicts                     the verdict Wildberries gives an order's marking codes of one kind
 //	POST /__control/supplies/{supplyId}/scan     the supply was scanned at the receiving point
+//	POST /__control/supplies/{supplyId}/drop     an order leaves the supply before it is closed (body {"order_id": ...}); the order stays
+//	                                             as it is (not cancelled) and no supply holds it. Whether Wildberries does this is
+//	                                             not sourced: the control models it, to test a supply that lost an order
 //	POST /__control/feed                         rows of the statistics feed (orders of other schemes)
 func (s *Server) controlRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /__control/setup", s.controlSetup)
@@ -33,6 +36,7 @@ func (s *Server) controlRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /__control/orders/{id}/new-sticker", s.controlNewSticker)
 	mux.HandleFunc("POST /__control/verdicts", s.controlVerdict)
 	mux.HandleFunc("POST /__control/supplies/{supplyId}/scan", s.controlScan)
+	mux.HandleFunc("POST /__control/supplies/{supplyId}/drop", s.controlDrop)
 	mux.HandleFunc("POST /__control/feed", s.controlFeed)
 }
 
@@ -313,6 +317,33 @@ func (s *Server) controlScan(w http.ResponseWriter, r *http.Request) {
 		now := st.now()
 		sp.scanDt = &now
 		fakekit.ControlOK(w)
+	})
+}
+
+func (s *Server) controlDrop(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		OrderID int64 `json:"order_id"`
+	}
+
+	if !fakekit.ControlBody(w, r, &in) {
+		return
+	}
+
+	s.use(r, func(st *state) {
+		sp := st.supplyOf(r.PathValue("supplyId"))
+		o := st.orderOf(in.OrderID)
+
+		switch {
+		case sp == nil:
+			fakekit.ControlError(w, http.StatusNotFound, "no such supply")
+		case sp.done:
+			fakekit.ControlError(w, http.StatusConflict, "an order leaves an open supply only")
+		case o == nil || o.supplyID != sp.id:
+			fakekit.ControlError(w, http.StatusNotFound, "the supply does not hold that order")
+		default:
+			st.removeFromSupply(o)
+			fakekit.ControlOK(w)
+		}
 	})
 }
 

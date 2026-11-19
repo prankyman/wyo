@@ -46,6 +46,7 @@ type ExchangeOrder struct {
 	CodesResends   int64
 	PackedAt       sql.NullInt64
 	ShipBySent     sql.NullInt64
+	PackSentAt     sql.NullInt64
 }
 
 type ExchangeParcel struct {

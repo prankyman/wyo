@@ -2,15 +2,93 @@ package ozon_test
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
+	"io"
 	"net/http"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/prankyman/wyo/internal/marketplace"
 	"github.com/prankyman/wyo/internal/marketplace/ozon"
 )
+
+// countingDoer passes a request to the Doer the test was given and counts, per address, the bytes of each answer that the
+// adapter reads.
+type countingDoer struct {
+	inner marketplace.Doer
+
+	mu   sync.Mutex
+	read map[string]int64
+}
+
+func (d *countingDoer) Do(req *http.Request) (*http.Response, error) {
+	res, err := d.inner.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	res.Body = &countingBody{ReadCloser: res.Body, add: func(n int) {
+		d.mu.Lock()
+		defer d.mu.Unlock()
+
+		d.read[req.URL.Path] += int64(n)
+	}}
+
+	return res, nil
+}
+
+// readOf is how many bytes of the answers of the addresses that end with the suffix the adapter read. (The fake host's name
+// leads the address the adapter asks for.)
+func (d *countingDoer) readOf(suffix string) int64 {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	var total int64
+
+	for path, n := range d.read {
+		if strings.HasSuffix(path, suffix) {
+			total += n
+		}
+	}
+
+	return total
+}
+
+type countingBody struct {
+	io.ReadCloser
+	add func(int)
+}
+
+func (b *countingBody) Read(p []byte) (int, error) {
+	n, err := b.ReadCloser.Read(p)
+	b.add(n)
+
+	return n, err
+}
+
+// documentsHandler answers the hand-over's documents: the status ready, the barcode's text and picture, and the act as the
+// act func writes it.
+func documentsHandler(act func(w http.ResponseWriter, req *http.Request)) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		switch {
+		case strings.HasSuffix(req.URL.Path, "/act/check-status"):
+			answer(w, map[string]any{"result": map[string]any{"status": "ready"}})
+		case strings.HasSuffix(req.URL.Path, "/get-barcode/text"):
+			answer(w, map[string]any{"result": "%303%24276481394"})
+		case strings.HasSuffix(req.URL.Path, "/get-barcode"):
+			_, _ = w.Write([]byte("\x89PNG\r\n\x1a\nthe picture"))
+		default:
+			act(w, req)
+		}
+	})
+}
+
+// rawLimitOf is the most the adapter reads of one answer that holds a file of the largest size: the file in base64, with a
+// small allowance for the other fields of the object that holds it.
+func rawLimitOf() int64 { return int64(base64.StdEncoding.EncodedLen(ozon.MaxFileBytes) + 64*1024) }
 
 // handoverRig is a key whose seller has the postings, each of one unit, packed at the warehouse the seller packs at.
 func handoverRig(t *testing.T, numbers ...string) (*rig, marketplace.Key, marketplace.Conn) {
@@ -481,6 +559,87 @@ func TestAnAnswerThatIsNoFileIsRefusedAndNeverPassedOnAsADocument(t *testing.T) 
 
 			if _, err := r.adapter.Documents(t.Context(), conn, "5"); asRefusal(t, err).Code != "file_not_a_label_or_document" {
 				t.Fatalf("Documents = %v; want the file refused", err)
+			}
+		})
+	}
+}
+
+func TestAnActThatRunsOnForeverIsStoppedAtTheLimitOfTheAnswerAndRefusedAsTooLarge(t *testing.T) {
+	t.Parallel()
+
+	const actPath = "/v2/posting/fbs/act/get-pdf"
+
+	r, conn := stubRig(t, documentsHandler(func(w http.ResponseWriter, req *http.Request) {
+		_, _ = w.Write([]byte("%PDF-1.4\n"))
+
+		chunk := make([]byte, 1024*1024)
+
+		for range 64 {
+			if req.Context().Err() != nil {
+				return
+			}
+
+			if _, err := w.Write(chunk); err != nil {
+				return
+			}
+		}
+	}))
+
+	counted := &countingDoer{inner: conn.Doer, read: map[string]int64{}}
+	conn.Doer = counted
+
+	_, err := r.adapter.Documents(t.Context(), conn, "5")
+	if refusal := asRefusal(t, err); refusal.Code != "file_too_large" || refusal.Params["limit"] != ozon.MaxFileBytes {
+		t.Fatalf("Documents = %v; want file_too_large with the limit", err)
+	}
+
+	if got := counted.readOf(actPath); got > rawLimitOf()+1 {
+		t.Fatalf("the adapter read %d bytes of the act's answer, want no more than %d", got, rawLimitOf()+1)
+	}
+}
+
+func TestAnActHeldInAnObjectIsTakenUpToTheLimitOfTheFileAndRefusedOverIt(t *testing.T) {
+	t.Parallel()
+
+	pdf := func(size int) []byte { return append([]byte("%PDF-1.4\n"), make([]byte, size-len("%PDF-1.4\n"))...) }
+
+	object := func(file []byte) []byte {
+		raw, _ := json.Marshal(map[string]any{"content_type": "application/pdf", "file_name": "act.pdf", "file_content": base64.StdEncoding.EncodeToString(file)})
+
+		return raw
+	}
+
+	cases := []struct {
+		name string
+		body []byte
+		code string
+		size int
+	}{
+		{"the bare file of exactly 5 MB", pdf(ozon.MaxFileBytes), "", ozon.MaxFileBytes},
+		{"an object holding a file of 4.5 MB", object(pdf(4*1024*1024 + 512*1024)), "", 4*1024*1024 + 512*1024},
+		{"an object holding a file of exactly 5 MB", object(pdf(ozon.MaxFileBytes)), "", ozon.MaxFileBytes},
+		{"an object holding a file of a byte over 5 MB", object(pdf(ozon.MaxFileBytes + 1)), "file_too_large", 0},
+		{"an object holding a file of 6 MB", object(pdf(6 * 1024 * 1024)), "file_too_large", 0},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			r, conn := stubRig(t, documentsHandler(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write(tc.body) }))
+
+			docs, err := r.adapter.Documents(t.Context(), conn, "5")
+
+			if tc.code != "" {
+				if refusal := asRefusal(t, err); refusal.Code != tc.code {
+					t.Fatalf("Documents = %v; want %s", err, tc.code)
+				}
+
+				return
+			}
+
+			if err != nil || len(docs) != 2 || len(docs[1].Data) != tc.size {
+				t.Fatalf("Documents = %d documents, %v; want the act of %d bytes", len(docs), err, tc.size)
 			}
 		})
 	}
