@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.11](https://github.com/prankyman/wyo/compare/v0.0.10...v0.0.11) (2026-11-19)
+
+### Features
+
+* read Яндекс Маркет: the key, orders by notifications and a safety read, test orders ([9f9455c](https://github.com/prankyman/wyo/commit/9f9455ca16d8eee5bac881590b132a5e295fa9c4))
+
 ## [0.0.10](https://github.com/prankyman/wyo/compare/v0.0.9...v0.0.10) (2026-11-19)
 
 ### Bug Fixes
