@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.12](https://github.com/prankyman/wyo/compare/v0.0.11...v0.0.12) (2026-11-20)
+
+### Bug Fixes
+
+* a value typed after a refused press stays; the final tests run on the Mac mini ([cd4d95c](https://github.com/prankyman/wyo/commit/cd4d95c59f5072647a1571a1db9b033d723f16f7))
+
 ## [0.0.11](https://github.com/prankyman/wyo/compare/v0.0.10...v0.0.11) (2026-11-19)
 
 ### Features
