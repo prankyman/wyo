@@ -18,6 +18,7 @@ describe('ExchangeStateBadge', () => {
         ['packed', 'упакован', 'bg-wait-50'],
         ['codes_checking', 'коды проверяются', 'bg-wait-50'],
         ['codes_accepted', 'коды приняты', 'bg-ok-50'],
+        ['ready', 'готов к отгрузке', 'bg-wait-50'],
         ['handed_over', 'передан в доставку', 'bg-ok-50'],
         ['cancelled', 'отменён', 'bg-ink-100']
     ] as const)('draws %s as «%s»', (state, label, toneClass) => {
@@ -41,6 +42,22 @@ describe('ExchangeStateBadge', () => {
         expect(screen.getByTestId('exchange-state-help-button').getAttribute('aria-label')).toContain(
             'склад этого заказа не сопоставлен складу фулфилмент-центра'
         );
+    });
+
+    it('says in the «?» of «готов к отгрузке» that the marketplace was told and the order waits for its hand-over', () => {
+        draw({ state: 'ready' });
+
+        expect(screen.getByTestId('exchange-state-help-button').getAttribute('aria-label')).toContain(
+            'Маркетплейсу сообщено, что заказ упакован'
+        );
+    });
+
+    it('puts the reason of a new order whose warehouse the marketplace did not tell into the «?»', () => {
+        draw({ state: 'not_sent', reason: 'warehouse_unknown', attention: 'warehouse_unknown' });
+
+        const help = screen.getByTestId('exchange-state-help-button').getAttribute('aria-label');
+        expect(help).toContain('маркетплейс не назвал склад этого заказа');
+        expect(help).toContain('Проверьте склады в кабинете маркетплейса');
     });
 
     it('marks an order that needs the owner in the attention tone and says what to do in the «?»', () => {

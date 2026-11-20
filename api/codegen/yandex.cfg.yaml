@@ -17,3 +17,12 @@ output-options:
         - getBusinessOrders
         - getPartnerWarehouses
         - getOfferMappings
+        - setOrderBoxLayout
+        - getOrderIdentifiersStatus
+        - generateOrderLabel
+        - updateOrderStatus
+        - verifyOrderEac
+        - searchShipments
+        - getShipment
+        - confirmShipment
+        - downloadShipmentAct

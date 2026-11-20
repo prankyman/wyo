@@ -20,6 +20,8 @@ type Supply struct {
 	Open       bool
 	Deleted    bool
 	CreatedAt  time.Time
+	// Kind is the marketplace's own word for the kind of a batch it made by itself ('' for one the wyo server made).
+	Kind string
 }
 
 // Handover is a hand-over the fulfilment centre asked documents for.
@@ -62,7 +64,7 @@ type HandoverStep struct {
 func supply(r db.MarketplaceSupply) Supply {
 	return Supply{
 		ID: r.ID, AccountID: r.AccountID, Number: r.Number, Group: r.Grp, Role: r.Role, HandoverID: r.HandoverID.Int64,
-		Open: r.Open == 1, Deleted: r.Deleted == 1, CreatedAt: moment(r.CreatedAt),
+		Open: r.Open == 1, Deleted: r.Deleted == 1, CreatedAt: moment(r.CreatedAt), Kind: r.Kind,
 	}
 }
 
@@ -92,10 +94,15 @@ func (q *Queries) OpenAssemblySupply(ctx context.Context, accountID int64, group
 func (q *Queries) InsertSupply(ctx context.Context, s Supply) (int64, error) {
 	id, err := q.q.InsertSupply(ctx, db.InsertSupplyParams{
 		AccountID: s.AccountID, Number: s.Number, Grp: s.Group, Role: s.Role, HandoverID: optionalNumber(s.HandoverID),
-		CreatedAt: seconds(s.CreatedAt),
+		CreatedAt: seconds(s.CreatedAt), Kind: s.Kind,
 	})
 
 	return id, kind(err)
+}
+
+// SetSupplyKind writes the marketplace's own word for the kind of a supply it made by itself.
+func (q *Queries) SetSupplyKind(ctx context.Context, id int64, word string) error {
+	return kind(q.q.SetSupplyKind(ctx, db.SetSupplyKindParams{Kind: word, ID: id}))
 }
 
 // Supply finds a supply; ErrNotFound when there is none.

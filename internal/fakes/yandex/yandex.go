@@ -1,11 +1,16 @@
-// Package yandex is the fake Яндекс Маркет: a program in the test's own process that answers the five methods of Яндекс
+// Package yandex is the fake Яндекс Маркет: a program in the test's own process that answers the fourteen methods of Яндекс
 // Маркет's Partner API that the wyo server uses (.agents/research/yandex-market-official-partner-api-check-2026-11-19.md,
 // section 5, cited as YMC), in the shapes of Яндекс Маркет's own description files (api/yandex/), so that the code which talks
 // to Яндекс Маркет is tested against something that behaves like it and never calls the real one (rule R3).
 //
 // The five methods: getAuthTokenInfo (POST /v2/auth/token), getCampaigns (GET /v2/campaigns), getPartnerWarehouses (POST
 // /v3/businesses/{businessId}/warehouses), getBusinessOrders (POST /v1/businesses/{businessId}/orders) and getOfferMappings
-// (POST /v2/businesses/{businessId}/offer-mappings).
+// (POST /v2/businesses/{businessId}/offer-mappings); and the nine of Plan 8 (writing.go, courier.go, shipments.go): the boxes of
+// an order with its marking codes (PUT .../orders/{orderId}/boxes), the verdict on the codes (POST .../identifiers/status), a
+// box's label (GET .../delivery/shipments/{shipmentId}/boxes/{boxId}/label), the status READY_TO_SHIP (PUT .../status), the
+// courier's code (PUT .../verifyEac), and the daily shipment (PUT .../first-mile/shipments, GET and POST .../confirm and GET
+// .../act of .../first-mile/shipments/{shipmentId}). The call log keeps the bodies of the calls, so a test can count the writes
+// and read what was sent.
 //
 // What it keeps of Яндекс Маркет's behaviour, each read from the description files or from YMC:
 //   - the header Api-Key (YMC section 2): a call without it is refused as 401, and so is a key that was never set up, one set up
@@ -147,6 +152,8 @@ type route struct {
 	scopes   []string
 	limit    limitSpec
 	business bool
+	// campaign says the path names a shop ({campaignId}), which must be one of the key's.
+	campaign bool
 	handle   func(*call)
 }
 
@@ -173,6 +180,10 @@ func (s *Server) routes(mux *http.ServeMux) {
 		"/v2/businesses/{businessId}/offer-mappings": {
 			name: "getOfferMappings", method: http.MethodPost, scopes: scopesOffers, limit: limitOffers, business: true, handle: (*call).offerMappings,
 		},
+	}
+
+	for pattern, rt := range writingTable() {
+		table[pattern] = rt
 	}
 
 	for pattern, rt := range table {
@@ -217,6 +228,12 @@ func (s *Server) guarded(st *state, rt route, w http.ResponseWriter, r *http.Req
 		return
 	case !st.admit(w, rt.name, rt.limit):
 		return
+	}
+
+	if rt.campaign {
+		if !s.knownShop(w, r, st) {
+			return
+		}
 	}
 
 	if rt.business {

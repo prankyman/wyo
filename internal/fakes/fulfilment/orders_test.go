@@ -37,7 +37,7 @@ func TestAccountAndWarehousesAnswerTheDefaults(t *testing.T) {
 	}
 
 	city := "Moscow"
-	same(t, "warehouses", warehouses.JSON200.Warehouses, []fcapi.Warehouse{{Code: "main", Name: "Main warehouse", City: &city}})
+	same(t, "warehouses", warehouses.JSON200.Warehouses, []fcapi.Warehouse{{Code: "main", Name: "Main warehouse", City: &city, LabelSizes: []fcapi.LabelSize{}}})
 }
 
 func TestSetupChangesWhatTheAccountSays(t *testing.T) {

@@ -6,20 +6,25 @@ fulfilment centre's developer whose system will be called. The seller's own inst
 this are `.agents/plans/wyo-external-api-wildberries-fbs-exchange-with-a-fulfilment-centre-orders-stickers-codes-hand-over.md` (Plan 4,
 the walk of a marketplace that confirms orders, Wildberries: steps 1 to 5 below) and
 `.agents/plans/wyo-ozon-fbs-exchange-with-a-fulfilment-centre-codes-packing-labels-shipment.md` (Plan 6, the walk of a marketplace whose
-label exists only after the packing is reported, Ozon: «The Ozon walk» below). Every fact about Ozon cited below is from the research
+label exists only after the packing is reported, Ozon: «The Ozon walk» below) and
+`.agents/plans/wyo-yandex-market-fbs-and-express-exchange-with-a-fulfilment-centre-codes-labels-daily-shipment-courier-code.md` (Plan 8,
+the walk of a marketplace that takes the boxes and the marking codes in one request, makes its own daily shipment and may send an order
+alone with a courier's code, Яндекс Маркет: «The Яндекс Маркет walk» below). Every fact about Ozon cited below is from the research
 `.agents/research/ozon-official-seller-api-check-2026-11-18.md` (written «OZC §n»); a gap in Ozon's documents is marked «not sourced».
-What each Ozon request does on its own side, with its periods, is `docs/ozon.md`, section «Запросы обмена».
+Every fact about Яндекс Маркет is from `.agents/research/yandex-market-official-partner-api-check-2026-11-19.md` (written «YMC §n»), with
+the same rule. What each Ozon request does on its own side, with its periods, is `docs/ozon.md`, section «Запросы обмена»; what each
+Яндекс Маркет request does on its own side, with its periods, is `docs/yandex.md`, section «Запросы записи».
 
 ## Where it lives
 
-| Part                                         | What it does                                                                                                                  |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `internal/fulfilment`                        | The only package that knows the neutral API: the client, the refusals' table, the signature check.                            |
-| `internal/exchange`                          | The exchange engine: sending, events, the label, the codes, the packing, cancellations, the notices and the views.            |
-| `internal/handover`                          | The six steps of a hand-over, of which an adapter declares the ones it needs.                                                 |
-| `internal/marketplace/writing.go`            | The writing parts of the adapter contract; `internal/marketplace/wildberries` and `internal/marketplace/ozon` implement them. |
-| `internal/outbound`, purpose fulfilment      | Lists the fulfilment centre's address only while «Внешний API» is filled.                                                     |
-| `src/routes/(app)/external-api`, `handovers` | The pages «Внешний API» and «Передачи».                                                                                       |
+| Part                                         | What it does                                                                                                           |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `internal/fulfilment`                        | The only package that knows the neutral API: the client, the refusals' table, the signature check.                     |
+| `internal/exchange`                          | The exchange engine: sending, events, the label, the codes, the packing, cancellations, the notices and the views.     |
+| `internal/handover`                          | The six steps of a hand-over, of which an adapter declares the ones it needs.                                          |
+| `internal/marketplace/writing.go`            | The writing parts of the adapter contract; `internal/marketplace/wildberries`, `…/ozon` and `…/yandex` implement them. |
+| `internal/outbound`, purpose fulfilment      | Lists the fulfilment centre's address only while «Внешний API» is filled.                                              |
+| `src/routes/(app)/external-api`, `handovers` | The pages «Внешний API» and «Передачи».                                                                                |
 
 Every request to the fulfilment centre goes through the same one caller as a request to a marketplace (`sync.Caller`): it is kept to
 the specification's budget (300 a minute), names the program (`wyo/<version> (+https://github.com/prankyman/wyo)`), carries the key only
@@ -35,13 +40,13 @@ the owner's «Проверить снова».
 
 ## The jobs
 
-| Job                 | Every                                                                                                        | What it does                                                                                                  |
-| ------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `exchange.orders`   | 1 minute (a marketplace is read at its adapter's own period: Wildberries every minute, Ozon every 5 minutes) | Reads the marketplaces' new orders, sends the unsent ones, goes on with interrupted hand-overs.               |
-| `exchange.states`   | 5 minutes (as above)                                                                                         | Reads the open orders' states, passes cancellations on.                                                       |
-| `exchange.events`   | 1 minute (10 minutes beside notifications)                                                                   | Reads `GET /api/v1/events?after=<mark>`, stores each event, applies them in order.                            |
-| `exchange.verdicts` | 20 seconds                                                                                                   | Asks what is due: the marking codes' verdicts, the packing that was reported, the labels that are made later. |
-| `exchange.prune`    | nightly, 04:00–05:00 of the installation's zone                                                              | Deletes marking codes 90 days after their order's hand-over and applied events after 30 days.                 |
+| Job                 | Every                                                                                                                          | What it does                                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `exchange.orders`   | 1 minute (a marketplace is read at its adapter's own period: Wildberries every minute, Ozon and Яндекс Маркет every 5 minutes) | Reads the marketplaces' new orders, sends the unsent ones, goes on with interrupted hand-overs.               |
+| `exchange.states`   | 5 minutes (as above)                                                                                                           | Reads the open orders' states, passes cancellations on.                                                       |
+| `exchange.events`   | 1 minute (10 minutes beside notifications)                                                                                     | Reads `GET /api/v1/events?after=<mark>`, stores each event, applies them in order.                            |
+| `exchange.verdicts` | 20 seconds                                                                                                                     | Asks what is due: the marking codes' verdicts, the packing that was reported, the labels that are made later. |
+| `exchange.prune`    | nightly, 04:00–05:00 of the installation's zone                                                                                | Deletes marking codes 90 days after their order's hand-over and applied events after 30 days.                 |
 
 Each moment is shifted by a few random seconds (rule R5).
 
@@ -56,6 +61,9 @@ POST /api/v1/orders
   "warehouse": "<the matched warehouse>", "ship_by": "<created + the account's hours, 48 by default>",
   "lines": [{ "barcode": "…", "article": "…", "marketplace_item_id": "<the marketplace's size number>", "quantity": 1 }] }
 ```
+
+The body also carries `"test": true` for a marketplace's test order and `"handover": "courier_code"` for an order that leaves alone with a
+courier's code (both below); each is sent only when it applies, and left out they mean `false` and `shipment`.
 
 `201` (or `200 duplicate`) → «передан»; `202 held` → «ждёт у фулфилмент-центра» with the reasons; a refusal (for example
 `403 marketplace_not_enabled`, `409 external_id_reused`) → «не передаётся» with a problem and «Передать заново». An answer lost on the way
@@ -75,7 +83,8 @@ the reservation; its flow is «The Ozon walk» below. The engine chooses by the 
 
 On `order.reserved` the engine reads the order's state at the marketplace (an order no longer new is not confirmed; a cancelled one is
 passed on), puts it into the account's open supply of its group («wyo — сборка <date>», made when there is none; a supply found closed
-is replaced), reads its label (58 × 40 mm) and sends it with `PUT /orders/{id}/parcels/1/label`, without a scan text. It waits for the
+is replaced), reads its label in the size the fulfilment centre names for the order's warehouse (58 × 40 mm when it names none; «The label
+size» below) and sends it with `PUT /orders/{id}/parcels/1/label`, without a scan text. It waits for the
 reservation on purpose: putting an order into a supply ends the buyer's free hour of cancellation, and a later cancellation by the seller
 is fined.
 
@@ -208,10 +217,162 @@ it changes is read first and what is done is skipped. The calls, in the order th
 An Ozon key that lacks the access level `Posting FBS` (the methods of steps 4 to 8 are not in its list, OZC §3) is accepted for reading and
 marked «только чтение»; the orders of that account are not sent to the fulfilment centre until the key is replaced.
 
+## The Яндекс Маркет walk
+
+Яндекс Маркет takes the boxes and the marking codes in one request, makes its own daily shipment, and wants a last write («Готов к
+отгрузке») before an order may leave, so the engine, finding that the adapter claims `orders.pack` with `CodesInPack`, `orders.ready`
+and `labels.fetch`, takes this flow, and finding that its batch is found and never made, runs the hand-over differently (below). It does
+this by the parts the adapter claims, never by the marketplace's name. Every request to Яндекс Маркет leaves through `sync.Caller` and
+is one row of «Журнал запросов»; every request to the fulfilment centre is one row marked `fulfilment`. A request that writes is never
+repeated blindly: the state it changes is read first and what is done is skipped. The key needs the access level «Обработка заказов и
+учёт товаров» (`inventory-and-order-processing`) or `all-methods`; a key that may only read is marked «только чтение» and its orders are
+not sent (YMC §2, §5). Only FBS and Express orders of a matched warehouse are exchanged; FBY and DBS never. With «Внешний API» empty
+nothing of this runs and Яндекс Маркет gets only the readings of Plan 7 (rule R3). Each call below is written as the neutral API's call,
+then Яндекс Маркет's method; the periods and limits of the methods are `docs/yandex.md`, section «Запросы записи» (limits: YMC §5).
+
+1. **Reading Яндекс Маркет** (every 5 minutes while «Внешний API» is filled; a notification starts a reading at once): the readings of
+   Plan 7 (`docs/yandex.md`, «Чтение заказов»). Nothing is written by reading.
+2. **A new order is sent** (an FBS or Express order of a matched warehouse with the status `PROCESSING` and the substatus `STARTED`,
+   YMC §7; `UNPAID` and `PENDING` wait).
+    - Fulfilment centre: `POST /api/v1/orders` with the order number as `external_id`, **every line** (`article` from `offerId`, the
+      `barcode`s, `quantity`; an item's `id` is its line's number in the order, not a product's number, so no marketplace product number is
+      sent), Яндекс Маркет's shipment day and time (`shipmentDate`, `shipmentTime`) as `ship_by`, `test` (the order's `fake`), and
+      `handover` (`courier_code` for Express, `shipment` otherwise). A changed shipment day is passed on with `PATCH /api/v1/orders/{id}`.
+      `201` or `200 duplicate` → «передан»; `202 held` → «ждёт у фулфилмент-центра» with the reasons; a refusal → «не передаётся» with a
+      problem and «Передать заново».
+    - Яндекс Маркет: nothing is written. **An order whose warehouse the reading could not tell** (the shop has several warehouses of the
+      scheme) is not sent: «склад не определён» under «Требуют внимания» and in the bell.
+3. **Reserved** (`order.reserved`). Nothing is written to Яндекс Маркет.
+4. **Packing finished** (`order.packing_finished`: the contents are final, each unit's marking code is attached).
+    - Яндекс Маркет: `POST /v1/businesses/{businessId}/orders` (the order is read first: cancelled → step 10; already `READY_TO_SHIP` →
+      the boxes are skipped, because a layout cannot change after it, and the walk goes to step 6).
+    - Fulfilment centre: `GET /api/v1/orders/{id}` for the parcels and their units.
+    - Яндекс Маркет: **`PUT /v2/campaigns/{campaignId}/orders/{orderId}/boxes`** (`setOrderBoxLayout`), once: one box for each parcel;
+      each box lists the order's items it holds by their `id` with `fullCount` and, for an item that takes codes (`requiredInstanceTypes`
+      with `CIS` or `CIS_OPTIONAL`), the units' codes in `instances[].cis`, each written exactly as scanned with its separator once as
+      `\u001d` (the one function and its test of Plans 4 and 6). Never `allowRemove`, never `partialCount`. The answer gives each box's
+      `boxId`, stored on the parcel. A later sending replaces the earlier until the order is `READY_TO_SHIP` (YMC §10). The order's state
+      becomes «коды проверяются».
+    - **The contents must equal the order.** Parcels that do not hold exactly Яндекс Маркет's items (the fulfilment centre cut the order,
+      `order.reduced`) are not reported: fulfilment centre: `PUT /api/v1/orders/{id}/problem`; the owner removes the goods in the
+      cabinet (the wyo server never removes them) and presses «Передать заново». The same for a product split over several boxes and for a
+      unit that needs `UIN`, `RNPT` or `GTD` (YMC §7): the neutral API carries none of them, so the problem names them and says they are
+      entered in the cabinet. A code needed and none sent: a problem, «Маркет требует код маркировки».
+5. **The verdict:** `POST /v2/campaigns/{campaignId}/orders/{orderId}/identifiers/status` (`getOrderIdentifiersStatus`) every 20 seconds
+   for 10 minutes, then every 5 minutes (the one schedule function of Plans 4 and 6), until every code is final; no item takes codes →
+   nothing to wait for. Accepted → «коды приняты». Refused → fulfilment centre: `PUT /api/v1/orders/{id}/problem` with Яндекс Маркет's
+   own words, cleared with `DELETE` when corrected codes arrive with a new `order.packing_finished` (the whole layout is sent again; it
+   replaces the earlier). `order.reopened` before «Готов к отгрузке» writes nothing; the next `order.packing_finished` sends the whole
+   layout again. After it the layout cannot change (YMC §10): a problem that says so, for the owner and the fulfilment centre; it stays
+   until «Передать заново».
+6. **Labels, then «Готов к отгрузке».**
+    - Яндекс Маркет: **`GET /v2/campaigns/{campaignId}/orders/{orderId}/delivery/shipments/{shipmentId}/boxes/{boxId}/label`**
+      (`generateOrderLabel`) for each box; the `shipmentId` is outdated and any number is taken (YMC §10). The `format` is the size the
+      fulfilment centre names (below, «The label size»). The file is read from the API's own host, with the key, through the one caller,
+      at most 5 MB, only when it begins as a PDF.
+    - Fulfilment centre: `PUT /api/v1/orders/{id}/parcels/{n}/label` as `application/pdf` for each parcel, **without a scan text** (which
+      of the label's barcodes a scanner reads is not sourced). The order's state becomes «этикетка передана». A size Яндекс Маркет does not
+      make is a problem on the order, «Маркет не делает ярлыки размера W × H мм — выберите на складе фулфилмент-центра 58 × 40, 40 × 58,
+      75 × 120 или A4».
+    - On `order.packed`, with the codes accepted and every label attached, Яндекс Маркет: the order is read (already `READY_TO_SHIP` →
+      nothing), then **`PUT /v2/campaigns/{campaignId}/orders/{orderId}/status`** (`updateOrderStatus`) with `PROCESSING` and
+      `READY_TO_SHIP`, from the one function that may call this generated method; no other status is ever sent (principle XII). The order's
+      state becomes «готов к отгрузке». A refusal is a problem in Яндекс Маркет's words.
+7. **Express: the order enters no hand-over** (step 8 does not run for it); it leaves as step 9 says.
+8. **The daily shipment (FBS)** — `handover.requested`. Fulfilment centre: `GET /api/v1/handovers/{id}` for the hand-over's parcels. See
+   «The daily shipment» below.
+9. **Express: the courier's code** — `order.courier_code_entered`. See «The courier's code» below.
+10. **Cancellations.** Яндекс Маркет: the readings and notifications (`ORDER_CANCELLED`, `ORDER_STATUS_UPDATED`) tell the engine that Яндекс
+    Маркет cancelled an order. It is passed on, before and after «Готов к отгрузке»: fulfilment centre: `POST /api/v1/orders/{id}/cancel`,
+    `DELETE /api/v1/held-orders/{id}` while held; its answer is kept as it is. **The wyo server never cancels an order at Яндекс Маркет,
+    never removes goods from one (`allowRemove` is never sent), never moves an order to another shipment and never sends a DBS order**:
+    `updateOrderItems`, `acceptOrderCancellation` and `transferOrdersFromShipment` are not in the generated client
+    (`internal/archtest`, `yandexNever`), and the status method is called by one function only
+    (`TestTheStatusMethodOfYandexMarketIsCalledOnlyByItsOneReadyFunction`).
+11. **Handed over** (`order.handed_over`): the order's state becomes «передан в доставку».
+
+### The daily shipment
+
+Яндекс Маркет makes one shipment for each warehouse and day itself, by the schedule set in the cabinet (YMC §11); nothing can be added to
+it. The engine therefore **finds, compares and confirms; it never makes or fills**. On `handover.requested` it runs four steps for each
+Яндекс Маркет warehouse among the hand-over's orders, each stored before the next, so a stopped wyo server goes on from the last
+finished one:
+
+1. **Find (`batch`).** Яндекс Маркет: `PUT /v2/campaigns/{campaignId}/first-mile/shipments` (`searchShipments`) for the hand-over's day
+   with the hand-over's order numbers, then `GET …/first-mile/shipments/{shipmentId}` (`getShipment`). No shipment yet → the hand-over
+   waits with «Маркет ещё не сформировал отгрузку» and the step is tried again every 5 minutes while the request stands.
+2. **Compare (`move`).** The one function of Plan 6a compares the shipment with the hand-over both ways; **test orders are left out**
+   (the fulfilment centre never hands them over; whether Яндекс Маркет puts one into a real shipment is not sourced). Nothing is moved.
+    - In the shipment, not in the hand-over → fulfilment centre: `PUT /api/v1/handovers/{id}/problem` naming the orders: the owner moves
+      them to the next shipment or cancels them in the cabinet and presses «Повторить». The wyo server never moves them
+      (`transferOrdersFromShipment` is never generated) and **never confirms such a shipment**.
+    - In the hand-over, not in the shipment → a problem naming them (they may belong to another day's shipment).
+3. **Confirm (`close`).** Яндекс Маркет: the shipment is read; already confirmed → nothing; `CONFIRM` among `availableActions` →
+   **`POST …/first-mile/shipments/{shipmentId}/confirm`** (`confirmShipment`). Яндекс Маркет's refusals (YMC §4, §11): «Cutoff time for
+   shipments has not been reached yet» → the hand-over waits with these words and the time is tried every 5 minutes; «Some orders have not
+   been processed yet…» → a problem naming the orders not yet «Готов к отгрузке»; «Some orders are in the process of being excluded from
+   shipment… wait up to 30 minutes» → the step waits and reads again.
+4. **Documents (`documents`).** When `DOWNLOAD_ACT` is offered, Яндекс Маркет: **`GET …/first-mile/shipments/{shipmentId}/act`**
+   (`downloadShipmentAct`, a PDF); fulfilment centre: `PUT /api/v1/handovers/{id}/documents` with the act as kind `act`, the shipment's
+   number as `external_id`. **The waybill** of a `WITHDRAW` shipment is an `.xls` file that the neutral API does not take (PDF, PNG or
+   JPEG): it is not sent, and the hand-over's page says that the owner downloads it in the cabinet.
+
+Both kinds of shipment — `WITHDRAW` («Маркет забирает со склада») and `IMPORT` («Склад везёт в сортировочный центр или пункт приёма») —
+walk the same way; the page of the hand-over names the kind. The transport boxes the fulfilment centre names are not sent (pallets and
+their labels are other Яндекс Маркет methods that this walk does not call); the page says so. A refusal of Яндекс Маркет is
+`PUT /api/v1/handovers/{id}/problem` in its words, and «Повторить» goes on from the failed step. `handover.request_withdrawn` before the
+confirmation: nothing was written to Яндекс Маркет, so nothing is undone; after it nothing is undone, and the page says so.
+
+### The courier's code
+
+An Express order is sent with `handover: courier_code` and enters no hand-over. When the courier comes, a worker at the fulfilment centre
+types the code the courier names:
+
+1. Fulfilment centre: the event `order.courier_code_entered` with `details.check_id` and `details.code`. The engine applies it **at once,
+   ahead of other work of the account**, within the budget. A notification brings it at once; read every minute it may wait up to a
+   minute, so «Внешний API» asks the owner to set the events mode to notifications beside the Express warehouses.
+2. Яндекс Маркет: **`PUT /v2/campaigns/{campaignId}/orders/{orderId}/verifyEac`** (`verifyOrderEac`) with the code (YMC §12).
+3. Fulfilment centre: `PUT /api/v1/orders/{id}/courier-code-checks/{check_id}` with `{ result, attempts_left?, message? }`:
+    - `ACCEPTED` → `accepted` (the worker gives the parcels to the courier; `order.handed_over` follows);
+    - `REJECTED` → `refused` with `attempts_left` (Яндекс Маркет's `attemptsLeft`);
+    - `NEED_UPDATE` → `new_code_needed` («Маркет отправит курьеру новый код»);
+    - a refusal of the request itself (the order in a status that takes no code, a key without the level) → `refused` with Яндекс Маркет's
+      words as `message`, and a problem on the order for the owner.
+4. **The code is never kept.** It is in the stored event only until the answer is sent, then blanked in the event row; it is in no log line,
+   journal row, answer of the wyo server's own API or error text. The order's details show each check (when, the answer, the attempts
+   left) and never the code.
+
+The code's kind is the order's `delivery.eacType`, given only «Если у магазина настроена работа с кодами подтверждения»
+(`COURIER_TO_MERCHANT`: the courier names the code, YMC §12). An Express order without it is still sent as a courier-code order; what
+Яндекс Маркет answers for it is not sourced.
+
+### The label size
+
+The fulfilment centre names a label size for each of its warehouses and each marketplace in `label_sizes` of `GET /api/v1/warehouses`
+(`docs/fulfilment-centre-api.md`). The engine reads them when «Внешний API» is filled, every hour, and before a label is asked for when
+the last reading is older than an hour, and keeps them for each fulfilment-centre warehouse and marketplace (`fc_label_sizes`).
+`labels.fetch` receives the size of the order's warehouse and each adapter maps it to what its marketplace makes; **the wyo server chooses
+nothing the fulfilment centre names**:
+
+| Marketplace   | Sizes made (`format` or size)                                                            | No size named               | Another size                                                                               |
+| ------------- | ---------------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------ |
+| Яндекс Маркет | 58 × 40 → `A9_HORIZONTALLY`, 40 × 58 → `A9`, 75 × 120 → `A7`, 210 × 297 → `A4` (YMC §10) | Яндекс Маркет's own default | A problem on the order: «Маркет не делает ярлыки размера W × H мм — …» (step 6)            |
+| Wildberries   | 58 × 40 and 40 × 30 (the two sizes of its sticker method)                                | 58 × 40, as before          | The same problem in Wildberries' words; its tests of the 58 × 40 sticker stay as they were |
+| Ozon          | Unchanged: the label type follows the warehouse's own setting at Ozon (Plan 6)           | Unchanged                   | Unchanged                                                                                  |
+
+### The test mark and `handover`
+
+A marketplace's test order (Plan 7's `fake` of Яндекс Маркет) is sent with `test: true`. The fulfilment centre packs it like any other
+order and never puts it into a hand-over, never hands it over, never bills, pays or counts it. The exchange treats it like any other
+order in every step above (Яндекс Маркет accepts the writes of a test order, YMC §9), except that it is left out of the shipment's
+comparison; the owner cancels it in the cabinet after the try, and the wyo server never counts it in a total. `handover` says how an order
+leaves: `shipment` (the default: in a day's hand-over with the others) or `courier_code` (alone, to a courier who names a code; the
+adapter names which of its orders leave so — for Яндекс Маркет the scheme Express).
+
 ## What never travels
 
 A marketplace key never goes to a fulfilment centre and the fulfilment centre's key never goes to a marketplace; neither, nor a marking
-code, reaches a log line, a journal row or an answer of the wyo server's API (the request for an Ozon label file carries no key at all, and
+code, nor a courier's code, reaches a log line, a journal row or an answer of the wyo server's API (the request for an Ozon label file carries no key at all, and
 its journal row names the path `{label file}` and never the link, which may hold a token); a buyer's address, comment or region is dropped where the
 marketplace's answer arrives. The tests: `TestNeitherKeyNorAMarkingCodeLeavesItsOwnSide` (`internal/server`) and the exchange's own.
 

@@ -356,3 +356,143 @@ func TestATooManyRequestsAnswerIsWaitedOutAsLongAsItsRetryAfterSays(t *testing.T
 		t.Fatalf("waits %v, want the 7 seconds of Retry-After", waits)
 	}
 }
+
+// courierRig sends an order that leaves with a courier's code, packs it, and has a courier name a code.
+func courierRig(t *testing.T, r *fcRig) (orderID, checkID string) {
+	t.Helper()
+
+	in := orderIn("500000001", "ART-1", synckit.Noon().Add(48*time.Hour))
+	handover := fcapi.OrderInHandoverCourierCode
+	in.Handover = &handover
+
+	sent, err := r.client.SendOrder(t.Context(), in)
+	if err != nil || sent.Order == nil || sent.Order.Handover != fcapi.OrderHandoverCourierCode {
+		t.Fatalf("SendOrder: %+v, %v", sent, err)
+	}
+
+	r.control(t, http.MethodPost, "/__control/orders/"+sent.Order.Id+"/reserve", nil, nil)
+	r.control(t, http.MethodPost, "/__control/orders/"+sent.Order.Id+"/pack", nil, nil)
+
+	var named struct {
+		CheckID string `json:"check_id"`
+	}
+
+	r.control(t, http.MethodPost, "/__control/orders/"+sent.Order.Id+"/courier-code", map[string]string{"code": "482913"}, &named)
+
+	return sent.Order.Id, named.CheckID
+}
+
+// keptAnswer is what the fake kept of the answer to the first check of an order.
+func keptAnswer(t *testing.T, r *fcRig, orderID string) (result string, attempts *int, text *string) {
+	t.Helper()
+
+	var out struct {
+		Checks []struct {
+			Answer *struct {
+				Result       string  `json:"result"`
+				AttemptsLeft *int    `json:"attempts_left"`
+				Message      *string `json:"message"`
+			} `json:"answer"`
+		} `json:"checks"`
+	}
+
+	r.control(t, http.MethodGet, "/__control/orders/"+orderID+"/courier-code-checks", nil, &out)
+
+	if len(out.Checks) == 0 || out.Checks[0].Answer == nil {
+		t.Fatalf("the fake kept no answer: %+v", out.Checks)
+	}
+
+	a := out.Checks[0].Answer
+
+	return a.Result, a.AttemptsLeft, a.Message
+}
+
+func TestTheAnswerToACourierCodeIsSentWithTheTriesAndTheMessageOnlyWhenGiven(t *testing.T) {
+	t.Parallel()
+
+	long := strings.Repeat("я", 400)
+	cases := []struct {
+		name         string
+		result       string
+		attemptsLeft int
+		message      string
+		wantAttempts *int
+		wantMessage  *string
+	}{
+		{name: "only the result", result: fulfilment.CourierRefused, attemptsLeft: -1},
+		{name: "tries and words", result: fulfilment.CourierRefused, attemptsLeft: 2, message: "wrong code", wantAttempts: new(2), wantMessage: new("wrong code")},
+		{name: "no tries left is a number, not none", result: fulfilment.CourierNewCodeNeeded, attemptsLeft: 0, wantAttempts: new(0)},
+		{name: "words over 300 characters are cut", result: fulfilment.CourierAccepted, attemptsLeft: -1, message: long, wantMessage: new(string([]rune(long)[:300]))},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			r := newFcRig(t)
+			orderID, checkID := courierRig(t, r)
+
+			if err := r.client.AnswerCourierCode(t.Context(), orderID, checkID, tc.result, tc.attemptsLeft, tc.message); err != nil {
+				t.Fatalf("AnswerCourierCode: %v", err)
+			}
+
+			result, attempts, text := keptAnswer(t, r, orderID)
+			if result != tc.result || (attempts == nil) != (tc.wantAttempts == nil) || (text == nil) != (tc.wantMessage == nil) {
+				t.Fatalf("the fake kept %q, %v, %v; want %q, %v, %v", result, attempts, text, tc.result, tc.wantAttempts, tc.wantMessage)
+			}
+
+			if tc.wantAttempts != nil && *attempts != *tc.wantAttempts || tc.wantMessage != nil && *text != *tc.wantMessage {
+				t.Fatalf("the fake kept tries %v and words %q", *attempts, *text)
+			}
+		})
+	}
+}
+
+func TestAnAnswerToACourierCodeThatCannotBeTakenComesBackAsTheFulfilmentCentresRefusal(t *testing.T) {
+	t.Parallel()
+
+	r := newFcRig(t)
+	orderID, checkID := courierRig(t, r)
+	ctx := t.Context()
+
+	if err := r.client.AnswerCourierCode(ctx, orderID, checkID, fulfilment.CourierRefused, -1, ""); err != nil {
+		t.Fatalf("the first answer: %v", err)
+	}
+
+	if err := r.client.AnswerCourierCode(ctx, orderID, checkID, fulfilment.CourierRefused, -1, ""); err != nil {
+		t.Fatalf("the same answer again is done again: %v", err)
+	}
+
+	cases := []struct {
+		name    string
+		orderID string
+		checkID string
+		result  string
+		want    string
+	}{
+		{name: "another answer to an answered check", orderID: orderID, checkID: checkID, result: fulfilment.CourierAccepted, want: "conflict"},
+		{name: "a check nobody made", orderID: orderID, checkID: "chk_999", result: fulfilment.CourierAccepted, want: "not_found"},
+		{name: "an order nobody sent", orderID: "ord_999", checkID: checkID, result: fulfilment.CourierAccepted, want: "not_found"},
+	}
+
+	for _, tc := range cases {
+		err := r.client.AnswerCourierCode(ctx, tc.orderID, tc.checkID, tc.result, -1, "")
+		if got := fulfilment.CodeOf(err); got != tc.want {
+			t.Fatalf("%s: CodeOf = %q (%v), want %q", tc.name, got, err, tc.want)
+		}
+	}
+}
+
+func TestTheWarehousesCarryTheirLabelSizes(t *testing.T) {
+	t.Parallel()
+
+	r := newFcRig(t)
+	sizes := []fulfilment.LabelSize{{Marketplace: "wildberries", WidthMm: 58, HeightMm: 40}}
+
+	r.control(t, http.MethodPost, "/__control/warehouses/main/label-sizes", map[string]any{"label_sizes": sizes}, nil)
+
+	warehouses, err := r.client.Warehouses(t.Context())
+	if err != nil || len(warehouses) != 1 || len(warehouses[0].LabelSizes) != 1 || warehouses[0].LabelSizes[0] != sizes[0] {
+		t.Fatalf("Warehouses: %+v, %v; want the label size %+v", warehouses, err, sizes[0])
+	}
+}

@@ -185,9 +185,13 @@ func TestServeAnswersAndStopsWhenTheContextEnds(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// The wyo server's parts are opened before the serving starts, on the test's own goroutine: what this test times is the
+	// serving and its stop, not the opening of a data folder (which, under a whole run with the race detector, took more than the
+	// client's 10 seconds on 2026-11-20, and then failed the test from another goroutine after it had ended).
+	handler := newHandler(t, webui.Options{})
 	done := make(chan error, 1)
 
-	go func() { done <- server.Serve(ctx, ln, newHandler(t, webui.Options{}), discard()) }()
+	go func() { done <- server.Serve(ctx, ln, handler, discard()) }()
 
 	if got := httpkit.Get(t, ln.Addr().String(), "/api/v1/meta"); got.Status != http.StatusOK {
 		t.Fatalf("status %d", got.Status)

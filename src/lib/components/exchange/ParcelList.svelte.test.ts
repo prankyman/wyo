@@ -64,4 +64,15 @@ describe('ParcelList', () => {
         expect(screen.getByTestId('parcels-1-label')).toHaveTextContent('передана фулфилмент-центру');
         expect(screen.getByTestId('parcels-1-label')).not.toHaveTextContent('2026');
     });
+
+    it('draws the number of the box a parcel became when the marketplace numbers boxes, and no box fact when it does not', () => {
+        draw([
+            parcelOf({ number: 1, marketplaceNumber: '4455667788-1', box: 'FF-BOX-17' }),
+            parcelOf({ number: 2, marketplaceNumber: '4455667788-2' })
+        ]);
+
+        expect(screen.getByTestId('parcels-1-box')).toHaveTextContent('FF-BOX-17');
+        expect(screen.getByTestId('parcels-1-box-help-button')).toBeInTheDocument();
+        expect(screen.queryByTestId('parcels-2-box')).toBeNull();
+    });
 });

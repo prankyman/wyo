@@ -1,12 +1,13 @@
 import { render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { exchangeProblemOf } from '$test/support/external-api';
+import { MARKETPLACE_CODE, MARKETPLACE_NAME } from '$test/support/marketplaces';
 import ProblemLine from './ProblemLine.svelte';
 import { problemHelp } from './problem-text';
 import type { TProblem } from './types';
 
-function draw(problem: TProblem): void {
-    render(ProblemLine, { props: { lang: 'ru', problem, testId: 'problem' } });
+function draw(problem: TProblem, marketplace?: string): void {
+    render(ProblemLine, { props: { lang: 'ru', problem, testId: 'problem', marketplace } });
 }
 
 /** A problem in wyo's sentence and, beside it, the marketplace's or the fulfilment centre's own words and code as received. */
@@ -61,6 +62,65 @@ describe('ProblemLine', () => {
         );
 
         expect(screen.getByTestId('problem')).toHaveTextContent('Не хватает: —. Лишнее: 200-1, 200-2.');
+    });
+
+    it('says what a shipment holds that the hand-over does not and what the hand-over holds that the shipment lacks, without a marketplace’s name', () => {
+        draw(
+            exchangeProblemOf({
+                code: 'shipment_differs',
+                params: { extra: '200-1, 200-2', missing: '300-1' },
+                marketplaceCode: undefined,
+                words: undefined
+            })
+        );
+
+        expect(screen.getByTestId('problem')).toHaveTextContent(
+            'Эти заказы есть в отгрузке маркетплейса, но фулфилмент-центр их не передаёт: 200-1, 200-2.'
+        );
+        expect(screen.getByTestId('problem')).toHaveTextContent(
+            'Эти заказы есть в передаче, но не вошли в отгрузку: 300-1.'
+        );
+    });
+
+    it('words a wait of the marketplace that cannot confirm the batch yet, with its own words beside', () => {
+        draw(
+            exchangeProblemOf({
+                code: 'close_waits',
+                params: {},
+                marketplaceCode: undefined,
+                words: 'Приём заказов до 18:00'
+            })
+        );
+
+        expect(screen.getByTestId('problem')).toHaveTextContent('Маркетплейс пока не может подтвердить партию.');
+        expect(screen.getByTestId('problem-words')).toHaveTextContent('Слова маркетплейса: «Приём заказов до 18:00»');
+    });
+
+    it('words a refusal by the family of the order’s marketplace, with the size the marketplace does not make filled in', () => {
+        draw(
+            exchangeProblemOf({
+                params: { step: 'labels', width: 75, height: 120 },
+                marketplaceCode: 'label_size_unsupported',
+                words: undefined
+            }),
+            MARKETPLACE_CODE
+        );
+
+        expect(screen.getByTestId('problem')).toHaveTextContent(
+            `${MARKETPLACE_NAME} не делает стикеры размера 75 × 120 мм — выберите на складе фулфилмент-центра 58 × 40 или 40 × 30`
+        );
+    });
+
+    it('keeps the general sentence for a refusal code whose marketplace has no text of its own, and when no marketplace is given', () => {
+        draw(
+            exchangeProblemOf({
+                params: { step: 'labels', width: 75, height: 120 },
+                marketplaceCode: 'label_size_unsupported',
+                words: undefined
+            })
+        );
+
+        expect(screen.getByTestId('problem')).toHaveTextContent('Маркетплейс отказал на шаге «получение этикетки».');
     });
 
     it('words a problem of parts the marketplace made that wyo cannot match to the parcels', () => {
@@ -159,7 +219,12 @@ describe('ProblemLine', () => {
         [{ code: 'labels_not_made' }, 'wyo запросит этикетки у маркетплейса ещё раз'],
         [{ code: 'codes_not_checked' }, 'wyo отправит весь набор кодов ещё раз'],
         [{ code: 'batch_waits' }, 'wyo сама повторяет попытку каждые 5 минут'],
-        [{ code: 'documents_wait' }, 'wyo сама спрашивает его снова']
+        [{ code: 'documents_wait' }, 'wyo сама спрашивает его снова'],
+        [{ code: 'close_waits' }, 'wyo сама повторяет попытку каждые 5 минут'],
+        [
+            { code: 'shipment_differs', params: { extra: '200-1', missing: '' } },
+            'Перенесите их в следующую отгрузку или отмените в кабинете маркетплейса'
+        ]
     ] as const)('explains the problem %j behind its «?»', (given, text) => {
         expect(problemHelp({ ...given, at: '2026-11-18T12:00:00' } as TProblem, 'ru')).toContain(text);
     });

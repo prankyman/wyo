@@ -118,10 +118,28 @@ func (a *api) writeWarehouses(w http.ResponseWriter, r *http.Request) {
 		matched[[2]any{m.AccountID, m.WarehouseNumber}] = m.FcWarehouse
 	}
 
+	markets, err := q.MarketplaceMatches(r.Context())
+	if err != nil {
+		a.fail(w, r, err)
+
+		return
+	}
+
 	body := gen.WarehouseMatches{FcWarehouses: []gen.FcWarehouse{}, Rows: []gen.WarehouseMatch{}}
 
 	for _, wh := range a.deps.Exchange.FcWarehouses(r.Context()) {
-		body.FcWarehouses = append(body.FcWarehouses, gen.FcWarehouse{Code: wh.Code, Name: wh.Name, City: wh.City})
+		row := gen.FcWarehouse{Code: wh.Code, Name: wh.Name, City: wh.City}
+
+		if len(wh.LabelSizes) > 0 {
+			sizes := make([]gen.FcLabelSize, 0, len(wh.LabelSizes))
+			for _, l := range wh.LabelSizes {
+				sizes = append(sizes, gen.FcLabelSize{Marketplace: l.Marketplace, WidthMm: l.WidthMm, HeightMm: l.HeightMm})
+			}
+
+			row.LabelSizes = &sizes
+		}
+
+		body.FcWarehouses = append(body.FcWarehouses, row)
 	}
 
 	for _, acc := range accounts {
@@ -141,6 +159,7 @@ func (a *api) writeWarehouses(w http.ResponseWriter, r *http.Request) {
 			body.Rows = append(body.Rows, gen.WarehouseMatch{
 				AccountId: acc.ID, AccountName: acc.Name, Marketplace: acc.Marketplace, WarehouseNumber: wh.Number,
 				WarehouseName: wh.Name, FcWarehouse: text(matched[[2]any{acc.ID, wh.Number}]), AutoAssembly: wh.AutoAssembly,
+				Express: &wh.Express, FcMarketplace: text(markets[acc.ID]),
 			})
 		}
 	}

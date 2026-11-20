@@ -16,6 +16,9 @@ address) and `components/{schemas,parameters,responses}/*.yaml` — 1 087 files.
 - **Compared on 2026-11-19 with the repository's newest commit** `4ca8b761cd5a99d8bf36cacf626e4b768ac5a4cd` (2026-11-19 10:02:57
   +0300): it adds five methods of size tables (`/v2/businesses/{businessId}/size-tables…`) and their 30 schemas, and changes nothing
   else. None of them is a method the wyo server calls, so the commit of the research is kept.
+- **Compared again on 2026-11-20 with the repository's newest commit** `b71cd4391c4e3a1e0819ace67806a4ec35b970ba` (2026-11-20 14:05:17
+  +0300): besides the methods of the size tables it removes one value, `COURIER_DELIVERY_POSTPAID_FAILED`, from `OrderSubstatusType`, and
+  changes none of the methods the wyo server calls, so the committed commit stays.
 
 ## How a later version is taken
 
@@ -44,10 +47,15 @@ and the copy is deleted. The tests are `TestATreeOfFilesIsJoinedIntoOneWithEvery
 `TestAReferenceThatIsNeitherAComponentFileNorAPathFileStopsTheJoin` (`internal/specfix/join_test.go`) and
 `TestYandexMarketsTreeIsJoinedIntoOneFileWithNoReferenceToAFile` (`tools/specfix/main_test.go`, the committed tree).
 
-## The methods the wyo server never calls
+## The methods the wyo server calls and the ones it never calls
 
-The generated client holds only the methods `api/codegen/yandex.cfg.yaml` lists: `getAuthTokenInfo`, `getCampaigns`,
-`getBusinessOrders`, `getPartnerWarehouses` and `getOfferMappings`, all of them reading. Three methods are never generated, because
-each removes goods from an order, accepts a cancellation or moves orders out of a shipment, which lowers the shop's quality index or
-cannot be undone (the research, section 5): `updateOrderItems`, `acceptOrderCancellation` and `transferOrdersFromShipment`. A test of
-`internal/archtest` reads the configuration and fails when one of them is listed.
+The generated client holds only the fourteen methods `api/codegen/yandex.cfg.yaml` lists: the five that read, `getAuthTokenInfo`,
+`getCampaigns`, `getBusinessOrders`, `getPartnerWarehouses` and `getOfferMappings`, and the nine of the exchange with a fulfilment
+centre (Plan 8) — the ones that write: `setOrderBoxLayout` (the boxes of an order with its marking codes), `updateOrderStatus` (only
+`PROCESSING` / `READY_TO_SHIP`: it can also cancel an order, so one function calls it and a test of `internal/archtest`,
+`TestTheStatusMethodOfYandexMarketIsCalledOnlyByItsOneReadyFunction`, lets nothing else), `verifyOrderEac` (the Express courier's code)
+and `confirmShipment` (the daily shipment); and the ones that read or give a file: `getOrderIdentifiersStatus`, `generateOrderLabel`,
+`searchShipments`, `getShipment` and `downloadShipmentAct`. Three methods are never generated, because each removes goods from an
+order, accepts a cancellation or moves orders out of a shipment, which lowers the shop's quality index or cannot be undone (the
+research, section 5): `updateOrderItems`, `acceptOrderCancellation` and `transferOrdersFromShipment`. A test of `internal/archtest`
+reads the configuration and fails when one of them is listed, and another fails when the list names other methods than the fourteen.

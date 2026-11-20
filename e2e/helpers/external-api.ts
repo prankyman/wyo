@@ -51,6 +51,8 @@ export interface IMatchOptions {
     handoverSettings?: boolean;
     /** The marketplace's code in the fulfilment centre's list; the fake fulfilment centre's `FAKE_FC.marketplace` when left out. */
     marketplace?: string;
+    /** The numbers of the account's warehouses matched to the fulfilment centre's `main`; `1001` (the fake Wildberries') when left out. */
+    warehouseNumbers?: string[];
 }
 
 /**
@@ -64,7 +66,11 @@ export async function matchExternalApiThroughApi(
     options: IMatchOptions = {}
 ): Promise<void> {
     await put(context, server, '/api/v1/external-api/warehouses', {
-        rows: [{ accountId, warehouseNumber: '1001', fcWarehouse: FAKE_FC.warehouse }]
+        rows: (options.warehouseNumbers ?? ['1001']).map((warehouseNumber) => ({
+            accountId,
+            warehouseNumber,
+            fcWarehouse: FAKE_FC.warehouse
+        }))
     });
     await put(context, server, '/api/v1/external-api/marketplaces', {
         rows: [
@@ -172,6 +178,8 @@ export async function receiveNotificationsThroughApi(
 export interface IHandoverRow {
     id: number;
     number: string;
+    /** The day of the hand-over, `YYYY-MM-DD`. */
+    day: string;
     state: string;
 }
 

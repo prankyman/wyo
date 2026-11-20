@@ -31,6 +31,8 @@ var (
 	limitsWarehouses = pageLimits{def: 15, largest: 30}
 	limitsOrders     = pageLimits{def: 50, largest: 50, truncate: true}
 	limitsOffers     = pageLimits{def: 50, largest: 100, truncate: true}
+	// limitsShipments is PageLimit30 of searchShipments; its default is the fake's choice, not Яндекс Маркет's.
+	limitsShipments = pageLimits{def: 30, largest: 30}
 )
 
 // paging reads the page token and the limit from the query: the token is spelled pageToken or page_token (x-aliases of the

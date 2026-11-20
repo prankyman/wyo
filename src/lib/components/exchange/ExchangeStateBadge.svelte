@@ -30,6 +30,7 @@
         packed: 'wait',
         codes_checking: 'wait',
         codes_accepted: 'ok',
+        ready: 'wait',
         handed_over: 'ok',
         cancelled: 'off'
     };

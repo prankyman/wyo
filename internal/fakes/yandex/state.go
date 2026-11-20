@@ -80,6 +80,13 @@ type order struct {
 	shipmentDate string
 	shipmentTime string
 	shipmentID   int64
+
+	// What the writing methods keep (writing.go): the boxes of the last layout, the verdict a test chose for the marking codes
+	// (verdict.go) and how many times the verdicts were read, and the courier code the order expects (courier.go).
+	boxes        []placedBox
+	verdict      verdictChoice
+	verdictReads int
+	eac          *eacCheck
 }
 
 // notifier is where the fake sends its notifications, and what a test commanded for the next ones.
@@ -108,6 +115,10 @@ type state struct {
 	nextSeq   int
 	shipments map[string]int64
 	nextShip  int64
+	nextBox   int64
+
+	// firstMile are the daily shipments a test made (shipments.go), in the order they were made.
+	firstMile []*shipment
 	windows   map[string]*window
 	notify    notifier
 }
@@ -117,6 +128,8 @@ const (
 	orderNumberBase    = 1_000_000_000
 	shipmentNumberBase = 4_000_000
 	chatNumberBase     = 9_000_000
+	// boxNumberBase is where the numbers of the boxes begin: the fake numbers each box a layout makes.
+	boxNumberBase = 8_000_000
 )
 
 // newState is the state of a key nobody has set up: every call of it is refused as invalid until a setup is made. What a setup

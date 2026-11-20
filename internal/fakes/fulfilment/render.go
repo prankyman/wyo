@@ -52,6 +52,7 @@ func (st *state) renderOrder(o *order) fcapi.Order {
 		Id: o.id, Number: o.number, ExternalId: o.externalID, GroupId: o.groupID, Marketplace: o.marketplace, Via: o.via,
 		Warehouse: o.warehouse, Status: o.status, WarehouseStatus: o.whStatus, ShipBy: o.shipBy, PackingNote: o.packingNote,
 		Lines: lines, Parcels: parcels, Problem: problem, HandoverId: o.handoverID, Sequence: &sequence, UpdatedAt: o.updatedAt,
+		Test: o.test, Handover: o.handover,
 	}
 }
 
@@ -109,6 +110,8 @@ func (st *state) renderEvent(e *event) fcapi.Event {
 		for k, v := range e.details {
 			details[k] = v
 		}
+
+		st.readCourierCode(e, details)
 
 		data.Details = &details
 	}

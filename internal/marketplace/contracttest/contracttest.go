@@ -78,6 +78,25 @@ type Fixture struct {
 	// PingNotification the body of its check that the address answers.
 	OrderNotification func(number string) []byte
 	PingNotification  func() []byte
+
+	// The fields below are for the parts of Plan 8; an adapter that claims none of them needs none.
+
+	// LabelSizes are the label sizes the marketplace makes (the cases ask a label in each, and in none); UnsupportedSize is a size
+	// it does not make (the zero value: none is tried).
+	LabelSizes      []marketplace.LabelSize
+	UnsupportedSize marketplace.LabelSize
+	// NewCourierOrder makes a new order of a scheme that leaves by a courier's code, and ExpectCourierCode makes the marketplace
+	// expect that code for it, with that many wrong tries allowed; replacing says the marketplace is replacing the code, so that
+	// its next check answers that a new code is coming.
+	NewCourierOrder   func(t *testing.T, key map[string]string) string
+	ExpectCourierCode func(t *testing.T, key map[string]string, number, code string, attempts int, replacing bool)
+	// ShipmentKinds are the marketplace's own words for how a batch it makes leaves (BatchState.Kind); MakeShipment makes the batch
+	// the marketplace makes by itself, with the orders in it. PassCutoff makes the marketplace's time for closing the batch of
+	// the orders come, and ExcludeFromShipment makes it take the orders out of it.
+	ShipmentKinds       []string
+	MakeShipment        func(t *testing.T, key map[string]string, spec ShipmentSpec)
+	PassCutoff          func(t *testing.T, key map[string]string, orders []string)
+	ExcludeFromShipment func(t *testing.T, key map[string]string, orders []string)
 }
 
 // maxFeedReadings bounds the readings of a feed in one case: a feed that never ends is a defect.
@@ -161,7 +180,8 @@ func checkDescription(t *testing.T, a marketplace.Adapter, desc marketplace.Desc
 	checkSteps(t, a, desc)
 
 	expect(t, desc.OrdersPeriod >= 0 && desc.StatesPeriod >= 0, "the periods %v and %v of the exchange are not negative", desc.OrdersPeriod, desc.StatesPeriod)
-	expect(t, !desc.CodesReplace || desc.Supports(marketplace.CodesReport), "the adapter says its codes replace and claims no codes.report")
+	expect(t, !desc.CodesReplace || desc.Supports(marketplace.CodesReport) || desc.CodesInPack, "the adapter says its codes replace and claims no codes.report and does not take its codes in the packing report")
+	checkPlan8(t, a, desc)
 	expect(t, !desc.Supports(marketplace.OrdersChanges) || (!desc.Supports(marketplace.OrdersNew) && !desc.Supports(marketplace.OrdersStates)),
 		"the adapter claims orders.changes beside orders.new or orders.states: the changes are read in place of both")
 	expect(t, !desc.Supports(marketplace.NotificationsReceive) || desc.Supports(marketplace.OrdersNamed),
@@ -177,6 +197,7 @@ func checkDescription(t *testing.T, a marketplace.Adapter, desc marketplace.Desc
 
 		writes = writes || slices.Contains([]marketplace.Capability{
 			marketplace.OrdersConfirm, marketplace.OrdersPack, marketplace.CodesReport, marketplace.HandoverGroup, marketplace.HandoverClose,
+			marketplace.OrdersReady, marketplace.OrdersCourierCode,
 		}, c)
 	}
 
@@ -223,7 +244,9 @@ func checkFlow(t *testing.T, a marketplace.Adapter, desc marketplace.Description
 
 	_, labelsNow := a.(marketplace.LabelFetcher)
 	_, labelsLater := a.(marketplace.LabelMaker)
-	expect(t, !desc.Supports(marketplace.LabelsFetch) || labelsNow != labelsLater, "the adapter claims labels.fetch and implements %d of the two forms of it, want exactly one", btoi(labelsNow)+btoi(labelsLater))
+	_, labelsByBox := a.(marketplace.BoxLabeler)
+	expect(t, !desc.Supports(marketplace.LabelsFetch) || btoi(labelsNow)+btoi(labelsLater)+btoi(labelsByBox) == 1,
+		"the adapter claims labels.fetch and implements %d of the three forms of it, want exactly one", btoi(labelsNow)+btoi(labelsLater)+btoi(labelsByBox))
 
 	_, plain := a.(marketplace.CodeReporter)
 	_, withProduct := a.(marketplace.ProductCodeReporter)
@@ -403,4 +426,21 @@ func ordersFeed(t *testing.T, f Fixture) {
 	}
 
 	t.Fatalf("the feed did not end after %d readings", maxFeedReadings)
+}
+
+// checkPlan8 checks the promises of the description that belong to the parts of Plan 8: codes in the packing report need the
+// interface that takes them and no codes.report, a batch the marketplace makes by itself has neither transport boxes nor shipping
+// to set, and an adapter that names a scheme that leaves by a courier's code claims the part that checks the code.
+func checkPlan8(t *testing.T, a marketplace.Adapter, desc marketplace.Description) {
+	t.Helper()
+
+	_, packs := a.(marketplace.BoxPacker)
+	_, readies := a.(marketplace.OrderReadier)
+
+	expect(t, !desc.CodesInPack || (packs && desc.Supports(marketplace.OrdersPack) && !desc.Supports(marketplace.CodesReport)),
+		"the adapter says its codes go in the packing report: it must implement BoxPacker, claim orders.pack and no codes.report")
+	expect(t, !desc.Supports(marketplace.OrdersReady) || (readies && packs), "the adapter claims orders.ready and does not implement OrderReadier with BoxPacker, which reads the order before it is written")
+	expect(t, !desc.BatchFound || (desc.Supports(marketplace.HandoverGroup) && !desc.NeedsStep(marketplace.StepBoxes) && !desc.NeedsStep(marketplace.StepShipping)),
+		"the adapter says its batch is found: it claims handover.group and needs neither the step boxes nor the step shipping")
+	expect(t, len(desc.CourierSchemes) == 0 || desc.Supports(marketplace.OrdersCourierCode), "the adapter names schemes that leave by a courier's code and does not claim orders.courier_code")
 }

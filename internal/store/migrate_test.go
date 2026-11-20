@@ -80,7 +80,8 @@ func TestANewDatabaseGetsTheFirstMigration(t *testing.T) {
 	}
 
 	want := []string{
-		"exchange_history", "exchange_orders", "exchange_parcels", "fc_connection", "fc_events", "fc_marketplace_map", "fc_warehouse_map",
+		"exchange_courier_checks", "exchange_history", "exchange_orders", "exchange_parcels", "fc_connection", "fc_events",
+		"fc_label_sizes", "fc_marketplace_map", "fc_warehouse_map",
 		"handover_orders", "handover_steps", "handovers", "marketplace_accounts", "marketplace_notifications", "marketplace_shops",
 		"marketplace_supplies", "marketplace_warehouses",
 		"order_codes", "order_events", "order_lines", "orders", "people", "request_journal", "schema_migrations", "secrets", "sessions",

@@ -2,6 +2,7 @@ import { screen, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handoverDetailsOf, handoverOf, exchangeProblemOf } from '$test/support/external-api';
 import { resetPage, setPageUrl } from '$test/support/page-state.svelte';
+import { THIRD_MARKETPLACE_CODE } from '$test/support/marketplaces';
 import { renderPageWith } from '$test/support/render-page';
 import type { THandover, THandoverDetails } from '$lib/components/handovers/types';
 
@@ -58,6 +59,19 @@ describe('«Передачи»', () => {
         expect(within(rows[0]).getByTestId('handovers-list-state')).toHaveTextContent('идёт');
         expect(rows[1]).toHaveTextContent('Не выбран пункт сдачи партии.');
         expect(within(rows[1]).getByTestId('handovers-list-state')).toHaveTextContent('проблема');
+    });
+
+    it('adds to the batches of a hand-over how the marketplace’s own batch leaves', () => {
+        renderPageWith(
+            Page,
+            pageData({
+                handovers: [handoverOf({ marketplace: THIRD_MARKETPLACE_CODE, batches: ['5001'], batchKind: 'IMPORT' })]
+            })
+        );
+
+        expect(screen.getByTestId('handovers-list-table')).toHaveTextContent(
+            '5001 · Склад везёт в сортировочный центр или пункт приёма'
+        );
     });
 
     it('says why the list is empty and what makes hand-overs appear', () => {

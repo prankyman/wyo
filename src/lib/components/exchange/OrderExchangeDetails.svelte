@@ -11,6 +11,7 @@
     import { hasMessage, t } from '$lib/i18n/i18n';
     import type { TLocale } from '$lib/i18n/types';
     import CodeVerdictList from './CodeVerdictList.svelte';
+    import CourierCodeChecks from './CourierCodeChecks.svelte';
     import ExchangeStateBadge from './ExchangeStateBadge.svelte';
     import HeldReasons from './HeldReasons.svelte';
     import ParcelList from './ParcelList.svelte';
@@ -20,7 +21,7 @@
     /**
      * The part of an order's details about its exchange with the fulfilment centre (`OrderDetails.exchange`): the exchange's
      * state, why the order is not sent or what it needs from the owner, the fulfilment centre's number of the order, the order's parcels with the marketplace's number of each (`ParcelList`), the reasons
-     * the fulfilment centre holds it for, the problem in wyo's words and the other party's, the marketplace's verdicts on the
+     * the fulfilment centre holds it for, the way out of an order that leaves alone with a courier (`handover`), the moment the marketplace was told it is ready, the courier's code checks (`CourierCodeChecks`), the problem in wyo's words and the other party's, the marketplace's verdicts on the
      * order's codes, the fulfilment centre's answer to a cancellation passed on, and the history of the exchange, oldest first.
      * «Передать заново» repeats the step that failed (`POST /api/v1/orders/{id}/exchange/retry`) when the wyo server says it
      * may; the page is told (`onRetried`) so it reads the order again.
@@ -31,10 +32,12 @@
         /** The marketplace's own number of the order, for `ParcelList` to tell a parcel that kept it from one the marketplace numbered. */
         orderNumber: string;
         details: TOrderExchangeDetails;
+        /** The code of the order's marketplace, for `ProblemLine` to word a refusal that the marketplace's own texts word. */
+        marketplace?: string;
         onRetried?: () => void;
     }
 
-    let { lang, orderId, orderNumber, details, onRetried }: IProps = $props();
+    let { lang, orderId, orderNumber, details, marketplace, onRetried }: IProps = $props();
 
     const retry = new ApiAction();
 
@@ -46,18 +49,20 @@
         if (result?.ok) onRetried?.();
     }
 
-    const facts = $derived(
-        details.fcNumber
-            ? [
-                  {
-                      key: 'fcNumber',
-                      label: t('exchange.details.fcNumber', lang),
-                      value: details.fcNumber,
-                      help: t('exchange.details.fcNumber.help', lang)
-                  }
-              ]
-            : []
-    );
+    const facts = $derived.by(() => {
+        const items: { key: string; label: string; value: string; help: string }[] = [];
+        const add = (key: string, value: string) =>
+            items.push({
+                key,
+                label: t(`exchange.details.${key}`, lang),
+                value,
+                help: t(`exchange.details.${key}.help`, lang)
+            });
+        if (details.fcNumber) add('fcNumber', details.fcNumber);
+        if (details.handover === 'courier_code') add('handover', t('exchange.handover.courier_code', lang));
+        if (details.readyAt) add('readyAt', formatDateTime(details.readyAt, lang));
+        return items;
+    });
 
     const eventText = (code: string | undefined) =>
         code !== undefined && hasMessage(`exchange.event.${code}`, lang)
@@ -88,6 +93,7 @@
         <FactList items={facts} dataTest="exchange-facts" />
     {/if}
     <ParcelList {lang} parcels={details.parcels} {orderNumber} />
+    <CourierCodeChecks {lang} checks={details.courierChecks ?? []} />
     {#if details.heldReasons.length > 0}
         <div>
             <HeadingWithHelp
@@ -100,7 +106,7 @@
         </div>
     {/if}
     {#if details.problem}
-        <ProblemLine {lang} problem={details.problem} testId="exchange-problem" />
+        <ProblemLine {lang} problem={details.problem} {marketplace} testId="exchange-problem" />
     {/if}
     {#if details.verdicts.length > 0}
         <div>

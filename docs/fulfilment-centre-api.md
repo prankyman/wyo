@@ -42,29 +42,29 @@ and what it is. Values of the body never come back. The order of checks for a wr
 a body over its limit (`413`), a body that is not JSON or not of the right shape (`400` with `issues`), then the call's own rules.
 Nothing is stored for a refused request.
 
-| Code                      | Status | When                                                                                                                                                           |
-| ------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `bad_request`             | 400    | The body or a parameter is wrong; `issues` names the places.                                                                                                   |
-| `unauthorized`            | 401    | No key, a mistyped key, or a revoked key.                                                                                                                      |
-| `forbidden`               | 403    | The seller's work is switched off at the fulfilment centre.                                                                                                    |
-| `api_off`                 | 403    | The seller switched the API off; a right key does not work until it is switched on.                                                                            |
-| `read_only_key`           | 403    | A write with a read-only key.                                                                                                                                  |
-| `marketplace_not_enabled` | 403    | The order's marketplace is not enabled for this seller.                                                                                                        |
-| `not_found`               | 404    | No such record for this seller.                                                                                                                                |
-| `not_api_order`           | 409    | Only an order that came through this API can be changed.                                                                                                       |
-| `external_id_reused`      | 409    | A repeat of an order number with other lines.                                                                                                                  |
-| `handed_over`             | 409    | The order is already handed over; too late to change it.                                                                                                       |
-| `conflict`                | 409    | The call cannot be done now: the order is cancelled, the documents were not asked for, the hand-over is completed, or the scan code belongs to another parcel. |
-| `too_large`               | 413    | The body is over its limit.                                                                                                                                    |
-| `rate_limited`            | 429    | More than 300 requests a minute.                                                                                                                               |
-| `unavailable`             | 503    | The fulfilment centre is in maintenance.                                                                                                                       |
+| Code                      | Status | When                                                                                                                                                                                                                                                              |
+| ------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bad_request`             | 400    | The body or a parameter is wrong; `issues` names the places.                                                                                                                                                                                                      |
+| `unauthorized`            | 401    | No key, a mistyped key, or a revoked key.                                                                                                                                                                                                                         |
+| `forbidden`               | 403    | The seller's work is switched off at the fulfilment centre.                                                                                                                                                                                                       |
+| `api_off`                 | 403    | The seller switched the API off; a right key does not work until it is switched on.                                                                                                                                                                               |
+| `read_only_key`           | 403    | A write with a read-only key.                                                                                                                                                                                                                                     |
+| `marketplace_not_enabled` | 403    | The order's marketplace is not enabled for this seller.                                                                                                                                                                                                           |
+| `not_found`               | 404    | No such record for this seller.                                                                                                                                                                                                                                   |
+| `not_api_order`           | 409    | Only an order that came through this API can be changed.                                                                                                                                                                                                          |
+| `external_id_reused`      | 409    | A repeat of an order number with other lines.                                                                                                                                                                                                                     |
+| `handed_over`             | 409    | The order is already handed over; too late to change it.                                                                                                                                                                                                          |
+| `conflict`                | 409    | The call cannot be done now: the order is cancelled, the documents were not asked for, the hand-over is completed, the scan code belongs to another parcel, the order does not leave with a courier's code, or a courier's code was already answered differently. |
+| `too_large`               | 413    | The body is over its limit.                                                                                                                                                                                                                                       |
+| `rate_limited`            | 429    | More than 300 requests a minute.                                                                                                                                                                                                                                  |
+| `unavailable`             | 503    | The fulfilment centre is in maintenance.                                                                                                                                                                                                                          |
 
 ## The calls
 
 | Call                                                        | What it does                                                                                                                                                             |
 | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `GET /api/v1/account`                                       | The seller's name, whether the API is on, this key's access, the **enabled marketplaces** `[{ code, name }]`, the limits, the fulfilment centre's clock.                 |
-| `GET /api/v1/warehouses`                                    | The working warehouses: `code`, `name`, `city`. A `code` goes into an order's `warehouse`.                                                                               |
+| `GET /api/v1/warehouses`                                    | The working warehouses: `code`, `name`, `city`, `label_sizes`. A `code` goes into an order's `warehouse`.                                                                |
 | `POST /api/v1/orders`                                       | Send an order in (below).                                                                                                                                                |
 | `GET /api/v1/orders`                                        | The seller's orders however they came; filters `updated_since`, `status`, `marketplace` (a code, or `none` for the seller's own shop), `external_id`, `limit`, `cursor`. |
 | `GET /api/v1/orders/{id}`                                   | One order.                                                                                                                                                               |
@@ -73,6 +73,7 @@ Nothing is stored for a refused request.
 | `POST /api/v1/orders/{id}/reduce`                           | Cut: for each named line, how many units are wanted now.                                                                                                                 |
 | `PUT` / `DELETE /api/v1/orders/{id}/parcels/{number}/label` | The label file of a parcel.                                                                                                                                              |
 | `PUT` / `DELETE /api/v1/orders/{id}/problem`                | A problem the sender reports about the order.                                                                                                                            |
+| `PUT /api/v1/orders/{id}/courier-code-checks/{check_id}`    | The answer to a code a courier named for an order that leaves alone (below).                                                                                             |
 | `GET /api/v1/held-orders`                                   | The orders that wait, with their reasons.                                                                                                                                |
 | `GET` / `DELETE /api/v1/held-orders/{id}`                   | One received order in any state / withdraw a waiting one.                                                                                                                |
 | `GET /api/v1/events`                                        | The events (`after`, `types`, `limit`).                                                                                                                                  |
@@ -80,7 +81,7 @@ Nothing is stored for a refused request.
 | `PUT /api/v1/handovers/{id}/documents`                      | The hand-over's documents.                                                                                                                                               |
 | `PUT` / `DELETE /api/v1/handovers/{id}/problem`             | A problem the sender reports about the hand-over.                                                                                                                        |
 
-The changes of an order (`PATCH`, cancel, reduce, the label, the problem) are allowed **only for an order that came through the
+The changes of an order (`PATCH`, cancel, reduce, the label, the problem, the answer to a courier's code) are allowed **only for an order that came through the
 API**; any other order answers `409 not_api_order` (it can still be read).
 
 ### Sending an order
@@ -93,6 +94,8 @@ The body of `POST /orders`:
 - `warehouse` — a code from `GET /warehouses`; may be left out when the fulfilment centre has one working warehouse.
 - `ship_by` — the hand-over deadline, ISO 8601 with a zone, required.
 - `packing_note` — up to 300 characters.
+- `test` — `true` for a marketplace's test order; left out, it is `false` (below).
+- `handover` — how the order leaves: `shipment` (the default) or `courier_code` (below).
 - `lines[]` — 1 to 200 lines: `article`, `barcode` and/or `marketplace_item_id` (at least one) and `quantity` (a whole number from 1).
 
 How a line's product is found: first by `barcode` (unique per seller), then by `article` (the product's code), then by
@@ -110,6 +113,42 @@ The answers:
 
 A held order is in one of the states `held_link`, `held_warehouse`, `held_work`, `held_refused`, `accepted`, `withdrawn`. Withdrawing
 one (`DELETE /held-orders/{id}`) ends its waiting; the sender then reads the state `withdrawn`.
+
+### Test orders
+
+A marketplace's test order has no buyer and no money. With `test: true` the order is picked and packed like any other, but the
+fulfilment centre never puts it into a hand-over, never hands it over, and never bills, pays or counts it. The order object returns
+`test` as it was sent.
+
+### Orders that leave alone, with a courier's code
+
+An order sent with `handover: courier_code` does not go into a day's hand-over with the others. Its parcels are packed and wait. When
+a courier comes for them, a worker at the fulfilment centre types the code the courier names, and the fulfilment centre reports the
+event `order.courier_code_entered` with `details.check_id` (the id of this check) and `details.code` (the typed text). For such an
+order `ship_by` is the time by which it must be packed. The order object returns `handover` as it was sent (`shipment` or
+`courier_code`).
+
+The sender checks the code with its marketplace and answers with `PUT /orders/{id}/courier-code-checks/{check_id}` and
+`{ result, attempts_left?, message? }`:
+
+- `result` is `accepted` (the marketplace accepted the code: the worker gives the parcels to the courier, the order becomes `shipped`
+  and `order.handed_over` follows), `refused` (the code is wrong) or `new_code_needed` (the marketplace sends the courier a new
+  code).
+- `attempts_left` is how many tries of the code the marketplace still allows, from 0 to 1000, when it says; `message` is the
+  marketplace's own words for the worker, up to 300 characters. Both may be `null` or left out.
+- The answer is `200` with `{ state, order }`. The same answer sent again is `200` again; a different answer to an answered check is
+  `409 conflict`. A check or an order of another seller, or one that does not exist, is `404 not_found`; an order that was not sent
+  with `handover: courier_code` is `409 conflict`.
+- **The code is kept short.** It is read from the check when the event is read or sent: once the check is answered, or about 10
+  minutes after the code was typed, `details.code` is `null`. A sender that reads the event later knows only that a code was typed.
+- Without an answer the worker may type a new code; that is a new check, with a new `check_id`, and a new event.
+
+### The label size of a warehouse
+
+Each warehouse in `GET /warehouses` carries `label_sizes`: a list of `{ marketplace, width_mm, height_mm }`, one for each marketplace
+whose label size the warehouse chooses, because its printer takes that size. The sender asks the marketplace for a label of exactly
+that size. A marketplace with no entry has no size the warehouse chooses, and the marketplace's own default is used. A warehouse with
+no choice returns an empty list.
 
 ### The label that comes afterwards
 
@@ -139,7 +178,7 @@ Every successful change answers with `state` (`cancelled`, `reduced` or `updated
 `id`, `number` (the fulfilment centre's own number), `external_id`, `group_id`, `marketplace` (a code or `null`), `via` (how the
 order came: `api`, `cabinet`, `file`, `office`, `marketplace`, `shop`), `warehouse`, `status` (`accepted`, `waitingStock`,
 `reserved`, `picking`, `packing`, `packed`, `shipped`, `cancelled`), `warehouse_status` (twelve detailed values), `ship_by`,
-`packing_note`, `lines[]` (`line`, `article`, `quantity`, `cancelled_quantity`, `packed_quantity`, `marking_required`), `parcels[]`
+`packing_note`, `test`, `handover`, `lines[]` (`line`, `article`, `quantity`, `cancelled_quantity`, `packed_quantity`, `marking_required`), `parcels[]`
 (`number`, `closed_at`, `handed_over_at`, `label_attached`, `units[]` — each unit's line and marking code), `problem`,
 `handover_id`, `sequence`, `updated_at`. There is no buyer data.
 
@@ -150,26 +189,27 @@ Whether a line needs marking codes is decided by the fulfilment centre's product
 
 The events the fulfilment centre reports:
 
-| Event                        | When                                                                             |
-| ---------------------------- | -------------------------------------------------------------------------------- |
-| `order.accepted`             | The order is created: at once or from the waiting list.                          |
-| `order.held`                 | The order is received and waits.                                                 |
-| `order.reserved`             | The goods are reserved.                                                          |
-| `order.picking_started`      | The order is released to picking.                                                |
-| `order.picked`               | The pick is complete.                                                            |
-| `order.packing_finished`     | **The contents are final**; carries each unit's marking code.                    |
-| `order.label_attached`       | A label is attached to a parcel (`details.parcel`).                              |
-| `order.parcel_closed`        | A parcel is closed (`details.parcel`).                                           |
-| `order.packed`               | The last parcel is closed.                                                       |
-| `order.reopened`             | A parcel is reopened or packing restarted: the codes sent before no longer hold. |
-| `order.reduced`              | Lines were cut.                                                                  |
-| `order.change_waits`         | A cancel or a cut waits for a person (`details.field`, `details.why`).           |
-| `order.cancelled`            | The order is cancelled (`details.by`: `outside_system` or `warehouse`).          |
-| `order.handed_over`          | The last parcel left.                                                            |
-| `handover.requested`         | The fulfilment centre asks for the hand-over's documents.                        |
-| `handover.request_withdrawn` | It withdrew the request.                                                         |
-| `handover.completed`         | Every parcel of the hand-over left.                                              |
-| `ping`                       | A test notification, sent on request.                                            |
+| Event                        | When                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------- |
+| `order.accepted`             | The order is created: at once or from the waiting list.                                     |
+| `order.held`                 | The order is received and waits.                                                            |
+| `order.reserved`             | The goods are reserved.                                                                     |
+| `order.picking_started`      | The order is released to picking.                                                           |
+| `order.picked`               | The pick is complete.                                                                       |
+| `order.packing_finished`     | **The contents are final**; carries each unit's marking code.                               |
+| `order.label_attached`       | A label is attached to a parcel (`details.parcel`).                                         |
+| `order.parcel_closed`        | A parcel is closed (`details.parcel`).                                                      |
+| `order.packed`               | The last parcel is closed.                                                                  |
+| `order.reopened`             | A parcel is reopened or packing restarted: the codes sent before no longer hold.            |
+| `order.reduced`              | Lines were cut.                                                                             |
+| `order.change_waits`         | A cancel or a cut waits for a person (`details.field`, `details.why`).                      |
+| `order.cancelled`            | The order is cancelled (`details.by`: `outside_system` or `warehouse`).                     |
+| `order.handed_over`          | The last parcel left.                                                                       |
+| `order.courier_code_entered` | A courier named a code for an order that leaves alone (`details.check_id`, `details.code`). |
+| `handover.requested`         | The fulfilment centre asks for the hand-over's documents.                                   |
+| `handover.request_withdrawn` | It withdrew the request.                                                                    |
+| `handover.completed`         | Every parcel of the hand-over left.                                                         |
+| `ping`                       | A test notification, sent on request.                                                       |
 
 An event is `{ id, type, occurred_at, sequence, data }`, where `data.order` (or `data.held`, `data.handover`) is the object as it is
 **when the event is read or sent**, and `data.details` holds the event's small facts. A receiver discards an event whose `sequence`

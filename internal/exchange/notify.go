@@ -130,7 +130,14 @@ func (s *Service) repeat(ctx context.Context, sess *session, o *order, step stri
 		// The reports are made again, as many times as before.
 		o.x.PackTries = 0
 		s.save(ctx, o)
+
+		if s.codesInPack(ctx, o) {
+			return keepStopped(s.reportBoxesAgain(ctx, sess, o))
+		}
+
 		s.packStep(ctx, sess, o)
+	case stepReady:
+		s.readyStep(ctx, sess, o)
 	case stepCodes:
 		if o.x.CodesState == codesRemoving {
 			return s.reopened(ctx, sess, o)
@@ -187,6 +194,7 @@ func (s *Service) Notices(ctx context.Context) ([]notices.Notice, error) {
 		{attentionProblem, "fc_order_problems", notices.ToneStop},
 		{attentionByWarehouse, "fc_cancelled_by_warehouse", notices.ToneWarn},
 		{attentionChangeWaits, "fc_change_waits", notices.ToneWarn},
+		{store.AttentionWarehouseUnknown, "fc_warehouse_unknown", notices.ToneWarn},
 	} {
 		if n := counts[c.cause]; n > 0 {
 			list = append(list, notice(c.code, c.tone, map[string]any{"count": n}))

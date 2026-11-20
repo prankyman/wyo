@@ -26,6 +26,8 @@ type Connection struct {
 	LastEventAt        time.Time
 	LastNotificationAt time.Time
 	LastPingAt         time.Time
+	// LabelSizesReadAt is when the fulfilment centre's label sizes were last read (zero: never).
+	LabelSizesReadAt time.Time
 }
 
 // FcMarketplace is a marketplace in the fulfilment centre's own list.
@@ -65,6 +67,7 @@ func connection(row db.FcConnection) Connection {
 		Marketplaces: markets, CheckedAt: moment(row.CheckedAt), EventsMode: row.EventsMode, HookText: row.HookText,
 		HookSecretName: row.HookSecretName, EventsMark: row.EventsMark, LastEventAt: optionalMoment(row.LastEventAt),
 		LastNotificationAt: optionalMoment(row.LastNotificationAt), LastPingAt: optionalMoment(row.LastPingAt),
+		LabelSizesReadAt: optionalMoment(row.LabelSizesReadAt),
 	}
 }
 

@@ -92,6 +92,12 @@ type order struct {
 	fingerprint string
 	pending     *pendingChange
 	waitsFor    map[string]bool // "cancel"/"reduce" -> a person was already asked
+	// test is a marketplace's test order: packed like any other, never put into a hand-over and never handed over.
+	test bool
+	// handover is how the order leaves: in a day's hand-over, or alone to a courier who names a code (courier.go).
+	handover fcapi.OrderHandover
+	// checks are the codes a courier named for the order, oldest first.
+	checks []*courierCheck
 }
 
 type heldOrder struct {
@@ -202,6 +208,7 @@ type state struct {
 	nextHeld   int
 	nextHO     int
 	nextOrder  int
+	nextCheck  int
 
 	hook       *hookConfig
 	deliveries []delivery

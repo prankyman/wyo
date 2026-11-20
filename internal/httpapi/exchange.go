@@ -33,6 +33,7 @@ func parcelsBody(list []store.Parcel) []gen.OrderParcel {
 	for _, p := range list {
 		parcels = append(parcels, gen.OrderParcel{
 			Number: int(p.Number), MarketplaceNumber: p.MpNumber, LabelSent: !p.LabelSentAt.IsZero(), LabelSentAt: moment(p.LabelSentAt),
+			Box: text(p.Box),
 		})
 	}
 
@@ -92,7 +93,45 @@ func exchangeDetailsBody(d exchange.Details, parcels []store.Parcel) *gen.OrderE
 		body.History = append(body.History, gen.ExchangeEvent{At: h.At, State: gen.ExchangeState(h.State), Code: text(h.Code)})
 	}
 
+	if d.Sent {
+		way := gen.OrderExchangeDetailsHandover(store.HandoverShipment)
+		if d.Row.Handover != "" {
+			way = gen.OrderExchangeDetailsHandover(d.Row.Handover)
+		}
+
+		body.Handover, body.ReadyAt = &way, moment(d.Row.ReadyAt)
+	}
+
+	if len(d.CourierChecks) > 0 {
+		checks := courierChecksBody(d.CourierChecks)
+		body.CourierChecks = &checks
+	}
+
 	return body
+}
+
+// courierChecksBody are the codes a courier named for an order, each with the marketplace's answer: never the code, which the
+// wyo server does not keep.
+func courierChecksBody(list []store.CourierCheck) []gen.CourierCheck {
+	out := make([]gen.CourierCheck, 0, len(list))
+
+	for _, c := range list {
+		check := gen.CourierCheck{At: c.CameAt, Words: text(c.Words), AnsweredAt: moment(c.AnsweredAt)}
+
+		if c.Result != "" {
+			result := gen.CourierCheckResult(c.Result)
+			check.Result = &result
+		}
+
+		if c.AttemptsLeft >= 0 {
+			left := int(c.AttemptsLeft)
+			check.AttemptsLeft = &left
+		}
+
+		out = append(out, check)
+	}
+
+	return out
 }
 
 // RetryOrderExchange answers POST /api/v1/orders/{id}/exchange/retry: «Передать заново».

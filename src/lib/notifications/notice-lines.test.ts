@@ -142,6 +142,13 @@ describe('noticeLines', () => {
             'Фулфилмент-центр ждёт решения человека на своём складе по изменению 4 заказов. Свяжитесь с фулфилмент-центром: wyo сама ничего в заказах не меняет.'
         ],
         [
+            'orders whose warehouse the marketplace did not tell',
+            notice({ source: 'external_api', code: 'fc_warehouse_unknown', tone: 'warn', params: { count: 2 } }),
+            'attention',
+            '/orders?attention=true',
+            'У 2 заказов маркетплейс не назвал склад, поэтому wyo не передаёт их фулфилмент-центру. Проверьте склады в кабинете маркетплейса: когда у магазина в этой схеме больше одного склада, склад заказа остаётся неизвестным. Заказы — в разделе «Заказы», по фильтру «Требуют внимания».'
+        ],
+        [
             'an account key may only read',
             notice({
                 source: 'external_api',

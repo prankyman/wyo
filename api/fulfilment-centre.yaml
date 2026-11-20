@@ -713,6 +713,83 @@ paths:
                 - api_off
                 - rate_limited
                 - unavailable
+    /orders/{id}/courier-code-checks/{check_id}:
+        put:
+            operationId: courierCodeAnswer
+            tags:
+                - orders
+            summary: Answer a courier's code
+            description:
+                The answer to the code a courier named for an order sent with `handover` `courier_code`, after the sender
+                checked it with its marketplace. The parcels are given to the courier only after `accepted`. The code of a
+                check is erased once the check is answered, or about 10 minutes after it was typed.
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                  description: The record's id, as the object carries it.
+                - name: check_id
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+                  description: The check's id, as `order.courier_code_entered` carries it in `details.check_id`.
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CourierCodeAnswerIn'
+            x-max-megabytes: 1
+            responses:
+                '200':
+                    description: Done.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    state:
+                                        type: string
+                                        enum:
+                                            - cancelled
+                                            - reduced
+                                            - updated
+                                    order:
+                                        $ref: '#/components/schemas/Order'
+                                required:
+                                    - state
+                                    - order
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '403':
+                    $ref: '#/components/responses/Forbidden'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+                '409':
+                    $ref: '#/components/responses/Conflict'
+                '413':
+                    $ref: '#/components/responses/TooLarge'
+                '429':
+                    $ref: '#/components/responses/RateLimited'
+                '503':
+                    $ref: '#/components/responses/Unavailable'
+            x-error-codes:
+                - read_only_key
+                - bad_request
+                - too_large
+                - not_found
+                - not_api_order
+                - conflict
+                - unauthorized
+                - forbidden
+                - api_off
+                - rate_limited
+                - unavailable
     /orders/{id}/parcels/{number}/label:
         put:
             operationId: labelPut
@@ -1901,6 +1978,48 @@ webhooks:
             responses:
                 2XX:
                     description: Received.
+    order.courier_code_entered:
+        post:
+            operationId: webhook_order_courier_code_entered
+            summary: "A courier named a code for an order that leaves alone; `details.check_id` and `details.code` (null once the
+                code is erased). Answer with `PUT /orders/{id}/courier-code-checks/{check_id}`."
+            description:
+                The notification is a signed `POST` with the headers `webhook-id`, `webhook-timestamp` and `webhook-signature`,
+                as the Standard Webhooks specification describes. Any `2xx` answer means it was received; any other answer,
+                a redirect, or no answer within 10 seconds means it was not, and it is sent again later (8 attempts over
+                about 27 hours).
+            parameters:
+                - name: webhook-id
+                  in: header
+                  required: true
+                  description: The event's id; the same on every attempt.
+                  schema:
+                      type: string
+                - name: webhook-timestamp
+                  in: header
+                  required: true
+                  description:
+                      The moment of this attempt, in seconds since 1970-01-01 UTC. A receiver refuses one more than
+                      five minutes away.
+                  schema:
+                      type: string
+                - name: webhook-signature
+                  in: header
+                  required: true
+                  description:
+                      "`v1,` followed by the base64 of HMAC-SHA256 over the text `<webhook-id>.<webhook-timestamp>.<body>`,
+                      keyed by the secret's bytes (the base64 text after `whsec_`)."
+                  schema:
+                      type: string
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Event'
+            responses:
+                2XX:
+                    description: Received.
     handover.requested:
         post:
             operationId: webhook_handover_requested
@@ -2241,10 +2360,35 @@ components:
                     type:
                         - string
                         - 'null'
+                label_sizes:
+                    description:
+                        The label size the warehouse prints a marketplace's labels on, one entry for each marketplace whose
+                        size the warehouse chooses. The sender asks the marketplace for a label of exactly that size; a
+                        marketplace without an entry has no size the warehouse chooses, and the marketplace's own default is
+                        used.
+                    type: array
+                    items:
+                        x-go-type-name: LabelSize
+                        type: object
+                        properties:
+                            marketplace:
+                                description: The marketplace's code, as an order's `marketplace` takes it.
+                                type: string
+                            width_mm:
+                                description: The label's width in millimetres.
+                                type: integer
+                            height_mm:
+                                description: The label's height in millimetres.
+                                type: integer
+                        required:
+                            - marketplace
+                            - width_mm
+                            - height_mm
             required:
                 - code
                 - name
                 - city
+                - label_sizes
         OrderIn:
             description: An order sent in. Unknown fields are refused, so no buyer data can travel in an order.
             type: object
@@ -2288,6 +2432,20 @@ components:
                         - string
                         - 'null'
                     maxLength: 300
+                test:
+                    description:
+                        A marketplace's test order (no buyer, no money). It is packed like any other and never handed over,
+                        billed, paid or counted. Default `false`.
+                    type: boolean
+                handover:
+                    description:
+                        How the order leaves. `shipment` (the default) in a day's hand-over with the others; `courier_code`
+                        alone, to a courier who names a code that the sender checks with its marketplace (the event
+                        `order.courier_code_entered`). For such an order `ship_by` is the time by which it must be packed.
+                    type: string
+                    enum:
+                        - shipment
+                        - courier_code
                 lines:
                     description: One to 200 lines. Two lines of one product are added up.
                     minItems: 1
@@ -2401,6 +2559,37 @@ components:
             required:
                 - code
                 - message
+            additionalProperties: false
+        CourierCodeAnswerIn:
+            description:
+                The answer to the code a courier named for an order that leaves alone (`order.courier_code_entered`). The
+                same answer may be sent again; a different answer to an answered check is refused with `conflict`.
+            type: object
+            properties:
+                result:
+                    description:
+                        "`accepted`: the marketplace accepted the code, and the parcels are given to the courier; `refused`:
+                        the code is wrong; `new_code_needed`: the marketplace sends the courier a new code."
+                    type: string
+                    enum:
+                        - accepted
+                        - refused
+                        - new_code_needed
+                attempts_left:
+                    description: How many tries of the code the marketplace still allows, when it says.
+                    type:
+                        - integer
+                        - 'null'
+                    minimum: 0
+                    maximum: 1000
+                message:
+                    description: The marketplace's own words, shown to the warehouse's worker.
+                    type:
+                        - string
+                        - 'null'
+                    maxLength: 300
+            required:
+                - result
             additionalProperties: false
         Label:
             description: A label file for one parcel.
@@ -2585,6 +2774,15 @@ components:
                     type:
                         - string
                         - 'null'
+                test:
+                    description: A marketplace's test order, packed and never handed over.
+                    type: boolean
+                handover:
+                    description: How the order leaves, as it was sent.
+                    type: string
+                    enum:
+                        - shipment
+                        - courier_code
                 lines:
                     description: The order's lines.
                     type: array
@@ -2704,6 +2902,8 @@ components:
                 - warehouse_status
                 - ship_by
                 - packing_note
+                - test
+                - handover
                 - lines
                 - parcels
                 - problem
@@ -2949,7 +3149,8 @@ components:
                                 this API can be changed. `external_id_reused` (409): A repeat of an order number with other
                                 lines. `handed_over` (409): The order is already handed over; too late. `conflict` (409):
                                 The call cannot be done now: the order is cancelled, the documents were not asked for, the
-                                hand-over is completed, the scan code is taken by another parcel. `too_large` (413): The
+                                hand-over is completed, the scan code is taken by another parcel, a courier's check is
+                                answered already with another answer, or the order does not leave by a courier's code. `too_large` (413): The
                                 body is over its limit. `rate_limited` (429): More than 300 requests a minute. `unavailable`
                                 (503): The fulfilment centre is in maintenance."
                             type: string
@@ -3037,7 +3238,8 @@ x-errors:
       status: 409
       description:
           'The call cannot be done now: the order is cancelled, the documents were not asked for, the hand-over is
-          completed, the scan code is taken by another parcel.'
+          completed, the scan code is taken by another parcel, a courier''s check is answered already with another answer, or
+          the order does not leave by a courier''s code.'
     - code: too_large
       status: 413
       description: The body is over its limit.

@@ -36,7 +36,7 @@ func TestEveryPartOfTheContractIsNamedAndOnlyThisStagesPartsAreSupported(t *test
 		marketplace.OrdersFeed: true, marketplace.OrdersConfirm: true, marketplace.OrdersPack: true, marketplace.LabelsFetch: true, marketplace.CodesReport: true,
 		marketplace.CodesVerdict: true, marketplace.HandoverGroup: true, marketplace.HandoverClose: true,
 		marketplace.HandoverDocuments: true, marketplace.OrdersChanges: true, marketplace.OrdersNamed: true,
-		marketplace.NotificationsReceive: true,
+		marketplace.NotificationsReceive: true, marketplace.OrdersReady: true, marketplace.OrdersCourierCode: true,
 	}
 
 	if !reflect.DeepEqual(supported, want) {

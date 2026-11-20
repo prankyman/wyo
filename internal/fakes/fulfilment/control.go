@@ -25,6 +25,16 @@ import (
 //	                                              handover.requested event), withdraw-request
 //	GET    /__control/orders/{id}/parcels/{number}/label   the label file of a parcel as the sender sent it: content_type, scan_code, data
 //	GET    /__control/handovers/{id}/documents            the hand-over's documents as the sender sent them: kind, title, content_type, scan_code, data
+//	POST   /__control/orders/{id}/give-to-courier  an order sent with handover courier_code: its parcels go to the courier, once the
+//	                                              latest courier's code was answered accepted (the order is shipped, order.handed_over follows)
+//	POST   /__control/orders/{id}/courier-code    a courier named a code for a packed courier_code order; the body is {"code": "..."}, the
+//	                                              answer {"check_id", "order"}; the event order.courier_code_entered follows, and it shows the
+//	                                              code until the check is answered or 10 minutes pass
+//	POST   /__control/orders/{id}/courier-code-checks/{check_id}/erase   the code is erased as if the 10 minutes had passed
+//	GET    /__control/orders/{id}/courier-code-checks   every check: check_id, code (as typed), typed_at, erased, answer {result,
+//	                                              attempts_left, message} or null
+//	POST   /__control/warehouses/{code}/label-sizes   the warehouse's label sizes: {"label_sizes": [{marketplace, width_mm, height_mm}]}
+//	                                              (a setup's warehouses may carry label_sizes too)
 //	POST   /__control/ping                        a ping event
 //	POST   /__control/webhook, DELETE ...         the address (and secret) the events are sent to
 //	GET    /__control/deliveries                  every attempt to send a notification
@@ -38,6 +48,7 @@ func (s *Server) controlRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /__control/handovers/{id}/{action}", s.controlHandoverStep)
 	mux.HandleFunc("GET /__control/orders/{id}/parcels/{number}/label", s.controlLabelFile)
 	mux.HandleFunc("GET /__control/handovers/{id}/documents", s.controlDocumentFiles)
+	s.courierRoutes(mux)
 	mux.HandleFunc("POST /__control/ping", s.controlPing)
 	mux.HandleFunc("POST /__control/webhook", s.controlWebhook)
 	mux.HandleFunc("DELETE /__control/webhook", s.controlWebhookRemove)
@@ -98,6 +109,16 @@ func (s *Server) controlSetup(w http.ResponseWriter, r *http.Request) {
 		fakekit.ControlError(w, http.StatusBadRequest, "a fulfilment centre has at least one warehouse")
 
 		return
+	}
+
+	if in.Warehouses != nil {
+		for _, wh := range *in.Warehouses {
+			if why := checkLabelSizes(wh.LabelSizes); why != "" {
+				fakekit.ControlError(w, http.StatusBadRequest, "warehouse "+wh.Code+": "+why)
+
+				return
+			}
+		}
 	}
 
 	s.with(s.kit.KeyOf(r), func(st *state) {
@@ -269,6 +290,8 @@ func (s *Server) controlOrderStep(w http.ResponseWriter, r *http.Request) {
 			err = st.cancelByWarehouse(o)
 		case "hand-over":
 			err = st.handOver(o)
+		case "give-to-courier":
+			err = st.giveToCourier(o)
 		default:
 			status, out = http.StatusNotFound, map[string]string{"error": "no such action"}
 

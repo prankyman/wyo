@@ -61,6 +61,8 @@ func (s *Service) packed(ctx context.Context, sess *session, o *order, fc fulfil
 
 	if adapter, _, err := s.conn(ctx, o, jobEvents); err != nil {
 		return errors.Join(errStopped, err)
+	} else if adapter.Describe().CodesInPack {
+		return keepStopped(s.boxesFinished(ctx, sess, o, fc))
 	} else if flowOf(adapter) == flowPack {
 		return keepStopped(s.packedForPacking(ctx, sess, o, fc, units))
 	}
@@ -147,6 +149,8 @@ func (s *Service) sendCodes(ctx context.Context, sess *session, o *order, units 
 func (s *Service) reopened(ctx context.Context, sess *session, o *order) error {
 	if adapter, _, err := s.conn(ctx, o, jobEvents); err != nil {
 		return errors.Join(errStopped, err)
+	} else if adapter.Describe().CodesInPack {
+		return s.reopenedBoxes(ctx, sess, o)
 	} else if flowOf(adapter) == flowPack {
 		return s.reopenedForPacking(ctx, sess, o)
 	}
@@ -262,7 +266,12 @@ func (s *Service) checkVerdict(ctx context.Context, sess *session, o *order) {
 		s.note(o, stateCodesAccepted, "codes_accepted")
 		s.save(ctx, o)
 
-		if adapter, _, err := s.conn(ctx, o, jobVerdicts); err == nil && flowOf(adapter) == flowPack {
+		switch adapter, _, err := s.conn(ctx, o, jobVerdicts); {
+		case err != nil:
+		case adapter.Describe().CodesInPack:
+			// The codes travel inside the report of the boxes: their labels follow.
+			s.boxLabelsDue(ctx, o)
+		case flowOf(adapter) == flowPack:
 			s.packStep(ctx, sess, o)
 		}
 	default:
@@ -389,7 +398,13 @@ func (s *Service) checkedAgain(ctx context.Context, sess *session, o *order, wor
 	// The resend is counted with its outcome, which the sending saves.
 	o.x.CodesResends++
 
-	if err := s.sendCodes(ctx, sess, o, units); errors.Is(err, errStopped) {
+	send := func() error { return s.sendCodes(ctx, sess, o, units) }
+	if s.codesInPack(ctx, o) {
+		// The codes travel inside the report of the boxes: the boxes are reported whole once more.
+		send = func() error { return s.reportBoxesAgain(ctx, sess, o) }
+	}
+
+	if err := send(); errors.Is(err, errStopped) {
 		o.x.CodesResends--
 		s.later(ctx, o)
 	}

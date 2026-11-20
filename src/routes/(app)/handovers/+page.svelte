@@ -3,6 +3,7 @@
     import { page } from '$app/state';
     import { refusalKey } from '$lib/api/refusal-key';
     import { problemSentence } from '$lib/components/exchange/problem-text';
+    import { batchKindOf } from '$lib/components/handovers/batch-kind';
     import HandoverDetails from '$lib/components/handovers/HandoverDetails.svelte';
     import HandoverStateBadge from '$lib/components/handovers/HandoverStateBadge.svelte';
     import type { THandover, THandoverDetails } from '$lib/components/handovers/types';
@@ -61,7 +62,9 @@
             cells: {
                 number: handover.number,
                 day: formatIsoDay(handover.day, lang),
-                batches: handover.batches.join(', ') || null,
+                batches:
+                    [handover.batches.join(', '), batchKindOf(handover, lang)?.text].filter(Boolean).join(' · ') ||
+                    null,
                 orders: handover.orders,
                 problem: handover.problem ? problemSentence(handover.problem, lang) : null
             },

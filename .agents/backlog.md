@@ -12,6 +12,27 @@ This file exists because a request the maintainer makes while testing one plan m
 
 ## Open
 
+### 43. Pallets and the waybill of a collected Яндекс Маркет shipment (2026-11-20)
+
+Left out of Plan 8 (`.agents/plans/wyo-yandex-market-fbs-and-express-exchange-with-a-fulfilment-centre-codes-labels-daily-shipment-courier-code.md`,
+«Not in this plan»): `setShipmentPalletsCount`, `downloadShipmentPalletLabels` and `…/transportation-waybill`. The neutral
+fulfilment-centre API carries no pallets and takes no `.xls` file (the waybill of a `WITHDRAW` shipment is one), so the owner sets the
+pallets and downloads the waybill in the Яндекс Маркет cabinet; the hand-over's page and the README say so. Later, if asked, once the
+neutral API carries them.
+
+### 42. The checks of Plan 8 on the first real Яндекс Маркет cabinet and the first real fulfilment centre (2026-11-20)
+
+Plan 8 is built against the fake Яндекс Маркет and the fake fulfilment centre only (the plan's «After the release»). Test orders made
+in the cabinet first (they change nothing for the shop, YMC §9): the box layout with codes and its verdict (whether a code is ever left
+`NOT_ON_VALIDATION`); a label printed from the file at the fulfilment centre's size, and which barcode its scanner reads (then the scan
+text can be sent with the label); «Готов к отгрузке»; whether a test order enters a day's shipment. Then a real FBS order: when the
+shipment appears and its cutoff, the date form `searchShipments` takes (`ДД-ММ-ГГГГ` as the description's text says, or the schema's),
+whether `getShipment` lists the orders Яндекс Маркет is taking out (the wyo server reads them as gone and waits for the words «excluded
+from shipment»), the real words and codes of the shipment's refusals, the confirmation and the act of each kind of shipment. A real
+Express order: the courier's code as it really comes, how long the answer takes, an Express order without `eacType`; whether Яндекс
+Маркет moves an unready order out of a shipment by itself (YMC §14, point 3). `docs/yandex.md`, «Что не подтверждено…», points 12 to 16,
+lists them. What they find becomes the next plan's premises.
+
 ### 41. Яндекс Маркет's notifications about returns, cancellation requests, reviews and chats (2026-11-19)
 
 Left out of Plan 7 (`.agents/plans/wyo-yandex-market-key-reading-orders-notifications-safety-read-test-orders-fake-yandex-market.md`,
@@ -169,6 +190,11 @@ Left out of Plan 4: printing the marketplace's stickers from wyo itself for a se
 
 ### 25. What the owner still does in the Wildberries cabinet (2026-11-18)
 
+Widened by Plan 8 (2026-11-20) to Яндекс Маркет: moving or cancelling an order the fulfilment centre did not pack in time (the wyo
+server never moves or cancels; a day's shipment that holds such an order is a problem it names), removing goods from an order, the
+shipment schedule and its kind, confirmation codes for Express, pallets and the waybill (item 43), the identifiers of item 24. The
+README, section 12, names each.
+
 Widened by Plan 6 (2026-11-18) to Ozon: cancelling a posting, removing products from it, the identifiers of item 24, a multi-box
 product's boxes, automatic assembly, entrusted acceptance with cargo places, the warehouse's drop-off settings, passes. The README
 (section 11) names each.
@@ -178,6 +204,10 @@ an architecture test forbids the call), moving an order back from a closed suppl
 Wildberries' warehouses, days off. The README (section 11) names each; to be taken up only on the maintainer's request.
 
 ### 24. Identifiers other than marking codes (2026-11-18)
+
+Widened by Plan 8 (2026-11-20) to Яндекс Маркет: a jewellery item's number (УИН), an import registration number (РНПТ) and a customs
+declaration (ГТД), and a product split over several boxes (`partialCount`). The order gets a problem that names the identifier; the
+owner enters it in the Яндекс Маркет cabinet.
 
 Widened by Plan 6 (2026-11-18): Ozon may also require a customs declaration number, a batch registration number, a jewellery number, an IMEI,
 a weight, and the number of boxes of a product sent in several. The order gets a problem that names the identifier; the owner enters it

@@ -18,6 +18,7 @@ var countsAllowed = map[string]string{
 	"CountTestOrders":        "counts the test orders themselves, so that the home page says how many its numbers leave out",
 	"CountExchangeAttention": "the list «Требуют внимания»: a test order that needs the owner is shown there, marked",
 	"CountNotReservedInTime": "the list «Требуют внимания»: a test order not reserved in time needs the owner as a real one does",
+	"CountWarehouseUnknown":  "the list «Требуют внимания»: a test order whose warehouse the marketplace did not tell needs the owner too",
 }
 
 var (

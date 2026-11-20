@@ -11,7 +11,7 @@
      * An order's parcels at the fulfilment centre (`OrderExchangeDetails.parcels`): for each, the marketplace's own number of the
      * part the parcel became and whether its label was attached at the fulfilment centre, with the moment. A marketplace that
      * splits an order packed in several parcels gives each part its own number, and one part may keep the order's own number; a
-     * number that is the order's own says so in words, which for a single parcel means the marketplace did not split the order. Parcels are numbered only when there are several. An order with no parcel yet (the fulfilment
+     * number that is the order's own says so in words, which for a single parcel means the marketplace did not split the order. A marketplace that numbers its boxes gives the box the parcel became: its number is a fact of the parcel, left out when the marketplace gave none. Parcels are numbered only when there are several. An order with no parcel yet (the fulfilment
      * centre has not finished packing) draws nothing, never an empty block.
      */
     interface IProps {
@@ -32,7 +32,7 @@
                 ? t('parcels.label.sentAt', lang, { at: formatDateTime(parcel.labelSentAt, lang) })
                 : t('parcels.label.sent', lang)
             : t('parcels.label.notSent', lang);
-        return [
+        const facts = [
             {
                 key: 'marketplaceNumber',
                 label: t('parcels.fact.marketplaceNumber', lang),
@@ -50,6 +50,17 @@
                 help: t('parcels.fact.label.help', lang)
             }
         ];
+        return parcel.box
+            ? [
+                  ...facts,
+                  {
+                      key: 'box',
+                      label: t('parcels.fact.box', lang),
+                      value: parcel.box,
+                      help: t('parcels.fact.box.help', lang)
+                  }
+              ]
+            : facts;
     }
 </script>
 

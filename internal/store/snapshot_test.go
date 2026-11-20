@@ -122,6 +122,16 @@ func snapshotMarketplaceRows(ctx context.Context, q *store.Queries, at time.Time
 		return err
 	}
 
+	// The order went to a fulfilment centre and has one parcel, so that a later migration's change of the exchange's own rows is
+	// upgraded from a database that holds some.
+	if err := q.SaveExchangeOrder(ctx, store.ExchangeOrder{OrderID: id, FcID: "fc-1", State: "reserved", SentAt: at, UpdatedAt: at}); err != nil {
+		return err
+	}
+
+	if err := q.ReplaceParcels(ctx, id, []store.Parcel{{OrderID: id, Number: 1, MpNumber: "1"}}); err != nil {
+		return err
+	}
+
 	return q.InsertJournalEntry(ctx, store.JournalEntry{
 		At: at, AccountID: account.ID, Marketplace: "snapshot", Method: "GET", Path: "/", Outcome: "done", Job: "snapshot",
 	})

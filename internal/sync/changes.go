@@ -69,6 +69,13 @@ func (e *Engine) lastChanges(ctx context.Context, accountID int64) (time.Time, e
 	return at, nil
 }
 
+// RunChanges reads every running account read by changes at once, whatever its period: the exchange asks it when «Внешний API»
+// is filled and when every job is run at once, so that the orders of a marketplace read by changes are read then as the new
+// orders of the others are.
+func (e *Engine) RunChanges(ctx context.Context) error {
+	return e.forEachLocked(ctx, []part{{capability: marketplace.OrdersChanges, run: e.takeChanges}}, nil)
+}
+
 // RunChangesDue is the safety read: every running account read by changes whose period has passed since its last good
 // reading (less Spread, by which the job's moment is shifted). The job wakes every minute.
 func (e *Engine) RunChangesDue(ctx context.Context) error {

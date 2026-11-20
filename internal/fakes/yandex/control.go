@@ -34,6 +34,15 @@ import (
 //	                                    count the notifications sent after this call), send_ignored (true: sends one CHAT_CREATED,
 //	                                    a kind the wyo server ignores)
 //	POST /__control/campaigns/api-off   campaign_id, off
+//	POST /__control/orders/verdict      order_id, status (OK, IN_PROGRESS, FAILED, INVALID or NOT_ON_VALIDATION: what every marking
+//	                                    code of the order is read as; "" gives back the fake's own course: in progress at the
+//	                                    first reading, accepted after), substatus (a reason of Яндекс Маркет's, optional)
+//	POST /__control/orders/courier-code order_id, code (the code the Express courier names and the order expects), attempts_left
+//	                                    (3 when left out), need_update (true: the next check answers NEED_UPDATE)
+//	POST /__control/shipments           (answers shipment_id) a daily shipment: warehouse_id (a number), date (YYYY-MM-DD), kind
+//	                                    (WITHDRAW or IMPORT), order_ids (they join it, and the order shows its number),
+//	                                    cutoff_passed, excluding_order_ids (orders Яндекс Маркет is taking out of it)
+//	POST /__control/shipments/update    shipment_id, and any of cutoff_passed, excluding_order_ids, order_ids (replaces the list)
 //
 // Every change of an order moves its updateDate to the clock's now.
 func (s *Server) controlRoutes(mux *http.ServeMux) {
@@ -44,6 +53,7 @@ func (s *Server) controlRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/__control/orders/shipment", controlCall(s, true, (*state).moveShipment))
 	mux.HandleFunc("/__control/notifications", controlCall(s, true, (*state).setNotifications))
 	mux.HandleFunc("/__control/campaigns/api-off", controlCall(s, false, (*state).setAPIOff))
+	s.writingControlRoutes(mux)
 	mux.HandleFunc("/__control/", func(w http.ResponseWriter, _ *http.Request) {
 		fakekit.ControlError(w, http.StatusNotFound, "no such control call")
 	})
@@ -52,14 +62,16 @@ func (s *Server) controlRoutes(mux *http.ServeMux) {
 // outcome is what a change of the state leaves to be told: the number of an order it made, and the notifications it caused,
 // decided while the state was locked and sent after it is not.
 type outcome struct {
-	orderID int64
-	notices []notice
+	orderID    int64
+	shipmentID int64
+	notices    []notice
 }
 
 // controlAnswer is what a control call answers.
 type controlAnswer struct {
 	Status        string  `json:"status"`
 	OrderID       int64   `json:"order_id,omitempty"`
+	ShipmentID    int64   `json:"shipment_id,omitempty"`
 	Notifications *[]sent `json:"notifications,omitempty"`
 }
 
@@ -93,7 +105,7 @@ func controlCall[In any](s *Server, notifies bool, change func(*state, In) (outc
 			return
 		}
 
-		answer := controlAnswer{Status: "ok", OrderID: out.orderID}
+		answer := controlAnswer{Status: "ok", OrderID: out.orderID, ShipmentID: out.shipmentID}
 
 		if notifies {
 			delivered := s.deliver(r.Context(), out.notices)

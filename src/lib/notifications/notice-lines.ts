@@ -41,6 +41,7 @@ const PAGE_OF_CODE: Record<string, string> = {
     fc_codes_refused: '/orders?attention=true',
     fc_cancelled_by_warehouse: '/orders?attention=true',
     fc_change_waits: '/orders?attention=true',
+    fc_warehouse_unknown: '/orders?attention=true',
     fc_order_problems: '/orders?attention=true',
     fc_handover_waits: '/handovers',
     fc_account_read_only: '/marketplaces'
@@ -56,7 +57,8 @@ const COUNTED: Record<string, string> = {
     fc_order_problems: 'count',
     fc_handover_waits: 'count',
     fc_cancelled_by_warehouse: 'count',
-    fc_change_waits: 'count'
+    fc_change_waits: 'count',
+    fc_warehouse_unknown: 'count'
 };
 
 /**

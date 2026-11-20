@@ -262,7 +262,7 @@ func (r *ozRig) packWith(t *testing.T, number string, units ...ozUnit) store.Exc
 
 // tick moves the clock and runs what is due the way the schedulers do: the states of the open orders every 5 minutes, the events,
 // and the verdicts, the packing, the labels and the waiting hand-overs. A job that meets a lost call is simply run again.
-func (r *ozRig) tick(t *testing.T, wait time.Duration) {
+func (r *rig) tick(t *testing.T, wait time.Duration) {
 	t.Helper()
 
 	r.kit.Clock.Advance(wait)
@@ -274,7 +274,7 @@ func (r *ozRig) tick(t *testing.T, wait time.Duration) {
 
 // until runs the jobs, 20 seconds apart, until the condition holds; it fails the test when it does not within 60 rounds, which is
 // 20 minutes of the exchange's own time.
-func (r *ozRig) until(t *testing.T, what string, done func() bool) {
+func (r *rig) until(t *testing.T, what string, done func() bool) {
 	t.Helper()
 
 	for range 60 {
@@ -291,7 +291,7 @@ func (r *ozRig) until(t *testing.T, what string, done func() bool) {
 }
 
 // untilState runs the jobs until the order is in the state.
-func (r *ozRig) untilState(t *testing.T, number, state string) store.ExchangeOrder {
+func (r *rig) untilState(t *testing.T, number, state string) store.ExchangeOrder {
 	t.Helper()
 
 	r.until(t, "the order is "+state, func() bool { return r.exchanged(t, number).State == state })
@@ -300,7 +300,7 @@ func (r *ozRig) untilState(t *testing.T, number, state string) store.ExchangeOrd
 }
 
 // untilLabels runs the jobs until every parcel of the order has its label sent.
-func (r *ozRig) untilLabels(t *testing.T, number string) []store.Parcel {
+func (r *rig) untilLabels(t *testing.T, number string) []store.Parcel {
 	t.Helper()
 
 	r.until(t, "every parcel has its label", func() bool {
@@ -313,7 +313,7 @@ func (r *ozRig) untilLabels(t *testing.T, number string) []store.Parcel {
 }
 
 // parcels are the order's parcels as the wyo server keeps them.
-func (r *ozRig) parcels(t *testing.T, number string) []store.Parcel {
+func (r *rig) parcels(t *testing.T, number string) []store.Parcel {
 	t.Helper()
 
 	rows, err := r.kit.Store.Read().ParcelsOf(t.Context(), r.exchanged(t, number).OrderID)
@@ -325,7 +325,7 @@ func (r *ozRig) parcels(t *testing.T, number string) []store.Parcel {
 }
 
 // problem is the problem the order shows.
-func (r *ozRig) problem(t *testing.T, number string) store.Problem {
+func (r *rig) problem(t *testing.T, number string) store.Problem {
 	t.Helper()
 
 	return r.exchanged(t, number).Problem
@@ -472,7 +472,7 @@ func (r *ozRig) postingState(t *testing.T, number string) (status, substatus str
 }
 
 // fcLabel is the label file the fake fulfilment centre holds for the order's parcel, as the wyo server sent it.
-func (r *ozRig) fcLabel(t *testing.T, number string, parcel int) (contentType string, scan *string, text string) {
+func (r *rig) fcLabel(t *testing.T, number string, parcel int) (contentType string, scan *string, text string) {
 	t.Helper()
 
 	var got fcFile
@@ -502,7 +502,7 @@ func (f fcFile) text(t *testing.T) string {
 }
 
 // fcDocuments are the documents the fake fulfilment centre holds for a hand-over, as the wyo server sent them.
-func (r *ozRig) fcDocuments(t *testing.T, handoverID string) []fcDocument {
+func (r *rig) fcDocuments(t *testing.T, handoverID string) []fcDocument {
 	t.Helper()
 
 	var got struct {
@@ -522,7 +522,7 @@ type fcDocument struct {
 }
 
 // fcOrderProblem is the problem the fulfilment centre shows on the order.
-func (r *ozRig) fcOrderProblem(t *testing.T, number string) *fcapi.Problem {
+func (r *rig) fcOrderProblem(t *testing.T, number string) *fcapi.Problem {
 	t.Helper()
 
 	return r.fcOrder(t, r.exchanged(t, number).FcID).Problem

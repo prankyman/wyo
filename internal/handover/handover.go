@@ -195,7 +195,7 @@ func (r *Runner) runList(ctx context.Context, fc *fulfilment.Client, now time.Ti
 
 // waitsForMarketplace says whether a hand-over's wait is a marketplace's: it is tried again by itself.
 func waitsForMarketplace(code string) bool {
-	return code == problemBatchWaits || code == problemDocumentsWait
+	return code == problemBatchWaits || code == problemDocumentsWait || code == problemCloseWaits
 }
 
 // group is the orders of a hand-over of one account and one group.

@@ -26,6 +26,15 @@ var (
 		"ALL_METHODS", "ALL_METHODS_READ_ONLY", "INVENTORY_AND_ORDER_PROCESSING", "INVENTORY_AND_ORDER_PROCESSING_READ_ONLY",
 	}
 
+	// scopesProcessing is the levels that open the methods that change orders and shipments (setOrderBoxLayout, generateOrderLabel,
+	// updateOrderStatus, verifyOrderEac, confirmShipment and downloadShipmentAct): «all-methods» and
+	// «inventory-and-order-processing» in each description file.
+	scopesProcessing = []string{"ALL_METHODS", "INVENTORY_AND_ORDER_PROCESSING"}
+
+	// scopesProcessingRead is the levels that open the methods that read the orders' verdicts and the shipments
+	// (getOrderIdentifiersStatus, searchShipments and getShipment): the four of getPartnerWarehouses.
+	scopesProcessingRead = scopesWarehouses
+
 	// scopesOffers is getOfferMappings (v2_businesses_businessId_offer-mappings.yaml).
 	scopesOffers = []string{
 		"ALL_METHODS", "ALL_METHODS_READ_ONLY", "OFFERS_AND_CARDS_MANAGEMENT", "OFFERS_AND_CARDS_MANAGEMENT_READ_ONLY",

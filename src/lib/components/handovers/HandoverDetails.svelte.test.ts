@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { handoverDetailsOf, handoverOf, exchangeProblemOf } from '$test/support/external-api';
+import { THIRD_MARKETPLACE_CODE } from '$test/support/marketplaces';
 
 vi.mock('$lib/api/api', async (original) => ({
     ...(await original<typeof import('$lib/api/api')>()),
@@ -40,7 +41,8 @@ describe('HandoverDetails', () => {
             'handover-retry',
             'shipping-point',
             'handover-closed',
-            'handover-note'
+            'handover-note',
+            'handover-facts-batchKind'
         ]) {
             expect(screen.queryByTestId(absent)).toBeNull();
         }
@@ -116,5 +118,33 @@ describe('HandoverDetails', () => {
             'транспортные короба, которые назвал фулфилмент-центр, ему не передаются'
         );
         expect(screen.getByTestId('handover-note')).toHaveTextContent('утверждённую партию изменить нельзя');
+    });
+
+    it('says how a batch the marketplace makes by itself leaves, in the marketplace’s own words, with its «?»', () => {
+        draw(
+            handoverDetailsOf({
+                handover: handoverOf({ marketplace: THIRD_MARKETPLACE_CODE, batchKind: 'WITHDRAW' })
+            })
+        );
+
+        expect(screen.getByTestId('handover-facts-batchKind')).toHaveTextContent('Маркет забирает со склада');
+        expect(screen.getByTestId('handover-facts-batchKind-help-button')).toBeInTheDocument();
+    });
+
+    it('draws a hand-over of four steps with the problem on the third, numbered out of four', () => {
+        draw(
+            handoverDetailsOf({
+                handover: handoverOf({ state: 'problem' }),
+                steps: [
+                    { step: 'batch', state: 'done' },
+                    { step: 'move', state: 'done' },
+                    { step: 'close', state: 'failed' },
+                    { step: 'documents', state: 'todo' }
+                ]
+            })
+        );
+
+        expect(screen.getAllByRole('listitem')).toHaveLength(4);
+        expect(screen.getByTestId('handover-steps-now')).toHaveTextContent('Сейчас: шаг 3 из 4');
     });
 });
