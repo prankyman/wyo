@@ -1,6 +1,7 @@
 package yandex
 
 import (
+	"fmt"
 	"net/http"
 	"slices"
 	"strconv"
@@ -356,6 +357,11 @@ func (o *order) wire() yandexapi.BusinessOrderDTO {
 		delivery.WarehouseId = ptr(o.warehouseID)
 	}
 
+	if len(o.boxes) > 0 {
+		layout := o.boxesWire()
+		delivery.BoxesLayout = &layout
+	}
+
 	if o.shipmentDate != "" {
 		day, _ := time.ParseInLocation(dateLayout, o.shipmentDate, msk)
 
@@ -411,4 +417,21 @@ func deref[T any](p *T) T {
 	}
 
 	return *p
+}
+
+// boxesWire is the boxes of the last layout as the order shows them (the schema BusinessOrderBoxLayoutDTO). A box's barcode is
+// the fake's choice: Яндекс Маркет calls it «идентификатор грузового места в системе магазина» and the documents give no form.
+func (o *order) boxesWire() []yandexapi.BusinessOrderBoxLayoutDTO {
+	out := make([]yandexapi.BusinessOrderBoxLayoutDTO, len(o.boxes))
+
+	for i, b := range o.boxes {
+		items := make([]yandexapi.BusinessOrderBoxLayoutItemDTO, len(b.items))
+		for j, it := range b.items {
+			items[j] = yandexapi.BusinessOrderBoxLayoutItemDTO{Id: it.Id, FullCount: it.FullCount, Instances: it.Instances}
+		}
+
+		out[i] = yandexapi.BusinessOrderBoxLayoutDTO{BoxId: b.id, Barcode: fmt.Sprintf("FAKE-BOX-%d", b.id), Items: items}
+	}
+
+	return out
 }

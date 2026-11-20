@@ -73,4 +73,59 @@ describe('WarehouseMatchTable', () => {
         );
         expect(screen.getByTestId('warehouses-0-field')).not.toHaveTextContent('Выбранного склада');
     });
+
+    describe('the label size and Express', () => {
+        const FC_WAREHOUSES = [
+            {
+                code: 'MSK-1',
+                name: 'Москва, Лесная',
+                labelSizes: [
+                    { marketplace: 'mp-a', widthMm: 58, heightMm: 40 },
+                    { marketplace: 'mp-b', widthMm: 40, heightMm: 30 }
+                ]
+            },
+            { code: 'SPB-1', name: 'Санкт-Петербург, Невский' }
+        ];
+
+        function drawSized(): void {
+            const matches = warehouseMatchesOf({ fcWarehouses: FC_WAREHOUSES });
+            draw({
+                fcWarehouses: FC_WAREHOUSES,
+                rows: matches.rows.map((row, index) => ({ ...row, fcMarketplace: 'mp-a', express: index === 0 }))
+            });
+        }
+
+        it('says which label size the matched warehouse names for the account’s marketplace, and the marketplace’s own size when it names none', async () => {
+            drawSized();
+
+            expect(screen.getByTestId('warehouses-0-label-size')).toHaveTextContent(
+                'Размер этикетки: 58 × 40 мм — задаёт фулфилмент-центр'
+            );
+            expect(screen.getByTestId('warehouses-0-label-size-help-button')).toBeInTheDocument();
+            expect(screen.queryByTestId('warehouses-1-label-size')).toBeNull();
+
+            await fireEvent.change(screen.getByTestId('warehouses-1-box'), { target: { value: 'SPB-1' } });
+
+            expect(screen.getByTestId('warehouses-1-label-size')).toHaveTextContent(
+                'Размер этикетки: размер маркетплейса'
+            );
+        });
+
+        it('follows the warehouse the owner chooses', async () => {
+            drawSized();
+
+            await fireEvent.change(screen.getByTestId('warehouses-0-box'), { target: { value: 'SPB-1' } });
+
+            expect(screen.getByTestId('warehouses-0-label-size')).toHaveTextContent('размер маркетплейса');
+            expect(screen.getByTestId('warehouses-0-label-size')).not.toHaveTextContent('58 × 40');
+        });
+
+        it('tells in the row of an Express warehouse that a courier waits for the code check and that notifications bring the code at once', () => {
+            drawSized();
+
+            expect(screen.getByTestId('warehouses-0-express')).toHaveTextContent('курьер');
+            expect(screen.getByTestId('warehouses-0-express')).toHaveTextContent('до минуты');
+            expect(screen.queryByTestId('warehouses-1-express')).toBeNull();
+        });
+    });
 });

@@ -54,6 +54,10 @@ func (a *api) handoverBody(r *http.Request, h store.Handover) (gen.Handover, []s
 
 	for _, s := range supplies {
 		body.Batches = append(body.Batches, s.Number)
+
+		if s.Kind != "" {
+			body.BatchKind = text(s.Kind)
+		}
 	}
 
 	if len(orders) > 0 {

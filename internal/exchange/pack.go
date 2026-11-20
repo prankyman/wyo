@@ -370,6 +370,14 @@ func (s *Service) packStep(ctx context.Context, sess *session, o *order) {
 		return
 	}
 
+	if adapter.Describe().CodesInPack {
+		// A marketplace of boxes is read again only for its «ready» write.
+		o.x.PackNextAt = time.Time{}
+		s.readyStep(ctx, sess, o)
+
+		return
+	}
+
 	packer, ok := part[marketplace.OrderPacker](adapter, marketplace.OrdersPack, conn.Test)
 	if !ok {
 		return

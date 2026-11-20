@@ -1190,6 +1190,20 @@ components:
                 code: { type: string }
                 name: { type: string }
                 city: { type: string }
+                labelSizes:
+                    type: array
+                    description: >-
+                        The label size the fulfilment centre names for this warehouse and a marketplace (its code in the
+                        fulfilment centre's list); a marketplace without an entry is given its own default size.
+                    items: { $ref: '#/components/schemas/FcLabelSize' }
+        FcLabelSize:
+            type: object
+            additionalProperties: false
+            required: [marketplace, widthMm, heightMm]
+            properties:
+                marketplace: { type: string, description: "The marketplace's code in the fulfilment centre's list." }
+                widthMm: { type: integer }
+                heightMm: { type: integer }
         WarehouseMatch:
             type: object
             additionalProperties: false
@@ -1203,6 +1217,10 @@ components:
                 autoAssembly:
                     type: boolean
                     description: The marketplace assembles and packs the orders of this warehouse itself (automatic assembly).
+                express:
+                    type: boolean
+                    description: A courier takes the orders of this warehouse one by one within hours, after a code check.
+                fcMarketplace: { type: string, description: "The account's marketplace in the fulfilment centre's list; absent - not matched." }
                 fcWarehouse: { type: string, description: "The fulfilment centre's warehouse code; absent - not matched." }
         WarehouseMatches:
             type: object
@@ -1312,6 +1330,7 @@ components:
                     packed,
                     codes_checking,
                     codes_accepted,
+                    ready,
                     handed_over,
                     cancelled
                 ]
@@ -1325,13 +1344,14 @@ components:
                     warehouse_not_matched,
                     already_on_assembly,
                     not_seller_warehouse,
-                    key_read_only
+                    key_read_only,
+                    warehouse_unknown
                 ]
             description: "Why an order is not sent; the text is `exchange.reason.<reason>`."
         Attention:
             type: string
             enum:
-                [held, not_reserved_in_time, problem, codes_refused, cancelled_by_warehouse, change_waits]
+                [held, not_reserved_in_time, problem, codes_refused, cancelled_by_warehouse, change_waits, warehouse_unknown]
             description: "Why an order needs the owner; the text is `exchange.attention.<code>`."
         Problem:
             type: object
@@ -1418,6 +1438,28 @@ components:
                     type: array
                     description: The order's parcels in the order of their numbers; none before the packing is known.
                     items: { $ref: '#/components/schemas/OrderParcel' }
+                handover:
+                    type: string
+                    enum: [shipment, courier_code]
+                    description: "How the order leaves the fulfilment centre: with the day's batch, or alone to a courier who names a code."
+                readyAt: { type: string, format: date-time, description: When the marketplace was told the order is ready to ship. }
+                courierChecks:
+                    type: array
+                    description: The codes a courier named for the order, oldest first, each with the marketplace's answer; never the code.
+                    items: { $ref: '#/components/schemas/CourierCheck' }
+        CourierCheck:
+            type: object
+            additionalProperties: false
+            required: [at]
+            properties:
+                at: { type: string, format: date-time, description: When the fulfilment centre reported the code. }
+                result:
+                    type: string
+                    enum: [accepted, refused, new_code_needed]
+                    description: "The marketplace's answer; absent while it is awaited. The text is `exchange.courier.<result>`."
+                attemptsLeft: { type: integer, description: The tries the marketplace still allows, when it names them. }
+                words: { type: string, description: "The marketplace's own words, as received." }
+                answeredAt: { type: string, format: date-time }
         OrderParcel:
             type: object
             additionalProperties: false
@@ -1431,6 +1473,7 @@ components:
                         does not split an order.
                 labelSent: { type: boolean, description: The parcel's label was attached to the order at the fulfilment centre. }
                 labelSentAt: { type: string, format: date-time }
+                box: { type: string, description: "The marketplace's own number of the box the parcel became, when it numbers boxes." }
         HandoverState:
             type: string
             enum: [working, waiting, problem, documents_sent, withdrawn, completed]
@@ -1454,6 +1497,11 @@ components:
                     type: array
                     description: "The marketplace's numbers of the hand-over's batches (Wildberries' supplies)."
                     items: { type: string }
+                batchKind:
+                    type: string
+                    description: >-
+                        For a batch the marketplace makes by itself, how it leaves, in the marketplace's own word; the text is
+                        `marketplace.<code>.batchKind.<word>`.
                 orders: { type: integer }
                 boxes: { type: integer, description: Transport boxes the fulfilment centre named. }
                 problem: { $ref: '#/components/schemas/Problem' }

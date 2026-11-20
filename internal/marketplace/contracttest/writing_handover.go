@@ -9,6 +9,12 @@ import (
 )
 
 func handoverGroup(t *testing.T, f Fixture) {
+	if f.Adapter.Describe().BatchFound {
+		foundBatchGroup(t, f)
+
+		return
+	}
+
 	group := implements[marketplace.HandoverGrouper](t, f.Adapter, marketplace.HandoverGroup)
 	desc := f.Adapter.Describe()
 
@@ -110,6 +116,12 @@ func sameSet(a, b []string) bool {
 }
 
 func handoverClose(t *testing.T, f Fixture) {
+	if f.Adapter.Describe().BatchFound {
+		foundBatchClose(t, f)
+
+		return
+	}
+
 	closer := implements[marketplace.HandoverCloser](t, f.Adapter, marketplace.HandoverClose)
 	s := handoverScene(t, f)
 
@@ -139,6 +151,12 @@ func handoverClose(t *testing.T, f Fixture) {
 }
 
 func handoverDocuments(t *testing.T, f Fixture) {
+	if f.Adapter.Describe().BatchFound {
+		foundBatchDocuments(t, f)
+
+		return
+	}
+
 	d := implements[marketplace.HandoverDocumenter](t, f.Adapter, marketplace.HandoverDocuments)
 	closer := implements[marketplace.HandoverCloser](t, f.Adapter, marketplace.HandoverClose)
 	desc := f.Adapter.Describe()

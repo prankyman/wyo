@@ -249,6 +249,14 @@ func callsOf(t *testing.T, c *fakekit.Control) []fakekit.Call {
 func (r *dayRig) runJobs(t *testing.T, length time.Duration, jobs []schedule.Job, at func(*testing.T)) map[string]int {
 	t.Helper()
 
+	return runJobsOn(t, r.kit, length, jobs, at)
+}
+
+// runJobsOn is runJobs on any rig's kit.
+func runJobsOn(t *testing.T, kit *synckit.Kit, length time.Duration, jobs []schedule.Job, at func(*testing.T)) map[string]int {
+	t.Helper()
+
+	r := struct{ kit *synckit.Kit }{kit: kit}
 	end, ran, next := r.kit.Clock.Now().Add(length), map[string]int{}, make([]time.Time, len(jobs))
 
 	for i, job := range jobs {

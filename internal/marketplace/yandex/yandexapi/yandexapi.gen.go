@@ -119,16 +119,16 @@ func (e ApiKeyScopeType) Valid() bool {
 
 // Defines values for ApiResponseStatusType.
 const (
-	ERROR ApiResponseStatusType = "ERROR"
-	OK    ApiResponseStatusType = "OK"
+	ApiResponseStatusTypeERROR ApiResponseStatusType = "ERROR"
+	ApiResponseStatusTypeOK    ApiResponseStatusType = "OK"
 )
 
 // Valid indicates whether the value is a known member of the ApiResponseStatusType enum.
 func (e ApiResponseStatusType) Valid() bool {
 	switch e {
-	case ERROR:
+	case ApiResponseStatusTypeERROR:
 		return true
-	case OK:
+	case ApiResponseStatusTypeOK:
 		return true
 	default:
 		return false
@@ -147,6 +147,93 @@ func (e CatalogLanguageType) Valid() bool {
 	case RU:
 		return true
 	case UZ:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CisStatusType.
+const (
+	CisStatusTypeFAILED          CisStatusType = "FAILED"
+	CisStatusTypeINPROGRESS      CisStatusType = "IN_PROGRESS"
+	CisStatusTypeINVALID         CisStatusType = "INVALID"
+	CisStatusTypeNOTONVALIDATION CisStatusType = "NOT_ON_VALIDATION"
+	CisStatusTypeOK              CisStatusType = "OK"
+)
+
+// Valid indicates whether the value is a known member of the CisStatusType enum.
+func (e CisStatusType) Valid() bool {
+	switch e {
+	case CisStatusTypeFAILED:
+		return true
+	case CisStatusTypeINPROGRESS:
+		return true
+	case CisStatusTypeINVALID:
+		return true
+	case CisStatusTypeNOTONVALIDATION:
+		return true
+	case CisStatusTypeOK:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CisSubstatusType.
+const (
+	CISGTINNOTFOUND                    CisSubstatusType = "CIS_GTIN_NOT_FOUND"
+	CISNOTFOUNDINGISMT                 CisSubstatusType = "CIS_NOT_FOUND_IN_GIS_MT"
+	CISSERIALNUMBERNOTFOUND            CisSubstatusType = "CIS_SERIAL_NUMBER_NOT_FOUND"
+	CISVALIDATIONERROR                 CisSubstatusType = "CIS_VALIDATION_ERROR"
+	CRYPTOTAILFORMATMISMATCHCISTYPE    CisSubstatusType = "CRYPTO_TAIL_FORMAT_MISMATCH_CIS_TYPE"
+	EXPIREDITEM                        CisSubstatusType = "EXPIRED_ITEM"
+	INVALIDCRYPTOKEY                   CisSubstatusType = "INVALID_CRYPTO_KEY"
+	INVALIDCRYPTOTAIL                  CisSubstatusType = "INVALID_CRYPTO_TAIL"
+	INVALIDSYMBOLSFOUND                CisSubstatusType = "INVALID_SYMBOLS_FOUND"
+	ITEMSOLD                           CisSubstatusType = "ITEM_SOLD"
+	NOTPLACEDONMARKET                  CisSubstatusType = "NOT_PLACED_ON_MARKET"
+	NOTPRINTEDONPACKAGE                CisSubstatusType = "NOT_PRINTED_ON_PACKAGE"
+	SALEBLOCKEDBYOGB                   CisSubstatusType = "SALE_BLOCKED_BY_OGB"
+	UNSUPPORTEDAIFOUND                 CisSubstatusType = "UNSUPPORTED_AI_FOUND"
+	VERIFICATIONFAILEDINEMITTERCOUNTRY CisSubstatusType = "VERIFICATION_FAILED_IN_EMITTER_COUNTRY"
+	WRONGOWNERINN                      CisSubstatusType = "WRONG_OWNER_INN"
+)
+
+// Valid indicates whether the value is a known member of the CisSubstatusType enum.
+func (e CisSubstatusType) Valid() bool {
+	switch e {
+	case CISGTINNOTFOUND:
+		return true
+	case CISNOTFOUNDINGISMT:
+		return true
+	case CISSERIALNUMBERNOTFOUND:
+		return true
+	case CISVALIDATIONERROR:
+		return true
+	case CRYPTOTAILFORMATMISMATCHCISTYPE:
+		return true
+	case EXPIREDITEM:
+		return true
+	case INVALIDCRYPTOKEY:
+		return true
+	case INVALIDCRYPTOTAIL:
+		return true
+	case INVALIDSYMBOLSFOUND:
+		return true
+	case ITEMSOLD:
+		return true
+	case NOTPLACEDONMARKET:
+		return true
+	case NOTPRINTEDONPACKAGE:
+		return true
+	case SALEBLOCKEDBYOGB:
+		return true
+	case UNSUPPORTEDAIFOUND:
+		return true
+	case VERIFICATIONFAILEDINEMITTERCOUNTRY:
+		return true
+	case WRONGOWNERINN:
 		return true
 	default:
 		return false
@@ -579,21 +666,42 @@ func (e DigitalGoodsDeliveryType) Valid() bool {
 	}
 }
 
+// Defines values for EacVerificationStatusType.
+const (
+	EacVerificationStatusTypeACCEPTED   EacVerificationStatusType = "ACCEPTED"
+	EacVerificationStatusTypeNEEDUPDATE EacVerificationStatusType = "NEED_UPDATE"
+	EacVerificationStatusTypeREJECTED   EacVerificationStatusType = "REJECTED"
+)
+
+// Valid indicates whether the value is a known member of the EacVerificationStatusType enum.
+func (e EacVerificationStatusType) Valid() bool {
+	switch e {
+	case EacVerificationStatusTypeACCEPTED:
+		return true
+	case EacVerificationStatusTypeNEEDUPDATE:
+		return true
+	case EacVerificationStatusTypeREJECTED:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MediaFileUploadStateType.
 const (
-	FAILED    MediaFileUploadStateType = "FAILED"
-	UPLOADED  MediaFileUploadStateType = "UPLOADED"
-	UPLOADING MediaFileUploadStateType = "UPLOADING"
+	MediaFileUploadStateTypeFAILED    MediaFileUploadStateType = "FAILED"
+	MediaFileUploadStateTypeUPLOADED  MediaFileUploadStateType = "UPLOADED"
+	MediaFileUploadStateTypeUPLOADING MediaFileUploadStateType = "UPLOADING"
 )
 
 // Valid indicates whether the value is a known member of the MediaFileUploadStateType enum.
 func (e MediaFileUploadStateType) Valid() bool {
 	switch e {
-	case FAILED:
+	case MediaFileUploadStateTypeFAILED:
 		return true
-	case UPLOADED:
+	case MediaFileUploadStateTypeUPLOADED:
 		return true
-	case UPLOADING:
+	case MediaFileUploadStateTypeUPLOADING:
 		return true
 	default:
 		return false
@@ -786,6 +894,33 @@ func (e OfferType) Valid() bool {
 	}
 }
 
+// Defines values for OperationType.
+const (
+	ORDERDELIVERYINTERVALUPDATE OperationType = "ORDER_DELIVERY_INTERVAL_UPDATE"
+	ORDERRECIPIENTUPDATE        OperationType = "ORDER_RECIPIENT_UPDATE"
+	ORDERSTATUSUPDATE           OperationType = "ORDER_STATUS_UPDATE"
+	ORDERSTORAGELIMITDATEUPDATE OperationType = "ORDER_STORAGE_LIMIT_DATE_UPDATE"
+	RETURNCANCELLATION          OperationType = "RETURN_CANCELLATION"
+)
+
+// Valid indicates whether the value is a known member of the OperationType enum.
+func (e OperationType) Valid() bool {
+	switch e {
+	case ORDERDELIVERYINTERVALUPDATE:
+		return true
+	case ORDERRECIPIENTUPDATE:
+		return true
+	case ORDERSTATUSUPDATE:
+		return true
+	case ORDERSTORAGELIMITDATEUPDATE:
+		return true
+	case RETURNCANCELLATION:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for OrderBuyerType.
 const (
 	BUSINESS OrderBuyerType = "BUSINESS"
@@ -918,6 +1053,42 @@ func (e OrderItemInstanceType) Valid() bool {
 	case RNPT:
 		return true
 	case UIN:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OrderItemStatusType.
+const (
+	OrderItemStatusTypeREJECTED OrderItemStatusType = "REJECTED"
+	OrderItemStatusTypeRETURNED OrderItemStatusType = "RETURNED"
+)
+
+// Valid indicates whether the value is a known member of the OrderItemStatusType enum.
+func (e OrderItemStatusType) Valid() bool {
+	switch e {
+	case OrderItemStatusTypeREJECTED:
+		return true
+	case OrderItemStatusTypeRETURNED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OrderItemSubsidyType.
+const (
+	OrderItemSubsidyTypeSUBSIDY        OrderItemSubsidyType = "SUBSIDY"
+	OrderItemSubsidyTypeYANDEXCASHBACK OrderItemSubsidyType = "YANDEX_CASHBACK"
+)
+
+// Valid indicates whether the value is a known member of the OrderItemSubsidyType enum.
+func (e OrderItemSubsidyType) Valid() bool {
+	switch e {
+	case OrderItemSubsidyTypeSUBSIDY:
+		return true
+	case OrderItemSubsidyTypeYANDEXCASHBACK:
 		return true
 	default:
 		return false
@@ -1101,6 +1272,72 @@ func (e OrderPaymentType) Valid() bool {
 	}
 }
 
+// Defines values for OrderPromoType.
+const (
+	OrderPromoTypeBLUEFLASH             OrderPromoType = "BLUE_FLASH"
+	OrderPromoTypeBLUESET               OrderPromoType = "BLUE_SET"
+	OrderPromoTypeCASHBACK              OrderPromoType = "CASHBACK"
+	OrderPromoTypeCHEAPESTASGIFT        OrderPromoType = "CHEAPEST_AS_GIFT"
+	OrderPromoTypeDCOEXTRADISCOUNT      OrderPromoType = "DCO_EXTRA_DISCOUNT"
+	OrderPromoTypeDIRECTDISCOUNT        OrderPromoType = "DIRECT_DISCOUNT"
+	OrderPromoTypeDISCOUNTBYPAYMENTTYPE OrderPromoType = "DISCOUNT_BY_PAYMENT_TYPE"
+	OrderPromoTypeGENERICBUNDLE         OrderPromoType = "GENERIC_BUNDLE"
+	OrderPromoTypeMARKETBLUE            OrderPromoType = "MARKET_BLUE"
+	OrderPromoTypeMARKETCOIN            OrderPromoType = "MARKET_COIN"
+	OrderPromoTypeMARKETCOUPON          OrderPromoType = "MARKET_COUPON"
+	OrderPromoTypeMARKETPROMOCODE       OrderPromoType = "MARKET_PROMOCODE"
+	OrderPromoTypePERCENTDISCOUNT       OrderPromoType = "PERCENT_DISCOUNT"
+	OrderPromoTypePRICEDROPASYOUSHOP    OrderPromoType = "PRICE_DROP_AS_YOU_SHOP"
+	OrderPromoTypeSECRETSALE            OrderPromoType = "SECRET_SALE"
+	OrderPromoTypeSPREADDISCOUNTCOUNT   OrderPromoType = "SPREAD_DISCOUNT_COUNT"
+	OrderPromoTypeSPREADDISCOUNTRECEIPT OrderPromoType = "SPREAD_DISCOUNT_RECEIPT"
+	OrderPromoTypeUNKNOWN               OrderPromoType = "UNKNOWN"
+)
+
+// Valid indicates whether the value is a known member of the OrderPromoType enum.
+func (e OrderPromoType) Valid() bool {
+	switch e {
+	case OrderPromoTypeBLUEFLASH:
+		return true
+	case OrderPromoTypeBLUESET:
+		return true
+	case OrderPromoTypeCASHBACK:
+		return true
+	case OrderPromoTypeCHEAPESTASGIFT:
+		return true
+	case OrderPromoTypeDCOEXTRADISCOUNT:
+		return true
+	case OrderPromoTypeDIRECTDISCOUNT:
+		return true
+	case OrderPromoTypeDISCOUNTBYPAYMENTTYPE:
+		return true
+	case OrderPromoTypeGENERICBUNDLE:
+		return true
+	case OrderPromoTypeMARKETBLUE:
+		return true
+	case OrderPromoTypeMARKETCOIN:
+		return true
+	case OrderPromoTypeMARKETCOUPON:
+		return true
+	case OrderPromoTypeMARKETPROMOCODE:
+		return true
+	case OrderPromoTypePERCENTDISCOUNT:
+		return true
+	case OrderPromoTypePRICEDROPASYOUSHOP:
+		return true
+	case OrderPromoTypeSECRETSALE:
+		return true
+	case OrderPromoTypeSPREADDISCOUNTCOUNT:
+		return true
+	case OrderPromoTypeSPREADDISCOUNTRECEIPT:
+		return true
+	case OrderPromoTypeUNKNOWN:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for OrderSourcePlatformType.
 const (
 	OrderSourcePlatformTypeMARKET      OrderSourcePlatformType = "MARKET"
@@ -1167,6 +1404,27 @@ func (e OrderStatusType) Valid() bool {
 	case OrderStatusTypeUNKNOWN:
 		return true
 	case OrderStatusTypeUNPAID:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OrderSubsidyType.
+const (
+	OrderSubsidyTypeDELIVERY       OrderSubsidyType = "DELIVERY"
+	OrderSubsidyTypeSUBSIDY        OrderSubsidyType = "SUBSIDY"
+	OrderSubsidyTypeYANDEXCASHBACK OrderSubsidyType = "YANDEX_CASHBACK"
+)
+
+// Valid indicates whether the value is a known member of the OrderSubsidyType enum.
+func (e OrderSubsidyType) Valid() bool {
+	switch e {
+	case OrderSubsidyTypeDELIVERY:
+		return true
+	case OrderSubsidyTypeSUBSIDY:
+		return true
+	case OrderSubsidyTypeYANDEXCASHBACK:
 		return true
 	default:
 		return false
@@ -1563,51 +1821,117 @@ func (e OrderSubstatusType) Valid() bool {
 	}
 }
 
+// Defines values for OrderTaxSystemType.
+const (
+	OrderTaxSystemTypeAUSN          OrderTaxSystemType = "AUSN"
+	OrderTaxSystemTypeAUSNMINUSCOST OrderTaxSystemType = "AUSN_MINUS_COST"
+	OrderTaxSystemTypeECHN          OrderTaxSystemType = "ECHN"
+	OrderTaxSystemTypeENVD          OrderTaxSystemType = "ENVD"
+	OrderTaxSystemTypeNPD           OrderTaxSystemType = "NPD"
+	OrderTaxSystemTypeOSN           OrderTaxSystemType = "OSN"
+	OrderTaxSystemTypePSN           OrderTaxSystemType = "PSN"
+	OrderTaxSystemTypeUNKNOWNVALUE  OrderTaxSystemType = "UNKNOWN_VALUE"
+	OrderTaxSystemTypeUSN           OrderTaxSystemType = "USN"
+	OrderTaxSystemTypeUSNMINUSCOST  OrderTaxSystemType = "USN_MINUS_COST"
+)
+
+// Valid indicates whether the value is a known member of the OrderTaxSystemType enum.
+func (e OrderTaxSystemType) Valid() bool {
+	switch e {
+	case OrderTaxSystemTypeAUSN:
+		return true
+	case OrderTaxSystemTypeAUSNMINUSCOST:
+		return true
+	case OrderTaxSystemTypeECHN:
+		return true
+	case OrderTaxSystemTypeENVD:
+		return true
+	case OrderTaxSystemTypeNPD:
+		return true
+	case OrderTaxSystemTypeOSN:
+		return true
+	case OrderTaxSystemTypePSN:
+		return true
+	case OrderTaxSystemTypeUNKNOWNVALUE:
+		return true
+	case OrderTaxSystemTypeUSN:
+		return true
+	case OrderTaxSystemTypeUSNMINUSCOST:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for OrderVatType.
 const (
-	NOVAT        OrderVatType = "NO_VAT"
-	UNKNOWNVALUE OrderVatType = "UNKNOWN_VALUE"
-	VAT0         OrderVatType = "VAT_0"
-	VAT05        OrderVatType = "VAT_05"
-	VAT07        OrderVatType = "VAT_07"
-	VAT10        OrderVatType = "VAT_10"
-	VAT10110     OrderVatType = "VAT_10_110"
-	VAT12        OrderVatType = "VAT_12"
-	VAT18        OrderVatType = "VAT_18"
-	VAT18118     OrderVatType = "VAT_18_118"
-	VAT20        OrderVatType = "VAT_20"
-	VAT20120     OrderVatType = "VAT_20_120"
-	VAT22        OrderVatType = "VAT_22"
+	OrderVatTypeNOVAT        OrderVatType = "NO_VAT"
+	OrderVatTypeUNKNOWNVALUE OrderVatType = "UNKNOWN_VALUE"
+	OrderVatTypeVAT0         OrderVatType = "VAT_0"
+	OrderVatTypeVAT05        OrderVatType = "VAT_05"
+	OrderVatTypeVAT07        OrderVatType = "VAT_07"
+	OrderVatTypeVAT10        OrderVatType = "VAT_10"
+	OrderVatTypeVAT10110     OrderVatType = "VAT_10_110"
+	OrderVatTypeVAT12        OrderVatType = "VAT_12"
+	OrderVatTypeVAT18        OrderVatType = "VAT_18"
+	OrderVatTypeVAT18118     OrderVatType = "VAT_18_118"
+	OrderVatTypeVAT20        OrderVatType = "VAT_20"
+	OrderVatTypeVAT20120     OrderVatType = "VAT_20_120"
+	OrderVatTypeVAT22        OrderVatType = "VAT_22"
 )
 
 // Valid indicates whether the value is a known member of the OrderVatType enum.
 func (e OrderVatType) Valid() bool {
 	switch e {
-	case NOVAT:
+	case OrderVatTypeNOVAT:
 		return true
-	case UNKNOWNVALUE:
+	case OrderVatTypeUNKNOWNVALUE:
 		return true
-	case VAT0:
+	case OrderVatTypeVAT0:
 		return true
-	case VAT05:
+	case OrderVatTypeVAT05:
 		return true
-	case VAT07:
+	case OrderVatTypeVAT07:
 		return true
-	case VAT10:
+	case OrderVatTypeVAT10:
 		return true
-	case VAT10110:
+	case OrderVatTypeVAT10110:
 		return true
-	case VAT12:
+	case OrderVatTypeVAT12:
 		return true
-	case VAT18:
+	case OrderVatTypeVAT18:
 		return true
-	case VAT18118:
+	case OrderVatTypeVAT18118:
 		return true
-	case VAT20:
+	case OrderVatTypeVAT20:
 		return true
-	case VAT20120:
+	case OrderVatTypeVAT20120:
 		return true
-	case VAT22:
+	case OrderVatTypeVAT22:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PageFormatType.
+const (
+	A4             PageFormatType = "A4"
+	A7             PageFormatType = "A7"
+	A9             PageFormatType = "A9"
+	A9HORIZONTALLY PageFormatType = "A9_HORIZONTALLY"
+)
+
+// Valid indicates whether the value is a known member of the PageFormatType enum.
+func (e PageFormatType) Valid() bool {
+	switch e {
+	case A4:
+		return true
+	case A7:
+		return true
+	case A9:
+		return true
+	case A9HORIZONTALLY:
 		return true
 	default:
 		return false
@@ -1725,6 +2049,90 @@ func (e SellingProgramType) Valid() bool {
 	}
 }
 
+// Defines values for ShipmentActionType.
+const (
+	CHANGEPALLETSCOUNT            ShipmentActionType = "CHANGE_PALLETS_COUNT"
+	CONFIRM                       ShipmentActionType = "CONFIRM"
+	DOWNLOADACT                   ShipmentActionType = "DOWNLOAD_ACT"
+	DOWNLOADDISCREPANCYACT        ShipmentActionType = "DOWNLOAD_DISCREPANCY_ACT"
+	DOWNLOADINBOUNDACT            ShipmentActionType = "DOWNLOAD_INBOUND_ACT"
+	DOWNLOADTRANSPORTATIONWAYBILL ShipmentActionType = "DOWNLOAD_TRANSPORTATION_WAYBILL"
+)
+
+// Valid indicates whether the value is a known member of the ShipmentActionType enum.
+func (e ShipmentActionType) Valid() bool {
+	switch e {
+	case CHANGEPALLETSCOUNT:
+		return true
+	case CONFIRM:
+		return true
+	case DOWNLOADACT:
+		return true
+	case DOWNLOADDISCREPANCYACT:
+		return true
+	case DOWNLOADINBOUNDACT:
+		return true
+	case DOWNLOADTRANSPORTATIONWAYBILL:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ShipmentStatusType.
+const (
+	ShipmentStatusTypeACCEPTED                     ShipmentStatusType = "ACCEPTED"
+	ShipmentStatusTypeACCEPTEDWITHDISCREPANCIES    ShipmentStatusType = "ACCEPTED_WITH_DISCREPANCIES"
+	ShipmentStatusTypeERROR                        ShipmentStatusType = "ERROR"
+	ShipmentStatusTypeFINISHED                     ShipmentStatusType = "FINISHED"
+	ShipmentStatusTypeOUTBOUNDCONFIRMED            ShipmentStatusType = "OUTBOUND_CONFIRMED"
+	ShipmentStatusTypeOUTBOUNDCREATED              ShipmentStatusType = "OUTBOUND_CREATED"
+	ShipmentStatusTypeOUTBOUNDREADYFORCONFIRMATION ShipmentStatusType = "OUTBOUND_READY_FOR_CONFIRMATION"
+	ShipmentStatusTypeOUTBOUNDSIGNED               ShipmentStatusType = "OUTBOUND_SIGNED"
+)
+
+// Valid indicates whether the value is a known member of the ShipmentStatusType enum.
+func (e ShipmentStatusType) Valid() bool {
+	switch e {
+	case ShipmentStatusTypeACCEPTED:
+		return true
+	case ShipmentStatusTypeACCEPTEDWITHDISCREPANCIES:
+		return true
+	case ShipmentStatusTypeERROR:
+		return true
+	case ShipmentStatusTypeFINISHED:
+		return true
+	case ShipmentStatusTypeOUTBOUNDCONFIRMED:
+		return true
+	case ShipmentStatusTypeOUTBOUNDCREATED:
+		return true
+	case ShipmentStatusTypeOUTBOUNDREADYFORCONFIRMATION:
+		return true
+	case ShipmentStatusTypeOUTBOUNDSIGNED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ShipmentType.
+const (
+	IMPORT   ShipmentType = "IMPORT"
+	WITHDRAW ShipmentType = "WITHDRAW"
+)
+
+// Valid indicates whether the value is a known member of the ShipmentType enum.
+func (e ShipmentType) Valid() bool {
+	switch e {
+	case IMPORT:
+		return true
+	case WITHDRAW:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ShowcaseType.
 const (
 	B2B ShowcaseType = "B2B"
@@ -1764,6 +2172,51 @@ func (e TimeUnitType) Valid() bool {
 	case TimeUnitTypeWEEK:
 		return true
 	case TimeUnitTypeYEAR:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UinStatusType.
+const (
+	UinStatusTypeFAILED          UinStatusType = "FAILED"
+	UinStatusTypeINPROGRESS      UinStatusType = "IN_PROGRESS"
+	UinStatusTypeNOTONVALIDATION UinStatusType = "NOT_ON_VALIDATION"
+	UinStatusTypeOK              UinStatusType = "OK"
+)
+
+// Valid indicates whether the value is a known member of the UinStatusType enum.
+func (e UinStatusType) Valid() bool {
+	switch e {
+	case UinStatusTypeFAILED:
+		return true
+	case UinStatusTypeINPROGRESS:
+		return true
+	case UinStatusTypeNOTONVALIDATION:
+		return true
+	case UinStatusTypeOK:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UinSubstatusType.
+const (
+	UINMERCHANTMISMATCH     UinSubstatusType = "UIN_MERCHANT_MISMATCH"
+	UINMERCHANTUNREGISTERED UinSubstatusType = "UIN_MERCHANT_UNREGISTERED"
+	UINNODATA               UinSubstatusType = "UIN_NO_DATA"
+)
+
+// Valid indicates whether the value is a known member of the UinSubstatusType enum.
+func (e UinSubstatusType) Valid() bool {
+	switch e {
+	case UINMERCHANTMISMATCH:
+		return true
+	case UINMERCHANTUNREGISTERED:
+		return true
+	case UINNODATA:
 		return true
 	default:
 		return false
@@ -2241,6 +2694,64 @@ type BasePriceDTO struct {
 
 	// Value Цена товара.
 	Value float32 `json:"value"`
+}
+
+// BaseShipmentDTO Информация об отгрузке.
+type BaseShipmentDTO struct {
+	// DeliveryService Служба доставки.
+	DeliveryService *DeliveryServiceDTO `json:"deliveryService,omitempty"`
+
+	// DraftCount Количество заказов, которое Маркет запланировал к отгрузке.
+	DraftCount int32 `json:"draftCount"`
+
+	// ExternalId Идентификатор отгрузки в вашей системе. Если вы еще не передавали идентификатор, вернется идентификатор из параметра `id`.
+	ExternalId *string `json:"externalId,omitempty"`
+
+	// FactCount Количество заказов, принятых в сортировочном центре или пункте приема.
+	FactCount int32 `json:"factCount"`
+
+	// Id Идентификатор отгрузки.
+	Id int64 `json:"id"`
+
+	// OrderIds Идентификаторы заказов в отгрузке.
+	OrderIds []int64 `json:"orderIds"`
+
+	// PalletsCount Количество палет в отгрузке.
+	PalletsCount *PalletsCountDTO `json:"palletsCount,omitempty"`
+
+	// PlanIntervalFrom Начало планового интервала отгрузки.
+	//
+	// Формат даты: ISO 8601 со смещением относительно UTC.
+	//
+	//
+	// Example: 2017-11-21T00:00:00+03:00
+	PlanIntervalFrom time.Time `json:"planIntervalFrom"`
+
+	// PlanIntervalTo Конец планового интервала отгрузки.
+	//
+	// Формат даты: ISO 8601 со смещением относительно UTC.
+	//
+	//
+	// Example: 2017-11-21T00:00:00+03:00
+	PlanIntervalTo time.Time `json:"planIntervalTo"`
+
+	// PlannedCount Количество заказов, которое Маркет подтвердил к отгрузке.
+	PlannedCount int32 `json:"plannedCount"`
+
+	// ShipmentType Способ отгрузки заказов:
+	//
+	// * `IMPORT` — вы самостоятельно привозите заказы в выбранный сортировочный центр или пункт приема заказов.
+	// * `WITHDRAW` — вы отгружаете заказы со своего склада курьерам Яндекс Маркета.
+	ShipmentType *ShipmentType `json:"shipmentType,omitempty"`
+
+	// Signature Информация о подписи акта приема-передачи.
+	Signature SignatureDTO `json:"signature"`
+
+	// Warehouse Данные о складе отправления.
+	Warehouse *PartnerShipmentWarehouseDTO `json:"warehouse,omitempty"`
+
+	// WarehouseTo Данные о складе отправления.
+	WarehouseTo *PartnerShipmentWarehouseDTO `json:"warehouseTo,omitempty"`
 }
 
 // BriefOrderItemInstanceDTO Идентификатор единицы товара.
@@ -3009,6 +3520,126 @@ type CategoryDTO struct {
 // {% endnote %}
 type Cis = string
 
+// CisDTO Статус проверки и код маркировки в системе :no-translate[«Честный ЗНАК»].
+type CisDTO struct {
+	// CrptRequestDateTime **Только для модели LaaS**
+	//
+	// Время проверки кода маркировки в [ЦРПТ](https://crpt.ru/), на основании которой принято решение о продаже товара.
+	CrptRequestDateTime *time.Time `json:"crptRequestDateTime,omitempty"`
+
+	// CrptRequestId **Только для модели LaaS**
+	//
+	// Идентификатор запроса проверки кода маркировки в [ЦРПТ](https://crpt.ru/), на основании которой принято решение о продаже товара.
+	CrptRequestId *string `json:"crptRequestId,omitempty"`
+
+	// Status Статус проверки кода маркировки в системе :no-translate[«Честный ЗНАК»]:
+	//
+	// * `FAILED` — не удалось проверить код.
+	//
+	//   Повторите попытку позже или удалите код маркировки.
+	//
+	// * `IN_PROGRESS` — в процессе проверки.
+	//
+	// * `NOT_ON_VALIDATION` — код маркировки не отправлен на проверку.
+	//
+	// * `OK` — проверка успешно пройдена.
+	//
+	// * `INVALID` — проверка не пройдена. Продажа товара с этим кодом запрещена.
+	Status CisStatusType `json:"status"`
+
+	// Substatus Детализация ошибки при проверке кода маркировки в системе :no-translate[«Честный ЗНАК»]:
+	//
+	// * `WRONG_OWNER_INN` — проверка не пройдена. ИНН владельца кода отличается от ИНН продавца.
+	//
+	// * `CIS_VALIDATION_ERROR` — проверка не пройдена.
+	//
+	// * `CIS_GTIN_NOT_FOUND` — код маркировки не содержит [GTIN](:no-translate[*gtin]).
+	//
+	// * `CIS_SERIAL_NUMBER_NOT_FOUND` — код маркировки не содержит серийный номер.
+	//
+	// * `INVALID_SYMBOLS_FOUND` — код маркировки содержит недопустимые символы.
+	//
+	// * `CRYPTO_TAIL_FORMAT_MISMATCH_CIS_TYPE` — формат криптоподписи не соответствует типу кода маркировки.
+	//
+	// * `INVALID_CRYPTO_TAIL` — криптоподпись не валидна.
+	//
+	// * `INVALID_CRYPTO_KEY` — криптоключ не валиден.
+	//
+	// * `VERIFICATION_FAILED_IN_EMITTER_COUNTRY` — код маркировки не прошел верификацию в стране эмитента.
+	//
+	// * `UNSUPPORTED_AI_FOUND` — найденные в коде маркировки AI не поддерживаются.
+	//
+	// * `CIS_NOT_FOUND_IN_GIS_MT` — код маркировки не найден в :no-translate[ГИС МТ].
+	//
+	// * `NOT_PLACED_ON_MARKET` — код маркировки не введен в оборот.
+	//
+	// * `NOT_PRINTED_ON_PACKAGE` — код маркировки не нанесен на упаковку.
+	//
+	// * `EXPIRED_ITEM` — у маркированного товара истек срок годности.
+	//
+	// * `SALE_BLOCKED_BY_OGB` — розничная продажа продукции заблокирована по решению ОГВ.
+	//
+	// * `ITEM_SOLD` — маркированный товар был продан.
+	//
+	// Возвращается только для статуса `INVALID`.
+	Substatus *CisSubstatusType `json:"substatus,omitempty"`
+
+	// Value Код маркировки в системе :no-translate[«Честный ЗНАК»].
+	Value string `json:"value"`
+}
+
+// CisStatusType Статус проверки кода маркировки в системе :no-translate[«Честный ЗНАК»]:
+//
+// * `FAILED` — не удалось проверить код.
+//
+//	Повторите попытку позже или удалите код маркировки.
+//
+// * `IN_PROGRESS` — в процессе проверки.
+//
+// * `NOT_ON_VALIDATION` — код маркировки не отправлен на проверку.
+//
+// * `OK` — проверка успешно пройдена.
+//
+// * `INVALID` — проверка не пройдена. Продажа товара с этим кодом запрещена.
+type CisStatusType string
+
+// CisSubstatusType Детализация ошибки при проверке кода маркировки в системе :no-translate[«Честный ЗНАК»]:
+//
+// * `WRONG_OWNER_INN` — проверка не пройдена. ИНН владельца кода отличается от ИНН продавца.
+//
+// * `CIS_VALIDATION_ERROR` — проверка не пройдена.
+//
+// * `CIS_GTIN_NOT_FOUND` — код маркировки не содержит [GTIN](:no-translate[*gtin]).
+//
+// * `CIS_SERIAL_NUMBER_NOT_FOUND` — код маркировки не содержит серийный номер.
+//
+// * `INVALID_SYMBOLS_FOUND` — код маркировки содержит недопустимые символы.
+//
+// * `CRYPTO_TAIL_FORMAT_MISMATCH_CIS_TYPE` — формат криптоподписи не соответствует типу кода маркировки.
+//
+// * `INVALID_CRYPTO_TAIL` — криптоподпись не валидна.
+//
+// * `INVALID_CRYPTO_KEY` — криптоключ не валиден.
+//
+// * `VERIFICATION_FAILED_IN_EMITTER_COUNTRY` — код маркировки не прошел верификацию в стране эмитента.
+//
+// * `UNSUPPORTED_AI_FOUND` — найденные в коде маркировки AI не поддерживаются.
+//
+// * `CIS_NOT_FOUND_IN_GIS_MT` — код маркировки не найден в :no-translate[ГИС МТ].
+//
+// * `NOT_PLACED_ON_MARKET` — код маркировки не введен в оборот.
+//
+// * `NOT_PRINTED_ON_PACKAGE` — код маркировки не нанесен на упаковку.
+//
+// * `EXPIRED_ITEM` — у маркированного товара истек срок годности.
+//
+// * `SALE_BLOCKED_BY_OGB` — розничная продажа продукции заблокирована по решению ОГВ.
+//
+// * `ITEM_SOLD` — маркированный товар был продан.
+//
+// Возвращается только для статуса `INVALID`.
+type CisSubstatusType string
+
 // CommodityCodeDTO Товарный код.
 type CommodityCodeDTO struct {
 	// Code Товарный код.
@@ -3032,6 +3663,25 @@ type CommodityCodeDTO struct {
 //
 // Не передавайте несколько кодов одного типа.
 type CommodityCodeType string
+
+// ConfirmShipmentRequest Запрос для подтверждения отгрузки.
+type ConfirmShipmentRequest struct {
+	// ExternalShipmentId Идентификатор отгрузки в системе поставщика.
+	ExternalShipmentId *string `json:"externalShipmentId,omitempty"`
+
+	// Signatory Логин пользователя в Яндекс ID, от имени которого будет подписываться электронный акт приема-передачи.
+	//
+	// Указывается без `@yandex.ru`.
+	//
+	// Где его найти:
+	//
+	// * на странице [Яндекс ID](https://id.yandex.ru);
+	// * в [кабинете продавца на Маркете](https://partner.market.yandex.ru/):
+	//
+	//   * в верхнем правом углу под иконкой пользователя;
+	//   * на странице **Настройки** → **Сотрудники и доступы**.
+	Signatory *string `json:"signatory,omitempty"`
+}
 
 // CountryCode Страна производства в формате ISO 3166-1 alpha-2. [Как получить](../../reference/regions/getRegionsCodes.md)
 //
@@ -3061,6 +3711,14 @@ type CurrencyValueDTO struct {
 	// Value Значение.
 	Value float32 `json:"value"`
 }
+
+// DateDdMmYyyy Формат даты: `ДД-ММ-ГГГГ`.
+//
+// Example: 23-09-2022
+type DateDdMmYyyy = string
+
+// DateDdMmYyyyHhMmSs Example: 23-09-2022 09:12:41
+type DateDdMmYyyyHhMmSs = string
 
 // DeliveryPriceDTO Информация о стоимости доставки, включая подъем на этаж.
 //
@@ -3107,6 +3765,15 @@ type DeliveryPriceDTO struct {
 	Vat *OrderVatType `json:"vat,omitempty"`
 }
 
+// DeliveryServiceDTO Служба доставки.
+type DeliveryServiceDTO struct {
+	// Id Идентификатор службы доставки.
+	Id *int64 `json:"id,omitempty"`
+
+	// Name Название службы доставки.
+	Name *string `json:"name,omitempty"`
+}
+
 // DigitalGoodsDeliveryDetailsDTO Информация о доставке цифрового товара.
 type DigitalGoodsDeliveryDetailsDTO struct {
 	// SteamLink Ссылка на Steam-аккаунт покупателя. Передается только для типа `STEAM_GIFT`.
@@ -3141,6 +3808,53 @@ type DigitalGoodsDeliveryType string
 //
 // Передавайте этот параметр при каждом обновлении цены, если предоставляете скидку на товар.
 type DiscountBase = float32
+
+// EacVerificationResultDTO Результат выполнения запроса.
+type EacVerificationResultDTO struct {
+	// AttemptsLeft Количество оставшихся попыток проверки кода.
+	//
+	// Возвращается, если магазин отправил некорректный код.
+	//
+	// Когда все попытки будут исчерпаны, код обновится.
+	AttemptsLeft *int32 `json:"attemptsLeft,omitempty"`
+
+	// VerificationResult Статус проверки кода подтверждения:
+	//
+	// * `ACCEPTED` — код верный.
+	// * `REJECTED` — код неверный.
+	// * `NEED_UPDATE` — Маркет отправит новый код. Значение возвращается, если превышено количество попыток отправки кода.
+	VerificationResult *EacVerificationStatusType `json:"verificationResult,omitempty"`
+}
+
+// EacVerificationStatusType Статус проверки кода подтверждения:
+//
+// * `ACCEPTED` — код верный.
+// * `REJECTED` — код неверный.
+// * `NEED_UPDATE` — Маркет отправит новый код. Значение возвращается, если превышено количество попыток отправки кода.
+type EacVerificationStatusType string
+
+// EmptyApiResponse Пустой ответ сервера.
+type EmptyApiResponse = ApiResponse
+
+// EnrichedOrderBoxLayoutDTO Информация о коробке.
+type EnrichedOrderBoxLayoutDTO struct {
+	// BoxId Идентификатор коробки.
+	BoxId *int64 `json:"boxId,omitempty"`
+
+	// Items Список товаров в коробке.
+	//
+	// Если в коробке едет часть большого товара, в списке может быть только один пункт.
+	Items []OrderBoxLayoutItemDTO `json:"items"`
+}
+
+// ExtensionShipmentDTO Информация об отгрузке.
+type ExtensionShipmentDTO struct {
+	// AvailableActions Доступные действия над отгрузкой.
+	AvailableActions []ShipmentActionType `json:"availableActions"`
+
+	// CurrentStatus Статус отгрузки.
+	CurrentStatus *ShipmentStatusChangeDTO `json:"currentStatus,omitempty"`
+}
 
 // ExternalOrderId Внешний идентификатор заказа, который вы передали в [POST v2/campaigns/{campaignId}/orders/{orderId}/external-id](../../reference/orders/updateExternalOrderId.md).
 type ExternalOrderId = string
@@ -3634,6 +4348,24 @@ type GetOfferMappingsResultDTO struct {
 	Paging *PackagingForwardScrollingPagerDTO `json:"paging,omitempty"`
 }
 
+// GetOrderIdentifiersStatusDTO Информация по проверке кодов маркировки.
+type GetOrderIdentifiersStatusDTO struct {
+	// Items Список идентификаторов товаров и информация по проверке кодов.
+	Items []OrderItemValidationStatusDTO `json:"items"`
+}
+
+// GetOrderIdentifiersStatusResponse defines model for GetOrderIdentifiersStatusResponse.
+type GetOrderIdentifiersStatusResponse struct {
+	// Result Информация по проверке кодов маркировки.
+	Result *GetOrderIdentifiersStatusDTO `json:"result,omitempty"`
+
+	// Status Тип ответа.
+	// Возможные значения:
+	// * `OK` — ошибок нет.
+	// * `ERROR` — при обработке запроса произошла ошибка.
+	Status ApiResponseStatusType `json:"status"`
+}
+
 // GetPartnerWarehousesRequest Запрос на получение складов кабинета.
 type GetPartnerWarehousesRequest struct {
 	// Components Свойства складов, которые необходимо вернуть. Если какое-то значение параметра не задано, этой информации в ответе не будет.
@@ -3700,6 +4432,18 @@ type GetPriceWithDiscountDTO struct {
 
 	// Value Цена товара.
 	Value float32 `json:"value"`
+}
+
+// GetShipmentResponse defines model for GetShipmentResponse.
+type GetShipmentResponse struct {
+	// Result Информация об отгрузке.
+	Result *ShipmentDTO `json:"result,omitempty"`
+
+	// Status Тип ответа.
+	// Возможные значения:
+	// * `OK` — ошибок нет.
+	// * `ERROR` — при обработке запроса произошла ошибка.
+	Status ApiResponseStatusType `json:"status"`
 }
 
 // GetTokenInfoResponse Ответ на запрос получения информации о токене авторизации.
@@ -4080,6 +4824,129 @@ type OfferWeightDimensionsDTO struct {
 	Width float32 `json:"width"`
 }
 
+// OperationDTO Информация об операции.
+type OperationDTO struct {
+	// Id Идентификатор операции.
+	Id OperationId `json:"id"`
+
+	// Type Тип операции:
+	//
+	// * `ORDER_RECIPIENT_UPDATE` — изменение данных получателя.
+	//
+	// * `ORDER_DELIVERY_INTERVAL_UPDATE` — изменение интервала дат доставки.
+	//
+	// * `ORDER_STORAGE_LIMIT_DATE_UPDATE` — продление срока хранения заказа.
+	//
+	// * `ORDER_STATUS_UPDATE` — обновление статуса заказа для его отмены.
+	//
+	// * `RETURN_CANCELLATION` — отмена возврата.
+	Type OperationType `json:"type"`
+}
+
+// OperationId Идентификатор операции.
+type OperationId = string
+
+// OperationType Тип операции:
+//
+// * `ORDER_RECIPIENT_UPDATE` — изменение данных получателя.
+//
+// * `ORDER_DELIVERY_INTERVAL_UPDATE` — изменение интервала дат доставки.
+//
+// * `ORDER_STORAGE_LIMIT_DATE_UPDATE` — продление срока хранения заказа.
+//
+// * `ORDER_STATUS_UPDATE` — обновление статуса заказа для его отмены.
+//
+// * `RETURN_CANCELLATION` — отмена возврата.
+type OperationType string
+
+// OrderBoxLayoutDTO Информация о коробке.
+type OrderBoxLayoutDTO struct {
+	// Items Список товаров в коробке.
+	//
+	// Если в коробке едет часть большого товара, в списке может быть только один пункт.
+	Items []OrderBoxLayoutItemDTO `json:"items"`
+}
+
+// OrderBoxLayoutItemDTO Информация о товаре в коробке.
+type OrderBoxLayoutItemDTO struct {
+	// FullCount Количество единиц товара в коробке.
+	//
+	// Используйте это поле, если в коробке поедут целые товары, не разделенные на части. Не используйте это поле одновременно с `partialCount`.
+	FullCount *int32 `json:"fullCount,omitempty"`
+
+	// Id Идентификатор товара в заказе.
+	//
+	// Он приходит в ответе метода [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md) — параметр `id` в `items`.
+	Id int64 `json:"id"`
+
+	// Instances Переданные коды маркировки.
+	Instances *[]BriefOrderItemInstanceDTO `json:"instances,omitempty"`
+
+	// PartialCount Информация о части товара в коробке.
+	PartialCount *OrderBoxLayoutPartialCountDTO `json:"partialCount,omitempty"`
+}
+
+// OrderBoxLayoutPartialCountDTO Информация о части товара в коробке.
+type OrderBoxLayoutPartialCountDTO struct {
+	// Current Номер части, начиная с 1.
+	Current int32 `json:"current"`
+
+	// Total На сколько всего частей разделен товар.
+	Total int32 `json:"total"`
+}
+
+// OrderBoxesLayoutDTO Распределение товаров по коробкам.
+type OrderBoxesLayoutDTO struct {
+	// Boxes Список коробок.
+	Boxes []EnrichedOrderBoxLayoutDTO `json:"boxes"`
+}
+
+// OrderBuyerBasicInfoDTO Информация о покупателе с базовыми полями.
+type OrderBuyerBasicInfoDTO struct {
+	// FirstName Имя.
+	FirstName *string `json:"firstName,omitempty"`
+
+	// Id Идентификатор покупателя.
+	Id *string `json:"id,omitempty"`
+
+	// LastName Фамилия.
+	LastName *string `json:"lastName,omitempty"`
+
+	// MiddleName Отчество.
+	MiddleName *string `json:"middleName,omitempty"`
+
+	// Type Тип покупателя:
+	//
+	// * `PERSON` — физическое лицо.
+	//
+	// * `BUSINESS` — организация.
+	Type OrderBuyerType `json:"type"`
+}
+
+// OrderBuyerDTO Информация о покупателе.
+//
+// Параметры `id`, `lastName`, `firstName` и `middleName` возвращаются, только если вы работаете по модели DBS.
+type OrderBuyerDTO struct {
+	// FirstName Имя.
+	FirstName *string `json:"firstName,omitempty"`
+
+	// Id Идентификатор покупателя.
+	Id *string `json:"id,omitempty"`
+
+	// LastName Фамилия.
+	LastName *string `json:"lastName,omitempty"`
+
+	// MiddleName Отчество.
+	MiddleName *string `json:"middleName,omitempty"`
+
+	// Type Тип покупателя:
+	//
+	// * `PERSON` — физическое лицо.
+	//
+	// * `BUSINESS` — организация.
+	Type OrderBuyerType `json:"type"`
+}
+
 // OrderBuyerType Тип покупателя:
 //
 // * `PERSON` — физическое лицо.
@@ -4103,6 +4970,273 @@ type OrderCourierDTO struct {
 
 	// VehicleNumber Номер транспортного средства.
 	VehicleNumber *string `json:"vehicleNumber,omitempty"`
+}
+
+// OrderDTO Заказ.
+type OrderDTO struct {
+	// Buyer Информация о покупателе.
+	//
+	// Параметры `id`, `lastName`, `firstName` и `middleName` возвращаются, только если вы работаете по модели DBS.
+	Buyer OrderBuyerDTO `json:"buyer"`
+
+	// BuyerItemsTotal {% note warning "Параметр устарел и будет отключен 05.10.2026." %}
+	//
+	// Вместо него используйте `itemsTotal`.
+	//
+	// {% endnote %}
+	//
+	// Стоимость всех товаров в заказе в валюте покупателя после применения скидок и без учета стоимости доставки.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	BuyerItemsTotal *float32 `json:"buyerItemsTotal,omitempty"`
+
+	// BuyerItemsTotalBeforeDiscount Стоимость всех товаров в заказе в валюте покупателя без учета стоимости доставки и до применения скидок по:
+	//
+	// * акциям;
+	// * купонам;
+	// * промокодам.
+	BuyerItemsTotalBeforeDiscount float32 `json:"buyerItemsTotalBeforeDiscount"`
+
+	// BuyerTotal {% note warning "Параметр устарел и будет отключен 05.10.2026." %}
+	//
+	//
+	//
+	// {% endnote %}
+	//
+	// Стоимость всех товаров в заказе в валюте покупателя после применения скидок и с учетом стоимости доставки.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	BuyerTotal *float32 `json:"buyerTotal,omitempty"`
+
+	// BuyerTotalBeforeDiscount {% note warning "Параметр устарел и будет отключен 05.10.2026." %}
+	//
+	//
+	//
+	// {% endnote %}
+	//
+	// Стоимость всех товаров в заказе в валюте покупателя до применения скидок и с учетом стоимости доставки (`buyerItemsTotalBeforeDiscount` + стоимость доставки).
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	BuyerTotalBeforeDiscount *float32 `json:"buyerTotalBeforeDiscount,omitempty"`
+
+	// CancelRequested **Только для модели DBS**
+	//
+	// Запрошена ли отмена.
+	CancelRequested *bool `json:"cancelRequested,omitempty"`
+
+	// CreationDate Example: 23-09-2022 09:12:41
+	CreationDate DateDdMmYyyyHhMmSs `json:"creationDate"`
+
+	// Currency Коды валют:
+	//
+	// * `RUR` — российский рубль.
+	// * `UAH` — украинская гривна.
+	// * `BYR` — белорусский рубль.
+	// * `KZT` — казахстанский тенге.
+	// * `UZS` — узбекский сум.
+	Currency CurrencyType `json:"currency"`
+
+	// Delivery Информация о доставке.
+	Delivery OrderDeliveryDTO `json:"delivery"`
+
+	// DeliveryTotal Стоимость доставки.
+	DeliveryTotal float32 `json:"deliveryTotal"`
+
+	// ExpiryDate Example: 23-09-2022 09:12:41
+	ExpiryDate *DateDdMmYyyyHhMmSs `json:"expiryDate,omitempty"`
+
+	// ExternalOrderId Внешний идентификатор заказа, который вы передали в [POST v2/campaigns/{campaignId}/orders/{orderId}/external-id](../../reference/orders/updateExternalOrderId.md).
+	ExternalOrderId *ExternalOrderId `json:"externalOrderId,omitempty"`
+
+	// Fake Тип заказа:
+	//
+	// * `false` — настоящий заказ покупателя.
+	//
+	// * `true` — [тестовый заказ](../../concepts/sandbox.md) Маркета.
+	Fake bool `json:"fake"`
+
+	// Id Идентификатор заказа.
+	Id int64 `json:"id"`
+
+	// Items Список товаров в заказе.
+	Items []OrderItemDTO `json:"items"`
+
+	// ItemsTotal Платеж покупателя.
+	ItemsTotal float32 `json:"itemsTotal"`
+
+	// Notes Комментарий к заказу.
+	Notes *string `json:"notes,omitempty"`
+
+	// PaymentMethod Способ оплаты заказа:
+	//
+	// * Значения, если выбрана оплата при оформлении заказа (`"paymentType": "PREPAID"`):
+	//
+	//   * `YANDEX` — банковской картой.
+	//
+	//   * `APPLE_PAY` — Apple Pay (не используется).
+	//
+	//   * `GOOGLE_PAY` — Google Pay (не используется).
+	//
+	//   * `CREDIT` — в кредит.
+	//
+	//   * `TINKOFF_CREDIT` — в кредит в Тинькофф Банке.
+	//
+	//   * `TINKOFF_INSTALLMENTS` — рассрочка в Тинькофф Банке.
+	//
+	//   * `EXTERNAL_CERTIFICATE` — подарочным сертификатом (например, из приложения «Сбербанк Онлайн»).
+	//
+	//   * `SBP` — через систему быстрых платежей.
+	//
+	//   * `B2B_ACCOUNT_PREPAYMENT` — заказ оплачивает организация.
+	//
+	//   * `MICROCREDIT` - Сплит на основе МКК (Микрокредитной компании).
+	//
+	//   * `BNPL_TBC` - BNPL через внешний банк TBC.
+	//
+	//   * `DIGITAL_RUBLE` - Цифровой рубль.
+	//
+	//
+	// * Значения, если выбрана оплата при получении заказа (`"paymentType": "POSTPAID"`):
+	//
+	//   * `CARD_ON_DELIVERY` — банковской картой.
+	//
+	//   * `BOUND_CARD_ON_DELIVERY` — привязанной картой при получении.
+	//
+	//   * `BNPL_BANK_ON_DELIVERY` — супер Сплитом.
+	//
+	//   * `BNPL_ON_DELIVERY` — Сплитом.
+	//
+	//   * `BNPL_TBYB` - Оплата после доставки на основе Сплита.
+	//
+	//   * `SBP_ON_DELIVERY` — постоплата через СБП.
+	//
+	//   * `CASH_ON_DELIVERY` — наличными.
+	//
+	//   * `B2B_ACCOUNT_POSTPAYMENT` — заказ оплачивает организация после доставки.
+	//
+	// * `UNKNOWN` — неизвестный тип.
+	//
+	// Значение по умолчанию: `CASH_ON_DELIVERY`.
+	PaymentMethod OrderPaymentMethodType `json:"paymentMethod"`
+
+	// PaymentType Тип оплаты заказа:
+	//
+	// * `PREPAID` — оплата при оформлении заказа.
+	//
+	// * `POSTPAID` — оплата при получении заказа.
+	//
+	// * `UNKNOWN` — неизвестный тип.
+	//
+	// Если параметр отсутствует, заказ будет оплачен при получении.
+	PaymentType OrderPaymentType `json:"paymentType"`
+
+	// Status Статус заказа:
+	//
+	// * `PLACING` — оформляется, подготовка к резервированию.
+	//
+	// * `RESERVED` — зарезервирован, но недооформлен (только для LaaS).
+	//
+	// * `UNPAID` — оформлен, но еще не оплачен (если выбрана оплата при оформлении).
+	//
+	// * `PROCESSING` — находится в обработке.
+	//
+	// * `DELIVERY` — передан в службу доставки.
+	//
+	// * `PICKUP` — доставлен в пункт выдачи.
+	//
+	// * `DELIVERED` — получен покупателем.
+	//
+	// * `CANCELLED` — отменен.
+	//
+	// * `PENDING` — ожидает обработки со стороны продавца.
+	//
+	// * `PARTIALLY_RETURNED` — возвращен частично.
+	//
+	// * `RETURNED` — возвращен полностью.
+	//
+	// * `UNKNOWN` — неизвестный статус.
+	//
+	// Также могут возвращаться другие значения. Обрабатывать их не нужно.
+	Status OrderStatusType `json:"status"`
+
+	// Subsidies Список субсидий по типам.
+	Subsidies *[]OrderSubsidyDTO `json:"subsidies,omitempty"`
+
+	// Substatus Этап обработки заказа (статус `PROCESSING`) или причина отмены заказа (статус `CANCELLED`).
+	//
+	// * Значения для заказа в статусе `PROCESSING`:
+	//
+	//     * `STARTED` — заказ подтвержден, его можно начать обрабатывать.
+	//
+	//     * `READY_TO_SHIP` — заказ собран и готов к отправке.
+	//
+	// * Значения для заказа в статусе `CANCELLED`:
+	//
+	//     * `RESERVATION_EXPIRED` — покупатель не завершил оформление зарезервированного заказа в течение 10 минут.
+	//
+	//     * `USER_NOT_PAID` — покупатель не оплатил заказ (для типа оплаты `PREPAID`) в течение 30 минут.
+	//
+	//     * `USER_UNREACHABLE` — не удалось связаться с покупателем. Для отмены с этой причиной необходимо выполнить условия:
+	//
+	//       * не менее 3 звонков с 8 до 21 в часовом поясе покупателя;
+	//       * перерыв между первым и третьим звонком не менее 90 минут;
+	//       * соединение не короче 5 секунд.
+	//
+	//       Если хотя бы одно из этих условий не выполнено (кроме случая, когда номер недоступен), отменить заказ не получится. Вернется ответ с кодом ошибки 400.
+	//
+	//     * `USER_CHANGED_MIND` — покупатель отменил заказ по личным причинам.
+	//
+	//     * `USER_REFUSED_DELIVERY` — покупателя не устроили условия доставки.
+	//
+	//     * `USER_REFUSED_PRODUCT` — покупателю не подошел товар.
+	//
+	//     * `SHOP_FAILED` — магазин не может выполнить заказ.
+	//
+	//     * `USER_REFUSED_QUALITY` — покупателя не устроило качество товара.
+	//
+	//     * `USER_IDENTIFICATION_MISMATCH` — идентификационный документ покупателя не совпадает с данными в заказе.
+	//
+	//     * `PURCHASE_GROUP_THRESHOLD_NOT_REACHED_CANCELLED` — заказ участвовал в групповой покупке и был отменен, потому что не было достигнуто нужное количество покупок.
+	//
+	//     * `REPLACING_ORDER` — покупатель решил заменить товар другим по собственной инициативе.
+	//
+	//     * `PROCESSING_EXPIRED` — значение более не используется.
+	//
+	//     * `PICKUP_EXPIRED` — закончился срок хранения заказа в пункт выдачи.
+	//
+	//     * `TOO_MANY_DELIVERY_DATE_CHANGES` — заказ переносили слишком много раз.
+	//
+	//     * `TOO_LONG_DELIVERY` — заказ доставляется слишком долго.
+	//
+	//     * `INCORRECT_PERSONAL_DATA` — для заказа из-за рубежа указаны неправильные данные получателя, заказ не пройдет проверку на таможне.
+	//
+	// * `TECHNICAL_ERROR` — техническая ошибка на стороне Маркета. Обратитесь в поддержку.
+	//
+	// Также могут возвращаться другие значения. Обрабатывать их не нужно.
+	Substatus OrderSubstatusType `json:"substatus"`
+
+	// TaxSystem Система налогообложения (СНО) магазина на момент оформления заказа:
+	//
+	// * `ECHN` — единый сельскохозяйственный налог (ЕСХН).
+	//
+	// * `ENVD` — единый налог на вмененный доход (ЕНВД).
+	//
+	// * `OSN` — общая система налогообложения (ОСН).
+	//
+	// * `PSN` — патентная система налогообложения (ПСН).
+	//
+	// * `USN` — упрощенная система налогообложения (УСН).
+	//
+	// * `USN_MINUS_COST` — упрощенная система налогообложения, доходы, уменьшенные на величину расходов (УСН «Доходы минус расходы»).
+	//
+	// * `NPD` — налог на профессиональный доход (НПД).
+	//
+	// * `AUSN` — автоматизированная упрощенная система налогообложения (АУСН).
+	//
+	// * `AUSN_MINUS_COST` — автоматизированная упрощенная система налогообложения, доходы, уменьшенные на величину расходов (АУСН «Доходы минус расходы»).
+	//
+	// * `UNKNOWN_VALUE` — неизвестное значение.
+	TaxSystem OrderTaxSystemType `json:"taxSystem"`
+
+	// UpdatedAt Example: 23-09-2022 09:12:41
+	UpdatedAt *DateDdMmYyyyHhMmSs `json:"updatedAt,omitempty"`
 }
 
 // OrderDatesFilterDTO Фильтр по датам заказов.
@@ -4158,6 +5292,263 @@ type OrderDatesFilterDTO struct {
 	UpdateDateTo *time.Time `json:"updateDateTo,omitempty"`
 }
 
+// OrderDeliveryAddressDTO Адрес доставки.
+//
+// Указывается, если параметр `type` принимает значение `DELIVERY`, `POST` или `PICKUP` (только для модели DBS). Если `type=PICKUP`, возвращается адрес пункта выдачи.
+type OrderDeliveryAddressDTO struct {
+	// Apartment Номер квартиры или офиса.
+	Apartment *string `json:"apartment,omitempty"`
+
+	// Block Корпус.
+	Block *string `json:"block,omitempty"`
+
+	// Building Строение.
+	Building *string `json:"building,omitempty"`
+
+	// City Город или населенный пункт.
+	City *string `json:"city,omitempty"`
+
+	// Country Страна.
+	Country *string `json:"country,omitempty"`
+
+	// District Район.
+	District *string `json:"district,omitempty"`
+
+	// Entrance Номер подъезда.
+	Entrance *string `json:"entrance,omitempty"`
+
+	// Entryphone Код домофона.
+	Entryphone *string `json:"entryphone,omitempty"`
+
+	// Estate Номер владения.
+	Estate *string `json:"estate,omitempty"`
+
+	// Floor Этаж.
+	Floor *string `json:"floor,omitempty"`
+
+	// Gps GPS-координаты широты и долготы.
+	Gps *GpsDTO `json:"gps,omitempty"`
+
+	// House Номер дома.
+	House *string `json:"house,omitempty"`
+
+	// Phone Телефон получателя заказа.
+	Phone *string `json:"phone,omitempty"`
+
+	// Postcode Почтовый индекс.
+	//
+	// Указывается, если выбрана доставка почтой (`delivery type=POST`).
+	Postcode *string `json:"postcode,omitempty"`
+
+	// Recipient Фамилия, имя и отчество получателя заказа.
+	Recipient *string `json:"recipient,omitempty"`
+
+	// Street Улица.
+	Street *string `json:"street,omitempty"`
+
+	// Subway Станция метро.
+	Subway *string `json:"subway,omitempty"`
+}
+
+// OrderDeliveryDTO Информация о доставке.
+type OrderDeliveryDTO struct {
+	// Address Адрес доставки.
+	//
+	// Указывается, если параметр `type` принимает значение `DELIVERY`, `POST` или `PICKUP` (только для модели DBS). Если `type=PICKUP`, возвращается адрес пункта выдачи.
+	Address *OrderDeliveryAddressDTO `json:"address,omitempty"`
+
+	// Courier Информация о курьере.
+	Courier *OrderCourierDTO `json:"courier,omitempty"`
+
+	// Dates Диапазон дат доставки.
+	Dates OrderDeliveryDatesDTO `json:"dates"`
+
+	// DeliveryPartnerType Тип сотрудничества со службой доставки в рамках конкретного заказа:
+	//
+	// * `SHOP` — магазин работает со службой доставки напрямую или доставляет заказы самостоятельно.
+	//
+	// * `YANDEX_MARKET` — магазин работает со службой доставки через Маркет.
+	//
+	// * `UNKNOWN` — неизвестный тип.
+	DeliveryPartnerType OrderDeliveryPartnerType `json:"deliveryPartnerType"`
+
+	// DeliveryServiceId Идентификатор службы доставки.
+	DeliveryServiceId int64 `json:"deliveryServiceId"`
+
+	// DispatchType Способ доставки:
+	//
+	// * `BUYER` — курьерская доставка покупателю.
+	//
+	// * `MARKET_BRANDED_OUTLET` — доставка в пункт выдачи заказов Маркета.
+	//
+	// * `SHOP_OUTLET` — доставка в пункт выдачи заказов магазина.
+	//
+	// * `UNKNOWN` — неизвестный тип.
+	DispatchType *OrderDeliveryDispatchType `json:"dispatchType,omitempty"`
+
+	// EacCode Код подтверждения ЭАПП (для типа `MERCHANT_TO_COURIER`).
+	EacCode *string `json:"eacCode,omitempty"`
+
+	// EacType Тип кода подтверждения ЭАПП:
+	//
+	// * `MERCHANT_TO_COURIER` (временно не возвращается) — продавец передает код курьеру для получения невыкупа.
+	//
+	// * `COURIER_TO_MERCHANT` — курьер передает код продавцу для получения заказа.
+	//
+	// * `CHECKING_BY_MERCHANT` — продавец проверяет код на своей стороне.
+	EacType *OrderDeliveryEacType `json:"eacType,omitempty"`
+
+	// Estimated Приблизительная ли дата доставки.
+	Estimated *bool `json:"estimated,omitempty"`
+
+	// Id {% note warning "Параметр устарел и будет отключен 05.10.2026." %}
+	//
+	//
+	//
+	// {% endnote %}
+	//
+	// Идентификатор доставки, присвоенный магазином.
+	//
+	// Указывается, только если магазин передал данный идентификатор в ответе на запрос методом `POST cart`.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	Id *string `json:"id,omitempty"`
+
+	// LiftPrice Стоимость подъема на этаж.
+	LiftPrice *float32 `json:"liftPrice,omitempty"`
+
+	// LiftType Тип подъема заказа на этаж:
+	//
+	// * `NOT_NEEDED` — не требуется.
+	//
+	// * `MANUAL` — ручной.
+	//
+	// * `ELEVATOR` — лифт.
+	//
+	// * `CARGO_ELEVATOR` — грузовой лифт.
+	//
+	// * `FREE` — любой из перечисленных выше, если включена опция бесплатного подъема.
+	//
+	// * `UNKNOWN` — неизвестный тип.
+	LiftType *OrderLiftType `json:"liftType,omitempty"`
+
+	// OutletCode Идентификатор пункта выдачи, присвоенный магазином.
+	OutletCode *string `json:"outletCode,omitempty"`
+
+	// OutletStorageLimitDate Формат даты: `ДД-ММ-ГГГГ`.
+	//
+	//
+	// Example: 23-09-2022
+	OutletStorageLimitDate *DateDdMmYyyy `json:"outletStorageLimitDate,omitempty"`
+
+	// Price {% note warning "Параметр устарел и будет отключен 05.10.2026." %}
+	//
+	// Стоимость доставки смотрите в параметре `deliveryTotal`.
+	//
+	// {% endnote %}
+	//
+	// Стоимость доставки в валюте заказа.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	Price *float32 `json:"price,omitempty"`
+
+	// ReceiveCode **Только для модели LaaS**
+	//
+	// Код получения заказа на ПВЗ.
+	ReceiveCode *string `json:"receiveCode,omitempty"`
+
+	// Region Регион доставки.
+	Region *RegionDTO `json:"region,omitempty"`
+
+	// ServiceName Название службы доставки.
+	ServiceName string `json:"serviceName"`
+
+	// Shipments Информация о посылках.
+	Shipments *[]OrderShipmentDTO `json:"shipments,omitempty"`
+
+	// Tracks Информация для отслеживания посылки.
+	Tracks *[]OrderTrackDTO `json:"tracks,omitempty"`
+
+	// Type Способ доставки заказа:
+	//
+	// * `DELIVERY` — курьерская доставка.
+	//
+	// * `PICKUP` — самовывоз.
+	//
+	// * `POST` — почта.
+	//
+	// * `DIGITAL` — для цифровых товаров.
+	//
+	// * `UNKNOWN` — неизвестный тип.
+	Type OrderDeliveryType `json:"type"`
+
+	// Vat НДС на товар или доставку:
+	//
+	// * `NO_VAT` — НДС не облагается, используется только для отдельных видов услуг.
+	//
+	// * `VAT_0` — НДС 0%. Например, используется при продаже товаров, вывезенных в таможенной процедуре экспорта, или при оказании услуг по международной перевозке товаров.
+	//
+	// * `VAT_10` — НДС 10%. Например, используется при реализации отдельных продовольственных и медицинских товаров.
+	//
+	// * `VAT_10_110` — НДС 10/110. НДС 10%, применяется только при предоплате.
+	//
+	// * `VAT_20` — НДС 20%. Основной НДС с 2019 года до 1 января 2026 года.
+	//
+	// * `VAT_20_120` — НДС 20/120. НДС 20%, применяется только при предоплате.
+	//
+	// * `VAT_18` — НДС 18%. Основной НДС до 2019 года.
+	//
+	// * `VAT_18_118` — НДС 18/118. НДС использовался до 1 января 2019 года при предоплате.
+	//
+	// * `VAT_12` — НДС 12%. Используется только в Узбекистане.
+	//
+	// * `VAT_05` — НДС 5%. НДС для упрощенной системы налогообложения (УСН).
+	//
+	// * `VAT_07` — НДС 7%. НДС для упрощенной системы налогообложения (УСН).
+	//
+	// * `VAT_22` — НДС 22%. Основной НДС с 1 января 2026 года.
+	//
+	// * `UNKNOWN_VALUE` — неизвестный тип.
+	Vat *OrderVatType `json:"vat,omitempty"`
+}
+
+// OrderDeliveryDatesDTO Диапазон дат доставки.
+type OrderDeliveryDatesDTO struct {
+	// FromDate Формат даты: `ДД-ММ-ГГГГ`.
+	//
+	//
+	// Example: 23-09-2022
+	FromDate DateDdMmYyyy `json:"fromDate"`
+
+	// FromTime Начало интервала времени доставки.
+	//
+	// Передается только вместе с параметром `type=DELIVERY`.
+	//
+	// Формат времени: 24-часовой, `ЧЧ:ММ`. Вместо `ММ` всегда указывайте `00` (исключение — `23:59`).
+	//
+	// Минимальное значение: `00:00`.
+	FromTime *string `json:"fromTime,omitempty"`
+
+	// RealDeliveryDate Формат даты: `ДД-ММ-ГГГГ`.
+	//
+	//
+	// Example: 23-09-2022
+	RealDeliveryDate *DateDdMmYyyy `json:"realDeliveryDate,omitempty"`
+
+	// ToDate Формат даты: `ДД-ММ-ГГГГ`.
+	//
+	//
+	// Example: 23-09-2022
+	ToDate *DateDdMmYyyy `json:"toDate,omitempty"`
+
+	// ToTime Конец интервала времени доставки.
+	//
+	// Передается только вместе с параметром `type=DELIVERY`.
+	//
+	//  Формат времени: 24-часовой, `ЧЧ:ММ`. Вместо `ММ` всегда указывайте `00` (исключение — `23:59`).
+	//
+	// Максимальное значение: `23:59`.
+	ToTime *string `json:"toTime,omitempty"`
+}
+
 // OrderDeliveryDispatchType Способ доставки:
 //
 // * `BUYER` — курьерская доставка покупателю.
@@ -4199,6 +5590,191 @@ type OrderDeliveryPartnerType string
 //
 // * `UNKNOWN` — неизвестный тип.
 type OrderDeliveryType string
+
+// OrderItemDTO Список товаров в заказе.
+type OrderItemDTO struct {
+	// BuyerPrice Цена товара в валюте покупателя. В цене уже учтены скидки по:
+	//
+	// * акциям;
+	// * купонам;
+	// * промокодам.
+	BuyerPrice float32 `json:"buyerPrice"`
+
+	// BuyerPriceBeforeDiscount Стоимость товара в валюте покупателя до применения скидок по:
+	//
+	// * акциям;
+	// * купонам;
+	// * промокодам.
+	//
+	// Это зачеркнутая цена, которая отображается покупателю на карточке товара до применения скидок.
+	BuyerPriceBeforeDiscount float32 `json:"buyerPriceBeforeDiscount"`
+
+	// Count Количество единиц товара.
+	Count int `json:"count"`
+
+	// Details {% note warning "Параметр устарел и будет отключен 05.10.2026." %}
+	//
+	// Для получения информации о невыкупах и возвратах используйте [GET v2/campaigns/{campaignId}/returns](../../reference/returns/getReturns.md).
+	//
+	// {% endnote %}
+	//
+	// Информация о невыкупленных или возвращенных товарах в заказе.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	Details *[]OrderItemDetailDTO `json:"details,omitempty"`
+
+	// Id Идентификатор товара в заказе.
+	//
+	// Позволяет идентифицировать товар в рамках заказа.
+	Id int64 `json:"id"`
+
+	// Instances Информация о маркировке единиц товара.
+	//
+	// Возвращаются данные для маркировки, переданные в запросе:
+	//
+	// * Для DBS — [PUT v2/campaigns/{campaignId}/orders/{orderId}/identifiers](../../reference/orders/provideOrderItemIdentifiers.md) или [PUT v2/campaigns/{campaignId}/orders/{orderId}/boxes](../../reference/orders/setOrderBoxLayout.md).
+	// * Для FBS и EXPRESS — [PUT v2/campaigns/{campaignId}/orders/{orderId}/boxes](../../reference/orders/setOrderBoxLayout.md).
+	//
+	// Для FBY возвращаются коды маркировки, переданные во время поставки.
+	//
+	// Если магазин еще не передавал коды для этого заказа, `instances` отсутствует.
+	Instances *[]OrderItemInstanceDTO `json:"instances,omitempty"`
+
+	// OfferId Ваш SKU — идентификатор товара в вашей системе.
+	//
+	// Правила использования SKU:
+	//
+	// * У каждого товара SKU должен быть свой.
+	//
+	// * Уже заданный SKU нельзя освободить и использовать заново для другого товара. Каждый товар должен получать новый идентификатор, до того никогда не использовавшийся в вашем каталоге.
+	//
+	// SKU товара можно изменить в кабинете продавца на Маркете. О том, как это сделать, читайте [в Справке Маркета для продавцов](https://yandex.ru/support2/marketplace/ru/assortment/operations/edit-sku).
+	//
+	// {% note warning %}
+	//
+	// Пробельные символы в начале и конце значения автоматически удаляются. Например, `"  SKU123  "` и `"SKU123"` будут обработаны как одинаковые значения.
+	//
+	// {% endnote %}
+	//
+	// [Что такое SKU и как его назначать](https://yandex.ru/support/marketplace/assortment/add/index.html#fields)
+	OfferId ShopSku `json:"offerId"`
+
+	// OfferName Название товара.
+	OfferName string `json:"offerName"`
+
+	// PartnerWarehouseId **Только для моделей FBY и LaaS**
+	//
+	// Идентификатор склада, на который сформирован заказ.
+	PartnerWarehouseId *string `json:"partnerWarehouseId,omitempty"`
+
+	// Price Цена товара в валюте заказа без учета вознаграждения продавцу за скидки по промокодам, купонам и акциям (параметр `subsidies`).
+	//
+	// Включает НДС.
+	Price float32 `json:"price"`
+
+	// PriceBeforeDiscount {% note warning "Параметр устарел и будет отключен 05.10.2026." %}
+	//
+	//
+	//
+	// {% endnote %}
+	//
+	// Стоимость товара в валюте магазина до применения скидок.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	PriceBeforeDiscount *float32 `json:"priceBeforeDiscount,omitempty"`
+
+	// Promos Информация о вознаграждении продавцу за скидки на товар по промокодам, купонам и акциям.
+	Promos *[]OrderItemPromoDTO `json:"promos,omitempty"`
+
+	// RequiredInstanceTypes Список необходимых маркировок товара.
+	RequiredInstanceTypes *[]OrderItemInstanceType `json:"requiredInstanceTypes,omitempty"`
+
+	// ShopSku Ваш SKU — идентификатор товара в вашей системе.
+	//
+	// Правила использования SKU:
+	//
+	// * У каждого товара SKU должен быть свой.
+	//
+	// * Уже заданный SKU нельзя освободить и использовать заново для другого товара. Каждый товар должен получать новый идентификатор, до того никогда не использовавшийся в вашем каталоге.
+	//
+	// SKU товара можно изменить в кабинете продавца на Маркете. О том, как это сделать, читайте [в Справке Маркета для продавцов](https://yandex.ru/support2/marketplace/ru/assortment/operations/edit-sku).
+	//
+	// {% note warning %}
+	//
+	// Пробельные символы в начале и конце значения автоматически удаляются. Например, `"  SKU123  "` и `"SKU123"` будут обработаны как одинаковые значения.
+	//
+	// {% endnote %}
+	//
+	// [Что такое SKU и как его назначать](https://yandex.ru/support/marketplace/assortment/add/index.html#fields)
+	ShopSku *ShopSku `json:"shopSku,omitempty"`
+
+	// Subsidies Список субсидий по типам.
+	Subsidies *[]OrderItemSubsidyDTO `json:"subsidies,omitempty"`
+
+	// Subsidy {% note warning "Параметр устарел и будет отключен 05.10.2026." %}
+	//
+	// Вместо него используйте `subsidies`.
+	//
+	// {% endnote %}
+	//
+	// Общее вознаграждение продавцу за DBS-доставку и все скидки на товар:
+	//
+	// * по промокодам;
+	// * по купонам;
+	// * по баллам Плюса;
+	// * по акциям.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	Subsidy *float32 `json:"subsidy,omitempty"`
+
+	// Tags Признаки товара.
+	Tags *[]OrderItemTagType `json:"tags,omitempty"`
+
+	// Vat НДС на товар или доставку:
+	//
+	// * `NO_VAT` — НДС не облагается, используется только для отдельных видов услуг.
+	//
+	// * `VAT_0` — НДС 0%. Например, используется при продаже товаров, вывезенных в таможенной процедуре экспорта, или при оказании услуг по международной перевозке товаров.
+	//
+	// * `VAT_10` — НДС 10%. Например, используется при реализации отдельных продовольственных и медицинских товаров.
+	//
+	// * `VAT_10_110` — НДС 10/110. НДС 10%, применяется только при предоплате.
+	//
+	// * `VAT_20` — НДС 20%. Основной НДС с 2019 года до 1 января 2026 года.
+	//
+	// * `VAT_20_120` — НДС 20/120. НДС 20%, применяется только при предоплате.
+	//
+	// * `VAT_18` — НДС 18%. Основной НДС до 2019 года.
+	//
+	// * `VAT_18_118` — НДС 18/118. НДС использовался до 1 января 2019 года при предоплате.
+	//
+	// * `VAT_12` — НДС 12%. Используется только в Узбекистане.
+	//
+	// * `VAT_05` — НДС 5%. НДС для упрощенной системы налогообложения (УСН).
+	//
+	// * `VAT_07` — НДС 7%. НДС для упрощенной системы налогообложения (УСН).
+	//
+	// * `VAT_22` — НДС 22%. Основной НДС с 1 января 2026 года.
+	//
+	// * `UNKNOWN_VALUE` — неизвестный тип.
+	Vat *OrderVatType `json:"vat,omitempty"`
+}
+
+// OrderItemDetailDTO Детали по товару в заказе.
+type OrderItemDetailDTO struct {
+	// ItemCount Количество единиц товара.
+	ItemCount int64 `json:"itemCount"`
+
+	// ItemStatus Невыкупленный или возвращенный товар:
+	//
+	// * `REJECTED` — невыкупленный.
+	//
+	// * `RETURNED` — возвращенный.
+	ItemStatus OrderItemStatusType `json:"itemStatus"`
+
+	// UpdateDate Формат даты: `ДД-ММ-ГГГГ`.
+	//
+	//
+	// Example: 23-09-2022
+	UpdateDate DateDdMmYyyy `json:"updateDate"`
+}
 
 // OrderItemInstanceDTO Переданные для данной позиции коды маркировки или УИНы. Коды «Честного знака» возвращаются в двух вариантах — с криптохвостом и без.
 type OrderItemInstanceDTO struct {
@@ -4246,6 +5822,94 @@ type OrderItemInstanceDTO struct {
 // * `GTD` — номер ГТД, грузовой таможенной декларации.
 type OrderItemInstanceType string
 
+// OrderItemPromoDTO Информация о вознаграждении продавцу за скидки на товар по промокодам, купонам и акциям.
+type OrderItemPromoDTO struct {
+	// Discount Размер пользовательской скидки в валюте покупателя.
+	Discount *float32 `json:"discount,omitempty"`
+
+	// MarketPromoId Идентификатор акции в рамках соглашения на оказание услуг по продвижению сервиса между Маркетом и продавцом.
+	MarketPromoId *string `json:"marketPromoId,omitempty"`
+
+	// ShopPromoId Идентификатор акции поставщика.
+	ShopPromoId *string `json:"shopPromoId,omitempty"`
+
+	// Subsidy Вознаграждение продавцу от Маркета за товар, проданный в рамках акции.
+	Subsidy float32 `json:"subsidy"`
+
+	// Type Тип скидки:
+	//
+	// * `DIRECT_DISCOUNT` — прямая скидка, которую устанавливает продавец или Маркет.
+	//
+	// * `BLUE_SET` — комплекты.
+	//
+	// * `BLUE_FLASH` — флеш-акция.
+	//
+	// * `MARKET_COUPON` — скидка по промокоду Маркета.
+	//
+	// * `MARKET_PROMOCODE` — скидка по промокоду магазина.
+	//
+	// * `MARKET_BLUE` — скидка на Маркете.
+	//
+	// * `CHEAPEST_AS_GIFT` — самый дешевый товар в подарок.
+	//
+	// * `CASHBACK` — кешбэк.
+	//
+	// * `SPREAD_DISCOUNT_COUNT` — скидка за количество одинаковых товаров.
+	//
+	// * `SPREAD_DISCOUNT_RECEIPT` — скидка от суммы чека.
+	//
+	// * `DISCOUNT_BY_PAYMENT_TYPE` — прямая скидка при оплате картой Плюса.
+	//
+	// * `PERCENT_DISCOUNT` — прямая скидка в процентах.
+	//
+	// * `DCO_EXTRA_DISCOUNT` — дополнительная скидка, необходимая для расчета субсидии от Маркета.
+	//
+	// * `UNKNOWN` — неизвестный тип.
+	//
+	// Устаревшие типы:
+	//
+	// * `GENERIC_BUNDLE`.
+	//
+	// * `MARKET_COIN`.
+	//
+	// * `PRICE_DROP_AS_YOU_SHOP`.
+	//
+	// * `SECRET_SALE`.
+	Type OrderPromoType `json:"type"`
+}
+
+// OrderItemStatusType Невыкупленный или возвращенный товар:
+//
+// * `REJECTED` — невыкупленный.
+//
+// * `RETURNED` — возвращенный.
+type OrderItemStatusType string
+
+// OrderItemSubsidyDTO Общее вознаграждение продавцу за все скидки на товар:
+//
+// * по промокодам, купонам и акциям;
+// * по баллам Плюса.
+//
+// Включает НДС.
+type OrderItemSubsidyDTO struct {
+	// Amount Сумма субсидии.
+	Amount float32 `json:"amount"`
+
+	// Type Тип субсидии:
+	//
+	// * `YANDEX_CASHBACK` — скидка по подписке Яндекс Плюс.
+	//
+	// * `SUBSIDY` — скидка Маркета (по акциям, промокодам, купонам и т. д.).
+	Type OrderItemSubsidyType `json:"type"`
+}
+
+// OrderItemSubsidyType Тип субсидии:
+//
+// * `YANDEX_CASHBACK` — скидка по подписке Яндекс Плюс.
+//
+// * `SUBSIDY` — скидка Маркета (по акциям, промокодам, купонам и т. д.).
+type OrderItemSubsidyType string
+
 // OrderItemTagType Признак товара:
 //
 // * `ULTIMA` — премиум-товар.
@@ -4292,6 +5956,18 @@ type OrderItemUnitStatusDTO struct {
 // * `RETURNED` — возвращенная.
 type OrderItemUnitStatusType string
 
+// OrderItemValidationStatusDTO Идентификаторы товаров и информация по проверке их кодов.
+type OrderItemValidationStatusDTO struct {
+	// Cis Информация по проверке кодов маркировки в системе :no-translate[«Честный ЗНАК»].
+	Cis *[]CisDTO `json:"cis,omitempty"`
+
+	// Id Идентификатор товара в заказе.
+	Id int64 `json:"id"`
+
+	// Uin Информация по проверке :no-translate[УИНов].
+	Uin *[]UinDTO `json:"uin,omitempty"`
+}
+
 // OrderLiftType Тип подъема заказа на этаж:
 //
 // * `NOT_NEEDED` — не требуется.
@@ -4306,6 +5982,15 @@ type OrderItemUnitStatusType string
 //
 // * `UNKNOWN` — неизвестный тип.
 type OrderLiftType string
+
+// OrderParcelBoxDTO Информация о грузоместе.
+type OrderParcelBoxDTO struct {
+	// FulfilmentId Идентификатор грузового места в системе магазина.
+	FulfilmentId string `json:"fulfilmentId"`
+
+	// Id Идентификатор грузового места.
+	Id int64 `json:"id"`
+}
 
 // OrderPaymentMethodType Способ оплаты заказа:
 //
@@ -4401,12 +6086,211 @@ type OrderPriceDTO struct {
 	Subsidy *CurrencyValueDTO `json:"subsidy,omitempty"`
 }
 
+// OrderPromoType Тип скидки:
+//
+// * `DIRECT_DISCOUNT` — прямая скидка, которую устанавливает продавец или Маркет.
+//
+// * `BLUE_SET` — комплекты.
+//
+// * `BLUE_FLASH` — флеш-акция.
+//
+// * `MARKET_COUPON` — скидка по промокоду Маркета.
+//
+// * `MARKET_PROMOCODE` — скидка по промокоду магазина.
+//
+// * `MARKET_BLUE` — скидка на Маркете.
+//
+// * `CHEAPEST_AS_GIFT` — самый дешевый товар в подарок.
+//
+// * `CASHBACK` — кешбэк.
+//
+// * `SPREAD_DISCOUNT_COUNT` — скидка за количество одинаковых товаров.
+//
+// * `SPREAD_DISCOUNT_RECEIPT` — скидка от суммы чека.
+//
+// * `DISCOUNT_BY_PAYMENT_TYPE` — прямая скидка при оплате картой Плюса.
+//
+// * `PERCENT_DISCOUNT` — прямая скидка в процентах.
+//
+// * `DCO_EXTRA_DISCOUNT` — дополнительная скидка, необходимая для расчета субсидии от Маркета.
+//
+// * `UNKNOWN` — неизвестный тип.
+//
+// Устаревшие типы:
+//
+// * `GENERIC_BUNDLE`.
+//
+// * `MARKET_COIN`.
+//
+// * `PRICE_DROP_AS_YOU_SHOP`.
+//
+// * `SECRET_SALE`.
+type OrderPromoType string
+
+// OrderShipmentDTO Список посылок.
+//
+// В параметре может указываться несколько посылок.
+type OrderShipmentDTO struct {
+	// Boxes Список грузовых мест.
+	Boxes *[]OrderParcelBoxDTO `json:"boxes,omitempty"`
+
+	// Id {% note warning "Параметр устарел и будет отключен 05.10.2026." %}
+	//
+	//
+	//
+	// {% endnote %}
+	//
+	// Идентификатор посылки, присвоенный Маркетом.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	Id *int64 `json:"id,omitempty"`
+
+	// ShipmentDate Формат даты: `ДД-ММ-ГГГГ`.
+	//
+	//
+	// Example: 23-09-2022
+	ShipmentDate *DateDdMmYyyy `json:"shipmentDate,omitempty"`
+
+	// ShipmentTime **Только для модели Экспресс**
+	//
+	// Время, к которому магазин должен упаковать заказ и перевести его в статус `READY_TO_SHIP`. После смены статуса за заказом приедет курьер.
+	//
+	// Поле может появиться не сразу. Запрашивайте информацию о заказе в течении 5–10 минут, пока оно не вернется.
+	//
+	// Формат времени: 24-часовой, `ЧЧ:ММ`.
+	//
+	// Если заказ сделан организацией, параметр не возвращается до согласования даты доставки.
+	ShipmentTime *string `json:"shipmentTime,omitempty"`
+
+	// Tracks **Только для модели DBS**
+	//
+	// Информация для отслеживания посылки.
+	Tracks *[]OrderTrackDTO `json:"tracks,omitempty"`
+}
+
 // OrderSourcePlatformType Площадка-источник заказа:
 //
 // * `MARKET` — заказ, оформленный на Маркете.
 //
 // * `OTHER` — LaaS-заказ, созданный продавцом.
 type OrderSourcePlatformType string
+
+// OrderStatusChangeDTO Заказ.
+type OrderStatusChangeDTO struct {
+	// Delivery Информация о доставке.
+	Delivery *OrderStatusChangeDeliveryDTO `json:"delivery,omitempty"`
+
+	// Status Статус заказа:
+	//
+	// * `PLACING` — оформляется, подготовка к резервированию.
+	//
+	// * `RESERVED` — зарезервирован, но недооформлен (только для LaaS).
+	//
+	// * `UNPAID` — оформлен, но еще не оплачен (если выбрана оплата при оформлении).
+	//
+	// * `PROCESSING` — находится в обработке.
+	//
+	// * `DELIVERY` — передан в службу доставки.
+	//
+	// * `PICKUP` — доставлен в пункт выдачи.
+	//
+	// * `DELIVERED` — получен покупателем.
+	//
+	// * `CANCELLED` — отменен.
+	//
+	// * `PENDING` — ожидает обработки со стороны продавца.
+	//
+	// * `PARTIALLY_RETURNED` — возвращен частично.
+	//
+	// * `RETURNED` — возвращен полностью.
+	//
+	// * `UNKNOWN` — неизвестный статус.
+	//
+	// Также могут возвращаться другие значения. Обрабатывать их не нужно.
+	Status OrderStatusType `json:"status"`
+
+	// Substatus Этап обработки заказа (статус `PROCESSING`) или причина отмены заказа (статус `CANCELLED`).
+	//
+	// * Значения для заказа в статусе `PROCESSING`:
+	//
+	//     * `STARTED` — заказ подтвержден, его можно начать обрабатывать.
+	//
+	//     * `READY_TO_SHIP` — заказ собран и готов к отправке.
+	//
+	// * Значения для заказа в статусе `CANCELLED`:
+	//
+	//     * `RESERVATION_EXPIRED` — покупатель не завершил оформление зарезервированного заказа в течение 10 минут.
+	//
+	//     * `USER_NOT_PAID` — покупатель не оплатил заказ (для типа оплаты `PREPAID`) в течение 30 минут.
+	//
+	//     * `USER_UNREACHABLE` — не удалось связаться с покупателем. Для отмены с этой причиной необходимо выполнить условия:
+	//
+	//       * не менее 3 звонков с 8 до 21 в часовом поясе покупателя;
+	//       * перерыв между первым и третьим звонком не менее 90 минут;
+	//       * соединение не короче 5 секунд.
+	//
+	//       Если хотя бы одно из этих условий не выполнено (кроме случая, когда номер недоступен), отменить заказ не получится. Вернется ответ с кодом ошибки 400.
+	//
+	//     * `USER_CHANGED_MIND` — покупатель отменил заказ по личным причинам.
+	//
+	//     * `USER_REFUSED_DELIVERY` — покупателя не устроили условия доставки.
+	//
+	//     * `USER_REFUSED_PRODUCT` — покупателю не подошел товар.
+	//
+	//     * `SHOP_FAILED` — магазин не может выполнить заказ.
+	//
+	//     * `USER_REFUSED_QUALITY` — покупателя не устроило качество товара.
+	//
+	//     * `USER_IDENTIFICATION_MISMATCH` — идентификационный документ покупателя не совпадает с данными в заказе.
+	//
+	//     * `PURCHASE_GROUP_THRESHOLD_NOT_REACHED_CANCELLED` — заказ участвовал в групповой покупке и был отменен, потому что не было достигнуто нужное количество покупок.
+	//
+	//     * `REPLACING_ORDER` — покупатель решил заменить товар другим по собственной инициативе.
+	//
+	//     * `PROCESSING_EXPIRED` — значение более не используется.
+	//
+	//     * `PICKUP_EXPIRED` — закончился срок хранения заказа в пункт выдачи.
+	//
+	//     * `TOO_MANY_DELIVERY_DATE_CHANGES` — заказ переносили слишком много раз.
+	//
+	//     * `TOO_LONG_DELIVERY` — заказ доставляется слишком долго.
+	//
+	//     * `INCORRECT_PERSONAL_DATA` — для заказа из-за рубежа указаны неправильные данные получателя, заказ не пройдет проверку на таможне.
+	//
+	// * `TECHNICAL_ERROR` — техническая ошибка на стороне Маркета. Обратитесь в поддержку.
+	//
+	// Также могут возвращаться другие значения. Обрабатывать их не нужно.
+	Substatus *OrderSubstatusType `json:"substatus,omitempty"`
+}
+
+// OrderStatusChangeDeliveryDTO Информация о доставке.
+type OrderStatusChangeDeliveryDTO struct {
+	// Dates Диапазон дат доставки.
+	Dates *OrderStatusChangeDeliveryDatesDTO `json:"dates,omitempty"`
+}
+
+// OrderStatusChangeDeliveryDatesDTO Диапазон дат доставки.
+type OrderStatusChangeDeliveryDatesDTO struct {
+	// RealDeliveryDate **Только для модели DBS**
+	//
+	// Фактическая дата доставки.
+	// <br><br>
+	// Когда передавать параметр `realDeliveryDate`:
+	//
+	// * Не передавайте параметр, если:
+	//   * переводите заказ в любой статус, кроме `PICKUP` или `DELIVERED`;
+	//   * меняете статус заказа на `PICKUP` или `DELIVERED` в день доставки — будет указана дата выполнения запроса.
+	// * Передавайте дату доставки, если переводите заказ в статус `PICKUP` или `DELIVERED` не в день доставки. Нельзя указывать дату доставки в будущем.
+	//
+	//   {% note warning "Передача статуса после установленного срока снижает индекс качества" %}
+	//
+	//   О сроках читайте [в Справке Маркета для продавцов](https://yandex.ru/support2/marketplace/ru/quality/tech#dbs).
+	//
+	//   {% endnote %}
+	//
+	//
+	// Формат даты: `ГГГГ-ММ-ДД`.
+	RealDeliveryDate *openapi_types.Date `json:"realDeliveryDate,omitempty"`
+}
 
 // OrderStatusType Статус заказа:
 //
@@ -4436,6 +6320,36 @@ type OrderSourcePlatformType string
 //
 // Также могут возвращаться другие значения. Обрабатывать их не нужно.
 type OrderStatusType string
+
+// OrderSubsidyDTO Общее вознаграждение продавцу за DBS-доставку и все скидки на товар:
+//
+// * по промокодам, купонам и акциям;
+// * по баллам Плюса;
+// * по доставке (DBS).
+//
+// Включает НДС.
+type OrderSubsidyDTO struct {
+	// Amount Сумма субсидии.
+	Amount float32 `json:"amount"`
+
+	// Type Тип субсидии:
+	//
+	// * `YANDEX_CASHBACK` — скидка по подписке Яндекс Плюс.
+	//
+	// * `SUBSIDY` — скидка Маркета (по акциям, промокодам, купонам и т. д.)
+	//
+	// * `DELIVERY` — скидка за доставку (DBS).
+	Type OrderSubsidyType `json:"type"`
+}
+
+// OrderSubsidyType Тип субсидии:
+//
+// * `YANDEX_CASHBACK` — скидка по подписке Яндекс Плюс.
+//
+// * `SUBSIDY` — скидка Маркета (по акциям, промокодам, купонам и т. д.)
+//
+// * `DELIVERY` — скидка за доставку (DBS).
+type OrderSubsidyType string
 
 // OrderSubstatusType Этап обработки заказа (статус `PROCESSING`) или причина отмены заказа (статус `CANCELLED`).
 //
@@ -4492,6 +6406,29 @@ type OrderStatusType string
 // Также могут возвращаться другие значения. Обрабатывать их не нужно.
 type OrderSubstatusType string
 
+// OrderTaxSystemType Система налогообложения (СНО) магазина на момент оформления заказа:
+//
+// * `ECHN` — единый сельскохозяйственный налог (ЕСХН).
+//
+// * `ENVD` — единый налог на вмененный доход (ЕНВД).
+//
+// * `OSN` — общая система налогообложения (ОСН).
+//
+// * `PSN` — патентная система налогообложения (ПСН).
+//
+// * `USN` — упрощенная система налогообложения (УСН).
+//
+// * `USN_MINUS_COST` — упрощенная система налогообложения, доходы, уменьшенные на величину расходов (УСН «Доходы минус расходы»).
+//
+// * `NPD` — налог на профессиональный доход (НПД).
+//
+// * `AUSN` — автоматизированная упрощенная система налогообложения (АУСН).
+//
+// * `AUSN_MINUS_COST` — автоматизированная упрощенная система налогообложения, доходы, уменьшенные на величину расходов (АУСН «Доходы минус расходы»).
+//
+// * `UNKNOWN_VALUE` — неизвестное значение.
+type OrderTaxSystemType string
+
 // OrderTrackDTO Информация о трек-номере посылки (DBS).
 type OrderTrackDTO struct {
 	// DeliveryServiceId Идентификатор службы доставки. Информацию о службе доставки можно получить с помощью запроса [GET delivery/services](../../reference/delivery-services/getDeliveryServices.md).
@@ -4536,6 +6473,62 @@ type PackagingForwardScrollingPagerDTO struct {
 	NextPageToken *string `json:"nextPageToken,omitempty"`
 }
 
+// PageFormatType Размещение ярлыков на странице PDF-файла:
+//
+// * `A9_HORIZONTALLY` — ярлык размером 58 × 40 мм без полей, близок к формату :no-translate[A9].
+//
+//	{% cut "Пример ярлыка для продавцов Маркета" %}
+//
+//	![Изображение горизонтального ярлыка формата :no-translate[A9] для продавцов Маркета](../../_images/labels/label-A9-horizontally.png)
+//
+//	{% endcut %}
+//
+//	{% cut "Пример ярлыка для продавцов Market Yandex Go" %}
+//
+//	![Изображение горизонтального ярлыка формата A9 для продавцов Market Yandex Go](../../_images/labels/label-A9-horizontally-uz.png)
+//
+//	{% endcut %}
+//
+// * `A9` — ярлык размером 40 × 58 мм без полей, близок к формату A9.
+//
+//	{% cut "Пример ярлыка для продавцов Маркета" %}
+//
+//	![Изображение вертикального ярлыка формата :no-translate[A9] для продавцов Маркета](../../_images/labels/label-A9.png)
+//
+//	{% endcut %}
+//
+//	{% cut "Пример ярлыка для продавцов Market Yandex Go" %}
+//
+//	![Изображение вертикального ярлыка формата :no-translate[A9] для продавцов Market Yandex Go](../../_images/labels/label-A9-uz.png)
+//
+//	{% endcut %}
+//
+// * `A7` — ярлык размером 75 × 120 мм (80,4 × 125,6 мм с учетом полей), близок к формату :no-translate[A7].
+//
+//	{% cut "Пример ярлыка для продавцов Маркета" %}
+//
+//	![Изображение ярлыка формата A7 для продавцов Маркета](../../_images/labels/label-A7.jpg)
+//
+//	{% endcut %}
+//
+//	{% cut "Пример ярлыка для продавцов Market Yandex Go" %}
+//
+//	![Изображение ярлыка формата :no-translate[A7] для продавцов Market Yandex Go](../../_images/labels/label-A7-uz.png)
+//
+//	{% endcut %}
+//
+// * `A4` — на листе A4 располагается ярлык того формата, который выбран в кабинете продавца на Маркете — перейдите на страницу **Заказы** → **Заказы и отгрузки** → на вкладке нужной модели работы нажмите кнопку **Формат ярлыков**.
+type PageFormatType string
+
+// PalletsCountDTO Количество палет в отгрузке.
+type PalletsCountDTO struct {
+	// Fact Количество палет, которое приняли в сортировочном центре.
+	Fact *int32 `json:"fact,omitempty"`
+
+	// Planned Количество палет, которое заявил продавец.
+	Planned *int32 `json:"planned,omitempty"`
+}
+
 // PartnerMarketCategoryId Идентификатор категории на Маркете, к которой вы относите свой товар.
 //
 // {% note warning "Всегда указывайте, когда передаете `parameterValues`" %}
@@ -4550,6 +6543,18 @@ type PackagingForwardScrollingPagerDTO struct {
 //
 // Список категорий Маркета можно получить с помощью запроса  [POST v2/categories/tree](../../reference/categories/getCategoriesTree.md).
 type PartnerMarketCategoryId = int64
+
+// PartnerShipmentWarehouseDTO Данные о складе отправления.
+type PartnerShipmentWarehouseDTO struct {
+	// Address Адрес склада отправления.
+	Address *string `json:"address,omitempty"`
+
+	// Id Идентификатор склада отправления.
+	Id int64 `json:"id"`
+
+	// Name Наименование склада отправления.
+	Name *string `json:"name,omitempty"`
+}
 
 // PartnerWarehouseComponentType Свойства складов, которые необходимо вернуть:
 //
@@ -4709,6 +6714,51 @@ type RegionDTO struct {
 // * `OTHER` — неизвестный регион.
 type RegionType string
 
+// SearchShipmentsRequest Запрос информации об отгрузках.
+type SearchShipmentsRequest struct {
+	// CancelledOrders Возвращать ли отмененные заказы.
+	//
+	// Значение по умолчанию: `true`. Если возвращать отмененные заказы не нужно, передайте значение `false`.
+	CancelledOrders *bool `json:"cancelledOrders,omitempty"`
+
+	// DateFrom Начальная дата для фильтрации по дате отгрузки (включительно).
+	//
+	// Формат даты: `ДД-ММ-ГГГГ`.
+	DateFrom openapi_types.Date `json:"dateFrom"`
+
+	// DateTo Конечная дата для фильтрации по дате отгрузки (включительно).
+	//
+	// Формат даты: `ДД-ММ-ГГГГ`.
+	DateTo openapi_types.Date `json:"dateTo"`
+
+	// OrderIds Список идентификаторов заказов из отгрузок.
+	OrderIds *[]int64 `json:"orderIds,omitempty"`
+
+	// Statuses Список статусов отгрузок.
+	Statuses *[]ShipmentStatusType `json:"statuses,omitempty"`
+}
+
+// SearchShipmentsResponse Ответ на запрос информации об отгрузках.
+type SearchShipmentsResponse struct {
+	// Result Информация об отгрузках.
+	Result *SearchShipmentsResponseDTO `json:"result,omitempty"`
+
+	// Status Тип ответа.
+	// Возможные значения:
+	// * `OK` — ошибок нет.
+	// * `ERROR` — при обработке запроса произошла ошибка.
+	Status ApiResponseStatusType `json:"status"`
+}
+
+// SearchShipmentsResponseDTO Информация об отгрузках.
+type SearchShipmentsResponseDTO struct {
+	// Paging Идентификатор следующей страницы.
+	Paging *PackagingForwardScrollingPagerDTO `json:"paging,omitempty"`
+
+	// Shipments Список с информацией об отгрузках.
+	Shipments []ShipmentInfoDTO `json:"shipments"`
+}
+
 // SellingProgramType Модель работы:
 //
 // * `FBY` — FBY.
@@ -4717,6 +6767,226 @@ type RegionType string
 // * `EXPRESS` — Экспресс.
 // * `LAAS` — LaaS.
 type SellingProgramType string
+
+// SetOrderBoxLayoutRequest defines model for SetOrderBoxLayoutRequest.
+type SetOrderBoxLayoutRequest struct {
+	// AllowRemove Передайте `true`, если вы собираетесь удалить часть товаров из заказа.
+	AllowRemove *bool `json:"allowRemove,omitempty"`
+
+	// Boxes Список коробок.
+	Boxes []OrderBoxLayoutDTO `json:"boxes"`
+}
+
+// SetOrderBoxLayoutResponse defines model for SetOrderBoxLayoutResponse.
+type SetOrderBoxLayoutResponse struct {
+	// Result Распределение товаров по коробкам.
+	Result *OrderBoxesLayoutDTO `json:"result,omitempty"`
+
+	// Status Тип ответа.
+	// Возможные значения:
+	// * `OK` — ошибок нет.
+	// * `ERROR` — при обработке запроса произошла ошибка.
+	Status ApiResponseStatusType `json:"status"`
+}
+
+// ShipmentActionType Действия с отгрузкой:
+//
+// * `CONFIRM` — подтвердить отгрузку.
+// * `DOWNLOAD_ACT` — скачать акт приема-передачи отгрузки.
+// * `DOWNLOAD_INBOUND_ACT` — скачать список принятых заказов.
+// * `DOWNLOAD_DISCREPANCY_ACT` — скачать акт расхождений.
+// * `DOWNLOAD_TRANSPORTATION_WAYBILL` — скачать транспортную накладную.
+// * `CHANGE_PALLETS_COUNT` — указать количество палет.
+type ShipmentActionType string
+
+// ShipmentDTO Информация об отгрузке.
+type ShipmentDTO struct {
+	// AvailableActions Доступные действия над отгрузкой.
+	AvailableActions []ShipmentActionType `json:"availableActions"`
+
+	// CurrentStatus Статус отгрузки.
+	CurrentStatus *ShipmentStatusChangeDTO `json:"currentStatus,omitempty"`
+
+	// DeliveryService Служба доставки.
+	DeliveryService *DeliveryServiceDTO `json:"deliveryService,omitempty"`
+
+	// DraftCount Количество заказов, которое Маркет запланировал к отгрузке.
+	DraftCount int32 `json:"draftCount"`
+
+	// ExternalId Идентификатор отгрузки в вашей системе. Если вы еще не передавали идентификатор, вернется идентификатор из параметра `id`.
+	ExternalId *string `json:"externalId,omitempty"`
+
+	// FactCount Количество заказов, принятых в сортировочном центре или пункте приема.
+	FactCount int32 `json:"factCount"`
+
+	// Id Идентификатор отгрузки.
+	Id int64 `json:"id"`
+
+	// OrderIds Идентификаторы заказов в отгрузке.
+	OrderIds []int64 `json:"orderIds"`
+
+	// PalletsCount Количество палет в отгрузке.
+	PalletsCount *PalletsCountDTO `json:"palletsCount,omitempty"`
+
+	// PlanIntervalFrom Начало планового интервала отгрузки.
+	//
+	// Формат даты: ISO 8601 со смещением относительно UTC.
+	//
+	//
+	// Example: 2017-11-21T00:00:00+03:00
+	PlanIntervalFrom time.Time `json:"planIntervalFrom"`
+
+	// PlanIntervalTo Конец планового интервала отгрузки.
+	//
+	// Формат даты: ISO 8601 со смещением относительно UTC.
+	//
+	//
+	// Example: 2017-11-21T00:00:00+03:00
+	PlanIntervalTo time.Time `json:"planIntervalTo"`
+
+	// PlannedCount Количество заказов, которое Маркет подтвердил к отгрузке.
+	PlannedCount int32 `json:"plannedCount"`
+
+	// ShipmentType Способ отгрузки заказов:
+	//
+	// * `IMPORT` — вы самостоятельно привозите заказы в выбранный сортировочный центр или пункт приема заказов.
+	// * `WITHDRAW` — вы отгружаете заказы со своего склада курьерам Яндекс Маркета.
+	ShipmentType *ShipmentType `json:"shipmentType,omitempty"`
+
+	// Signature Информация о подписи акта приема-передачи.
+	Signature SignatureDTO `json:"signature"`
+
+	// Warehouse Данные о складе отправления.
+	Warehouse *PartnerShipmentWarehouseDTO `json:"warehouse,omitempty"`
+
+	// WarehouseTo Данные о складе отправления.
+	WarehouseTo *PartnerShipmentWarehouseDTO `json:"warehouseTo,omitempty"`
+}
+
+// ShipmentInfoDTO Список с информацией об отгрузках.
+type ShipmentInfoDTO struct {
+	// DeliveryService Служба доставки.
+	DeliveryService *DeliveryServiceDTO `json:"deliveryService,omitempty"`
+
+	// DraftCount Количество заказов, которое Маркет запланировал к отгрузке.
+	DraftCount int32 `json:"draftCount"`
+
+	// ExternalId Идентификатор отгрузки в вашей системе. Если вы еще не передавали идентификатор, вернется идентификатор из параметра `id`.
+	ExternalId *string `json:"externalId,omitempty"`
+
+	// FactCount Количество заказов, принятых в сортировочном центре или пункте приема.
+	FactCount int32 `json:"factCount"`
+
+	// Id Идентификатор отгрузки.
+	Id int64 `json:"id"`
+
+	// OrderIds Идентификаторы заказов в отгрузке.
+	OrderIds []int64 `json:"orderIds"`
+
+	// PalletsCount Количество палет в отгрузке.
+	PalletsCount *PalletsCountDTO `json:"palletsCount,omitempty"`
+
+	// PlanIntervalFrom Начало планового интервала отгрузки.
+	//
+	// Формат даты: ISO 8601 со смещением относительно UTC.
+	//
+	//
+	// Example: 2017-11-21T00:00:00+03:00
+	PlanIntervalFrom time.Time `json:"planIntervalFrom"`
+
+	// PlanIntervalTo Конец планового интервала отгрузки.
+	//
+	// Формат даты: ISO 8601 со смещением относительно UTC.
+	//
+	//
+	// Example: 2017-11-21T00:00:00+03:00
+	PlanIntervalTo time.Time `json:"planIntervalTo"`
+
+	// PlannedCount Количество заказов, которое Маркет подтвердил к отгрузке.
+	PlannedCount int32 `json:"plannedCount"`
+
+	// ShipmentType Способ отгрузки заказов:
+	//
+	// * `IMPORT` — вы самостоятельно привозите заказы в выбранный сортировочный центр или пункт приема заказов.
+	// * `WITHDRAW` — вы отгружаете заказы со своего склада курьерам Яндекс Маркета.
+	ShipmentType *ShipmentType `json:"shipmentType,omitempty"`
+
+	// Signature Информация о подписи акта приема-передачи.
+	Signature SignatureDTO `json:"signature"`
+
+	// Status Статус отгрузки:
+	//
+	// * `OUTBOUND_CREATED` — формируется.
+	// * `OUTBOUND_READY_FOR_CONFIRMATION` — можно обрабатывать.
+	// * `OUTBOUND_CONFIRMED` — подтверждена и готова к отправке.
+	// * `OUTBOUND_SIGNED` — по ней подписан электронный акт приема-передачи.
+	// * `ACCEPTED` — принята в сортировочном центре или пункте приема.
+	// * `ACCEPTED_WITH_DISCREPANCIES` — принята с расхождениями.
+	// * `FINISHED` — завершена.
+	// * `ERROR` — отменена из-за ошибки.
+	Status *ShipmentStatusType `json:"status,omitempty"`
+
+	// StatusDescription Описание статуса отгрузки.
+	StatusDescription *string `json:"statusDescription,omitempty"`
+
+	// StatusUpdateTime Время последнего изменения статуса отгрузки
+	//
+	// Формат даты: ISO 8601 со смещением относительно UTC.
+	//
+	//
+	// Example: 2017-11-21T00:00:00+03:00
+	StatusUpdateTime *time.Time `json:"statusUpdateTime,omitempty"`
+
+	// Warehouse Данные о складе отправления.
+	Warehouse *PartnerShipmentWarehouseDTO `json:"warehouse,omitempty"`
+
+	// WarehouseTo Данные о складе отправления.
+	WarehouseTo *PartnerShipmentWarehouseDTO `json:"warehouseTo,omitempty"`
+}
+
+// ShipmentStatusChangeDTO Статус отгрузки.
+type ShipmentStatusChangeDTO struct {
+	// Description Описание статуса отгрузки.
+	Description *string `json:"description,omitempty"`
+
+	// Status Статус отгрузки:
+	//
+	// * `OUTBOUND_CREATED` — формируется.
+	// * `OUTBOUND_READY_FOR_CONFIRMATION` — можно обрабатывать.
+	// * `OUTBOUND_CONFIRMED` — подтверждена и готова к отправке.
+	// * `OUTBOUND_SIGNED` — по ней подписан электронный акт приема-передачи.
+	// * `ACCEPTED` — принята в сортировочном центре или пункте приема.
+	// * `ACCEPTED_WITH_DISCREPANCIES` — принята с расхождениями.
+	// * `FINISHED` — завершена.
+	// * `ERROR` — отменена из-за ошибки.
+	Status *ShipmentStatusType `json:"status,omitempty"`
+
+	// UpdateTime Время последнего изменения статуса отгрузки.
+	//
+	// Формат даты: ISO 8601 со смещением относительно UTC.
+	//
+	//
+	// Example: 2017-11-21T00:00:00+03:00
+	UpdateTime *time.Time `json:"updateTime,omitempty"`
+}
+
+// ShipmentStatusType Статус отгрузки:
+//
+// * `OUTBOUND_CREATED` — формируется.
+// * `OUTBOUND_READY_FOR_CONFIRMATION` — можно обрабатывать.
+// * `OUTBOUND_CONFIRMED` — подтверждена и готова к отправке.
+// * `OUTBOUND_SIGNED` — по ней подписан электронный акт приема-передачи.
+// * `ACCEPTED` — принята в сортировочном центре или пункте приема.
+// * `ACCEPTED_WITH_DISCREPANCIES` — принята с расхождениями.
+// * `FINISHED` — завершена.
+// * `ERROR` — отменена из-за ошибки.
+type ShipmentStatusType string
+
+// ShipmentType Способ отгрузки заказов:
+//
+// * `IMPORT` — вы самостоятельно привозите заказы в выбранный сортировочный центр или пункт приема заказов.
+// * `WITHDRAW` — вы отгружаете заказы со своего склада курьерам Яндекс Маркета.
+type ShipmentType string
 
 // ShopSku Ваш SKU — идентификатор товара в вашей системе.
 //
@@ -4755,6 +7025,12 @@ type ShowcaseUrlDTO struct {
 	ShowcaseUrl string `json:"showcaseUrl"`
 }
 
+// SignatureDTO Информация о подписи акта приема-передачи.
+type SignatureDTO struct {
+	// Signed Подписан ли акт приема-передачи.
+	Signed bool `json:"signed"`
+}
+
 // TimePeriodDTO Временной отрезок с комментарием. Требования к содержанию комментария зависят от контекста использования параметра и указаны в описании поля, которое его содержит.
 type TimePeriodDTO struct {
 	// Comment Комментарий.
@@ -4788,12 +7064,77 @@ type TokenDTO struct {
 	ApiKey ApiKeyDTO `json:"apiKey"`
 }
 
+// UinDTO Статус проверки и :no-translate[УИН].
+type UinDTO struct {
+	// Status Статус проверки УИНа:
+	//
+	// * `FAILED` — не прошел проверку.
+	//
+	// * `IN_PROGRESS` — в процессе проверки.
+	//
+	// * `NOT_ON_VALIDATION` — УИН не отправлен на проверку или переданы не все УИНы в заказе.
+	//
+	// * `OK` — проверка успешно пройдена.
+	Status UinStatusType `json:"status"`
+
+	// Substatus Детализация ошибки при проверке :no-translate[УИНа].
+	//
+	// * `UIN_MERCHANT_MISMATCH` — :no-translate[УИН] не принадлежит вашему магазину.
+	//
+	// * `UIN_MERCHANT_UNREGISTERED` — магазин не подключен к системе :no-translate[ГИИС ДМДК].
+	//
+	// * `UIN_NO_DATA` — :no-translate[УИН] не найден или заблокирован.
+	//
+	// Возвращается только для статуса `FAILED`.
+	Substatus *UinSubstatusType `json:"substatus,omitempty"`
+
+	// Value УИН товара.
+	Value string `json:"value"`
+}
+
+// UinStatusType Статус проверки УИНа:
+//
+// * `FAILED` — не прошел проверку.
+//
+// * `IN_PROGRESS` — в процессе проверки.
+//
+// * `NOT_ON_VALIDATION` — УИН не отправлен на проверку или переданы не все УИНы в заказе.
+//
+// * `OK` — проверка успешно пройдена.
+type UinStatusType string
+
+// UinSubstatusType Детализация ошибки при проверке :no-translate[УИНа].
+//
+// * `UIN_MERCHANT_MISMATCH` — :no-translate[УИН] не принадлежит вашему магазину.
+//
+// * `UIN_MERCHANT_UNREGISTERED` — магазин не подключен к системе :no-translate[ГИИС ДМДК].
+//
+// * `UIN_NO_DATA` — :no-translate[УИН] не найден или заблокирован.
+//
+// Возвращается только для статуса `FAILED`.
+type UinSubstatusType string
+
 // UpdateMappingDTO Карточка на Маркете, которая, с вашей точки зрения, подходит товару. Чтобы определить идентификатор подходящей карточки, воспользуйтесь поиском в кабинете (**Товары** → **Каталог** → **Загрузить товары**).
 //
 // По результатам проверки Маркет может привязать товар к более подходящей карточке.
 type UpdateMappingDTO struct {
 	// MarketSku Идентификатор карточки товара на Маркете.
 	MarketSku *MarketSku `json:"marketSku,omitempty"`
+}
+
+// UpdateOrderStatusRequest defines model for UpdateOrderStatusRequest.
+type UpdateOrderStatusRequest struct {
+	// Order Заказ.
+	Order OrderStatusChangeDTO `json:"order"`
+}
+
+// UpdateOrderStatusResponse Информация об изменении статуса заказа.
+type UpdateOrderStatusResponse struct {
+	// Operation Информация об операции.
+	Operation *OperationDTO `json:"operation,omitempty"`
+
+	// Order Заказ.
+	Order *OrderDTO `json:"order,omitempty"`
 }
 
 // UpdateTimeDTO Время последнего обновления.
@@ -4804,6 +7145,24 @@ type UpdateTimeDTO struct {
 
 // Url defines model for Url.
 type Url = string
+
+// VerifyOrderEacRequest defines model for VerifyOrderEacRequest.
+type VerifyOrderEacRequest struct {
+	// Code Код для подтверждения ЭАПП.
+	Code string `json:"code"`
+}
+
+// VerifyOrderEacResponse defines model for VerifyOrderEacResponse.
+type VerifyOrderEacResponse struct {
+	// Result Результат выполнения запроса.
+	Result *EacVerificationResultDTO `json:"result,omitempty"`
+
+	// Status Тип ответа.
+	// Возможные значения:
+	// * `OK` — ошибок нет.
+	// * `ERROR` — при обработке запроса произошла ошибка.
+	Status ApiResponseStatusType `json:"status"`
+}
 
 // WarehouseAddressDTO Адрес склада.
 type WarehouseAddressDTO struct {
@@ -4836,14 +7195,73 @@ type WarehouseProgramType string
 // AliasedPageToken defines model for AliasedPageToken.
 type AliasedPageToken = string
 
+// BoxId defines model for BoxId.
+type BoxId = int64
+
 // BusinessIdParameter defines model for BusinessId.
 type BusinessIdParameter = int64
+
+// CampaignIdParameter defines model for CampaignId.
+type CampaignIdParameter = int64
+
+// CancelledOrders defines model for CancelledOrders.
+type CancelledOrders = bool
 
 // CatalogLanguage Язык:
 //
 // * `RU` — русский.
 // * `UZ` — узбекский.
 type CatalogLanguage = CatalogLanguageType
+
+// OrderId defines model for OrderId.
+type OrderId = int64
+
+// PageFormat Размещение ярлыков на странице PDF-файла:
+//
+// * `A9_HORIZONTALLY` — ярлык размером 58 × 40 мм без полей, близок к формату :no-translate[A9].
+//
+//	{% cut "Пример ярлыка для продавцов Маркета" %}
+//
+//	![Изображение горизонтального ярлыка формата :no-translate[A9] для продавцов Маркета](../../_images/labels/label-A9-horizontally.png)
+//
+//	{% endcut %}
+//
+//	{% cut "Пример ярлыка для продавцов Market Yandex Go" %}
+//
+//	![Изображение горизонтального ярлыка формата A9 для продавцов Market Yandex Go](../../_images/labels/label-A9-horizontally-uz.png)
+//
+//	{% endcut %}
+//
+// * `A9` — ярлык размером 40 × 58 мм без полей, близок к формату A9.
+//
+//	{% cut "Пример ярлыка для продавцов Маркета" %}
+//
+//	![Изображение вертикального ярлыка формата :no-translate[A9] для продавцов Маркета](../../_images/labels/label-A9.png)
+//
+//	{% endcut %}
+//
+//	{% cut "Пример ярлыка для продавцов Market Yandex Go" %}
+//
+//	![Изображение вертикального ярлыка формата :no-translate[A9] для продавцов Market Yandex Go](../../_images/labels/label-A9-uz.png)
+//
+//	{% endcut %}
+//
+// * `A7` — ярлык размером 75 × 120 мм (80,4 × 125,6 мм с учетом полей), близок к формату :no-translate[A7].
+//
+//	{% cut "Пример ярлыка для продавцов Маркета" %}
+//
+//	![Изображение ярлыка формата A7 для продавцов Маркета](../../_images/labels/label-A7.jpg)
+//
+//	{% endcut %}
+//
+//	{% cut "Пример ярлыка для продавцов Market Yandex Go" %}
+//
+//	![Изображение ярлыка формата :no-translate[A7] для продавцов Market Yandex Go](../../_images/labels/label-A7-uz.png)
+//
+//	{% endcut %}
+//
+// * `A4` — на листе A4 располагается ярлык того формата, который выбран в кабинете продавца на Маркете — перейдите на страницу **Заказы** → **Заказы и отгрузки** → на вкладке нужной модели работы нажмите кнопку **Формат ярлыков**.
+type PageFormat = PageFormatType
 
 // PageLimit100Truncate defines model for PageLimit100Truncate.
 type PageLimit100Truncate = int32
@@ -4862,6 +7280,12 @@ type PageNum = int32
 
 // PageSize defines model for PageSize.
 type PageSize = int32
+
+// ShipmentId2 defines model for ShipmentId-2.
+type ShipmentId2 = int64
+
+// ShipmentId3 defines model for ShipmentId-3.
+type ShipmentId3 = int64
 
 // N400 Ошибка в данных переданных от клиента.
 type N400 = ApiClientDataErrorResponse
@@ -4962,6 +7386,33 @@ type GetCampaignsParams struct {
 	PageSize *PageSize `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 }
 
+// SearchShipmentsParams defines parameters for SearchShipments.
+type SearchShipmentsParams struct {
+	// PageToken Идентификатор страницы c результатами.
+	//
+	// Если параметр не указан, возвращается первая страница.
+	//
+	// Передавайте значение выходного параметра `nextPageToken`, полученное при последнем запросе.
+	PageToken *AliasedPageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+
+	// Limit {{ limit-param-description }}
+	Limit *PageLimit30 `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// GetShipmentParams defines parameters for GetShipment.
+type GetShipmentParams struct {
+	// CancelledOrders Возвращать ли отмененные заказы.
+	//
+	// Значение по умолчанию: `true`. Если возвращать отмененные заказы не нужно, передайте значение `false`.
+	CancelledOrders *CancelledOrders `form:"cancelledOrders,omitempty" json:"cancelledOrders,omitempty"`
+}
+
+// GenerateOrderLabelParams defines parameters for GenerateOrderLabel.
+type GenerateOrderLabelParams struct {
+	// Format Настройка размещения ярлыков на странице. Если параметра нет, возвращается PDF с ярлыками формата :no-translate[A7].
+	Format *PageFormat `form:"format,omitempty" json:"format,omitempty"`
+}
+
 // GetPartnerWarehousesParams defines parameters for GetPartnerWarehouses.
 type GetPartnerWarehousesParams struct {
 	// PageToken Идентификатор страницы c результатами.
@@ -4980,6 +7431,21 @@ type GetBusinessOrdersJSONRequestBody = GetBusinessOrdersRequest
 
 // GetOfferMappingsJSONRequestBody defines body for GetOfferMappings for application/json ContentType.
 type GetOfferMappingsJSONRequestBody = GetOfferMappingsRequest
+
+// SearchShipmentsJSONRequestBody defines body for SearchShipments for application/json ContentType.
+type SearchShipmentsJSONRequestBody = SearchShipmentsRequest
+
+// ConfirmShipmentJSONRequestBody defines body for ConfirmShipment for application/json ContentType.
+type ConfirmShipmentJSONRequestBody = ConfirmShipmentRequest
+
+// SetOrderBoxLayoutJSONRequestBody defines body for SetOrderBoxLayout for application/json ContentType.
+type SetOrderBoxLayoutJSONRequestBody = SetOrderBoxLayoutRequest
+
+// UpdateOrderStatusJSONRequestBody defines body for UpdateOrderStatus for application/json ContentType.
+type UpdateOrderStatusJSONRequestBody = UpdateOrderStatusRequest
+
+// VerifyOrderEacJSONRequestBody defines body for VerifyOrderEac for application/json ContentType.
+type VerifyOrderEacJSONRequestBody = VerifyOrderEacRequest
 
 // GetPartnerWarehousesJSONRequestBody defines body for GetPartnerWarehouses for application/json ContentType.
 type GetPartnerWarehousesJSONRequestBody = GetPartnerWarehousesRequest
@@ -5235,6 +7701,886 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /v2/campaigns (the `GetCampaigns` operationId).
 	GetCampaigns(ctx context.Context, params *GetCampaignsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SearchShipmentsWithBody Получение информации о нескольких отгрузках
+	//
+	// {% include notitle [access](../../_auto/method_scopes/searchShipments.md) %}
+	//
+	// Возвращает информацию об отгрузках по заданным параметрам:
+	//
+	// * дате;
+	// * статусу;
+	// * идентификаторам заказов.
+	//
+	// Результаты возвращаются постранично.
+	//
+	// {% include notitle [limit](../../_auto/method_limits/searchShipments.md) %}
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /v2/campaigns/{campaignId}/first-mile/shipments (the `SearchShipments` operationId).
+	SearchShipmentsWithBody(ctx context.Context, campaignId CampaignIdParameter, params *SearchShipmentsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SearchShipments Получение информации о нескольких отгрузках
+	//
+	// {% include notitle [access](../../_auto/method_scopes/searchShipments.md) %}
+	//
+	// Возвращает информацию об отгрузках по заданным параметрам:
+	//
+	// * дате;
+	// * статусу;
+	// * идентификаторам заказов.
+	//
+	// Результаты возвращаются постранично.
+	//
+	// {% include notitle [limit](../../_auto/method_limits/searchShipments.md) %}
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /v2/campaigns/{campaignId}/first-mile/shipments (the `SearchShipments` operationId).
+	SearchShipments(ctx context.Context, campaignId CampaignIdParameter, params *SearchShipmentsParams, body SearchShipmentsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetShipment Получение информации об одной отгрузке
+	//
+	// {% include notitle [access](../../_auto/method_scopes/getShipment.md) %}
+	//
+	// Возвращает информацию об отгрузке по ее идентификатору.
+	//
+	// {% include notitle [limit](../../_auto/method_limits/getShipment.md) %}
+	//
+	// Corresponds with GET /v2/campaigns/{campaignId}/first-mile/shipments/{shipmentId} (the `GetShipment` operationId).
+	GetShipment(ctx context.Context, campaignId CampaignIdParameter, shipmentId ShipmentId3, params *GetShipmentParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DownloadShipmentAct Получение акта приема-передачи
+	//
+	// {% include notitle [access](../../_auto/method_scopes/downloadShipmentAct.md) %}
+	//
+	// {% note warning "Экспресс‑доставка" %}
+	//
+	// Если ваш магазин подключен к экспресс‑доставке и вы отгружаете заказы курьерам [Яндекс Go](https://go.yandex/), подготавливать акт приема‑передачи не нужно.
+	//
+	// {% endnote %}
+	//
+	// Запрос формирует акт приема-передачи заказов, входящих в отгрузку, и возвращает акт в формате PDF. В акте содержатся собранные и готовые к отправке заказы.
+	//
+	// Метод доступен только для подтвержденной отгрузки. Сначала подтвердите отгрузку запросом [POST v2/campaigns/{campaignId}/shipments/{shipmentId}/confirm](../../reference/shipments/confirmShipment.md), затем вызовите этот метод.
+	//
+	// При формировании акта Маркет автоматически находит и подставляет в шаблон следующие данные:
+	//
+	// {% cut "Данные, из которых Маркет формирует акт" %}
+	//
+	// #|
+	// || **Данные в акте**                                         | **Описание**                                                                                                                                                                                                                                                         ||
+	// || Дата                                                      | Дата запроса.                                                                                                                                                                                                                                                        ||
+	// || Отправитель                                               | Название вашего юридического лица, указанное в кабинете продавца на Маркете.                                                                                                                                                                                         ||
+	// || Исполнитель                                               | Название юридического лица сортировочного центра или службы доставки.                                                                                                                                                                                                ||
+	// || № отправления в системе заказчика                         | Внешний идентификатор заказа продавца, который можно передать запросом [POST v2/campaigns/{campaignId}/orders/{orderId}/external-id](../../reference/orders/updateExternalOrderId.md).                                                                            ||
+	// || № отправления в системе исполнителя (субподрядчика)       |
+	//   Идентификатор заказа на Маркете, как в выходных данных запроса:
+	//
+	//   * [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md).||
+	//
+	// || Объявленная ценность                                      |
+	//   Общая сумма заказа без учета стоимости доставки, как в выходных данных запроса:
+	//
+	//   * [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md).||
+	//
+	// || Вес                                                       |
+	//   Масса брутто грузового места (суммарная масса упаковки и содержимого), как в выходных данных запроса:
+	//
+	//   * [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md).||
+	//
+	// || Количество мест                                           |
+	//   Количество грузовых мест в заказе, как в выходных данных запроса:
+	//
+	//   * [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md). ||
+	// |#
+	//
+	// {% endcut %}
+	//
+	// В распечатанном акте укажите отправителя и исполнителя. Они должны подписать акт и указать фамилию и инициалы рядом с подписью. При необходимости также заполните реквизиты доверенности.
+	//
+	// {% include notitle [limit](../../_auto/method_limits/downloadShipmentAct.md) %}
+	//
+	// Corresponds with GET /v2/campaigns/{campaignId}/first-mile/shipments/{shipmentId}/act (the `DownloadShipmentAct` operationId).
+	DownloadShipmentAct(ctx context.Context, campaignId CampaignIdParameter, shipmentId ShipmentId3, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ConfirmShipmentWithBody Подтверждение отгрузки
+	//
+	// {% include notitle [access](../../_auto/method_scopes/confirmShipment.md) %}
+	//
+	// Подтверждает отгрузку товаров в сортировочный центр или пункт приема заказов. Действие доступно только после того, как отгрузка сформирована.
+	//
+	// График отгрузок настраивается отдельно для каждого склада в личном кабинете и недоступен через API.
+	// Проверить возможность подтверждения отгрузки можно с помощью метода [GET v2/campaigns/{campaignId}/shipments/{shipmentId}](../../reference/shipments/getShipment): среди доступных действий `availableActions` должно быть действие `CONFIRM`.
+	// До наступления времени подтверждения метод вернет код `400` и ошибку :no-translate["Cutoff time for shipments has not been reached yet"].
+	//
+	// Подробнее о приеме заказов и расписании отгрузок читайте [в Справке Маркета для продавцов](https://yandex.ru/support/marketplace/ru/orders/fbs/settings/shipment#schedule).
+	//
+	// {% include notitle [limit](../../_auto/method_limits/confirmShipment.md) %}
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /v2/campaigns/{campaignId}/first-mile/shipments/{shipmentId}/confirm (the `ConfirmShipment` operationId).
+	ConfirmShipmentWithBody(ctx context.Context, campaignId CampaignIdParameter, shipmentId ShipmentId3, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ConfirmShipment Подтверждение отгрузки
+	//
+	// {% include notitle [access](../../_auto/method_scopes/confirmShipment.md) %}
+	//
+	// Подтверждает отгрузку товаров в сортировочный центр или пункт приема заказов. Действие доступно только после того, как отгрузка сформирована.
+	//
+	// График отгрузок настраивается отдельно для каждого склада в личном кабинете и недоступен через API.
+	// Проверить возможность подтверждения отгрузки можно с помощью метода [GET v2/campaigns/{campaignId}/shipments/{shipmentId}](../../reference/shipments/getShipment): среди доступных действий `availableActions` должно быть действие `CONFIRM`.
+	// До наступления времени подтверждения метод вернет код `400` и ошибку :no-translate["Cutoff time for shipments has not been reached yet"].
+	//
+	// Подробнее о приеме заказов и расписании отгрузок читайте [в Справке Маркета для продавцов](https://yandex.ru/support/marketplace/ru/orders/fbs/settings/shipment#schedule).
+	//
+	// {% include notitle [limit](../../_auto/method_limits/confirmShipment.md) %}
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /v2/campaigns/{campaignId}/first-mile/shipments/{shipmentId}/confirm (the `ConfirmShipment` operationId).
+	ConfirmShipment(ctx context.Context, campaignId CampaignIdParameter, shipmentId ShipmentId3, body ConfirmShipmentJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetOrderBoxLayoutWithBody Подготовка заказа
+	//
+	// {% include notitle [access](../../_auto/method_scopes/setOrderBoxLayout.md) %}
+	//
+	// {% note tip "Подходит и для DBS" %}
+	//
+	// Запрос предназначен для работы с FBS-заказами, но вы можете использовать его для обработки DBS-заказов, если это удобно.
+	//
+	// {% endnote %}
+	//
+	// Позволяет выполнить три операции:
+	//
+	// * передать Маркету информацию о распределении товаров по коробкам;
+	// * передать Маркету коды маркировки для товаров;
+	// * удалить товар из заказа, если его не оказалось на складе.
+	//
+	// Если нужно что-то поправить в переданных данных, просто повторите запрос — это можно делать сколько угодно раз до перевода заказа в статус **Готов к отгрузке**. ⚠️ Если вы меняете раскладку уже после печати и расклейки ярлыков, не забудьте перепечатать их и наклеить заново.
+	//
+	// {% cut "Как передать информацию о распределении товаров" %}
+	//
+	// В этом запросе вам нужно передать Маркету список коробок и указать, какие именно товары лежат в каждой из них. Коробки могут быть двух типов:
+	//
+	// * **Содержащие товары целиком.** Такая коробка может содержать сколько угодно единиц любых товаров.
+	//
+	// * **Содержащие часть товара.** Такие коробки содержат по одной части одного товара. Например, одна содержит внешний блок кондиционера, а другая — внутренний блок.
+	//
+	// ⚠️ Одна коробка не может содержать и товары целиком, и части товаров.
+	//
+	// {% endcut %}
+	//
+	// {% cut "Как передавать коды маркировки и получать статус их проверки" %}
+	//
+	// {% note info "Маркировка товаров в системе [«Честный ЗНАК»](https://честныйзнак.рф/) необязательна для заказов от физических лиц" %}
+	//
+	// Для заказов от бизнеса все еще нужно передавать коды маркировки.
+	//
+	// {% endnote %}
+	//
+	// Если в заказе есть товары, подлежащие маркировке, в запросе нужно передать соответствующие уникальные коды. [Что такое маркировка](https://yandex.ru/support/marketplace/orders/cz.html)
+	//
+	// Принимаются коды следующих типов:
+	//
+	// * Коды в системе [«Честный ЗНАК»](https://честныйзнак.рф/) или [«ASL BELGISI»](https://aslbelgisi.uz) (для продавцов :no-translate[Market Yandex Go]).
+	// * УИН для ювелирных изделий.
+	// * РНПТ и ГТД для импортных прослеживаемых товаров.
+	//
+	// Для каждой позиции в заказе, требующей маркировки, нужно передать список кодов — по одному для каждой единицы товара. Например, если в заказе две пары тапочек и одна пара туфель, получится список из двух кодов для первой позиции и список из одного кода для второй.
+	//
+	// Если товар едет в нескольких коробках, код маркировки нужно передать для каждой из них.
+	//
+	// {% note warning "Если вы работаете по модели FBS, EXPRESS" %}
+	//
+	// Для заказов, в которых есть ювелирные изделия или товары с маркировкой в системе :no-translate[«Честный ЗНАК»], перевод в статус `READY_TO_SHIP` становится доступен, только когда:
+	//
+	// 1. Вы передадите Маркету :no-translate[УИНы] по каждому ювелирному изделию в заказе и коды в системе :no-translate[«Честный ЗНАК»] по всем товарам в заказе, для которых обязательна эта маркировка.
+	// 2. Все коды маркировки успешно пройдут проверку. [Как получить статусы проверки](../../reference/orders/getOrderIdentifiersStatus.md)
+	//
+	// {% endnote %}
+	//
+	// {% endcut %}
+	//
+	// {% cut "Как удалить товар из заказа" %}
+	//
+	// Чтобы удалить товар из заказа:
+	//
+	// 1. Добавьте в запрос `allowRemove: true`.
+	// 2. Передайте распределение по коробкам без товара, который нужно удалить.
+	//
+	// {% note warning "Удаление нельзя отменить" %}
+	//
+	// Эта операция необратима: покупатель сразу получит уведомление, а состав заказа изменится.
+	//
+	// {% endnote %}
+	//
+	// Чтобы удалить позицию целиком, не передавайте соответствующий `OrderBoxLayoutItemDTO`. Чтобы уменьшить количество товара, передайте уменьшенное значение в поле `fullCount`.
+	//
+	// Нельзя удалить или уменьшить количество товара, если он:
+	//
+	// * добавлен по акции;
+	// * составляет 99% стоимости заказа;
+	// * единственный товар в заказе.
+	//
+	// Если вы не можете отгрузить такой товар, отмените заказ. Для этого отправьте запрос методом [PUT v2/campaigns/{campaignId}/orders/{orderId}/status](../../reference/orders/updateOrderStatus.md) и передайте статус заказа `CANCELLED` с причиной отмены `SHOP_FAILED`.
+	//
+	// {% endcut %}
+	//
+	// {% note info "Увеличить заказ нельзя" %}
+	//
+	// С помощью запроса нельзя увеличить количество одинаковых товаров, добавить новые товары в заказ или заменить один товар другим.
+	//
+	// {% endnote %}
+	//
+	// ## Примеры
+	//
+	// {% cut "Товар умещается в коробку" %}
+	//
+	// Вот как будет выглядеть запрос, если в одной коробке едут:
+	//
+	//   * три единицы одного товара, требующего маркировки;
+	//   * одна единица другого товара, не требущего маркировки.
+	//
+	//   ```json translate=no
+	//   {
+	//       "boxes": [
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "fullCount": 3,
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           },
+	//                           {
+	//                               "cis": "010304109478gftJ14545762!\u001dhGt264"
+	//                           },
+	//                           {
+	//                               "cis": "010304109478fRs28323ks23!\u001dhet201"
+	//                           }
+	//                       ]
+	//                   },
+	//                   {
+	//                       "id": 654321,
+	//                       "fullCount": 1
+	//                   }
+	//               ]
+	//           }
+	//       ]
+	//   }
+	//   ```
+	//
+	// {% endcut %}
+	//
+	// {% cut "Товар едет в разных коробках" %}
+	//
+	// Вот как будет выглядеть запрос, если товар едет в двух коробках:
+	//
+	//   ```json translate=no
+	//   {
+	//       "boxes": [
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 1,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           },
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 2,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           }
+	//       ]
+	//   }
+	//   ```
+	//
+	// {% endcut %}
+	//
+	// {% cut "Одинаковые товары, где каждый едет в нескольких коробках" %}
+	//
+	// Вот как будет выглядеть запрос, если каждый из двух одинаковых товаров едет в двух коробках:
+	//
+	//   ```json translate=no
+	//   {
+	//       "boxes": [
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 1,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           },
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 2,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           },
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 1,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           },
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 2,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           }
+	//       ]
+	//   }
+	//   ```
+	//
+	// {% endcut %}
+	//
+	// {% cut "Разные товары в разных коробках" %}
+	//
+	// Вот как будет выглядеть запрос, если два разных товара разложены по разным коробкам:
+	//
+	//   ```json translate=no
+	//   {
+	//       "boxes": [
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "fullCount": 1
+	//                   }
+	//               ]
+	//           },
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 654321,
+	//                       "fullCount": 1
+	//                   }
+	//               ]
+	//           }
+	//       ]
+	//   }
+	//   ```
+	//
+	// {% endcut %}
+	//
+	// {% include notitle [limit](../../_auto/method_limits/setOrderBoxLayout.md) %}
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/boxes (the `SetOrderBoxLayout` operationId).
+	SetOrderBoxLayoutWithBody(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetOrderBoxLayout Подготовка заказа
+	//
+	// {% include notitle [access](../../_auto/method_scopes/setOrderBoxLayout.md) %}
+	//
+	// {% note tip "Подходит и для DBS" %}
+	//
+	// Запрос предназначен для работы с FBS-заказами, но вы можете использовать его для обработки DBS-заказов, если это удобно.
+	//
+	// {% endnote %}
+	//
+	// Позволяет выполнить три операции:
+	//
+	// * передать Маркету информацию о распределении товаров по коробкам;
+	// * передать Маркету коды маркировки для товаров;
+	// * удалить товар из заказа, если его не оказалось на складе.
+	//
+	// Если нужно что-то поправить в переданных данных, просто повторите запрос — это можно делать сколько угодно раз до перевода заказа в статус **Готов к отгрузке**. ⚠️ Если вы меняете раскладку уже после печати и расклейки ярлыков, не забудьте перепечатать их и наклеить заново.
+	//
+	// {% cut "Как передать информацию о распределении товаров" %}
+	//
+	// В этом запросе вам нужно передать Маркету список коробок и указать, какие именно товары лежат в каждой из них. Коробки могут быть двух типов:
+	//
+	// * **Содержащие товары целиком.** Такая коробка может содержать сколько угодно единиц любых товаров.
+	//
+	// * **Содержащие часть товара.** Такие коробки содержат по одной части одного товара. Например, одна содержит внешний блок кондиционера, а другая — внутренний блок.
+	//
+	// ⚠️ Одна коробка не может содержать и товары целиком, и части товаров.
+	//
+	// {% endcut %}
+	//
+	// {% cut "Как передавать коды маркировки и получать статус их проверки" %}
+	//
+	// {% note info "Маркировка товаров в системе [«Честный ЗНАК»](https://честныйзнак.рф/) необязательна для заказов от физических лиц" %}
+	//
+	// Для заказов от бизнеса все еще нужно передавать коды маркировки.
+	//
+	// {% endnote %}
+	//
+	// Если в заказе есть товары, подлежащие маркировке, в запросе нужно передать соответствующие уникальные коды. [Что такое маркировка](https://yandex.ru/support/marketplace/orders/cz.html)
+	//
+	// Принимаются коды следующих типов:
+	//
+	// * Коды в системе [«Честный ЗНАК»](https://честныйзнак.рф/) или [«ASL BELGISI»](https://aslbelgisi.uz) (для продавцов :no-translate[Market Yandex Go]).
+	// * УИН для ювелирных изделий.
+	// * РНПТ и ГТД для импортных прослеживаемых товаров.
+	//
+	// Для каждой позиции в заказе, требующей маркировки, нужно передать список кодов — по одному для каждой единицы товара. Например, если в заказе две пары тапочек и одна пара туфель, получится список из двух кодов для первой позиции и список из одного кода для второй.
+	//
+	// Если товар едет в нескольких коробках, код маркировки нужно передать для каждой из них.
+	//
+	// {% note warning "Если вы работаете по модели FBS, EXPRESS" %}
+	//
+	// Для заказов, в которых есть ювелирные изделия или товары с маркировкой в системе :no-translate[«Честный ЗНАК»], перевод в статус `READY_TO_SHIP` становится доступен, только когда:
+	//
+	// 1. Вы передадите Маркету :no-translate[УИНы] по каждому ювелирному изделию в заказе и коды в системе :no-translate[«Честный ЗНАК»] по всем товарам в заказе, для которых обязательна эта маркировка.
+	// 2. Все коды маркировки успешно пройдут проверку. [Как получить статусы проверки](../../reference/orders/getOrderIdentifiersStatus.md)
+	//
+	// {% endnote %}
+	//
+	// {% endcut %}
+	//
+	// {% cut "Как удалить товар из заказа" %}
+	//
+	// Чтобы удалить товар из заказа:
+	//
+	// 1. Добавьте в запрос `allowRemove: true`.
+	// 2. Передайте распределение по коробкам без товара, который нужно удалить.
+	//
+	// {% note warning "Удаление нельзя отменить" %}
+	//
+	// Эта операция необратима: покупатель сразу получит уведомление, а состав заказа изменится.
+	//
+	// {% endnote %}
+	//
+	// Чтобы удалить позицию целиком, не передавайте соответствующий `OrderBoxLayoutItemDTO`. Чтобы уменьшить количество товара, передайте уменьшенное значение в поле `fullCount`.
+	//
+	// Нельзя удалить или уменьшить количество товара, если он:
+	//
+	// * добавлен по акции;
+	// * составляет 99% стоимости заказа;
+	// * единственный товар в заказе.
+	//
+	// Если вы не можете отгрузить такой товар, отмените заказ. Для этого отправьте запрос методом [PUT v2/campaigns/{campaignId}/orders/{orderId}/status](../../reference/orders/updateOrderStatus.md) и передайте статус заказа `CANCELLED` с причиной отмены `SHOP_FAILED`.
+	//
+	// {% endcut %}
+	//
+	// {% note info "Увеличить заказ нельзя" %}
+	//
+	// С помощью запроса нельзя увеличить количество одинаковых товаров, добавить новые товары в заказ или заменить один товар другим.
+	//
+	// {% endnote %}
+	//
+	// ## Примеры
+	//
+	// {% cut "Товар умещается в коробку" %}
+	//
+	// Вот как будет выглядеть запрос, если в одной коробке едут:
+	//
+	//   * три единицы одного товара, требующего маркировки;
+	//   * одна единица другого товара, не требущего маркировки.
+	//
+	//   ```json translate=no
+	//   {
+	//       "boxes": [
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "fullCount": 3,
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           },
+	//                           {
+	//                               "cis": "010304109478gftJ14545762!\u001dhGt264"
+	//                           },
+	//                           {
+	//                               "cis": "010304109478fRs28323ks23!\u001dhet201"
+	//                           }
+	//                       ]
+	//                   },
+	//                   {
+	//                       "id": 654321,
+	//                       "fullCount": 1
+	//                   }
+	//               ]
+	//           }
+	//       ]
+	//   }
+	//   ```
+	//
+	// {% endcut %}
+	//
+	// {% cut "Товар едет в разных коробках" %}
+	//
+	// Вот как будет выглядеть запрос, если товар едет в двух коробках:
+	//
+	//   ```json translate=no
+	//   {
+	//       "boxes": [
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 1,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           },
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 2,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           }
+	//       ]
+	//   }
+	//   ```
+	//
+	// {% endcut %}
+	//
+	// {% cut "Одинаковые товары, где каждый едет в нескольких коробках" %}
+	//
+	// Вот как будет выглядеть запрос, если каждый из двух одинаковых товаров едет в двух коробках:
+	//
+	//   ```json translate=no
+	//   {
+	//       "boxes": [
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 1,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           },
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 2,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           },
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 1,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           },
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 2,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           }
+	//       ]
+	//   }
+	//   ```
+	//
+	// {% endcut %}
+	//
+	// {% cut "Разные товары в разных коробках" %}
+	//
+	// Вот как будет выглядеть запрос, если два разных товара разложены по разным коробкам:
+	//
+	//   ```json translate=no
+	//   {
+	//       "boxes": [
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "fullCount": 1
+	//                   }
+	//               ]
+	//           },
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 654321,
+	//                       "fullCount": 1
+	//                   }
+	//               ]
+	//           }
+	//       ]
+	//   }
+	//   ```
+	//
+	// {% endcut %}
+	//
+	// {% include notitle [limit](../../_auto/method_limits/setOrderBoxLayout.md) %}
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/boxes (the `SetOrderBoxLayout` operationId).
+	SetOrderBoxLayout(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, body SetOrderBoxLayoutJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GenerateOrderLabel Готовый ярлык‑наклейка для коробки в заказе
+	//
+	// {% include notitle [access](../../_auto/method_scopes/generateOrderLabel.md) %}
+	//
+	// Формирует ярлык‑наклейку для коробки в заказе и возвращает ярлык в PDF‑файле.
+	//
+	// Чтобы на ярлыке отображался внешний идентификатор заказа, передайте его в методе [POST v2/campaigns/{campaignId}/orders/{orderId}/external-id](../../reference/orders/updateExternalOrderId.md).
+	//
+	// {% include notitle [limit](../../_auto/method_limits/generateOrderLabel.md) %}
+	//
+	// Corresponds with GET /v2/campaigns/{campaignId}/orders/{orderId}/delivery/shipments/{shipmentId}/boxes/{boxId}/label (the `GenerateOrderLabel` operationId).
+	GenerateOrderLabel(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, shipmentId ShipmentId2, boxId BoxId, params *GenerateOrderLabelParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetOrderIdentifiersStatus Статусы проверки кодов маркировки
+	//
+	// {% include notitle [access](../../_auto/method_scopes/getOrderIdentifiersStatus.md) %}
+	//
+	// Возвращает статусы проверки кодов маркировки в заказе.
+	//
+	// Заказ, в котором есть ювелирные изделия или товары с обязательной маркировкой в системе [«Честный ЗНАК»](https://честныйзнак.рф/), можно перевести в статус `READY_TO_SHIP`, только когда:
+	//
+	// 1. В методе [PUT v2/campaigns/{campaignId}/orders/{orderId}/boxes](../../reference/orders/setOrderBoxLayout.md) вы передадите Маркету:
+	//
+	//     * [УИНы](:no-translate[*uin]) по каждому ювелирному изделию в заказе;
+	//
+	//     * коды маркировки в системе :no-translate[«Честный ЗНАК»] по всем товарам в заказе, для которых она обязательна.
+	// 2. Все коды маркировки успешно пройдут проверку.
+	//
+	// {% include notitle [limit](../../_auto/method_limits/getOrderIdentifiersStatus.md) %}
+	//
+	// Corresponds with POST /v2/campaigns/{campaignId}/orders/{orderId}/identifiers/status (the `GetOrderIdentifiersStatus` operationId).
+	GetOrderIdentifiersStatus(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateOrderStatusWithBody Изменение статуса одного заказа
+	//
+	// {% include notitle [access](../../_auto/method_scopes/updateOrderStatus.md) %}
+	//
+	// Изменяет статус заказа. Возможные изменения статусов:
+	//
+	// * Если магазин подтвердил и подготовил заказ к отправке, то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "STARTED"` нужно перевести в статус `"status": "PROCESSING"` и этап обработки `"substatus": "READY_TO_SHIP"`.
+	// * Если магазин подтвердил заказ, но не может его выполнить (например, товар числится в базе, но отсутствует на складе или нет нужного цвета), то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "STARTED"` нужно перевести в статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+	// * Если магазин подготовил заказ к отгрузке, но не может его выполнить (например, последний товар был поврежден или оказался с браком), то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "READY_TO_SHIP"` нужно перевести в статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+	//
+	// Полная информация о статусной модели DBS-заказов: [Как изменяются статусы заказов](../../concepts/dbs-order-status-model.md).
+	//
+	// {% cut "**Как подтвердить LaaS-заказ**" %}
+	//
+	// Для подтверждения черновика заказа передайте статус `"status": "PROCESSING"` с подстатусом `"substatus": "STARTED"`.
+	//
+	// Подтверждение заказа, созданного с параметром `draft` равным `false`, не требуется.
+	//
+	// {% endcut %}
+	//
+	// {% cut "**Как отменить LaaS-заказ**" %}
+	//
+	// Передайте статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+	//
+	// При успешном выполнении запроса отмена произойдет через некоторое время. [Как проверить статус операции](../../reference/operations/getOperations.md)
+	//
+	// {% endcut %}
+	//
+	// {% include notitle [limit](../../_auto/method_limits/updateOrderStatus.md) %}
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/status (the `UpdateOrderStatus` operationId).
+	UpdateOrderStatusWithBody(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateOrderStatus Изменение статуса одного заказа
+	//
+	// {% include notitle [access](../../_auto/method_scopes/updateOrderStatus.md) %}
+	//
+	// Изменяет статус заказа. Возможные изменения статусов:
+	//
+	// * Если магазин подтвердил и подготовил заказ к отправке, то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "STARTED"` нужно перевести в статус `"status": "PROCESSING"` и этап обработки `"substatus": "READY_TO_SHIP"`.
+	// * Если магазин подтвердил заказ, но не может его выполнить (например, товар числится в базе, но отсутствует на складе или нет нужного цвета), то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "STARTED"` нужно перевести в статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+	// * Если магазин подготовил заказ к отгрузке, но не может его выполнить (например, последний товар был поврежден или оказался с браком), то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "READY_TO_SHIP"` нужно перевести в статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+	//
+	// Полная информация о статусной модели DBS-заказов: [Как изменяются статусы заказов](../../concepts/dbs-order-status-model.md).
+	//
+	// {% cut "**Как подтвердить LaaS-заказ**" %}
+	//
+	// Для подтверждения черновика заказа передайте статус `"status": "PROCESSING"` с подстатусом `"substatus": "STARTED"`.
+	//
+	// Подтверждение заказа, созданного с параметром `draft` равным `false`, не требуется.
+	//
+	// {% endcut %}
+	//
+	// {% cut "**Как отменить LaaS-заказ**" %}
+	//
+	// Передайте статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+	//
+	// При успешном выполнении запроса отмена произойдет через некоторое время. [Как проверить статус операции](../../reference/operations/getOperations.md)
+	//
+	// {% endcut %}
+	//
+	// {% include notitle [limit](../../_auto/method_limits/updateOrderStatus.md) %}
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/status (the `UpdateOrderStatus` operationId).
+	UpdateOrderStatus(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, body UpdateOrderStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// VerifyOrderEacWithBody Передача кода подтверждения
+	//
+	// {% include notitle [access](../../_auto/method_scopes/verifyOrderEac.md) %}
+	//
+	// Отправляет Маркету код подтверждения для его проверки.
+	//
+	// **Если у магазина настроена работа с кодами подтверждения:**
+	//
+	//   В параметре `delivery`, вложенном в `order`, возвращается параметр `eacType` с типом `Enum` (тип кода подтверждения для передачи заказа) в методах:
+	//
+	//   * [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md);
+	//   * [PUT v2/campaigns/{campaignId}/orders/{orderId}/status](../../reference/orders/updateOrderStatus.md).
+	//
+	//   Возможные значения:
+	//
+	//   * `MERCHANT_TO_COURIER` (временно не возвращается) — продавец передает код курьеру для получения невыкупа;
+	//   * `COURIER_TO_MERCHANT` — курьер передает код продавцу для получения заказа.
+	//
+	//   Параметр `eacType` возвращается при статусах заказа `COURIER_FOUND`, `COURIER_ARRIVED_TO_SENDER` и `DELIVERY_SERVICE_UNDELIVERED`. Если заказ в других статусах, параметр может отсутствовать.
+	//
+	// {% include notitle [limit](../../_auto/method_limits/verifyOrderEac.md) %}
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/verifyEac (the `VerifyOrderEac` operationId).
+	VerifyOrderEacWithBody(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// VerifyOrderEac Передача кода подтверждения
+	//
+	// {% include notitle [access](../../_auto/method_scopes/verifyOrderEac.md) %}
+	//
+	// Отправляет Маркету код подтверждения для его проверки.
+	//
+	// **Если у магазина настроена работа с кодами подтверждения:**
+	//
+	//   В параметре `delivery`, вложенном в `order`, возвращается параметр `eacType` с типом `Enum` (тип кода подтверждения для передачи заказа) в методах:
+	//
+	//   * [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md);
+	//   * [PUT v2/campaigns/{campaignId}/orders/{orderId}/status](../../reference/orders/updateOrderStatus.md).
+	//
+	//   Возможные значения:
+	//
+	//   * `MERCHANT_TO_COURIER` (временно не возвращается) — продавец передает код курьеру для получения невыкупа;
+	//   * `COURIER_TO_MERCHANT` — курьер передает код продавцу для получения заказа.
+	//
+	//   Параметр `eacType` возвращается при статусах заказа `COURIER_FOUND`, `COURIER_ARRIVED_TO_SENDER` и `DELIVERY_SERVICE_UNDELIVERED`. Если заказ в других статусах, параметр может отсутствовать.
+	//
+	// {% include notitle [limit](../../_auto/method_limits/verifyOrderEac.md) %}
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/verifyEac (the `VerifyOrderEac` operationId).
+	VerifyOrderEac(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, body VerifyOrderEacJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetPartnerWarehousesWithBody Список складов
 	//
@@ -5505,6 +8851,1034 @@ func (c *Client) GetOfferMappings(ctx context.Context, businessId BusinessIdPara
 // Corresponds with GET /v2/campaigns (the `GetCampaigns` operationId).
 func (c *Client) GetCampaigns(ctx context.Context, params *GetCampaignsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetCampaignsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SearchShipmentsWithBody Получение информации о нескольких отгрузках
+//
+// {% include notitle [access](../../_auto/method_scopes/searchShipments.md) %}
+//
+// Возвращает информацию об отгрузках по заданным параметрам:
+//
+// * дате;
+// * статусу;
+// * идентификаторам заказов.
+//
+// Результаты возвращаются постранично.
+//
+// {% include notitle [limit](../../_auto/method_limits/searchShipments.md) %}
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /v2/campaigns/{campaignId}/first-mile/shipments (the `SearchShipments` operationId).
+func (c *Client) SearchShipmentsWithBody(ctx context.Context, campaignId CampaignIdParameter, params *SearchShipmentsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSearchShipmentsRequestWithBody(c.Server, campaignId, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SearchShipments Получение информации о нескольких отгрузках
+//
+// {% include notitle [access](../../_auto/method_scopes/searchShipments.md) %}
+//
+// Возвращает информацию об отгрузках по заданным параметрам:
+//
+// * дате;
+// * статусу;
+// * идентификаторам заказов.
+//
+// Результаты возвращаются постранично.
+//
+// {% include notitle [limit](../../_auto/method_limits/searchShipments.md) %}
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /v2/campaigns/{campaignId}/first-mile/shipments (the `SearchShipments` operationId).
+func (c *Client) SearchShipments(ctx context.Context, campaignId CampaignIdParameter, params *SearchShipmentsParams, body SearchShipmentsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSearchShipmentsRequest(c.Server, campaignId, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetShipment Получение информации об одной отгрузке
+//
+// {% include notitle [access](../../_auto/method_scopes/getShipment.md) %}
+//
+// Возвращает информацию об отгрузке по ее идентификатору.
+//
+// {% include notitle [limit](../../_auto/method_limits/getShipment.md) %}
+//
+// Corresponds with GET /v2/campaigns/{campaignId}/first-mile/shipments/{shipmentId} (the `GetShipment` operationId).
+func (c *Client) GetShipment(ctx context.Context, campaignId CampaignIdParameter, shipmentId ShipmentId3, params *GetShipmentParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetShipmentRequest(c.Server, campaignId, shipmentId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DownloadShipmentAct Получение акта приема-передачи
+//
+// {% include notitle [access](../../_auto/method_scopes/downloadShipmentAct.md) %}
+//
+// {% note warning "Экспресс‑доставка" %}
+//
+// Если ваш магазин подключен к экспресс‑доставке и вы отгружаете заказы курьерам [Яндекс Go](https://go.yandex/), подготавливать акт приема‑передачи не нужно.
+//
+// {% endnote %}
+//
+// Запрос формирует акт приема-передачи заказов, входящих в отгрузку, и возвращает акт в формате PDF. В акте содержатся собранные и готовые к отправке заказы.
+//
+// Метод доступен только для подтвержденной отгрузки. Сначала подтвердите отгрузку запросом [POST v2/campaigns/{campaignId}/shipments/{shipmentId}/confirm](../../reference/shipments/confirmShipment.md), затем вызовите этот метод.
+//
+// При формировании акта Маркет автоматически находит и подставляет в шаблон следующие данные:
+//
+// {% cut "Данные, из которых Маркет формирует акт" %}
+//
+// #|
+// || **Данные в акте**                                         | **Описание**                                                                                                                                                                                                                                                         ||
+// || Дата                                                      | Дата запроса.                                                                                                                                                                                                                                                        ||
+// || Отправитель                                               | Название вашего юридического лица, указанное в кабинете продавца на Маркете.                                                                                                                                                                                         ||
+// || Исполнитель                                               | Название юридического лица сортировочного центра или службы доставки.                                                                                                                                                                                                ||
+// || № отправления в системе заказчика                         | Внешний идентификатор заказа продавца, который можно передать запросом [POST v2/campaigns/{campaignId}/orders/{orderId}/external-id](../../reference/orders/updateExternalOrderId.md).                                                                            ||
+// || № отправления в системе исполнителя (субподрядчика)       |
+//
+//	Идентификатор заказа на Маркете, как в выходных данных запроса:
+//
+//	* [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md).||
+//
+// || Объявленная ценность                                      |
+//
+//	Общая сумма заказа без учета стоимости доставки, как в выходных данных запроса:
+//
+//	* [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md).||
+//
+// || Вес                                                       |
+//
+//	Масса брутто грузового места (суммарная масса упаковки и содержимого), как в выходных данных запроса:
+//
+//	* [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md).||
+//
+// || Количество мест                                           |
+//
+//	Количество грузовых мест в заказе, как в выходных данных запроса:
+//
+//	* [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md). ||
+//
+// |#
+//
+// {% endcut %}
+//
+// В распечатанном акте укажите отправителя и исполнителя. Они должны подписать акт и указать фамилию и инициалы рядом с подписью. При необходимости также заполните реквизиты доверенности.
+//
+// {% include notitle [limit](../../_auto/method_limits/downloadShipmentAct.md) %}
+//
+// Corresponds with GET /v2/campaigns/{campaignId}/first-mile/shipments/{shipmentId}/act (the `DownloadShipmentAct` operationId).
+func (c *Client) DownloadShipmentAct(ctx context.Context, campaignId CampaignIdParameter, shipmentId ShipmentId3, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDownloadShipmentActRequest(c.Server, campaignId, shipmentId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ConfirmShipmentWithBody Подтверждение отгрузки
+//
+// {% include notitle [access](../../_auto/method_scopes/confirmShipment.md) %}
+//
+// Подтверждает отгрузку товаров в сортировочный центр или пункт приема заказов. Действие доступно только после того, как отгрузка сформирована.
+//
+// График отгрузок настраивается отдельно для каждого склада в личном кабинете и недоступен через API.
+// Проверить возможность подтверждения отгрузки можно с помощью метода [GET v2/campaigns/{campaignId}/shipments/{shipmentId}](../../reference/shipments/getShipment): среди доступных действий `availableActions` должно быть действие `CONFIRM`.
+// До наступления времени подтверждения метод вернет код `400` и ошибку :no-translate["Cutoff time for shipments has not been reached yet"].
+//
+// Подробнее о приеме заказов и расписании отгрузок читайте [в Справке Маркета для продавцов](https://yandex.ru/support/marketplace/ru/orders/fbs/settings/shipment#schedule).
+//
+// {% include notitle [limit](../../_auto/method_limits/confirmShipment.md) %}
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /v2/campaigns/{campaignId}/first-mile/shipments/{shipmentId}/confirm (the `ConfirmShipment` operationId).
+func (c *Client) ConfirmShipmentWithBody(ctx context.Context, campaignId CampaignIdParameter, shipmentId ShipmentId3, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewConfirmShipmentRequestWithBody(c.Server, campaignId, shipmentId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ConfirmShipment Подтверждение отгрузки
+//
+// {% include notitle [access](../../_auto/method_scopes/confirmShipment.md) %}
+//
+// Подтверждает отгрузку товаров в сортировочный центр или пункт приема заказов. Действие доступно только после того, как отгрузка сформирована.
+//
+// График отгрузок настраивается отдельно для каждого склада в личном кабинете и недоступен через API.
+// Проверить возможность подтверждения отгрузки можно с помощью метода [GET v2/campaigns/{campaignId}/shipments/{shipmentId}](../../reference/shipments/getShipment): среди доступных действий `availableActions` должно быть действие `CONFIRM`.
+// До наступления времени подтверждения метод вернет код `400` и ошибку :no-translate["Cutoff time for shipments has not been reached yet"].
+//
+// Подробнее о приеме заказов и расписании отгрузок читайте [в Справке Маркета для продавцов](https://yandex.ru/support/marketplace/ru/orders/fbs/settings/shipment#schedule).
+//
+// {% include notitle [limit](../../_auto/method_limits/confirmShipment.md) %}
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /v2/campaigns/{campaignId}/first-mile/shipments/{shipmentId}/confirm (the `ConfirmShipment` operationId).
+func (c *Client) ConfirmShipment(ctx context.Context, campaignId CampaignIdParameter, shipmentId ShipmentId3, body ConfirmShipmentJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewConfirmShipmentRequest(c.Server, campaignId, shipmentId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetOrderBoxLayoutWithBody Подготовка заказа
+//
+// {% include notitle [access](../../_auto/method_scopes/setOrderBoxLayout.md) %}
+//
+// {% note tip "Подходит и для DBS" %}
+//
+// Запрос предназначен для работы с FBS-заказами, но вы можете использовать его для обработки DBS-заказов, если это удобно.
+//
+// {% endnote %}
+//
+// Позволяет выполнить три операции:
+//
+// * передать Маркету информацию о распределении товаров по коробкам;
+// * передать Маркету коды маркировки для товаров;
+// * удалить товар из заказа, если его не оказалось на складе.
+//
+// Если нужно что-то поправить в переданных данных, просто повторите запрос — это можно делать сколько угодно раз до перевода заказа в статус **Готов к отгрузке**. ⚠️ Если вы меняете раскладку уже после печати и расклейки ярлыков, не забудьте перепечатать их и наклеить заново.
+//
+// {% cut "Как передать информацию о распределении товаров" %}
+//
+// В этом запросе вам нужно передать Маркету список коробок и указать, какие именно товары лежат в каждой из них. Коробки могут быть двух типов:
+//
+// * **Содержащие товары целиком.** Такая коробка может содержать сколько угодно единиц любых товаров.
+//
+// * **Содержащие часть товара.** Такие коробки содержат по одной части одного товара. Например, одна содержит внешний блок кондиционера, а другая — внутренний блок.
+//
+// ⚠️ Одна коробка не может содержать и товары целиком, и части товаров.
+//
+// {% endcut %}
+//
+// {% cut "Как передавать коды маркировки и получать статус их проверки" %}
+//
+// {% note info "Маркировка товаров в системе [«Честный ЗНАК»](https://честныйзнак.рф/) необязательна для заказов от физических лиц" %}
+//
+// Для заказов от бизнеса все еще нужно передавать коды маркировки.
+//
+// {% endnote %}
+//
+// Если в заказе есть товары, подлежащие маркировке, в запросе нужно передать соответствующие уникальные коды. [Что такое маркировка](https://yandex.ru/support/marketplace/orders/cz.html)
+//
+// Принимаются коды следующих типов:
+//
+// * Коды в системе [«Честный ЗНАК»](https://честныйзнак.рф/) или [«ASL BELGISI»](https://aslbelgisi.uz) (для продавцов :no-translate[Market Yandex Go]).
+// * УИН для ювелирных изделий.
+// * РНПТ и ГТД для импортных прослеживаемых товаров.
+//
+// Для каждой позиции в заказе, требующей маркировки, нужно передать список кодов — по одному для каждой единицы товара. Например, если в заказе две пары тапочек и одна пара туфель, получится список из двух кодов для первой позиции и список из одного кода для второй.
+//
+// Если товар едет в нескольких коробках, код маркировки нужно передать для каждой из них.
+//
+// {% note warning "Если вы работаете по модели FBS, EXPRESS" %}
+//
+// Для заказов, в которых есть ювелирные изделия или товары с маркировкой в системе :no-translate[«Честный ЗНАК»], перевод в статус `READY_TO_SHIP` становится доступен, только когда:
+//
+// 1. Вы передадите Маркету :no-translate[УИНы] по каждому ювелирному изделию в заказе и коды в системе :no-translate[«Честный ЗНАК»] по всем товарам в заказе, для которых обязательна эта маркировка.
+// 2. Все коды маркировки успешно пройдут проверку. [Как получить статусы проверки](../../reference/orders/getOrderIdentifiersStatus.md)
+//
+// {% endnote %}
+//
+// {% endcut %}
+//
+// {% cut "Как удалить товар из заказа" %}
+//
+// Чтобы удалить товар из заказа:
+//
+// 1. Добавьте в запрос `allowRemove: true`.
+// 2. Передайте распределение по коробкам без товара, который нужно удалить.
+//
+// {% note warning "Удаление нельзя отменить" %}
+//
+// Эта операция необратима: покупатель сразу получит уведомление, а состав заказа изменится.
+//
+// {% endnote %}
+//
+// Чтобы удалить позицию целиком, не передавайте соответствующий `OrderBoxLayoutItemDTO`. Чтобы уменьшить количество товара, передайте уменьшенное значение в поле `fullCount`.
+//
+// Нельзя удалить или уменьшить количество товара, если он:
+//
+// * добавлен по акции;
+// * составляет 99% стоимости заказа;
+// * единственный товар в заказе.
+//
+// Если вы не можете отгрузить такой товар, отмените заказ. Для этого отправьте запрос методом [PUT v2/campaigns/{campaignId}/orders/{orderId}/status](../../reference/orders/updateOrderStatus.md) и передайте статус заказа `CANCELLED` с причиной отмены `SHOP_FAILED`.
+//
+// {% endcut %}
+//
+// {% note info "Увеличить заказ нельзя" %}
+//
+// С помощью запроса нельзя увеличить количество одинаковых товаров, добавить новые товары в заказ или заменить один товар другим.
+//
+// {% endnote %}
+//
+// ## Примеры
+//
+// {% cut "Товар умещается в коробку" %}
+//
+// Вот как будет выглядеть запрос, если в одной коробке едут:
+//
+//   - три единицы одного товара, требующего маркировки;
+//
+//   - одна единица другого товара, не требущего маркировки.
+//
+//     ```json translate=no
+//     {
+//     "boxes": [
+//     {
+//     "items": [
+//     {
+//     "id": 123456,
+//     "fullCount": 3,
+//     "instances": [
+//     {
+//     "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//     },
+//     {
+//     "cis": "010304109478gftJ14545762!\u001dhGt264"
+//     },
+//     {
+//     "cis": "010304109478fRs28323ks23!\u001dhet201"
+//     }
+//     ]
+//     },
+//     {
+//     "id": 654321,
+//     "fullCount": 1
+//     }
+//     ]
+//     }
+//     ]
+//     }
+//     ```
+//
+// {% endcut %}
+//
+// {% cut "Товар едет в разных коробках" %}
+//
+// Вот как будет выглядеть запрос, если товар едет в двух коробках:
+//
+//	```json translate=no
+//	{
+//	    "boxes": [
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 1,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        },
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 2,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        }
+//	    ]
+//	}
+//	```
+//
+// {% endcut %}
+//
+// {% cut "Одинаковые товары, где каждый едет в нескольких коробках" %}
+//
+// Вот как будет выглядеть запрос, если каждый из двух одинаковых товаров едет в двух коробках:
+//
+//	```json translate=no
+//	{
+//	    "boxes": [
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 1,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        },
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 2,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        },
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 1,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        },
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 2,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        }
+//	    ]
+//	}
+//	```
+//
+// {% endcut %}
+//
+// {% cut "Разные товары в разных коробках" %}
+//
+// Вот как будет выглядеть запрос, если два разных товара разложены по разным коробкам:
+//
+//	```json translate=no
+//	{
+//	    "boxes": [
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "fullCount": 1
+//	                }
+//	            ]
+//	        },
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 654321,
+//	                    "fullCount": 1
+//	                }
+//	            ]
+//	        }
+//	    ]
+//	}
+//	```
+//
+// {% endcut %}
+//
+// {% include notitle [limit](../../_auto/method_limits/setOrderBoxLayout.md) %}
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/boxes (the `SetOrderBoxLayout` operationId).
+func (c *Client) SetOrderBoxLayoutWithBody(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetOrderBoxLayoutRequestWithBody(c.Server, campaignId, orderId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SetOrderBoxLayout Подготовка заказа
+//
+// {% include notitle [access](../../_auto/method_scopes/setOrderBoxLayout.md) %}
+//
+// {% note tip "Подходит и для DBS" %}
+//
+// Запрос предназначен для работы с FBS-заказами, но вы можете использовать его для обработки DBS-заказов, если это удобно.
+//
+// {% endnote %}
+//
+// Позволяет выполнить три операции:
+//
+// * передать Маркету информацию о распределении товаров по коробкам;
+// * передать Маркету коды маркировки для товаров;
+// * удалить товар из заказа, если его не оказалось на складе.
+//
+// Если нужно что-то поправить в переданных данных, просто повторите запрос — это можно делать сколько угодно раз до перевода заказа в статус **Готов к отгрузке**. ⚠️ Если вы меняете раскладку уже после печати и расклейки ярлыков, не забудьте перепечатать их и наклеить заново.
+//
+// {% cut "Как передать информацию о распределении товаров" %}
+//
+// В этом запросе вам нужно передать Маркету список коробок и указать, какие именно товары лежат в каждой из них. Коробки могут быть двух типов:
+//
+// * **Содержащие товары целиком.** Такая коробка может содержать сколько угодно единиц любых товаров.
+//
+// * **Содержащие часть товара.** Такие коробки содержат по одной части одного товара. Например, одна содержит внешний блок кондиционера, а другая — внутренний блок.
+//
+// ⚠️ Одна коробка не может содержать и товары целиком, и части товаров.
+//
+// {% endcut %}
+//
+// {% cut "Как передавать коды маркировки и получать статус их проверки" %}
+//
+// {% note info "Маркировка товаров в системе [«Честный ЗНАК»](https://честныйзнак.рф/) необязательна для заказов от физических лиц" %}
+//
+// Для заказов от бизнеса все еще нужно передавать коды маркировки.
+//
+// {% endnote %}
+//
+// Если в заказе есть товары, подлежащие маркировке, в запросе нужно передать соответствующие уникальные коды. [Что такое маркировка](https://yandex.ru/support/marketplace/orders/cz.html)
+//
+// Принимаются коды следующих типов:
+//
+// * Коды в системе [«Честный ЗНАК»](https://честныйзнак.рф/) или [«ASL BELGISI»](https://aslbelgisi.uz) (для продавцов :no-translate[Market Yandex Go]).
+// * УИН для ювелирных изделий.
+// * РНПТ и ГТД для импортных прослеживаемых товаров.
+//
+// Для каждой позиции в заказе, требующей маркировки, нужно передать список кодов — по одному для каждой единицы товара. Например, если в заказе две пары тапочек и одна пара туфель, получится список из двух кодов для первой позиции и список из одного кода для второй.
+//
+// Если товар едет в нескольких коробках, код маркировки нужно передать для каждой из них.
+//
+// {% note warning "Если вы работаете по модели FBS, EXPRESS" %}
+//
+// Для заказов, в которых есть ювелирные изделия или товары с маркировкой в системе :no-translate[«Честный ЗНАК»], перевод в статус `READY_TO_SHIP` становится доступен, только когда:
+//
+// 1. Вы передадите Маркету :no-translate[УИНы] по каждому ювелирному изделию в заказе и коды в системе :no-translate[«Честный ЗНАК»] по всем товарам в заказе, для которых обязательна эта маркировка.
+// 2. Все коды маркировки успешно пройдут проверку. [Как получить статусы проверки](../../reference/orders/getOrderIdentifiersStatus.md)
+//
+// {% endnote %}
+//
+// {% endcut %}
+//
+// {% cut "Как удалить товар из заказа" %}
+//
+// Чтобы удалить товар из заказа:
+//
+// 1. Добавьте в запрос `allowRemove: true`.
+// 2. Передайте распределение по коробкам без товара, который нужно удалить.
+//
+// {% note warning "Удаление нельзя отменить" %}
+//
+// Эта операция необратима: покупатель сразу получит уведомление, а состав заказа изменится.
+//
+// {% endnote %}
+//
+// Чтобы удалить позицию целиком, не передавайте соответствующий `OrderBoxLayoutItemDTO`. Чтобы уменьшить количество товара, передайте уменьшенное значение в поле `fullCount`.
+//
+// Нельзя удалить или уменьшить количество товара, если он:
+//
+// * добавлен по акции;
+// * составляет 99% стоимости заказа;
+// * единственный товар в заказе.
+//
+// Если вы не можете отгрузить такой товар, отмените заказ. Для этого отправьте запрос методом [PUT v2/campaigns/{campaignId}/orders/{orderId}/status](../../reference/orders/updateOrderStatus.md) и передайте статус заказа `CANCELLED` с причиной отмены `SHOP_FAILED`.
+//
+// {% endcut %}
+//
+// {% note info "Увеличить заказ нельзя" %}
+//
+// С помощью запроса нельзя увеличить количество одинаковых товаров, добавить новые товары в заказ или заменить один товар другим.
+//
+// {% endnote %}
+//
+// ## Примеры
+//
+// {% cut "Товар умещается в коробку" %}
+//
+// Вот как будет выглядеть запрос, если в одной коробке едут:
+//
+//   - три единицы одного товара, требующего маркировки;
+//
+//   - одна единица другого товара, не требущего маркировки.
+//
+//     ```json translate=no
+//     {
+//     "boxes": [
+//     {
+//     "items": [
+//     {
+//     "id": 123456,
+//     "fullCount": 3,
+//     "instances": [
+//     {
+//     "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//     },
+//     {
+//     "cis": "010304109478gftJ14545762!\u001dhGt264"
+//     },
+//     {
+//     "cis": "010304109478fRs28323ks23!\u001dhet201"
+//     }
+//     ]
+//     },
+//     {
+//     "id": 654321,
+//     "fullCount": 1
+//     }
+//     ]
+//     }
+//     ]
+//     }
+//     ```
+//
+// {% endcut %}
+//
+// {% cut "Товар едет в разных коробках" %}
+//
+// Вот как будет выглядеть запрос, если товар едет в двух коробках:
+//
+//	```json translate=no
+//	{
+//	    "boxes": [
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 1,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        },
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 2,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        }
+//	    ]
+//	}
+//	```
+//
+// {% endcut %}
+//
+// {% cut "Одинаковые товары, где каждый едет в нескольких коробках" %}
+//
+// Вот как будет выглядеть запрос, если каждый из двух одинаковых товаров едет в двух коробках:
+//
+//	```json translate=no
+//	{
+//	    "boxes": [
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 1,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        },
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 2,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        },
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 1,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        },
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 2,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        }
+//	    ]
+//	}
+//	```
+//
+// {% endcut %}
+//
+// {% cut "Разные товары в разных коробках" %}
+//
+// Вот как будет выглядеть запрос, если два разных товара разложены по разным коробкам:
+//
+//	```json translate=no
+//	{
+//	    "boxes": [
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "fullCount": 1
+//	                }
+//	            ]
+//	        },
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 654321,
+//	                    "fullCount": 1
+//	                }
+//	            ]
+//	        }
+//	    ]
+//	}
+//	```
+//
+// {% endcut %}
+//
+// {% include notitle [limit](../../_auto/method_limits/setOrderBoxLayout.md) %}
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/boxes (the `SetOrderBoxLayout` operationId).
+func (c *Client) SetOrderBoxLayout(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, body SetOrderBoxLayoutJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetOrderBoxLayoutRequest(c.Server, campaignId, orderId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GenerateOrderLabel Готовый ярлык‑наклейка для коробки в заказе
+//
+// {% include notitle [access](../../_auto/method_scopes/generateOrderLabel.md) %}
+//
+// Формирует ярлык‑наклейку для коробки в заказе и возвращает ярлык в PDF‑файле.
+//
+// Чтобы на ярлыке отображался внешний идентификатор заказа, передайте его в методе [POST v2/campaigns/{campaignId}/orders/{orderId}/external-id](../../reference/orders/updateExternalOrderId.md).
+//
+// {% include notitle [limit](../../_auto/method_limits/generateOrderLabel.md) %}
+//
+// Corresponds with GET /v2/campaigns/{campaignId}/orders/{orderId}/delivery/shipments/{shipmentId}/boxes/{boxId}/label (the `GenerateOrderLabel` operationId).
+func (c *Client) GenerateOrderLabel(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, shipmentId ShipmentId2, boxId BoxId, params *GenerateOrderLabelParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGenerateOrderLabelRequest(c.Server, campaignId, orderId, shipmentId, boxId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetOrderIdentifiersStatus Статусы проверки кодов маркировки
+//
+// {% include notitle [access](../../_auto/method_scopes/getOrderIdentifiersStatus.md) %}
+//
+// Возвращает статусы проверки кодов маркировки в заказе.
+//
+// Заказ, в котором есть ювелирные изделия или товары с обязательной маркировкой в системе [«Честный ЗНАК»](https://честныйзнак.рф/), можно перевести в статус `READY_TO_SHIP`, только когда:
+//
+// 1. В методе [PUT v2/campaigns/{campaignId}/orders/{orderId}/boxes](../../reference/orders/setOrderBoxLayout.md) вы передадите Маркету:
+//
+//   - [УИНы](:no-translate[*uin]) по каждому ювелирному изделию в заказе;
+//
+//   - коды маркировки в системе :no-translate[«Честный ЗНАК»] по всем товарам в заказе, для которых она обязательна.
+//
+// 2. Все коды маркировки успешно пройдут проверку.
+//
+// {% include notitle [limit](../../_auto/method_limits/getOrderIdentifiersStatus.md) %}
+//
+// Corresponds with POST /v2/campaigns/{campaignId}/orders/{orderId}/identifiers/status (the `GetOrderIdentifiersStatus` operationId).
+func (c *Client) GetOrderIdentifiersStatus(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetOrderIdentifiersStatusRequest(c.Server, campaignId, orderId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateOrderStatusWithBody Изменение статуса одного заказа
+//
+// {% include notitle [access](../../_auto/method_scopes/updateOrderStatus.md) %}
+//
+// Изменяет статус заказа. Возможные изменения статусов:
+//
+// * Если магазин подтвердил и подготовил заказ к отправке, то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "STARTED"` нужно перевести в статус `"status": "PROCESSING"` и этап обработки `"substatus": "READY_TO_SHIP"`.
+// * Если магазин подтвердил заказ, но не может его выполнить (например, товар числится в базе, но отсутствует на складе или нет нужного цвета), то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "STARTED"` нужно перевести в статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+// * Если магазин подготовил заказ к отгрузке, но не может его выполнить (например, последний товар был поврежден или оказался с браком), то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "READY_TO_SHIP"` нужно перевести в статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+//
+// Полная информация о статусной модели DBS-заказов: [Как изменяются статусы заказов](../../concepts/dbs-order-status-model.md).
+//
+// {% cut "**Как подтвердить LaaS-заказ**" %}
+//
+// Для подтверждения черновика заказа передайте статус `"status": "PROCESSING"` с подстатусом `"substatus": "STARTED"`.
+//
+// Подтверждение заказа, созданного с параметром `draft` равным `false`, не требуется.
+//
+// {% endcut %}
+//
+// {% cut "**Как отменить LaaS-заказ**" %}
+//
+// Передайте статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+//
+// При успешном выполнении запроса отмена произойдет через некоторое время. [Как проверить статус операции](../../reference/operations/getOperations.md)
+//
+// {% endcut %}
+//
+// {% include notitle [limit](../../_auto/method_limits/updateOrderStatus.md) %}
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/status (the `UpdateOrderStatus` operationId).
+func (c *Client) UpdateOrderStatusWithBody(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateOrderStatusRequestWithBody(c.Server, campaignId, orderId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateOrderStatus Изменение статуса одного заказа
+//
+// {% include notitle [access](../../_auto/method_scopes/updateOrderStatus.md) %}
+//
+// Изменяет статус заказа. Возможные изменения статусов:
+//
+// * Если магазин подтвердил и подготовил заказ к отправке, то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "STARTED"` нужно перевести в статус `"status": "PROCESSING"` и этап обработки `"substatus": "READY_TO_SHIP"`.
+// * Если магазин подтвердил заказ, но не может его выполнить (например, товар числится в базе, но отсутствует на складе или нет нужного цвета), то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "STARTED"` нужно перевести в статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+// * Если магазин подготовил заказ к отгрузке, но не может его выполнить (например, последний товар был поврежден или оказался с браком), то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "READY_TO_SHIP"` нужно перевести в статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+//
+// Полная информация о статусной модели DBS-заказов: [Как изменяются статусы заказов](../../concepts/dbs-order-status-model.md).
+//
+// {% cut "**Как подтвердить LaaS-заказ**" %}
+//
+// Для подтверждения черновика заказа передайте статус `"status": "PROCESSING"` с подстатусом `"substatus": "STARTED"`.
+//
+// Подтверждение заказа, созданного с параметром `draft` равным `false`, не требуется.
+//
+// {% endcut %}
+//
+// {% cut "**Как отменить LaaS-заказ**" %}
+//
+// Передайте статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+//
+// При успешном выполнении запроса отмена произойдет через некоторое время. [Как проверить статус операции](../../reference/operations/getOperations.md)
+//
+// {% endcut %}
+//
+// {% include notitle [limit](../../_auto/method_limits/updateOrderStatus.md) %}
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/status (the `UpdateOrderStatus` operationId).
+func (c *Client) UpdateOrderStatus(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, body UpdateOrderStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateOrderStatusRequest(c.Server, campaignId, orderId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// VerifyOrderEacWithBody Передача кода подтверждения
+//
+// {% include notitle [access](../../_auto/method_scopes/verifyOrderEac.md) %}
+//
+// Отправляет Маркету код подтверждения для его проверки.
+//
+// **Если у магазина настроена работа с кодами подтверждения:**
+//
+//	В параметре `delivery`, вложенном в `order`, возвращается параметр `eacType` с типом `Enum` (тип кода подтверждения для передачи заказа) в методах:
+//
+//	* [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md);
+//	* [PUT v2/campaigns/{campaignId}/orders/{orderId}/status](../../reference/orders/updateOrderStatus.md).
+//
+//	Возможные значения:
+//
+//	* `MERCHANT_TO_COURIER` (временно не возвращается) — продавец передает код курьеру для получения невыкупа;
+//	* `COURIER_TO_MERCHANT` — курьер передает код продавцу для получения заказа.
+//
+//	Параметр `eacType` возвращается при статусах заказа `COURIER_FOUND`, `COURIER_ARRIVED_TO_SENDER` и `DELIVERY_SERVICE_UNDELIVERED`. Если заказ в других статусах, параметр может отсутствовать.
+//
+// {% include notitle [limit](../../_auto/method_limits/verifyOrderEac.md) %}
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/verifyEac (the `VerifyOrderEac` operationId).
+func (c *Client) VerifyOrderEacWithBody(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewVerifyOrderEacRequestWithBody(c.Server, campaignId, orderId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// VerifyOrderEac Передача кода подтверждения
+//
+// {% include notitle [access](../../_auto/method_scopes/verifyOrderEac.md) %}
+//
+// Отправляет Маркету код подтверждения для его проверки.
+//
+// **Если у магазина настроена работа с кодами подтверждения:**
+//
+//	В параметре `delivery`, вложенном в `order`, возвращается параметр `eacType` с типом `Enum` (тип кода подтверждения для передачи заказа) в методах:
+//
+//	* [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md);
+//	* [PUT v2/campaigns/{campaignId}/orders/{orderId}/status](../../reference/orders/updateOrderStatus.md).
+//
+//	Возможные значения:
+//
+//	* `MERCHANT_TO_COURIER` (временно не возвращается) — продавец передает код курьеру для получения невыкупа;
+//	* `COURIER_TO_MERCHANT` — курьер передает код продавцу для получения заказа.
+//
+//	Параметр `eacType` возвращается при статусах заказа `COURIER_FOUND`, `COURIER_ARRIVED_TO_SENDER` и `DELIVERY_SERVICE_UNDELIVERED`. Если заказ в других статусах, параметр может отсутствовать.
+//
+// {% include notitle [limit](../../_auto/method_limits/verifyOrderEac.md) %}
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/verifyEac (the `VerifyOrderEac` operationId).
+func (c *Client) VerifyOrderEac(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, body VerifyOrderEacJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewVerifyOrderEacRequest(c.Server, campaignId, orderId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -5878,6 +10252,540 @@ func NewGetCampaignsRequest(server string, params *GetCampaignsParams) (*http.Re
 	return req, nil
 }
 
+// NewSearchShipmentsRequest calls the generic SearchShipments builder with application/json body
+func NewSearchShipmentsRequest(server string, campaignId CampaignIdParameter, params *SearchShipmentsParams, body SearchShipmentsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSearchShipmentsRequestWithBody(server, campaignId, params, "application/json", bodyReader)
+}
+
+// NewSearchShipmentsRequestWithBody constructs an http.Request for the SearchShipments method, with any body, and a specified content type
+func NewSearchShipmentsRequestWithBody(server string, campaignId CampaignIdParameter, params *SearchShipmentsParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "campaignId", campaignId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/campaigns/%s/first-mile/shipments", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "pageToken", *params.PageToken, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int32"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetShipmentRequest constructs an http.Request for the GetShipment method
+func NewGetShipmentRequest(server string, campaignId CampaignIdParameter, shipmentId ShipmentId3, params *GetShipmentParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "campaignId", campaignId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "shipmentId", shipmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/campaigns/%s/first-mile/shipments/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.CancelledOrders != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "cancelledOrders", *params.CancelledOrders, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDownloadShipmentActRequest constructs an http.Request for the DownloadShipmentAct method
+func NewDownloadShipmentActRequest(server string, campaignId CampaignIdParameter, shipmentId ShipmentId3) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "campaignId", campaignId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "shipmentId", shipmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/campaigns/%s/first-mile/shipments/%s/act", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewConfirmShipmentRequest calls the generic ConfirmShipment builder with application/json body
+func NewConfirmShipmentRequest(server string, campaignId CampaignIdParameter, shipmentId ShipmentId3, body ConfirmShipmentJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewConfirmShipmentRequestWithBody(server, campaignId, shipmentId, "application/json", bodyReader)
+}
+
+// NewConfirmShipmentRequestWithBody constructs an http.Request for the ConfirmShipment method, with any body, and a specified content type
+func NewConfirmShipmentRequestWithBody(server string, campaignId CampaignIdParameter, shipmentId ShipmentId3, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "campaignId", campaignId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "shipmentId", shipmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/campaigns/%s/first-mile/shipments/%s/confirm", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewSetOrderBoxLayoutRequest calls the generic SetOrderBoxLayout builder with application/json body
+func NewSetOrderBoxLayoutRequest(server string, campaignId CampaignIdParameter, orderId OrderId, body SetOrderBoxLayoutJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSetOrderBoxLayoutRequestWithBody(server, campaignId, orderId, "application/json", bodyReader)
+}
+
+// NewSetOrderBoxLayoutRequestWithBody constructs an http.Request for the SetOrderBoxLayout method, with any body, and a specified content type
+func NewSetOrderBoxLayoutRequestWithBody(server string, campaignId CampaignIdParameter, orderId OrderId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "campaignId", campaignId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "orderId", orderId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/campaigns/%s/orders/%s/boxes", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGenerateOrderLabelRequest constructs an http.Request for the GenerateOrderLabel method
+func NewGenerateOrderLabelRequest(server string, campaignId CampaignIdParameter, orderId OrderId, shipmentId ShipmentId2, boxId BoxId, params *GenerateOrderLabelParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "campaignId", campaignId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "orderId", orderId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithOptions("simple", false, "shipmentId", shipmentId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam3 string
+
+	pathParam3, err = runtime.StyleParamWithOptions("simple", false, "boxId", boxId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/campaigns/%s/orders/%s/delivery/shipments/%s/boxes/%s/label", pathParam0, pathParam1, pathParam2, pathParam3)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Format != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "format", *params.Format, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetOrderIdentifiersStatusRequest constructs an http.Request for the GetOrderIdentifiersStatus method
+func NewGetOrderIdentifiersStatusRequest(server string, campaignId CampaignIdParameter, orderId OrderId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "campaignId", campaignId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "orderId", orderId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/campaigns/%s/orders/%s/identifiers/status", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateOrderStatusRequest calls the generic UpdateOrderStatus builder with application/json body
+func NewUpdateOrderStatusRequest(server string, campaignId CampaignIdParameter, orderId OrderId, body UpdateOrderStatusJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateOrderStatusRequestWithBody(server, campaignId, orderId, "application/json", bodyReader)
+}
+
+// NewUpdateOrderStatusRequestWithBody constructs an http.Request for the UpdateOrderStatus method, with any body, and a specified content type
+func NewUpdateOrderStatusRequestWithBody(server string, campaignId CampaignIdParameter, orderId OrderId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "campaignId", campaignId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "orderId", orderId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/campaigns/%s/orders/%s/status", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewVerifyOrderEacRequest calls the generic VerifyOrderEac builder with application/json body
+func NewVerifyOrderEacRequest(server string, campaignId CampaignIdParameter, orderId OrderId, body VerifyOrderEacJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewVerifyOrderEacRequestWithBody(server, campaignId, orderId, "application/json", bodyReader)
+}
+
+// NewVerifyOrderEacRequestWithBody constructs an http.Request for the VerifyOrderEac method, with any body, and a specified content type
+func NewVerifyOrderEacRequestWithBody(server string, campaignId CampaignIdParameter, orderId OrderId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "campaignId", campaignId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "orderId", orderId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/campaigns/%s/orders/%s/verifyEac", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewGetPartnerWarehousesRequest calls the generic GetPartnerWarehouses builder with application/json body
 func NewGetPartnerWarehousesRequest(server string, businessId BusinessIdParameter, params *GetPartnerWarehousesParams, body GetPartnerWarehousesJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -6189,6 +11097,894 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /v2/campaigns (the `GetCampaigns` operationId).
 	GetCampaignsWithResponse(ctx context.Context, params *GetCampaignsParams, reqEditors ...RequestEditorFn) (*GetCampaignsResponse2, error)
+
+	// SearchShipmentsWithBodyWithResponse Получение информации о нескольких отгрузках
+	//
+	// {% include notitle [access](../../_auto/method_scopes/searchShipments.md) %}
+	//
+	// Возвращает информацию об отгрузках по заданным параметрам:
+	//
+	// * дате;
+	// * статусу;
+	// * идентификаторам заказов.
+	//
+	// Результаты возвращаются постранично.
+	//
+	// {% include notitle [limit](../../_auto/method_limits/searchShipments.md) %}
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /v2/campaigns/{campaignId}/first-mile/shipments (the `SearchShipments` operationId).
+	SearchShipmentsWithBodyWithResponse(ctx context.Context, campaignId CampaignIdParameter, params *SearchShipmentsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SearchShipmentsResponse2, error)
+
+	// SearchShipmentsWithResponse Получение информации о нескольких отгрузках
+	//
+	// {% include notitle [access](../../_auto/method_scopes/searchShipments.md) %}
+	//
+	// Возвращает информацию об отгрузках по заданным параметрам:
+	//
+	// * дате;
+	// * статусу;
+	// * идентификаторам заказов.
+	//
+	// Результаты возвращаются постранично.
+	//
+	// {% include notitle [limit](../../_auto/method_limits/searchShipments.md) %}
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /v2/campaigns/{campaignId}/first-mile/shipments (the `SearchShipments` operationId).
+	SearchShipmentsWithResponse(ctx context.Context, campaignId CampaignIdParameter, params *SearchShipmentsParams, body SearchShipmentsJSONRequestBody, reqEditors ...RequestEditorFn) (*SearchShipmentsResponse2, error)
+
+	// GetShipmentWithResponse Получение информации об одной отгрузке
+	//
+	// {% include notitle [access](../../_auto/method_scopes/getShipment.md) %}
+	//
+	// Возвращает информацию об отгрузке по ее идентификатору.
+	//
+	// {% include notitle [limit](../../_auto/method_limits/getShipment.md) %}
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /v2/campaigns/{campaignId}/first-mile/shipments/{shipmentId} (the `GetShipment` operationId).
+	GetShipmentWithResponse(ctx context.Context, campaignId CampaignIdParameter, shipmentId ShipmentId3, params *GetShipmentParams, reqEditors ...RequestEditorFn) (*GetShipmentResponse2, error)
+
+	// DownloadShipmentActWithResponse Получение акта приема-передачи
+	//
+	// {% include notitle [access](../../_auto/method_scopes/downloadShipmentAct.md) %}
+	//
+	// {% note warning "Экспресс‑доставка" %}
+	//
+	// Если ваш магазин подключен к экспресс‑доставке и вы отгружаете заказы курьерам [Яндекс Go](https://go.yandex/), подготавливать акт приема‑передачи не нужно.
+	//
+	// {% endnote %}
+	//
+	// Запрос формирует акт приема-передачи заказов, входящих в отгрузку, и возвращает акт в формате PDF. В акте содержатся собранные и готовые к отправке заказы.
+	//
+	// Метод доступен только для подтвержденной отгрузки. Сначала подтвердите отгрузку запросом [POST v2/campaigns/{campaignId}/shipments/{shipmentId}/confirm](../../reference/shipments/confirmShipment.md), затем вызовите этот метод.
+	//
+	// При формировании акта Маркет автоматически находит и подставляет в шаблон следующие данные:
+	//
+	// {% cut "Данные, из которых Маркет формирует акт" %}
+	//
+	// #|
+	// || **Данные в акте**                                         | **Описание**                                                                                                                                                                                                                                                         ||
+	// || Дата                                                      | Дата запроса.                                                                                                                                                                                                                                                        ||
+	// || Отправитель                                               | Название вашего юридического лица, указанное в кабинете продавца на Маркете.                                                                                                                                                                                         ||
+	// || Исполнитель                                               | Название юридического лица сортировочного центра или службы доставки.                                                                                                                                                                                                ||
+	// || № отправления в системе заказчика                         | Внешний идентификатор заказа продавца, который можно передать запросом [POST v2/campaigns/{campaignId}/orders/{orderId}/external-id](../../reference/orders/updateExternalOrderId.md).                                                                            ||
+	// || № отправления в системе исполнителя (субподрядчика)       |
+	//   Идентификатор заказа на Маркете, как в выходных данных запроса:
+	//
+	//   * [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md).||
+	//
+	// || Объявленная ценность                                      |
+	//   Общая сумма заказа без учета стоимости доставки, как в выходных данных запроса:
+	//
+	//   * [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md).||
+	//
+	// || Вес                                                       |
+	//   Масса брутто грузового места (суммарная масса упаковки и содержимого), как в выходных данных запроса:
+	//
+	//   * [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md).||
+	//
+	// || Количество мест                                           |
+	//   Количество грузовых мест в заказе, как в выходных данных запроса:
+	//
+	//   * [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md). ||
+	// |#
+	//
+	// {% endcut %}
+	//
+	// В распечатанном акте укажите отправителя и исполнителя. Они должны подписать акт и указать фамилию и инициалы рядом с подписью. При необходимости также заполните реквизиты доверенности.
+	//
+	// {% include notitle [limit](../../_auto/method_limits/downloadShipmentAct.md) %}
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /v2/campaigns/{campaignId}/first-mile/shipments/{shipmentId}/act (the `DownloadShipmentAct` operationId).
+	DownloadShipmentActWithResponse(ctx context.Context, campaignId CampaignIdParameter, shipmentId ShipmentId3, reqEditors ...RequestEditorFn) (*DownloadShipmentActResponse, error)
+
+	// ConfirmShipmentWithBodyWithResponse Подтверждение отгрузки
+	//
+	// {% include notitle [access](../../_auto/method_scopes/confirmShipment.md) %}
+	//
+	// Подтверждает отгрузку товаров в сортировочный центр или пункт приема заказов. Действие доступно только после того, как отгрузка сформирована.
+	//
+	// График отгрузок настраивается отдельно для каждого склада в личном кабинете и недоступен через API.
+	// Проверить возможность подтверждения отгрузки можно с помощью метода [GET v2/campaigns/{campaignId}/shipments/{shipmentId}](../../reference/shipments/getShipment): среди доступных действий `availableActions` должно быть действие `CONFIRM`.
+	// До наступления времени подтверждения метод вернет код `400` и ошибку :no-translate["Cutoff time for shipments has not been reached yet"].
+	//
+	// Подробнее о приеме заказов и расписании отгрузок читайте [в Справке Маркета для продавцов](https://yandex.ru/support/marketplace/ru/orders/fbs/settings/shipment#schedule).
+	//
+	// {% include notitle [limit](../../_auto/method_limits/confirmShipment.md) %}
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v2/campaigns/{campaignId}/first-mile/shipments/{shipmentId}/confirm (the `ConfirmShipment` operationId).
+	ConfirmShipmentWithBodyWithResponse(ctx context.Context, campaignId CampaignIdParameter, shipmentId ShipmentId3, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ConfirmShipmentResponse, error)
+
+	// ConfirmShipmentWithResponse Подтверждение отгрузки
+	//
+	// {% include notitle [access](../../_auto/method_scopes/confirmShipment.md) %}
+	//
+	// Подтверждает отгрузку товаров в сортировочный центр или пункт приема заказов. Действие доступно только после того, как отгрузка сформирована.
+	//
+	// График отгрузок настраивается отдельно для каждого склада в личном кабинете и недоступен через API.
+	// Проверить возможность подтверждения отгрузки можно с помощью метода [GET v2/campaigns/{campaignId}/shipments/{shipmentId}](../../reference/shipments/getShipment): среди доступных действий `availableActions` должно быть действие `CONFIRM`.
+	// До наступления времени подтверждения метод вернет код `400` и ошибку :no-translate["Cutoff time for shipments has not been reached yet"].
+	//
+	// Подробнее о приеме заказов и расписании отгрузок читайте [в Справке Маркета для продавцов](https://yandex.ru/support/marketplace/ru/orders/fbs/settings/shipment#schedule).
+	//
+	// {% include notitle [limit](../../_auto/method_limits/confirmShipment.md) %}
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v2/campaigns/{campaignId}/first-mile/shipments/{shipmentId}/confirm (the `ConfirmShipment` operationId).
+	ConfirmShipmentWithResponse(ctx context.Context, campaignId CampaignIdParameter, shipmentId ShipmentId3, body ConfirmShipmentJSONRequestBody, reqEditors ...RequestEditorFn) (*ConfirmShipmentResponse, error)
+
+	// SetOrderBoxLayoutWithBodyWithResponse Подготовка заказа
+	//
+	// {% include notitle [access](../../_auto/method_scopes/setOrderBoxLayout.md) %}
+	//
+	// {% note tip "Подходит и для DBS" %}
+	//
+	// Запрос предназначен для работы с FBS-заказами, но вы можете использовать его для обработки DBS-заказов, если это удобно.
+	//
+	// {% endnote %}
+	//
+	// Позволяет выполнить три операции:
+	//
+	// * передать Маркету информацию о распределении товаров по коробкам;
+	// * передать Маркету коды маркировки для товаров;
+	// * удалить товар из заказа, если его не оказалось на складе.
+	//
+	// Если нужно что-то поправить в переданных данных, просто повторите запрос — это можно делать сколько угодно раз до перевода заказа в статус **Готов к отгрузке**. ⚠️ Если вы меняете раскладку уже после печати и расклейки ярлыков, не забудьте перепечатать их и наклеить заново.
+	//
+	// {% cut "Как передать информацию о распределении товаров" %}
+	//
+	// В этом запросе вам нужно передать Маркету список коробок и указать, какие именно товары лежат в каждой из них. Коробки могут быть двух типов:
+	//
+	// * **Содержащие товары целиком.** Такая коробка может содержать сколько угодно единиц любых товаров.
+	//
+	// * **Содержащие часть товара.** Такие коробки содержат по одной части одного товара. Например, одна содержит внешний блок кондиционера, а другая — внутренний блок.
+	//
+	// ⚠️ Одна коробка не может содержать и товары целиком, и части товаров.
+	//
+	// {% endcut %}
+	//
+	// {% cut "Как передавать коды маркировки и получать статус их проверки" %}
+	//
+	// {% note info "Маркировка товаров в системе [«Честный ЗНАК»](https://честныйзнак.рф/) необязательна для заказов от физических лиц" %}
+	//
+	// Для заказов от бизнеса все еще нужно передавать коды маркировки.
+	//
+	// {% endnote %}
+	//
+	// Если в заказе есть товары, подлежащие маркировке, в запросе нужно передать соответствующие уникальные коды. [Что такое маркировка](https://yandex.ru/support/marketplace/orders/cz.html)
+	//
+	// Принимаются коды следующих типов:
+	//
+	// * Коды в системе [«Честный ЗНАК»](https://честныйзнак.рф/) или [«ASL BELGISI»](https://aslbelgisi.uz) (для продавцов :no-translate[Market Yandex Go]).
+	// * УИН для ювелирных изделий.
+	// * РНПТ и ГТД для импортных прослеживаемых товаров.
+	//
+	// Для каждой позиции в заказе, требующей маркировки, нужно передать список кодов — по одному для каждой единицы товара. Например, если в заказе две пары тапочек и одна пара туфель, получится список из двух кодов для первой позиции и список из одного кода для второй.
+	//
+	// Если товар едет в нескольких коробках, код маркировки нужно передать для каждой из них.
+	//
+	// {% note warning "Если вы работаете по модели FBS, EXPRESS" %}
+	//
+	// Для заказов, в которых есть ювелирные изделия или товары с маркировкой в системе :no-translate[«Честный ЗНАК»], перевод в статус `READY_TO_SHIP` становится доступен, только когда:
+	//
+	// 1. Вы передадите Маркету :no-translate[УИНы] по каждому ювелирному изделию в заказе и коды в системе :no-translate[«Честный ЗНАК»] по всем товарам в заказе, для которых обязательна эта маркировка.
+	// 2. Все коды маркировки успешно пройдут проверку. [Как получить статусы проверки](../../reference/orders/getOrderIdentifiersStatus.md)
+	//
+	// {% endnote %}
+	//
+	// {% endcut %}
+	//
+	// {% cut "Как удалить товар из заказа" %}
+	//
+	// Чтобы удалить товар из заказа:
+	//
+	// 1. Добавьте в запрос `allowRemove: true`.
+	// 2. Передайте распределение по коробкам без товара, который нужно удалить.
+	//
+	// {% note warning "Удаление нельзя отменить" %}
+	//
+	// Эта операция необратима: покупатель сразу получит уведомление, а состав заказа изменится.
+	//
+	// {% endnote %}
+	//
+	// Чтобы удалить позицию целиком, не передавайте соответствующий `OrderBoxLayoutItemDTO`. Чтобы уменьшить количество товара, передайте уменьшенное значение в поле `fullCount`.
+	//
+	// Нельзя удалить или уменьшить количество товара, если он:
+	//
+	// * добавлен по акции;
+	// * составляет 99% стоимости заказа;
+	// * единственный товар в заказе.
+	//
+	// Если вы не можете отгрузить такой товар, отмените заказ. Для этого отправьте запрос методом [PUT v2/campaigns/{campaignId}/orders/{orderId}/status](../../reference/orders/updateOrderStatus.md) и передайте статус заказа `CANCELLED` с причиной отмены `SHOP_FAILED`.
+	//
+	// {% endcut %}
+	//
+	// {% note info "Увеличить заказ нельзя" %}
+	//
+	// С помощью запроса нельзя увеличить количество одинаковых товаров, добавить новые товары в заказ или заменить один товар другим.
+	//
+	// {% endnote %}
+	//
+	// ## Примеры
+	//
+	// {% cut "Товар умещается в коробку" %}
+	//
+	// Вот как будет выглядеть запрос, если в одной коробке едут:
+	//
+	//   * три единицы одного товара, требующего маркировки;
+	//   * одна единица другого товара, не требущего маркировки.
+	//
+	//   ```json translate=no
+	//   {
+	//       "boxes": [
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "fullCount": 3,
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           },
+	//                           {
+	//                               "cis": "010304109478gftJ14545762!\u001dhGt264"
+	//                           },
+	//                           {
+	//                               "cis": "010304109478fRs28323ks23!\u001dhet201"
+	//                           }
+	//                       ]
+	//                   },
+	//                   {
+	//                       "id": 654321,
+	//                       "fullCount": 1
+	//                   }
+	//               ]
+	//           }
+	//       ]
+	//   }
+	//   ```
+	//
+	// {% endcut %}
+	//
+	// {% cut "Товар едет в разных коробках" %}
+	//
+	// Вот как будет выглядеть запрос, если товар едет в двух коробках:
+	//
+	//   ```json translate=no
+	//   {
+	//       "boxes": [
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 1,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           },
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 2,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           }
+	//       ]
+	//   }
+	//   ```
+	//
+	// {% endcut %}
+	//
+	// {% cut "Одинаковые товары, где каждый едет в нескольких коробках" %}
+	//
+	// Вот как будет выглядеть запрос, если каждый из двух одинаковых товаров едет в двух коробках:
+	//
+	//   ```json translate=no
+	//   {
+	//       "boxes": [
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 1,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           },
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 2,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           },
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 1,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           },
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 2,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           }
+	//       ]
+	//   }
+	//   ```
+	//
+	// {% endcut %}
+	//
+	// {% cut "Разные товары в разных коробках" %}
+	//
+	// Вот как будет выглядеть запрос, если два разных товара разложены по разным коробкам:
+	//
+	//   ```json translate=no
+	//   {
+	//       "boxes": [
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "fullCount": 1
+	//                   }
+	//               ]
+	//           },
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 654321,
+	//                       "fullCount": 1
+	//                   }
+	//               ]
+	//           }
+	//       ]
+	//   }
+	//   ```
+	//
+	// {% endcut %}
+	//
+	// {% include notitle [limit](../../_auto/method_limits/setOrderBoxLayout.md) %}
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/boxes (the `SetOrderBoxLayout` operationId).
+	SetOrderBoxLayoutWithBodyWithResponse(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetOrderBoxLayoutResponse2, error)
+
+	// SetOrderBoxLayoutWithResponse Подготовка заказа
+	//
+	// {% include notitle [access](../../_auto/method_scopes/setOrderBoxLayout.md) %}
+	//
+	// {% note tip "Подходит и для DBS" %}
+	//
+	// Запрос предназначен для работы с FBS-заказами, но вы можете использовать его для обработки DBS-заказов, если это удобно.
+	//
+	// {% endnote %}
+	//
+	// Позволяет выполнить три операции:
+	//
+	// * передать Маркету информацию о распределении товаров по коробкам;
+	// * передать Маркету коды маркировки для товаров;
+	// * удалить товар из заказа, если его не оказалось на складе.
+	//
+	// Если нужно что-то поправить в переданных данных, просто повторите запрос — это можно делать сколько угодно раз до перевода заказа в статус **Готов к отгрузке**. ⚠️ Если вы меняете раскладку уже после печати и расклейки ярлыков, не забудьте перепечатать их и наклеить заново.
+	//
+	// {% cut "Как передать информацию о распределении товаров" %}
+	//
+	// В этом запросе вам нужно передать Маркету список коробок и указать, какие именно товары лежат в каждой из них. Коробки могут быть двух типов:
+	//
+	// * **Содержащие товары целиком.** Такая коробка может содержать сколько угодно единиц любых товаров.
+	//
+	// * **Содержащие часть товара.** Такие коробки содержат по одной части одного товара. Например, одна содержит внешний блок кондиционера, а другая — внутренний блок.
+	//
+	// ⚠️ Одна коробка не может содержать и товары целиком, и части товаров.
+	//
+	// {% endcut %}
+	//
+	// {% cut "Как передавать коды маркировки и получать статус их проверки" %}
+	//
+	// {% note info "Маркировка товаров в системе [«Честный ЗНАК»](https://честныйзнак.рф/) необязательна для заказов от физических лиц" %}
+	//
+	// Для заказов от бизнеса все еще нужно передавать коды маркировки.
+	//
+	// {% endnote %}
+	//
+	// Если в заказе есть товары, подлежащие маркировке, в запросе нужно передать соответствующие уникальные коды. [Что такое маркировка](https://yandex.ru/support/marketplace/orders/cz.html)
+	//
+	// Принимаются коды следующих типов:
+	//
+	// * Коды в системе [«Честный ЗНАК»](https://честныйзнак.рф/) или [«ASL BELGISI»](https://aslbelgisi.uz) (для продавцов :no-translate[Market Yandex Go]).
+	// * УИН для ювелирных изделий.
+	// * РНПТ и ГТД для импортных прослеживаемых товаров.
+	//
+	// Для каждой позиции в заказе, требующей маркировки, нужно передать список кодов — по одному для каждой единицы товара. Например, если в заказе две пары тапочек и одна пара туфель, получится список из двух кодов для первой позиции и список из одного кода для второй.
+	//
+	// Если товар едет в нескольких коробках, код маркировки нужно передать для каждой из них.
+	//
+	// {% note warning "Если вы работаете по модели FBS, EXPRESS" %}
+	//
+	// Для заказов, в которых есть ювелирные изделия или товары с маркировкой в системе :no-translate[«Честный ЗНАК»], перевод в статус `READY_TO_SHIP` становится доступен, только когда:
+	//
+	// 1. Вы передадите Маркету :no-translate[УИНы] по каждому ювелирному изделию в заказе и коды в системе :no-translate[«Честный ЗНАК»] по всем товарам в заказе, для которых обязательна эта маркировка.
+	// 2. Все коды маркировки успешно пройдут проверку. [Как получить статусы проверки](../../reference/orders/getOrderIdentifiersStatus.md)
+	//
+	// {% endnote %}
+	//
+	// {% endcut %}
+	//
+	// {% cut "Как удалить товар из заказа" %}
+	//
+	// Чтобы удалить товар из заказа:
+	//
+	// 1. Добавьте в запрос `allowRemove: true`.
+	// 2. Передайте распределение по коробкам без товара, который нужно удалить.
+	//
+	// {% note warning "Удаление нельзя отменить" %}
+	//
+	// Эта операция необратима: покупатель сразу получит уведомление, а состав заказа изменится.
+	//
+	// {% endnote %}
+	//
+	// Чтобы удалить позицию целиком, не передавайте соответствующий `OrderBoxLayoutItemDTO`. Чтобы уменьшить количество товара, передайте уменьшенное значение в поле `fullCount`.
+	//
+	// Нельзя удалить или уменьшить количество товара, если он:
+	//
+	// * добавлен по акции;
+	// * составляет 99% стоимости заказа;
+	// * единственный товар в заказе.
+	//
+	// Если вы не можете отгрузить такой товар, отмените заказ. Для этого отправьте запрос методом [PUT v2/campaigns/{campaignId}/orders/{orderId}/status](../../reference/orders/updateOrderStatus.md) и передайте статус заказа `CANCELLED` с причиной отмены `SHOP_FAILED`.
+	//
+	// {% endcut %}
+	//
+	// {% note info "Увеличить заказ нельзя" %}
+	//
+	// С помощью запроса нельзя увеличить количество одинаковых товаров, добавить новые товары в заказ или заменить один товар другим.
+	//
+	// {% endnote %}
+	//
+	// ## Примеры
+	//
+	// {% cut "Товар умещается в коробку" %}
+	//
+	// Вот как будет выглядеть запрос, если в одной коробке едут:
+	//
+	//   * три единицы одного товара, требующего маркировки;
+	//   * одна единица другого товара, не требущего маркировки.
+	//
+	//   ```json translate=no
+	//   {
+	//       "boxes": [
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "fullCount": 3,
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           },
+	//                           {
+	//                               "cis": "010304109478gftJ14545762!\u001dhGt264"
+	//                           },
+	//                           {
+	//                               "cis": "010304109478fRs28323ks23!\u001dhet201"
+	//                           }
+	//                       ]
+	//                   },
+	//                   {
+	//                       "id": 654321,
+	//                       "fullCount": 1
+	//                   }
+	//               ]
+	//           }
+	//       ]
+	//   }
+	//   ```
+	//
+	// {% endcut %}
+	//
+	// {% cut "Товар едет в разных коробках" %}
+	//
+	// Вот как будет выглядеть запрос, если товар едет в двух коробках:
+	//
+	//   ```json translate=no
+	//   {
+	//       "boxes": [
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 1,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           },
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 2,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           }
+	//       ]
+	//   }
+	//   ```
+	//
+	// {% endcut %}
+	//
+	// {% cut "Одинаковые товары, где каждый едет в нескольких коробках" %}
+	//
+	// Вот как будет выглядеть запрос, если каждый из двух одинаковых товаров едет в двух коробках:
+	//
+	//   ```json translate=no
+	//   {
+	//       "boxes": [
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 1,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           },
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 2,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           },
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 1,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           },
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "partialCount": {
+	//                           "current": 2,
+	//                           "total": 2
+	//                       },
+	//                       "instances": [
+	//                           {
+	//                               "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+	//                           }
+	//                       ]
+	//                   }
+	//               ]
+	//           }
+	//       ]
+	//   }
+	//   ```
+	//
+	// {% endcut %}
+	//
+	// {% cut "Разные товары в разных коробках" %}
+	//
+	// Вот как будет выглядеть запрос, если два разных товара разложены по разным коробкам:
+	//
+	//   ```json translate=no
+	//   {
+	//       "boxes": [
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 123456,
+	//                       "fullCount": 1
+	//                   }
+	//               ]
+	//           },
+	//           {
+	//               "items": [
+	//                   {
+	//                       "id": 654321,
+	//                       "fullCount": 1
+	//                   }
+	//               ]
+	//           }
+	//       ]
+	//   }
+	//   ```
+	//
+	// {% endcut %}
+	//
+	// {% include notitle [limit](../../_auto/method_limits/setOrderBoxLayout.md) %}
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/boxes (the `SetOrderBoxLayout` operationId).
+	SetOrderBoxLayoutWithResponse(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, body SetOrderBoxLayoutJSONRequestBody, reqEditors ...RequestEditorFn) (*SetOrderBoxLayoutResponse2, error)
+
+	// GenerateOrderLabelWithResponse Готовый ярлык‑наклейка для коробки в заказе
+	//
+	// {% include notitle [access](../../_auto/method_scopes/generateOrderLabel.md) %}
+	//
+	// Формирует ярлык‑наклейку для коробки в заказе и возвращает ярлык в PDF‑файле.
+	//
+	// Чтобы на ярлыке отображался внешний идентификатор заказа, передайте его в методе [POST v2/campaigns/{campaignId}/orders/{orderId}/external-id](../../reference/orders/updateExternalOrderId.md).
+	//
+	// {% include notitle [limit](../../_auto/method_limits/generateOrderLabel.md) %}
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /v2/campaigns/{campaignId}/orders/{orderId}/delivery/shipments/{shipmentId}/boxes/{boxId}/label (the `GenerateOrderLabel` operationId).
+	GenerateOrderLabelWithResponse(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, shipmentId ShipmentId2, boxId BoxId, params *GenerateOrderLabelParams, reqEditors ...RequestEditorFn) (*GenerateOrderLabelResponse, error)
+
+	// GetOrderIdentifiersStatusWithResponse Статусы проверки кодов маркировки
+	//
+	// {% include notitle [access](../../_auto/method_scopes/getOrderIdentifiersStatus.md) %}
+	//
+	// Возвращает статусы проверки кодов маркировки в заказе.
+	//
+	// Заказ, в котором есть ювелирные изделия или товары с обязательной маркировкой в системе [«Честный ЗНАК»](https://честныйзнак.рф/), можно перевести в статус `READY_TO_SHIP`, только когда:
+	//
+	// 1. В методе [PUT v2/campaigns/{campaignId}/orders/{orderId}/boxes](../../reference/orders/setOrderBoxLayout.md) вы передадите Маркету:
+	//
+	//     * [УИНы](:no-translate[*uin]) по каждому ювелирному изделию в заказе;
+	//
+	//     * коды маркировки в системе :no-translate[«Честный ЗНАК»] по всем товарам в заказе, для которых она обязательна.
+	// 2. Все коды маркировки успешно пройдут проверку.
+	//
+	// {% include notitle [limit](../../_auto/method_limits/getOrderIdentifiersStatus.md) %}
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v2/campaigns/{campaignId}/orders/{orderId}/identifiers/status (the `GetOrderIdentifiersStatus` operationId).
+	GetOrderIdentifiersStatusWithResponse(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, reqEditors ...RequestEditorFn) (*GetOrderIdentifiersStatusResponse2, error)
+
+	// UpdateOrderStatusWithBodyWithResponse Изменение статуса одного заказа
+	//
+	// {% include notitle [access](../../_auto/method_scopes/updateOrderStatus.md) %}
+	//
+	// Изменяет статус заказа. Возможные изменения статусов:
+	//
+	// * Если магазин подтвердил и подготовил заказ к отправке, то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "STARTED"` нужно перевести в статус `"status": "PROCESSING"` и этап обработки `"substatus": "READY_TO_SHIP"`.
+	// * Если магазин подтвердил заказ, но не может его выполнить (например, товар числится в базе, но отсутствует на складе или нет нужного цвета), то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "STARTED"` нужно перевести в статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+	// * Если магазин подготовил заказ к отгрузке, но не может его выполнить (например, последний товар был поврежден или оказался с браком), то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "READY_TO_SHIP"` нужно перевести в статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+	//
+	// Полная информация о статусной модели DBS-заказов: [Как изменяются статусы заказов](../../concepts/dbs-order-status-model.md).
+	//
+	// {% cut "**Как подтвердить LaaS-заказ**" %}
+	//
+	// Для подтверждения черновика заказа передайте статус `"status": "PROCESSING"` с подстатусом `"substatus": "STARTED"`.
+	//
+	// Подтверждение заказа, созданного с параметром `draft` равным `false`, не требуется.
+	//
+	// {% endcut %}
+	//
+	// {% cut "**Как отменить LaaS-заказ**" %}
+	//
+	// Передайте статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+	//
+	// При успешном выполнении запроса отмена произойдет через некоторое время. [Как проверить статус операции](../../reference/operations/getOperations.md)
+	//
+	// {% endcut %}
+	//
+	// {% include notitle [limit](../../_auto/method_limits/updateOrderStatus.md) %}
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/status (the `UpdateOrderStatus` operationId).
+	UpdateOrderStatusWithBodyWithResponse(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateOrderStatusResponse2, error)
+
+	// UpdateOrderStatusWithResponse Изменение статуса одного заказа
+	//
+	// {% include notitle [access](../../_auto/method_scopes/updateOrderStatus.md) %}
+	//
+	// Изменяет статус заказа. Возможные изменения статусов:
+	//
+	// * Если магазин подтвердил и подготовил заказ к отправке, то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "STARTED"` нужно перевести в статус `"status": "PROCESSING"` и этап обработки `"substatus": "READY_TO_SHIP"`.
+	// * Если магазин подтвердил заказ, но не может его выполнить (например, товар числится в базе, но отсутствует на складе или нет нужного цвета), то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "STARTED"` нужно перевести в статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+	// * Если магазин подготовил заказ к отгрузке, но не может его выполнить (например, последний товар был поврежден или оказался с браком), то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "READY_TO_SHIP"` нужно перевести в статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+	//
+	// Полная информация о статусной модели DBS-заказов: [Как изменяются статусы заказов](../../concepts/dbs-order-status-model.md).
+	//
+	// {% cut "**Как подтвердить LaaS-заказ**" %}
+	//
+	// Для подтверждения черновика заказа передайте статус `"status": "PROCESSING"` с подстатусом `"substatus": "STARTED"`.
+	//
+	// Подтверждение заказа, созданного с параметром `draft` равным `false`, не требуется.
+	//
+	// {% endcut %}
+	//
+	// {% cut "**Как отменить LaaS-заказ**" %}
+	//
+	// Передайте статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+	//
+	// При успешном выполнении запроса отмена произойдет через некоторое время. [Как проверить статус операции](../../reference/operations/getOperations.md)
+	//
+	// {% endcut %}
+	//
+	// {% include notitle [limit](../../_auto/method_limits/updateOrderStatus.md) %}
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/status (the `UpdateOrderStatus` operationId).
+	UpdateOrderStatusWithResponse(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, body UpdateOrderStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateOrderStatusResponse2, error)
+
+	// VerifyOrderEacWithBodyWithResponse Передача кода подтверждения
+	//
+	// {% include notitle [access](../../_auto/method_scopes/verifyOrderEac.md) %}
+	//
+	// Отправляет Маркету код подтверждения для его проверки.
+	//
+	// **Если у магазина настроена работа с кодами подтверждения:**
+	//
+	//   В параметре `delivery`, вложенном в `order`, возвращается параметр `eacType` с типом `Enum` (тип кода подтверждения для передачи заказа) в методах:
+	//
+	//   * [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md);
+	//   * [PUT v2/campaigns/{campaignId}/orders/{orderId}/status](../../reference/orders/updateOrderStatus.md).
+	//
+	//   Возможные значения:
+	//
+	//   * `MERCHANT_TO_COURIER` (временно не возвращается) — продавец передает код курьеру для получения невыкупа;
+	//   * `COURIER_TO_MERCHANT` — курьер передает код продавцу для получения заказа.
+	//
+	//   Параметр `eacType` возвращается при статусах заказа `COURIER_FOUND`, `COURIER_ARRIVED_TO_SENDER` и `DELIVERY_SERVICE_UNDELIVERED`. Если заказ в других статусах, параметр может отсутствовать.
+	//
+	// {% include notitle [limit](../../_auto/method_limits/verifyOrderEac.md) %}
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/verifyEac (the `VerifyOrderEac` operationId).
+	VerifyOrderEacWithBodyWithResponse(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*VerifyOrderEacResponse2, error)
+
+	// VerifyOrderEacWithResponse Передача кода подтверждения
+	//
+	// {% include notitle [access](../../_auto/method_scopes/verifyOrderEac.md) %}
+	//
+	// Отправляет Маркету код подтверждения для его проверки.
+	//
+	// **Если у магазина настроена работа с кодами подтверждения:**
+	//
+	//   В параметре `delivery`, вложенном в `order`, возвращается параметр `eacType` с типом `Enum` (тип кода подтверждения для передачи заказа) в методах:
+	//
+	//   * [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md);
+	//   * [PUT v2/campaigns/{campaignId}/orders/{orderId}/status](../../reference/orders/updateOrderStatus.md).
+	//
+	//   Возможные значения:
+	//
+	//   * `MERCHANT_TO_COURIER` (временно не возвращается) — продавец передает код курьеру для получения невыкупа;
+	//   * `COURIER_TO_MERCHANT` — курьер передает код продавцу для получения заказа.
+	//
+	//   Параметр `eacType` возвращается при статусах заказа `COURIER_FOUND`, `COURIER_ARRIVED_TO_SENDER` и `DELIVERY_SERVICE_UNDELIVERED`. Если заказ в других статусах, параметр может отсутствовать.
+	//
+	// {% include notitle [limit](../../_auto/method_limits/verifyOrderEac.md) %}
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/verifyEac (the `VerifyOrderEac` operationId).
+	VerifyOrderEacWithResponse(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, body VerifyOrderEacJSONRequestBody, reqEditors ...RequestEditorFn) (*VerifyOrderEacResponse2, error)
 
 	// GetPartnerWarehousesWithBodyWithResponse Список складов
 	//
@@ -6558,6 +12354,739 @@ func (r GetCampaignsResponse2) ContentType() string {
 	return ""
 }
 
+type SearchShipmentsResponse2 struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *SearchShipmentsResponse
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404
+	// JSON420 the response for an HTTP 420 `application/json` response
+	JSON420 *N420
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SearchShipmentsResponse2) GetJSON200() *SearchShipmentsResponse {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r SearchShipmentsResponse2) GetJSON400() *N400 {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r SearchShipmentsResponse2) GetJSON401() *N401 {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r SearchShipmentsResponse2) GetJSON403() *N403 {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r SearchShipmentsResponse2) GetJSON404() *N404 {
+	return r.JSON404
+}
+
+// GetJSON420 returns the response for an HTTP 420 `application/json` response
+func (r SearchShipmentsResponse2) GetJSON420() *N420 {
+	return r.JSON420
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r SearchShipmentsResponse2) GetJSON500() *N500 {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r SearchShipmentsResponse2) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SearchShipmentsResponse2) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SearchShipmentsResponse2) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SearchShipmentsResponse2) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetShipmentResponse2 struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *GetShipmentResponse
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404
+	// JSON420 the response for an HTTP 420 `application/json` response
+	JSON420 *N420
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetShipmentResponse2) GetJSON200() *GetShipmentResponse {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r GetShipmentResponse2) GetJSON400() *N400 {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetShipmentResponse2) GetJSON401() *N401 {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r GetShipmentResponse2) GetJSON403() *N403 {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetShipmentResponse2) GetJSON404() *N404 {
+	return r.JSON404
+}
+
+// GetJSON420 returns the response for an HTTP 420 `application/json` response
+func (r GetShipmentResponse2) GetJSON420() *N420 {
+	return r.JSON420
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r GetShipmentResponse2) GetJSON500() *N500 {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r GetShipmentResponse2) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetShipmentResponse2) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetShipmentResponse2) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetShipmentResponse2) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DownloadShipmentActResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *ApiClientDataErrorResponse
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404
+	// JSON420 the response for an HTTP 420 `application/json` response
+	JSON420 *N420
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r DownloadShipmentActResponse) GetJSON400() *ApiClientDataErrorResponse {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r DownloadShipmentActResponse) GetJSON401() *N401 {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r DownloadShipmentActResponse) GetJSON403() *N403 {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r DownloadShipmentActResponse) GetJSON404() *N404 {
+	return r.JSON404
+}
+
+// GetJSON420 returns the response for an HTTP 420 `application/json` response
+func (r DownloadShipmentActResponse) GetJSON420() *N420 {
+	return r.JSON420
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r DownloadShipmentActResponse) GetJSON500() *N500 {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r DownloadShipmentActResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DownloadShipmentActResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DownloadShipmentActResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DownloadShipmentActResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ConfirmShipmentResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *EmptyApiResponse
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *ApiClientDataErrorResponse
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404
+	// JSON420 the response for an HTTP 420 `application/json` response
+	JSON420 *N420
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ConfirmShipmentResponse) GetJSON200() *EmptyApiResponse {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ConfirmShipmentResponse) GetJSON400() *ApiClientDataErrorResponse {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ConfirmShipmentResponse) GetJSON401() *N401 {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r ConfirmShipmentResponse) GetJSON403() *N403 {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ConfirmShipmentResponse) GetJSON404() *N404 {
+	return r.JSON404
+}
+
+// GetJSON420 returns the response for an HTTP 420 `application/json` response
+func (r ConfirmShipmentResponse) GetJSON420() *N420 {
+	return r.JSON420
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r ConfirmShipmentResponse) GetJSON500() *N500 {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r ConfirmShipmentResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ConfirmShipmentResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ConfirmShipmentResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ConfirmShipmentResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SetOrderBoxLayoutResponse2 struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *SetOrderBoxLayoutResponse
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *ApiClientDataErrorResponse
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404
+	// JSON420 the response for an HTTP 420 `application/json` response
+	JSON420 *N420
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SetOrderBoxLayoutResponse2) GetJSON200() *SetOrderBoxLayoutResponse {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r SetOrderBoxLayoutResponse2) GetJSON400() *ApiClientDataErrorResponse {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r SetOrderBoxLayoutResponse2) GetJSON401() *N401 {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r SetOrderBoxLayoutResponse2) GetJSON403() *N403 {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r SetOrderBoxLayoutResponse2) GetJSON404() *N404 {
+	return r.JSON404
+}
+
+// GetJSON420 returns the response for an HTTP 420 `application/json` response
+func (r SetOrderBoxLayoutResponse2) GetJSON420() *N420 {
+	return r.JSON420
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r SetOrderBoxLayoutResponse2) GetJSON500() *N500 {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r SetOrderBoxLayoutResponse2) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SetOrderBoxLayoutResponse2) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SetOrderBoxLayoutResponse2) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SetOrderBoxLayoutResponse2) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GenerateOrderLabelResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404
+	// JSON420 the response for an HTTP 420 `application/json` response
+	JSON420 *N420
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r GenerateOrderLabelResponse) GetJSON400() *N400 {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GenerateOrderLabelResponse) GetJSON401() *N401 {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r GenerateOrderLabelResponse) GetJSON403() *N403 {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GenerateOrderLabelResponse) GetJSON404() *N404 {
+	return r.JSON404
+}
+
+// GetJSON420 returns the response for an HTTP 420 `application/json` response
+func (r GenerateOrderLabelResponse) GetJSON420() *N420 {
+	return r.JSON420
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r GenerateOrderLabelResponse) GetJSON500() *N500 {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r GenerateOrderLabelResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GenerateOrderLabelResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GenerateOrderLabelResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GenerateOrderLabelResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetOrderIdentifiersStatusResponse2 struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *GetOrderIdentifiersStatusResponse
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404
+	// JSON420 the response for an HTTP 420 `application/json` response
+	JSON420 *N420
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetOrderIdentifiersStatusResponse2) GetJSON200() *GetOrderIdentifiersStatusResponse {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r GetOrderIdentifiersStatusResponse2) GetJSON400() *N400 {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetOrderIdentifiersStatusResponse2) GetJSON401() *N401 {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r GetOrderIdentifiersStatusResponse2) GetJSON403() *N403 {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetOrderIdentifiersStatusResponse2) GetJSON404() *N404 {
+	return r.JSON404
+}
+
+// GetJSON420 returns the response for an HTTP 420 `application/json` response
+func (r GetOrderIdentifiersStatusResponse2) GetJSON420() *N420 {
+	return r.JSON420
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r GetOrderIdentifiersStatusResponse2) GetJSON500() *N500 {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r GetOrderIdentifiersStatusResponse2) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetOrderIdentifiersStatusResponse2) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetOrderIdentifiersStatusResponse2) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetOrderIdentifiersStatusResponse2) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UpdateOrderStatusResponse2 struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *UpdateOrderStatusResponse
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404
+	// JSON420 the response for an HTTP 420 `application/json` response
+	JSON420 *N420
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateOrderStatusResponse2) GetJSON200() *UpdateOrderStatusResponse {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r UpdateOrderStatusResponse2) GetJSON400() *N400 {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r UpdateOrderStatusResponse2) GetJSON401() *N401 {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r UpdateOrderStatusResponse2) GetJSON403() *N403 {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r UpdateOrderStatusResponse2) GetJSON404() *N404 {
+	return r.JSON404
+}
+
+// GetJSON420 returns the response for an HTTP 420 `application/json` response
+func (r UpdateOrderStatusResponse2) GetJSON420() *N420 {
+	return r.JSON420
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r UpdateOrderStatusResponse2) GetJSON500() *N500 {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateOrderStatusResponse2) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateOrderStatusResponse2) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateOrderStatusResponse2) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateOrderStatusResponse2) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type VerifyOrderEacResponse2 struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *VerifyOrderEacResponse
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *N400
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *N401
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *N403
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *N404
+	// JSON420 the response for an HTTP 420 `application/json` response
+	JSON420 *N420
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *N500
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r VerifyOrderEacResponse2) GetJSON200() *VerifyOrderEacResponse {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r VerifyOrderEacResponse2) GetJSON400() *N400 {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r VerifyOrderEacResponse2) GetJSON401() *N401 {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r VerifyOrderEacResponse2) GetJSON403() *N403 {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r VerifyOrderEacResponse2) GetJSON404() *N404 {
+	return r.JSON404
+}
+
+// GetJSON420 returns the response for an HTTP 420 `application/json` response
+func (r VerifyOrderEacResponse2) GetJSON420() *N420 {
+	return r.JSON420
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r VerifyOrderEacResponse2) GetJSON500() *N500 {
+	return r.JSON500
+}
+
+// GetBody returns the raw response body bytes
+func (r VerifyOrderEacResponse2) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r VerifyOrderEacResponse2) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r VerifyOrderEacResponse2) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r VerifyOrderEacResponse2) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetPartnerWarehousesResponse2 struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -6850,6 +13379,986 @@ func (c *ClientWithResponses) GetCampaignsWithResponse(ctx context.Context, para
 	return ParseGetCampaignsResponse2(rsp)
 }
 
+// SearchShipmentsWithBodyWithResponse Получение информации о нескольких отгрузках
+//
+// {% include notitle [access](../../_auto/method_scopes/searchShipments.md) %}
+//
+// Возвращает информацию об отгрузках по заданным параметрам:
+//
+// * дате;
+// * статусу;
+// * идентификаторам заказов.
+//
+// Результаты возвращаются постранично.
+//
+// {% include notitle [limit](../../_auto/method_limits/searchShipments.md) %}
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /v2/campaigns/{campaignId}/first-mile/shipments (the `SearchShipments` operationId).
+func (c *ClientWithResponses) SearchShipmentsWithBodyWithResponse(ctx context.Context, campaignId CampaignIdParameter, params *SearchShipmentsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SearchShipmentsResponse2, error) {
+	rsp, err := c.SearchShipmentsWithBody(ctx, campaignId, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSearchShipmentsResponse2(rsp)
+}
+
+// SearchShipmentsWithResponse Получение информации о нескольких отгрузках
+//
+// {% include notitle [access](../../_auto/method_scopes/searchShipments.md) %}
+//
+// Возвращает информацию об отгрузках по заданным параметрам:
+//
+// * дате;
+// * статусу;
+// * идентификаторам заказов.
+//
+// Результаты возвращаются постранично.
+//
+// {% include notitle [limit](../../_auto/method_limits/searchShipments.md) %}
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /v2/campaigns/{campaignId}/first-mile/shipments (the `SearchShipments` operationId).
+func (c *ClientWithResponses) SearchShipmentsWithResponse(ctx context.Context, campaignId CampaignIdParameter, params *SearchShipmentsParams, body SearchShipmentsJSONRequestBody, reqEditors ...RequestEditorFn) (*SearchShipmentsResponse2, error) {
+	rsp, err := c.SearchShipments(ctx, campaignId, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSearchShipmentsResponse2(rsp)
+}
+
+// GetShipmentWithResponse Получение информации об одной отгрузке
+//
+// {% include notitle [access](../../_auto/method_scopes/getShipment.md) %}
+//
+// Возвращает информацию об отгрузке по ее идентификатору.
+//
+// {% include notitle [limit](../../_auto/method_limits/getShipment.md) %}
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /v2/campaigns/{campaignId}/first-mile/shipments/{shipmentId} (the `GetShipment` operationId).
+func (c *ClientWithResponses) GetShipmentWithResponse(ctx context.Context, campaignId CampaignIdParameter, shipmentId ShipmentId3, params *GetShipmentParams, reqEditors ...RequestEditorFn) (*GetShipmentResponse2, error) {
+	rsp, err := c.GetShipment(ctx, campaignId, shipmentId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetShipmentResponse2(rsp)
+}
+
+// DownloadShipmentActWithResponse Получение акта приема-передачи
+//
+// {% include notitle [access](../../_auto/method_scopes/downloadShipmentAct.md) %}
+//
+// {% note warning "Экспресс‑доставка" %}
+//
+// Если ваш магазин подключен к экспресс‑доставке и вы отгружаете заказы курьерам [Яндекс Go](https://go.yandex/), подготавливать акт приема‑передачи не нужно.
+//
+// {% endnote %}
+//
+// Запрос формирует акт приема-передачи заказов, входящих в отгрузку, и возвращает акт в формате PDF. В акте содержатся собранные и готовые к отправке заказы.
+//
+// Метод доступен только для подтвержденной отгрузки. Сначала подтвердите отгрузку запросом [POST v2/campaigns/{campaignId}/shipments/{shipmentId}/confirm](../../reference/shipments/confirmShipment.md), затем вызовите этот метод.
+//
+// При формировании акта Маркет автоматически находит и подставляет в шаблон следующие данные:
+//
+// {% cut "Данные, из которых Маркет формирует акт" %}
+//
+// #|
+// || **Данные в акте**                                         | **Описание**                                                                                                                                                                                                                                                         ||
+// || Дата                                                      | Дата запроса.                                                                                                                                                                                                                                                        ||
+// || Отправитель                                               | Название вашего юридического лица, указанное в кабинете продавца на Маркете.                                                                                                                                                                                         ||
+// || Исполнитель                                               | Название юридического лица сортировочного центра или службы доставки.                                                                                                                                                                                                ||
+// || № отправления в системе заказчика                         | Внешний идентификатор заказа продавца, который можно передать запросом [POST v2/campaigns/{campaignId}/orders/{orderId}/external-id](../../reference/orders/updateExternalOrderId.md).                                                                            ||
+// || № отправления в системе исполнителя (субподрядчика)       |
+//
+//	Идентификатор заказа на Маркете, как в выходных данных запроса:
+//
+//	* [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md).||
+//
+// || Объявленная ценность                                      |
+//
+//	Общая сумма заказа без учета стоимости доставки, как в выходных данных запроса:
+//
+//	* [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md).||
+//
+// || Вес                                                       |
+//
+//	Масса брутто грузового места (суммарная масса упаковки и содержимого), как в выходных данных запроса:
+//
+//	* [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md).||
+//
+// || Количество мест                                           |
+//
+//	Количество грузовых мест в заказе, как в выходных данных запроса:
+//
+//	* [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md). ||
+//
+// |#
+//
+// {% endcut %}
+//
+// В распечатанном акте укажите отправителя и исполнителя. Они должны подписать акт и указать фамилию и инициалы рядом с подписью. При необходимости также заполните реквизиты доверенности.
+//
+// {% include notitle [limit](../../_auto/method_limits/downloadShipmentAct.md) %}
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /v2/campaigns/{campaignId}/first-mile/shipments/{shipmentId}/act (the `DownloadShipmentAct` operationId).
+func (c *ClientWithResponses) DownloadShipmentActWithResponse(ctx context.Context, campaignId CampaignIdParameter, shipmentId ShipmentId3, reqEditors ...RequestEditorFn) (*DownloadShipmentActResponse, error) {
+	rsp, err := c.DownloadShipmentAct(ctx, campaignId, shipmentId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDownloadShipmentActResponse(rsp)
+}
+
+// ConfirmShipmentWithBodyWithResponse Подтверждение отгрузки
+//
+// {% include notitle [access](../../_auto/method_scopes/confirmShipment.md) %}
+//
+// Подтверждает отгрузку товаров в сортировочный центр или пункт приема заказов. Действие доступно только после того, как отгрузка сформирована.
+//
+// График отгрузок настраивается отдельно для каждого склада в личном кабинете и недоступен через API.
+// Проверить возможность подтверждения отгрузки можно с помощью метода [GET v2/campaigns/{campaignId}/shipments/{shipmentId}](../../reference/shipments/getShipment): среди доступных действий `availableActions` должно быть действие `CONFIRM`.
+// До наступления времени подтверждения метод вернет код `400` и ошибку :no-translate["Cutoff time for shipments has not been reached yet"].
+//
+// Подробнее о приеме заказов и расписании отгрузок читайте [в Справке Маркета для продавцов](https://yandex.ru/support/marketplace/ru/orders/fbs/settings/shipment#schedule).
+//
+// {% include notitle [limit](../../_auto/method_limits/confirmShipment.md) %}
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v2/campaigns/{campaignId}/first-mile/shipments/{shipmentId}/confirm (the `ConfirmShipment` operationId).
+func (c *ClientWithResponses) ConfirmShipmentWithBodyWithResponse(ctx context.Context, campaignId CampaignIdParameter, shipmentId ShipmentId3, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ConfirmShipmentResponse, error) {
+	rsp, err := c.ConfirmShipmentWithBody(ctx, campaignId, shipmentId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseConfirmShipmentResponse(rsp)
+}
+
+// ConfirmShipmentWithResponse Подтверждение отгрузки
+//
+// {% include notitle [access](../../_auto/method_scopes/confirmShipment.md) %}
+//
+// Подтверждает отгрузку товаров в сортировочный центр или пункт приема заказов. Действие доступно только после того, как отгрузка сформирована.
+//
+// График отгрузок настраивается отдельно для каждого склада в личном кабинете и недоступен через API.
+// Проверить возможность подтверждения отгрузки можно с помощью метода [GET v2/campaigns/{campaignId}/shipments/{shipmentId}](../../reference/shipments/getShipment): среди доступных действий `availableActions` должно быть действие `CONFIRM`.
+// До наступления времени подтверждения метод вернет код `400` и ошибку :no-translate["Cutoff time for shipments has not been reached yet"].
+//
+// Подробнее о приеме заказов и расписании отгрузок читайте [в Справке Маркета для продавцов](https://yandex.ru/support/marketplace/ru/orders/fbs/settings/shipment#schedule).
+//
+// {% include notitle [limit](../../_auto/method_limits/confirmShipment.md) %}
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v2/campaigns/{campaignId}/first-mile/shipments/{shipmentId}/confirm (the `ConfirmShipment` operationId).
+func (c *ClientWithResponses) ConfirmShipmentWithResponse(ctx context.Context, campaignId CampaignIdParameter, shipmentId ShipmentId3, body ConfirmShipmentJSONRequestBody, reqEditors ...RequestEditorFn) (*ConfirmShipmentResponse, error) {
+	rsp, err := c.ConfirmShipment(ctx, campaignId, shipmentId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseConfirmShipmentResponse(rsp)
+}
+
+// SetOrderBoxLayoutWithBodyWithResponse Подготовка заказа
+//
+// {% include notitle [access](../../_auto/method_scopes/setOrderBoxLayout.md) %}
+//
+// {% note tip "Подходит и для DBS" %}
+//
+// Запрос предназначен для работы с FBS-заказами, но вы можете использовать его для обработки DBS-заказов, если это удобно.
+//
+// {% endnote %}
+//
+// Позволяет выполнить три операции:
+//
+// * передать Маркету информацию о распределении товаров по коробкам;
+// * передать Маркету коды маркировки для товаров;
+// * удалить товар из заказа, если его не оказалось на складе.
+//
+// Если нужно что-то поправить в переданных данных, просто повторите запрос — это можно делать сколько угодно раз до перевода заказа в статус **Готов к отгрузке**. ⚠️ Если вы меняете раскладку уже после печати и расклейки ярлыков, не забудьте перепечатать их и наклеить заново.
+//
+// {% cut "Как передать информацию о распределении товаров" %}
+//
+// В этом запросе вам нужно передать Маркету список коробок и указать, какие именно товары лежат в каждой из них. Коробки могут быть двух типов:
+//
+// * **Содержащие товары целиком.** Такая коробка может содержать сколько угодно единиц любых товаров.
+//
+// * **Содержащие часть товара.** Такие коробки содержат по одной части одного товара. Например, одна содержит внешний блок кондиционера, а другая — внутренний блок.
+//
+// ⚠️ Одна коробка не может содержать и товары целиком, и части товаров.
+//
+// {% endcut %}
+//
+// {% cut "Как передавать коды маркировки и получать статус их проверки" %}
+//
+// {% note info "Маркировка товаров в системе [«Честный ЗНАК»](https://честныйзнак.рф/) необязательна для заказов от физических лиц" %}
+//
+// Для заказов от бизнеса все еще нужно передавать коды маркировки.
+//
+// {% endnote %}
+//
+// Если в заказе есть товары, подлежащие маркировке, в запросе нужно передать соответствующие уникальные коды. [Что такое маркировка](https://yandex.ru/support/marketplace/orders/cz.html)
+//
+// Принимаются коды следующих типов:
+//
+// * Коды в системе [«Честный ЗНАК»](https://честныйзнак.рф/) или [«ASL BELGISI»](https://aslbelgisi.uz) (для продавцов :no-translate[Market Yandex Go]).
+// * УИН для ювелирных изделий.
+// * РНПТ и ГТД для импортных прослеживаемых товаров.
+//
+// Для каждой позиции в заказе, требующей маркировки, нужно передать список кодов — по одному для каждой единицы товара. Например, если в заказе две пары тапочек и одна пара туфель, получится список из двух кодов для первой позиции и список из одного кода для второй.
+//
+// Если товар едет в нескольких коробках, код маркировки нужно передать для каждой из них.
+//
+// {% note warning "Если вы работаете по модели FBS, EXPRESS" %}
+//
+// Для заказов, в которых есть ювелирные изделия или товары с маркировкой в системе :no-translate[«Честный ЗНАК»], перевод в статус `READY_TO_SHIP` становится доступен, только когда:
+//
+// 1. Вы передадите Маркету :no-translate[УИНы] по каждому ювелирному изделию в заказе и коды в системе :no-translate[«Честный ЗНАК»] по всем товарам в заказе, для которых обязательна эта маркировка.
+// 2. Все коды маркировки успешно пройдут проверку. [Как получить статусы проверки](../../reference/orders/getOrderIdentifiersStatus.md)
+//
+// {% endnote %}
+//
+// {% endcut %}
+//
+// {% cut "Как удалить товар из заказа" %}
+//
+// Чтобы удалить товар из заказа:
+//
+// 1. Добавьте в запрос `allowRemove: true`.
+// 2. Передайте распределение по коробкам без товара, который нужно удалить.
+//
+// {% note warning "Удаление нельзя отменить" %}
+//
+// Эта операция необратима: покупатель сразу получит уведомление, а состав заказа изменится.
+//
+// {% endnote %}
+//
+// Чтобы удалить позицию целиком, не передавайте соответствующий `OrderBoxLayoutItemDTO`. Чтобы уменьшить количество товара, передайте уменьшенное значение в поле `fullCount`.
+//
+// Нельзя удалить или уменьшить количество товара, если он:
+//
+// * добавлен по акции;
+// * составляет 99% стоимости заказа;
+// * единственный товар в заказе.
+//
+// Если вы не можете отгрузить такой товар, отмените заказ. Для этого отправьте запрос методом [PUT v2/campaigns/{campaignId}/orders/{orderId}/status](../../reference/orders/updateOrderStatus.md) и передайте статус заказа `CANCELLED` с причиной отмены `SHOP_FAILED`.
+//
+// {% endcut %}
+//
+// {% note info "Увеличить заказ нельзя" %}
+//
+// С помощью запроса нельзя увеличить количество одинаковых товаров, добавить новые товары в заказ или заменить один товар другим.
+//
+// {% endnote %}
+//
+// ## Примеры
+//
+// {% cut "Товар умещается в коробку" %}
+//
+// Вот как будет выглядеть запрос, если в одной коробке едут:
+//
+//   - три единицы одного товара, требующего маркировки;
+//
+//   - одна единица другого товара, не требущего маркировки.
+//
+//     ```json translate=no
+//     {
+//     "boxes": [
+//     {
+//     "items": [
+//     {
+//     "id": 123456,
+//     "fullCount": 3,
+//     "instances": [
+//     {
+//     "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//     },
+//     {
+//     "cis": "010304109478gftJ14545762!\u001dhGt264"
+//     },
+//     {
+//     "cis": "010304109478fRs28323ks23!\u001dhet201"
+//     }
+//     ]
+//     },
+//     {
+//     "id": 654321,
+//     "fullCount": 1
+//     }
+//     ]
+//     }
+//     ]
+//     }
+//     ```
+//
+// {% endcut %}
+//
+// {% cut "Товар едет в разных коробках" %}
+//
+// Вот как будет выглядеть запрос, если товар едет в двух коробках:
+//
+//	```json translate=no
+//	{
+//	    "boxes": [
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 1,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        },
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 2,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        }
+//	    ]
+//	}
+//	```
+//
+// {% endcut %}
+//
+// {% cut "Одинаковые товары, где каждый едет в нескольких коробках" %}
+//
+// Вот как будет выглядеть запрос, если каждый из двух одинаковых товаров едет в двух коробках:
+//
+//	```json translate=no
+//	{
+//	    "boxes": [
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 1,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        },
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 2,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        },
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 1,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        },
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 2,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        }
+//	    ]
+//	}
+//	```
+//
+// {% endcut %}
+//
+// {% cut "Разные товары в разных коробках" %}
+//
+// Вот как будет выглядеть запрос, если два разных товара разложены по разным коробкам:
+//
+//	```json translate=no
+//	{
+//	    "boxes": [
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "fullCount": 1
+//	                }
+//	            ]
+//	        },
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 654321,
+//	                    "fullCount": 1
+//	                }
+//	            ]
+//	        }
+//	    ]
+//	}
+//	```
+//
+// {% endcut %}
+//
+// {% include notitle [limit](../../_auto/method_limits/setOrderBoxLayout.md) %}
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/boxes (the `SetOrderBoxLayout` operationId).
+func (c *ClientWithResponses) SetOrderBoxLayoutWithBodyWithResponse(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetOrderBoxLayoutResponse2, error) {
+	rsp, err := c.SetOrderBoxLayoutWithBody(ctx, campaignId, orderId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetOrderBoxLayoutResponse2(rsp)
+}
+
+// SetOrderBoxLayoutWithResponse Подготовка заказа
+//
+// {% include notitle [access](../../_auto/method_scopes/setOrderBoxLayout.md) %}
+//
+// {% note tip "Подходит и для DBS" %}
+//
+// Запрос предназначен для работы с FBS-заказами, но вы можете использовать его для обработки DBS-заказов, если это удобно.
+//
+// {% endnote %}
+//
+// Позволяет выполнить три операции:
+//
+// * передать Маркету информацию о распределении товаров по коробкам;
+// * передать Маркету коды маркировки для товаров;
+// * удалить товар из заказа, если его не оказалось на складе.
+//
+// Если нужно что-то поправить в переданных данных, просто повторите запрос — это можно делать сколько угодно раз до перевода заказа в статус **Готов к отгрузке**. ⚠️ Если вы меняете раскладку уже после печати и расклейки ярлыков, не забудьте перепечатать их и наклеить заново.
+//
+// {% cut "Как передать информацию о распределении товаров" %}
+//
+// В этом запросе вам нужно передать Маркету список коробок и указать, какие именно товары лежат в каждой из них. Коробки могут быть двух типов:
+//
+// * **Содержащие товары целиком.** Такая коробка может содержать сколько угодно единиц любых товаров.
+//
+// * **Содержащие часть товара.** Такие коробки содержат по одной части одного товара. Например, одна содержит внешний блок кондиционера, а другая — внутренний блок.
+//
+// ⚠️ Одна коробка не может содержать и товары целиком, и части товаров.
+//
+// {% endcut %}
+//
+// {% cut "Как передавать коды маркировки и получать статус их проверки" %}
+//
+// {% note info "Маркировка товаров в системе [«Честный ЗНАК»](https://честныйзнак.рф/) необязательна для заказов от физических лиц" %}
+//
+// Для заказов от бизнеса все еще нужно передавать коды маркировки.
+//
+// {% endnote %}
+//
+// Если в заказе есть товары, подлежащие маркировке, в запросе нужно передать соответствующие уникальные коды. [Что такое маркировка](https://yandex.ru/support/marketplace/orders/cz.html)
+//
+// Принимаются коды следующих типов:
+//
+// * Коды в системе [«Честный ЗНАК»](https://честныйзнак.рф/) или [«ASL BELGISI»](https://aslbelgisi.uz) (для продавцов :no-translate[Market Yandex Go]).
+// * УИН для ювелирных изделий.
+// * РНПТ и ГТД для импортных прослеживаемых товаров.
+//
+// Для каждой позиции в заказе, требующей маркировки, нужно передать список кодов — по одному для каждой единицы товара. Например, если в заказе две пары тапочек и одна пара туфель, получится список из двух кодов для первой позиции и список из одного кода для второй.
+//
+// Если товар едет в нескольких коробках, код маркировки нужно передать для каждой из них.
+//
+// {% note warning "Если вы работаете по модели FBS, EXPRESS" %}
+//
+// Для заказов, в которых есть ювелирные изделия или товары с маркировкой в системе :no-translate[«Честный ЗНАК»], перевод в статус `READY_TO_SHIP` становится доступен, только когда:
+//
+// 1. Вы передадите Маркету :no-translate[УИНы] по каждому ювелирному изделию в заказе и коды в системе :no-translate[«Честный ЗНАК»] по всем товарам в заказе, для которых обязательна эта маркировка.
+// 2. Все коды маркировки успешно пройдут проверку. [Как получить статусы проверки](../../reference/orders/getOrderIdentifiersStatus.md)
+//
+// {% endnote %}
+//
+// {% endcut %}
+//
+// {% cut "Как удалить товар из заказа" %}
+//
+// Чтобы удалить товар из заказа:
+//
+// 1. Добавьте в запрос `allowRemove: true`.
+// 2. Передайте распределение по коробкам без товара, который нужно удалить.
+//
+// {% note warning "Удаление нельзя отменить" %}
+//
+// Эта операция необратима: покупатель сразу получит уведомление, а состав заказа изменится.
+//
+// {% endnote %}
+//
+// Чтобы удалить позицию целиком, не передавайте соответствующий `OrderBoxLayoutItemDTO`. Чтобы уменьшить количество товара, передайте уменьшенное значение в поле `fullCount`.
+//
+// Нельзя удалить или уменьшить количество товара, если он:
+//
+// * добавлен по акции;
+// * составляет 99% стоимости заказа;
+// * единственный товар в заказе.
+//
+// Если вы не можете отгрузить такой товар, отмените заказ. Для этого отправьте запрос методом [PUT v2/campaigns/{campaignId}/orders/{orderId}/status](../../reference/orders/updateOrderStatus.md) и передайте статус заказа `CANCELLED` с причиной отмены `SHOP_FAILED`.
+//
+// {% endcut %}
+//
+// {% note info "Увеличить заказ нельзя" %}
+//
+// С помощью запроса нельзя увеличить количество одинаковых товаров, добавить новые товары в заказ или заменить один товар другим.
+//
+// {% endnote %}
+//
+// ## Примеры
+//
+// {% cut "Товар умещается в коробку" %}
+//
+// Вот как будет выглядеть запрос, если в одной коробке едут:
+//
+//   - три единицы одного товара, требующего маркировки;
+//
+//   - одна единица другого товара, не требущего маркировки.
+//
+//     ```json translate=no
+//     {
+//     "boxes": [
+//     {
+//     "items": [
+//     {
+//     "id": 123456,
+//     "fullCount": 3,
+//     "instances": [
+//     {
+//     "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//     },
+//     {
+//     "cis": "010304109478gftJ14545762!\u001dhGt264"
+//     },
+//     {
+//     "cis": "010304109478fRs28323ks23!\u001dhet201"
+//     }
+//     ]
+//     },
+//     {
+//     "id": 654321,
+//     "fullCount": 1
+//     }
+//     ]
+//     }
+//     ]
+//     }
+//     ```
+//
+// {% endcut %}
+//
+// {% cut "Товар едет в разных коробках" %}
+//
+// Вот как будет выглядеть запрос, если товар едет в двух коробках:
+//
+//	```json translate=no
+//	{
+//	    "boxes": [
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 1,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        },
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 2,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        }
+//	    ]
+//	}
+//	```
+//
+// {% endcut %}
+//
+// {% cut "Одинаковые товары, где каждый едет в нескольких коробках" %}
+//
+// Вот как будет выглядеть запрос, если каждый из двух одинаковых товаров едет в двух коробках:
+//
+//	```json translate=no
+//	{
+//	    "boxes": [
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 1,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        },
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 2,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        },
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 1,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        },
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "partialCount": {
+//	                        "current": 2,
+//	                        "total": 2
+//	                    },
+//	                    "instances": [
+//	                        {
+//	                            "cis": "01030410947874432155Qbag!\u001d93Zjqw"
+//	                        }
+//	                    ]
+//	                }
+//	            ]
+//	        }
+//	    ]
+//	}
+//	```
+//
+// {% endcut %}
+//
+// {% cut "Разные товары в разных коробках" %}
+//
+// Вот как будет выглядеть запрос, если два разных товара разложены по разным коробкам:
+//
+//	```json translate=no
+//	{
+//	    "boxes": [
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 123456,
+//	                    "fullCount": 1
+//	                }
+//	            ]
+//	        },
+//	        {
+//	            "items": [
+//	                {
+//	                    "id": 654321,
+//	                    "fullCount": 1
+//	                }
+//	            ]
+//	        }
+//	    ]
+//	}
+//	```
+//
+// {% endcut %}
+//
+// {% include notitle [limit](../../_auto/method_limits/setOrderBoxLayout.md) %}
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/boxes (the `SetOrderBoxLayout` operationId).
+func (c *ClientWithResponses) SetOrderBoxLayoutWithResponse(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, body SetOrderBoxLayoutJSONRequestBody, reqEditors ...RequestEditorFn) (*SetOrderBoxLayoutResponse2, error) {
+	rsp, err := c.SetOrderBoxLayout(ctx, campaignId, orderId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetOrderBoxLayoutResponse2(rsp)
+}
+
+// GenerateOrderLabelWithResponse Готовый ярлык‑наклейка для коробки в заказе
+//
+// {% include notitle [access](../../_auto/method_scopes/generateOrderLabel.md) %}
+//
+// Формирует ярлык‑наклейку для коробки в заказе и возвращает ярлык в PDF‑файле.
+//
+// Чтобы на ярлыке отображался внешний идентификатор заказа, передайте его в методе [POST v2/campaigns/{campaignId}/orders/{orderId}/external-id](../../reference/orders/updateExternalOrderId.md).
+//
+// {% include notitle [limit](../../_auto/method_limits/generateOrderLabel.md) %}
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /v2/campaigns/{campaignId}/orders/{orderId}/delivery/shipments/{shipmentId}/boxes/{boxId}/label (the `GenerateOrderLabel` operationId).
+func (c *ClientWithResponses) GenerateOrderLabelWithResponse(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, shipmentId ShipmentId2, boxId BoxId, params *GenerateOrderLabelParams, reqEditors ...RequestEditorFn) (*GenerateOrderLabelResponse, error) {
+	rsp, err := c.GenerateOrderLabel(ctx, campaignId, orderId, shipmentId, boxId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGenerateOrderLabelResponse(rsp)
+}
+
+// GetOrderIdentifiersStatusWithResponse Статусы проверки кодов маркировки
+//
+// {% include notitle [access](../../_auto/method_scopes/getOrderIdentifiersStatus.md) %}
+//
+// Возвращает статусы проверки кодов маркировки в заказе.
+//
+// Заказ, в котором есть ювелирные изделия или товары с обязательной маркировкой в системе [«Честный ЗНАК»](https://честныйзнак.рф/), можно перевести в статус `READY_TO_SHIP`, только когда:
+//
+// 1. В методе [PUT v2/campaigns/{campaignId}/orders/{orderId}/boxes](../../reference/orders/setOrderBoxLayout.md) вы передадите Маркету:
+//
+//   - [УИНы](:no-translate[*uin]) по каждому ювелирному изделию в заказе;
+//
+//   - коды маркировки в системе :no-translate[«Честный ЗНАК»] по всем товарам в заказе, для которых она обязательна.
+//
+// 2. Все коды маркировки успешно пройдут проверку.
+//
+// {% include notitle [limit](../../_auto/method_limits/getOrderIdentifiersStatus.md) %}
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v2/campaigns/{campaignId}/orders/{orderId}/identifiers/status (the `GetOrderIdentifiersStatus` operationId).
+func (c *ClientWithResponses) GetOrderIdentifiersStatusWithResponse(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, reqEditors ...RequestEditorFn) (*GetOrderIdentifiersStatusResponse2, error) {
+	rsp, err := c.GetOrderIdentifiersStatus(ctx, campaignId, orderId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetOrderIdentifiersStatusResponse2(rsp)
+}
+
+// UpdateOrderStatusWithBodyWithResponse Изменение статуса одного заказа
+//
+// {% include notitle [access](../../_auto/method_scopes/updateOrderStatus.md) %}
+//
+// Изменяет статус заказа. Возможные изменения статусов:
+//
+// * Если магазин подтвердил и подготовил заказ к отправке, то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "STARTED"` нужно перевести в статус `"status": "PROCESSING"` и этап обработки `"substatus": "READY_TO_SHIP"`.
+// * Если магазин подтвердил заказ, но не может его выполнить (например, товар числится в базе, но отсутствует на складе или нет нужного цвета), то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "STARTED"` нужно перевести в статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+// * Если магазин подготовил заказ к отгрузке, но не может его выполнить (например, последний товар был поврежден или оказался с браком), то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "READY_TO_SHIP"` нужно перевести в статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+//
+// Полная информация о статусной модели DBS-заказов: [Как изменяются статусы заказов](../../concepts/dbs-order-status-model.md).
+//
+// {% cut "**Как подтвердить LaaS-заказ**" %}
+//
+// Для подтверждения черновика заказа передайте статус `"status": "PROCESSING"` с подстатусом `"substatus": "STARTED"`.
+//
+// Подтверждение заказа, созданного с параметром `draft` равным `false`, не требуется.
+//
+// {% endcut %}
+//
+// {% cut "**Как отменить LaaS-заказ**" %}
+//
+// Передайте статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+//
+// При успешном выполнении запроса отмена произойдет через некоторое время. [Как проверить статус операции](../../reference/operations/getOperations.md)
+//
+// {% endcut %}
+//
+// {% include notitle [limit](../../_auto/method_limits/updateOrderStatus.md) %}
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/status (the `UpdateOrderStatus` operationId).
+func (c *ClientWithResponses) UpdateOrderStatusWithBodyWithResponse(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateOrderStatusResponse2, error) {
+	rsp, err := c.UpdateOrderStatusWithBody(ctx, campaignId, orderId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateOrderStatusResponse2(rsp)
+}
+
+// UpdateOrderStatusWithResponse Изменение статуса одного заказа
+//
+// {% include notitle [access](../../_auto/method_scopes/updateOrderStatus.md) %}
+//
+// Изменяет статус заказа. Возможные изменения статусов:
+//
+// * Если магазин подтвердил и подготовил заказ к отправке, то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "STARTED"` нужно перевести в статус `"status": "PROCESSING"` и этап обработки `"substatus": "READY_TO_SHIP"`.
+// * Если магазин подтвердил заказ, но не может его выполнить (например, товар числится в базе, но отсутствует на складе или нет нужного цвета), то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "STARTED"` нужно перевести в статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+// * Если магазин подготовил заказ к отгрузке, но не может его выполнить (например, последний товар был поврежден или оказался с браком), то заказ из статуса `"status": "PROCESSING"` и этапа обработки `"substatus": "READY_TO_SHIP"` нужно перевести в статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+//
+// Полная информация о статусной модели DBS-заказов: [Как изменяются статусы заказов](../../concepts/dbs-order-status-model.md).
+//
+// {% cut "**Как подтвердить LaaS-заказ**" %}
+//
+// Для подтверждения черновика заказа передайте статус `"status": "PROCESSING"` с подстатусом `"substatus": "STARTED"`.
+//
+// Подтверждение заказа, созданного с параметром `draft` равным `false`, не требуется.
+//
+// {% endcut %}
+//
+// {% cut "**Как отменить LaaS-заказ**" %}
+//
+// Передайте статус `"status": "CANCELLED"` с причиной отмены заказа `"substatus": "SHOP_FAILED"`.
+//
+// При успешном выполнении запроса отмена произойдет через некоторое время. [Как проверить статус операции](../../reference/operations/getOperations.md)
+//
+// {% endcut %}
+//
+// {% include notitle [limit](../../_auto/method_limits/updateOrderStatus.md) %}
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/status (the `UpdateOrderStatus` operationId).
+func (c *ClientWithResponses) UpdateOrderStatusWithResponse(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, body UpdateOrderStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateOrderStatusResponse2, error) {
+	rsp, err := c.UpdateOrderStatus(ctx, campaignId, orderId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateOrderStatusResponse2(rsp)
+}
+
+// VerifyOrderEacWithBodyWithResponse Передача кода подтверждения
+//
+// {% include notitle [access](../../_auto/method_scopes/verifyOrderEac.md) %}
+//
+// Отправляет Маркету код подтверждения для его проверки.
+//
+// **Если у магазина настроена работа с кодами подтверждения:**
+//
+//	В параметре `delivery`, вложенном в `order`, возвращается параметр `eacType` с типом `Enum` (тип кода подтверждения для передачи заказа) в методах:
+//
+//	* [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md);
+//	* [PUT v2/campaigns/{campaignId}/orders/{orderId}/status](../../reference/orders/updateOrderStatus.md).
+//
+//	Возможные значения:
+//
+//	* `MERCHANT_TO_COURIER` (временно не возвращается) — продавец передает код курьеру для получения невыкупа;
+//	* `COURIER_TO_MERCHANT` — курьер передает код продавцу для получения заказа.
+//
+//	Параметр `eacType` возвращается при статусах заказа `COURIER_FOUND`, `COURIER_ARRIVED_TO_SENDER` и `DELIVERY_SERVICE_UNDELIVERED`. Если заказ в других статусах, параметр может отсутствовать.
+//
+// {% include notitle [limit](../../_auto/method_limits/verifyOrderEac.md) %}
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/verifyEac (the `VerifyOrderEac` operationId).
+func (c *ClientWithResponses) VerifyOrderEacWithBodyWithResponse(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*VerifyOrderEacResponse2, error) {
+	rsp, err := c.VerifyOrderEacWithBody(ctx, campaignId, orderId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseVerifyOrderEacResponse2(rsp)
+}
+
+// VerifyOrderEacWithResponse Передача кода подтверждения
+//
+// {% include notitle [access](../../_auto/method_scopes/verifyOrderEac.md) %}
+//
+// Отправляет Маркету код подтверждения для его проверки.
+//
+// **Если у магазина настроена работа с кодами подтверждения:**
+//
+//	В параметре `delivery`, вложенном в `order`, возвращается параметр `eacType` с типом `Enum` (тип кода подтверждения для передачи заказа) в методах:
+//
+//	* [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md);
+//	* [PUT v2/campaigns/{campaignId}/orders/{orderId}/status](../../reference/orders/updateOrderStatus.md).
+//
+//	Возможные значения:
+//
+//	* `MERCHANT_TO_COURIER` (временно не возвращается) — продавец передает код курьеру для получения невыкупа;
+//	* `COURIER_TO_MERCHANT` — курьер передает код продавцу для получения заказа.
+//
+//	Параметр `eacType` возвращается при статусах заказа `COURIER_FOUND`, `COURIER_ARRIVED_TO_SENDER` и `DELIVERY_SERVICE_UNDELIVERED`. Если заказ в других статусах, параметр может отсутствовать.
+//
+// {% include notitle [limit](../../_auto/method_limits/verifyOrderEac.md) %}
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /v2/campaigns/{campaignId}/orders/{orderId}/verifyEac (the `VerifyOrderEac` operationId).
+func (c *ClientWithResponses) VerifyOrderEacWithResponse(ctx context.Context, campaignId CampaignIdParameter, orderId OrderId, body VerifyOrderEacJSONRequestBody, reqEditors ...RequestEditorFn) (*VerifyOrderEacResponse2, error) {
+	rsp, err := c.VerifyOrderEac(ctx, campaignId, orderId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseVerifyOrderEacResponse2(rsp)
+}
+
 // GetPartnerWarehousesWithBodyWithResponse Список складов
 //
 // {% include notitle [access](../../_auto/method_scopes/getPartnerWarehouses.md) %}
@@ -7117,6 +14626,604 @@ func ParseGetCampaignsResponse2(rsp *http.Response) (*GetCampaignsResponse2, err
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest GetCampaignsResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 420:
+		var dest N420
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON420 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSearchShipmentsResponse2 parses an HTTP response from a SearchShipmentsWithResponse call
+func ParseSearchShipmentsResponse2(rsp *http.Response) (*SearchShipmentsResponse2, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SearchShipmentsResponse2{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SearchShipmentsResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 420:
+		var dest N420
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON420 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetShipmentResponse2 parses an HTTP response from a GetShipmentWithResponse call
+func ParseGetShipmentResponse2(rsp *http.Response) (*GetShipmentResponse2, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetShipmentResponse2{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest GetShipmentResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 420:
+		var dest N420
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON420 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDownloadShipmentActResponse parses an HTTP response from a DownloadShipmentActWithResponse call
+func ParseDownloadShipmentActResponse(rsp *http.Response) (*DownloadShipmentActResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DownloadShipmentActResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ApiClientDataErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 420:
+		var dest N420
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON420 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseConfirmShipmentResponse parses an HTTP response from a ConfirmShipmentWithResponse call
+func ParseConfirmShipmentResponse(rsp *http.Response) (*ConfirmShipmentResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ConfirmShipmentResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest EmptyApiResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ApiClientDataErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 420:
+		var dest N420
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON420 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSetOrderBoxLayoutResponse2 parses an HTTP response from a SetOrderBoxLayoutWithResponse call
+func ParseSetOrderBoxLayoutResponse2(rsp *http.Response) (*SetOrderBoxLayoutResponse2, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SetOrderBoxLayoutResponse2{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SetOrderBoxLayoutResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ApiClientDataErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 420:
+		var dest N420
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON420 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGenerateOrderLabelResponse parses an HTTP response from a GenerateOrderLabelWithResponse call
+func ParseGenerateOrderLabelResponse(rsp *http.Response) (*GenerateOrderLabelResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GenerateOrderLabelResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 420:
+		var dest N420
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON420 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetOrderIdentifiersStatusResponse2 parses an HTTP response from a GetOrderIdentifiersStatusWithResponse call
+func ParseGetOrderIdentifiersStatusResponse2(rsp *http.Response) (*GetOrderIdentifiersStatusResponse2, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetOrderIdentifiersStatusResponse2{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest GetOrderIdentifiersStatusResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 420:
+		var dest N420
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON420 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateOrderStatusResponse2 parses an HTTP response from a UpdateOrderStatusWithResponse call
+func ParseUpdateOrderStatusResponse2(rsp *http.Response) (*UpdateOrderStatusResponse2, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateOrderStatusResponse2{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest UpdateOrderStatusResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest N400
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest N401
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest N403
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest N404
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 420:
+		var dest N420
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON420 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest N500
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseVerifyOrderEacResponse2 parses an HTTP response from a VerifyOrderEacWithResponse call
+func ParseVerifyOrderEacResponse2(rsp *http.Response) (*VerifyOrderEacResponse2, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &VerifyOrderEacResponse2{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest VerifyOrderEacResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

@@ -110,9 +110,20 @@ export async function setFcProducts(
     await control(key, 'products', products);
 }
 
-/** What the fulfilment centre does with an order: `reserve`, `pack`, `reopen`, `cancel`, `hand-over`. */
+/**
+ * What the fulfilment centre does with an order: `reserve`, `pack`, `reopen`, `cancel`, `hand-over`; `give-to-courier` hands an
+ * order sent to leave with a courier (handover `courier_code`) to the courier, once the courier's latest code was answered accepted.
+ */
 export type TFcOrderAction =
-    'reserve' | 'wait-stock' | 'start-picking' | 'pick' | 'pack' | 'reopen' | 'cancel' | 'hand-over';
+    | 'reserve'
+    | 'wait-stock'
+    | 'start-picking'
+    | 'pick'
+    | 'pack'
+    | 'reopen'
+    | 'cancel'
+    | 'hand-over'
+    | 'give-to-courier';
 
 /**
  * A packed unit: the order line it belongs to, its marking code when the line needs one, and the parcel it lies in (from 1; the
@@ -189,4 +200,46 @@ export async function fcHandover(key: string, handoverId: string): Promise<IFcHa
         handover: IFcHandover;
     };
     return answer.handover;
+}
+
+/** The size of a label a warehouse of the fulfilment centre names for one marketplace's code, in millimetres. */
+export interface IFcLabelSize {
+    marketplace: string;
+    width_mm: number;
+    height_mm: number;
+}
+
+/** The label sizes the fulfilment centre's warehouse `code` names, as its people would choose them; they replace the earlier ones. */
+export async function setFcLabelSizes(key: string, warehouse: string, sizes: IFcLabelSize[]): Promise<void> {
+    await control(key, `warehouses/${warehouse}/label-sizes`, { label_sizes: sizes });
+}
+
+/**
+ * A courier names `code` for the packed order `orderId` that leaves with a courier, and a worker types it: the fake makes a check
+ * and sends the event `order.courier_code_entered`. Returns the check's number.
+ */
+export async function fcCourierCode(key: string, orderId: string, code: string): Promise<string> {
+    const answer = (await control(key, `orders/${orderId}/courier-code`, { code })) as { check_id: string };
+    return answer.check_id;
+}
+
+/** What the wyo server answered the fulfilment centre for a check: `accepted`, `refused` or `new_code_needed`. */
+export interface IFcCourierAnswer {
+    result: 'accepted' | 'refused' | 'new_code_needed';
+    attempts_left?: number | null;
+    message?: string;
+}
+
+/** A courier-code check as the fulfilment centre holds it, with the wyo server's answer once it came (`null` before). */
+export interface IFcCourierCheck {
+    check_id: string;
+    answer: IFcCourierAnswer | null;
+}
+
+/** Every code check of the order, oldest first (`GET /__control/orders/{id}/courier-code-checks`). */
+export async function fcCourierChecks(key: string, orderId: string): Promise<IFcCourierCheck[]> {
+    const answer = (await call(key, 'GET', `/__control/orders/${orderId}/courier-code-checks`, undefined, key)) as {
+        checks: IFcCourierCheck[];
+    };
+    return answer.checks;
 }

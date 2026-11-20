@@ -124,6 +124,7 @@
             orderId={order.id}
             orderNumber={order.number}
             details={details.exchange}
+            marketplace={order.marketplace}
             onRetried={onExchangeRetried}
         />
     {/if}

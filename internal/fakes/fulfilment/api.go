@@ -173,7 +173,7 @@ func (a *api) Account(w http.ResponseWriter, r *http.Request) {
 
 func (a *api) Warehouses(w http.ResponseWriter, r *http.Request) {
 	a.act(w, r, false, func(st *state) result {
-		return ok(http.StatusOK, map[string]any{"warehouses": append([]fcapi.Warehouse{}, st.warehouses...)})
+		return ok(http.StatusOK, map[string]any{"warehouses": st.renderWarehouses()})
 	})
 }
 

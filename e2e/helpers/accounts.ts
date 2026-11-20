@@ -46,6 +46,22 @@ export async function addOzonAccountThroughApi(
     return (await response.json()) as IAddedAccount;
 }
 
+/** Adds a Яндекс Маркет account with its Api-Key (`POST /api/v1/accounts`); throws with the wyo server's answer when it refuses. */
+export async function addYandexAccountThroughApi(
+    context: BrowserContext,
+    server: IWyoServer,
+    name: string,
+    apiKey: string
+): Promise<IAddedAccount> {
+    const response = await context.request.post(`${server.origin}/api/v1/accounts`, {
+        data: { marketplace: 'yandex', name, key: { api_key: apiKey } }
+    });
+    if (response.status() !== 201) {
+        throw new Error(`the account "${name}" was refused with status ${response.status()}: ${await response.text()}`);
+    }
+    return (await response.json()) as IAddedAccount;
+}
+
 /**
  * Reads every account's orders at once (`POST /__test/orders/run`, which only a test build answers, without the 5 minutes
  * «Обновить» waits between two presses): a spec reads again what it changed in a fake marketplace.

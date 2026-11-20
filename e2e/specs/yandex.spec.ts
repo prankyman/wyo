@@ -5,6 +5,10 @@ import { openScreen } from '../helpers/open-screen.js';
 import { sweepScreen } from '../helpers/sweep.js';
 import {
     cancelFakeYandexOrder,
+    FAKE_YANDEX_CABINET,
+    FAKE_YANDEX_SHOP_EXPRESS,
+    FAKE_YANDEX_SHOP_FBS,
+    FAKE_YANDEX_SHOP_FBY,
     makeFakeYandexOrder,
     makeYandexKey,
     setFakeYandexNotifications,
@@ -24,32 +28,14 @@ import { ruText } from '../support/texts.js';
  */
 test.use({ serverKind: 'own' });
 
-const SHOP_FBS = 5001;
-const SHOP_EXPRESS = 5002;
-const SHOP_FBY = 5003;
+const SHOP_FBS = FAKE_YANDEX_SHOP_FBS;
+const SHOP_EXPRESS = FAKE_YANDEX_SHOP_EXPRESS;
+const SHOP_FBY = FAKE_YANDEX_SHOP_FBY;
 
-/** Sets a fresh key up at the fake: the cabinet, an FBS, an Express and an FBY shop, their warehouses and two products. */
+/** Sets a fresh key up at the fake: the shared made-up cabinet, with the changes a test makes. */
 async function freshKey(change: IFakeYandexSetup = {}): Promise<string> {
     const key = makeYandexKey();
-    await setUpFakeYandex(key, {
-        business: { id: 7001, name: 'Тестовый кабинет' },
-        scopes: ['ALL_METHODS'],
-        campaigns: [
-            { id: SHOP_FBS, name: 'fbs.shop.test', placement_type: 'FBS' },
-            { id: SHOP_EXPRESS, name: 'express.shop.test', placement_type: 'FBS' },
-            { id: SHOP_FBY, name: 'fby.shop.test', placement_type: 'FBY' }
-        ],
-        warehouses: [
-            { id: 301, name: 'Склад FBS', models: [{ placement_type: 'FBS', campaign_id: SHOP_FBS }] },
-            { id: 302, name: 'Склад Экспресс', models: [{ placement_type: 'EXPRESS', campaign_id: SHOP_EXPRESS }] },
-            { id: 303, name: 'Склад DBS', models: [{ placement_type: 'DBS', campaign_id: SHOP_FBS }] }
-        ],
-        offers: [
-            { offer_id: 'SHIRT', barcodes: ['4600000007001'] },
-            { offer_id: 'SOCKS', barcodes: ['4600000007002'] }
-        ],
-        ...change
-    });
+    await setUpFakeYandex(key, { ...FAKE_YANDEX_CABINET, ...change });
     return key;
 }
 

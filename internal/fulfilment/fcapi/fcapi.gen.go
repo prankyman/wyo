@@ -43,6 +43,27 @@ func (e AccountKeyAccess) Valid() bool {
 	}
 }
 
+// Defines values for CourierCodeAnswerInResult.
+const (
+	CourierCodeAnswerInResultAccepted      CourierCodeAnswerInResult = "accepted"
+	CourierCodeAnswerInResultNewCodeNeeded CourierCodeAnswerInResult = "new_code_needed"
+	CourierCodeAnswerInResultRefused       CourierCodeAnswerInResult = "refused"
+)
+
+// Valid indicates whether the value is a known member of the CourierCodeAnswerInResult enum.
+func (e CourierCodeAnswerInResult) Valid() bool {
+	switch e {
+	case CourierCodeAnswerInResultAccepted:
+		return true
+	case CourierCodeAnswerInResultNewCodeNeeded:
+		return true
+	case CourierCodeAnswerInResultRefused:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ErrorErrorCode.
 const (
 	ErrorErrorCodeApiOff                ErrorErrorCode = "api_off"
@@ -241,6 +262,24 @@ func (e LabelContentType) Valid() bool {
 	}
 }
 
+// Defines values for OrderHandover.
+const (
+	OrderHandoverCourierCode OrderHandover = "courier_code"
+	OrderHandoverShipment    OrderHandover = "shipment"
+)
+
+// Valid indicates whether the value is a known member of the OrderHandover enum.
+func (e OrderHandover) Valid() bool {
+	switch e {
+	case OrderHandoverCourierCode:
+		return true
+	case OrderHandoverShipment:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for OrderStatus.
 const (
 	OrderStatusAccepted     OrderStatus = "accepted"
@@ -349,6 +388,24 @@ func (e OrderWarehouseStatus) Valid() bool {
 	case OrderWarehouseStatusShipped:
 		return true
 	case OrderWarehouseStatusWaitingStock:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OrderInHandover.
+const (
+	OrderInHandoverCourierCode OrderInHandover = "courier_code"
+	OrderInHandoverShipment    OrderInHandover = "shipment"
+)
+
+// Valid indicates whether the value is a known member of the OrderInHandover enum.
+func (e OrderInHandover) Valid() bool {
+	switch e {
+	case OrderInHandoverCourierCode:
+		return true
+	case OrderInHandoverShipment:
 		return true
 	default:
 		return false
@@ -520,6 +577,27 @@ func (e OrderCancel202JSONResponseBodyState) Valid() bool {
 	case OrderCancel202JSONResponseBodyStateNeedsPerson:
 		return true
 	case OrderCancel202JSONResponseBodyStateWaiting:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CourierCodeAnswer200JSONResponseBodyState.
+const (
+	CourierCodeAnswer200JSONResponseBodyStateCancelled CourierCodeAnswer200JSONResponseBodyState = "cancelled"
+	CourierCodeAnswer200JSONResponseBodyStateReduced   CourierCodeAnswer200JSONResponseBodyState = "reduced"
+	CourierCodeAnswer200JSONResponseBodyStateUpdated   CourierCodeAnswer200JSONResponseBodyState = "updated"
+)
+
+// Valid indicates whether the value is a known member of the CourierCodeAnswer200JSONResponseBodyState enum.
+func (e CourierCodeAnswer200JSONResponseBodyState) Valid() bool {
+	switch e {
+	case CourierCodeAnswer200JSONResponseBodyStateCancelled:
+		return true
+	case CourierCodeAnswer200JSONResponseBodyStateReduced:
+		return true
+	case CourierCodeAnswer200JSONResponseBodyStateUpdated:
 		return true
 	default:
 		return false
@@ -724,13 +802,28 @@ type AccountSeller struct {
 	Name string `json:"name"`
 }
 
+// CourierCodeAnswerIn The answer to the code a courier named for an order that leaves alone (`order.courier_code_entered`). The same answer may be sent again; a different answer to an answered check is refused with `conflict`.
+type CourierCodeAnswerIn struct {
+	// AttemptsLeft How many tries of the code the marketplace still allows, when it says.
+	AttemptsLeft *int `json:"attempts_left,omitempty"`
+
+	// Message The marketplace's own words, shown to the warehouse's worker.
+	Message *string `json:"message,omitempty"`
+
+	// Result `accepted`: the marketplace accepted the code, and the parcels are given to the courier; `refused`: the code is wrong; `new_code_needed`: the marketplace sends the courier a new code.
+	Result CourierCodeAnswerInResult `json:"result"`
+}
+
+// CourierCodeAnswerInResult `accepted`: the marketplace accepted the code, and the parcels are given to the courier; `refused`: the code is wrong; `new_code_needed`: the marketplace sends the courier a new code.
+type CourierCodeAnswerInResult string
+
 // Error A refusal.
 type Error struct {
 	// Error The refusal.
 	Error ErrorBody `json:"error"`
 }
 
-// ErrorErrorCode What went wrong. `bad_request` (400): The body or a parameter is wrong; `issues` names each place. `unauthorized` (401): No key, a mistyped key, or a revoked key. `forbidden` (403): The seller's work is switched off at the fulfilment centre. `api_off` (403): The seller switched the API off; a right key does not work until it is switched on. `read_only_key` (403): A write with a read-only key. `marketplace_not_enabled` (403): The order's marketplace is not enabled for this seller. `not_found` (404): No such record for this seller (another seller's record answers the same). `not_api_order` (409): Only an order that came through this API can be changed. `external_id_reused` (409): A repeat of an order number with other lines. `handed_over` (409): The order is already handed over; too late. `conflict` (409): The call cannot be done now: the order is cancelled, the documents were not asked for, the hand-over is completed, the scan code is taken by another parcel. `too_large` (413): The body is over its limit. `rate_limited` (429): More than 300 requests a minute. `unavailable` (503): The fulfilment centre is in maintenance.
+// ErrorErrorCode What went wrong. `bad_request` (400): The body or a parameter is wrong; `issues` names each place. `unauthorized` (401): No key, a mistyped key, or a revoked key. `forbidden` (403): The seller's work is switched off at the fulfilment centre. `api_off` (403): The seller switched the API off; a right key does not work until it is switched on. `read_only_key` (403): A write with a read-only key. `marketplace_not_enabled` (403): The order's marketplace is not enabled for this seller. `not_found` (404): No such record for this seller (another seller's record answers the same). `not_api_order` (409): Only an order that came through this API can be changed. `external_id_reused` (409): A repeat of an order number with other lines. `handed_over` (409): The order is already handed over; too late. `conflict` (409): The call cannot be done now: the order is cancelled, the documents were not asked for, the hand-over is completed, the scan code is taken by another parcel, a courier's check is answered already with another answer, or the order does not leave by a courier's code. `too_large` (413): The body is over its limit. `rate_limited` (429): More than 300 requests a minute. `unavailable` (503): The fulfilment centre is in maintenance.
 type ErrorErrorCode string
 
 // ErrorIssue defines model for Error.error.issues.
@@ -744,7 +837,7 @@ type ErrorIssue struct {
 
 // ErrorBody The refusal.
 type ErrorBody struct {
-	// Code What went wrong. `bad_request` (400): The body or a parameter is wrong; `issues` names each place. `unauthorized` (401): No key, a mistyped key, or a revoked key. `forbidden` (403): The seller's work is switched off at the fulfilment centre. `api_off` (403): The seller switched the API off; a right key does not work until it is switched on. `read_only_key` (403): A write with a read-only key. `marketplace_not_enabled` (403): The order's marketplace is not enabled for this seller. `not_found` (404): No such record for this seller (another seller's record answers the same). `not_api_order` (409): Only an order that came through this API can be changed. `external_id_reused` (409): A repeat of an order number with other lines. `handed_over` (409): The order is already handed over; too late. `conflict` (409): The call cannot be done now: the order is cancelled, the documents were not asked for, the hand-over is completed, the scan code is taken by another parcel. `too_large` (413): The body is over its limit. `rate_limited` (429): More than 300 requests a minute. `unavailable` (503): The fulfilment centre is in maintenance.
+	// Code What went wrong. `bad_request` (400): The body or a parameter is wrong; `issues` names each place. `unauthorized` (401): No key, a mistyped key, or a revoked key. `forbidden` (403): The seller's work is switched off at the fulfilment centre. `api_off` (403): The seller switched the API off; a right key does not work until it is switched on. `read_only_key` (403): A write with a read-only key. `marketplace_not_enabled` (403): The order's marketplace is not enabled for this seller. `not_found` (404): No such record for this seller (another seller's record answers the same). `not_api_order` (409): Only an order that came through this API can be changed. `external_id_reused` (409): A repeat of an order number with other lines. `handed_over` (409): The order is already handed over; too late. `conflict` (409): The call cannot be done now: the order is cancelled, the documents were not asked for, the hand-over is completed, the scan code is taken by another parcel, a courier's check is answered already with another answer, or the order does not leave by a courier's code. `too_large` (413): The body is over its limit. `rate_limited` (429): More than 300 requests a minute. `unavailable` (503): The fulfilment centre is in maintenance.
 	Code ErrorErrorCode `json:"code"`
 
 	// Issues Where in the body the fault is.
@@ -945,6 +1038,9 @@ type Order struct {
 	// GroupId The buyer's basket, when one was given.
 	GroupId *string `json:"group_id"`
 
+	// Handover How the order leaves, as it was sent.
+	Handover OrderHandover `json:"handover"`
+
 	// HandoverId The hand-over the parcels leave in; null until the first parcel is closed.
 	HandoverId *string `json:"handover_id"`
 
@@ -978,6 +1074,9 @@ type Order struct {
 	// Status The order's stage in plain words: `waitingStock` waits for goods, `reserved` goods set aside, `shipped` handed to the carrier.
 	Status OrderStatus `json:"status"`
 
+	// Test A marketplace's test order, packed and never handed over.
+	Test bool `json:"test"`
+
 	// UpdatedAt When the order last changed.
 	UpdatedAt time.Time `json:"updated_at"`
 
@@ -990,6 +1089,9 @@ type Order struct {
 	// WarehouseStatus The detailed status inside the warehouse; `status` is enough for most systems.
 	WarehouseStatus OrderWarehouseStatus `json:"warehouse_status"`
 }
+
+// OrderHandover How the order leaves, as it was sent.
+type OrderHandover string
 
 // OrderLine defines model for Order.lines.
 type OrderLine struct {
@@ -1062,6 +1164,9 @@ type OrderIn struct {
 	// GroupId The buyer's basket, when several orders belong together.
 	GroupId *string `json:"group_id,omitempty"`
 
+	// Handover How the order leaves. `shipment` (the default) in a day's hand-over with the others; `courier_code` alone, to a courier who names a code that the sender checks with its marketplace (the event `order.courier_code_entered`). For such an order `ship_by` is the time by which it must be packed.
+	Handover *OrderInHandover `json:"handover,omitempty"`
+
 	// Lines One to 200 lines. Two lines of one product are added up.
 	Lines []OrderInLine `json:"lines"`
 
@@ -1074,9 +1179,15 @@ type OrderIn struct {
 	// ShipBy The deadline for handing the order to the carrier.
 	ShipBy time.Time `json:"ship_by"`
 
+	// Test A marketplace's test order (no buyer, no money). It is packed like any other and never handed over, billed, paid or counted. Default `false`.
+	Test *bool `json:"test,omitempty"`
+
 	// Warehouse A code from `GET /warehouses`. May be left out when the fulfilment centre has one working warehouse.
 	Warehouse *string `json:"warehouse,omitempty"`
 }
+
+// OrderInHandover How the order leaves. `shipment` (the default) in a day's hand-over with the others; `courier_code` alone, to a courier who names a code that the sender checks with its marketplace (the event `order.courier_code_entered`). For such an order `ship_by` is the time by which it must be packed.
+type OrderInHandover string
 
 // OrderInLine defines model for OrderIn.lines.
 type OrderInLine struct {
@@ -1146,8 +1257,23 @@ type Warehouse struct {
 	// Code What an order's `warehouse` takes.
 	Code string `json:"code"`
 
+	// LabelSizes The label size the warehouse prints a marketplace's labels on, one entry for each marketplace whose size the warehouse chooses. The sender asks the marketplace for a label of exactly that size; a marketplace without an entry has no size the warehouse chooses, and the marketplace's own default is used.
+	LabelSizes []LabelSize `json:"label_sizes"`
+
 	// Name The warehouse's name.
 	Name string `json:"name"`
+}
+
+// LabelSize defines model for Warehouse.label_sizes.
+type LabelSize struct {
+	// HeightMm The label's height in millimetres.
+	HeightMm int `json:"height_mm"`
+
+	// Marketplace The marketplace's code, as an order's `marketplace` takes it.
+	Marketplace string `json:"marketplace"`
+
+	// WidthMm The label's width in millimetres.
+	WidthMm int `json:"width_mm"`
 }
 
 // BadRequest A refusal.
@@ -1246,6 +1372,9 @@ type OrderCancel200JSONResponseBodyState string
 // OrderCancel202JSONResponseBodyState defines parameters for OrderCancel.
 type OrderCancel202JSONResponseBodyState string
 
+// CourierCodeAnswer200JSONResponseBodyState defines parameters for CourierCodeAnswer.
+type CourierCodeAnswer200JSONResponseBodyState string
+
 // LabelDelete200JSONResponseBodyState defines parameters for LabelDelete.
 type LabelDelete200JSONResponseBodyState string
 
@@ -1326,6 +1455,18 @@ type WebhookOrderCancelledParams struct {
 
 // WebhookOrderChangeWaitsParams defines parameters for WebhookOrderChangeWaits.
 type WebhookOrderChangeWaitsParams struct {
+	// WebhookId The event's id; the same on every attempt.
+	WebhookId string `json:"webhook-id"`
+
+	// WebhookTimestamp The moment of this attempt, in seconds since 1970-01-01 UTC. A receiver refuses one more than five minutes away.
+	WebhookTimestamp string `json:"webhook-timestamp"`
+
+	// WebhookSignature `v1,` followed by the base64 of HMAC-SHA256 over the text `<webhook-id>.<webhook-timestamp>.<body>`, keyed by the secret's bytes (the base64 text after `whsec_`).
+	WebhookSignature string `json:"webhook-signature"`
+}
+
+// WebhookOrderCourierCodeEnteredParams defines parameters for WebhookOrderCourierCodeEntered.
+type WebhookOrderCourierCodeEnteredParams struct {
 	// WebhookId The event's id; the same on every attempt.
 	WebhookId string `json:"webhook-id"`
 
@@ -1495,6 +1636,9 @@ type OrderPatchJSONRequestBody = OrderPatch
 // OrderCancelJSONRequestBody defines body for OrderCancel for application/json ContentType.
 type OrderCancelJSONRequestBody = OrderCancel
 
+// CourierCodeAnswerJSONRequestBody defines body for CourierCodeAnswer for application/json ContentType.
+type CourierCodeAnswerJSONRequestBody = CourierCodeAnswerIn
+
 // LabelPutJSONRequestBody defines body for LabelPut for application/json ContentType.
 type LabelPutJSONRequestBody = Label
 
@@ -1521,6 +1665,9 @@ type WebhookOrderCancelledJSONRequestBody = Event
 
 // WebhookOrderChangeWaitsJSONRequestBody defines body for WebhookOrderChangeWaits for application/json ContentType.
 type WebhookOrderChangeWaitsJSONRequestBody = Event
+
+// WebhookOrderCourierCodeEnteredJSONRequestBody defines body for WebhookOrderCourierCodeEntered for application/json ContentType.
+type WebhookOrderCourierCodeEnteredJSONRequestBody = Event
 
 // WebhookOrderHandedOverJSONRequestBody defines body for WebhookOrderHandedOver for application/json ContentType.
 type WebhookOrderHandedOverJSONRequestBody = Event
@@ -1791,6 +1938,24 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /orders/{id}/cancel (the `OrderCancel` operationId).
 	OrderCancel(ctx context.Context, id string, body OrderCancelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CourierCodeAnswerWithBody Answer a courier's code
+	//
+	// The answer to the code a courier named for an order sent with `handover` `courier_code`, after the sender checked it with its marketplace. The parcels are given to the courier only after `accepted`. The code of a check is erased once the check is answered, or about 10 minutes after it was typed.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /orders/{id}/courier-code-checks/{check_id} (the `CourierCodeAnswer` operationId).
+	CourierCodeAnswerWithBody(ctx context.Context, id string, checkId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CourierCodeAnswer Answer a courier's code
+	//
+	// The answer to the code a courier named for an order sent with `handover` `courier_code`, after the sender checked it with its marketplace. The parcels are given to the courier only after `accepted`. The code of a check is erased once the check is answered, or about 10 minutes after it was typed.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /orders/{id}/courier-code-checks/{check_id} (the `CourierCodeAnswer` operationId).
+	CourierCodeAnswer(ctx context.Context, id string, checkId string, body CourierCodeAnswerJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// LabelDelete Remove a parcel's label
 	//
@@ -2218,6 +2383,44 @@ func (c *Client) OrderCancelWithBody(ctx context.Context, id string, contentType
 // Corresponds with POST /orders/{id}/cancel (the `OrderCancel` operationId).
 func (c *Client) OrderCancel(ctx context.Context, id string, body OrderCancelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewOrderCancelRequest(c.Server, id, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CourierCodeAnswerWithBody Answer a courier's code
+//
+// The answer to the code a courier named for an order sent with `handover` `courier_code`, after the sender checked it with its marketplace. The parcels are given to the courier only after `accepted`. The code of a check is erased once the check is answered, or about 10 minutes after it was typed.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /orders/{id}/courier-code-checks/{check_id} (the `CourierCodeAnswer` operationId).
+func (c *Client) CourierCodeAnswerWithBody(ctx context.Context, id string, checkId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCourierCodeAnswerRequestWithBody(c.Server, id, checkId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CourierCodeAnswer Answer a courier's code
+//
+// The answer to the code a courier named for an order sent with `handover` `courier_code`, after the sender checked it with its marketplace. The parcels are given to the courier only after `accepted`. The code of a check is erased once the check is answered, or about 10 minutes after it was typed.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /orders/{id}/courier-code-checks/{check_id} (the `CourierCodeAnswer` operationId).
+func (c *Client) CourierCodeAnswer(ctx context.Context, id string, checkId string, body CourierCodeAnswerJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCourierCodeAnswerRequest(c.Server, id, checkId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -3115,6 +3318,60 @@ func NewOrderCancelRequestWithBody(server string, id string, contentType string,
 	return req, nil
 }
 
+// NewCourierCodeAnswerRequest calls the generic CourierCodeAnswer builder with application/json body
+func NewCourierCodeAnswerRequest(server string, id string, checkId string, body CourierCodeAnswerJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCourierCodeAnswerRequestWithBody(server, id, checkId, "application/json", bodyReader)
+}
+
+// NewCourierCodeAnswerRequestWithBody constructs an http.Request for the CourierCodeAnswer method, with any body, and a specified content type
+func NewCourierCodeAnswerRequestWithBody(server string, id string, checkId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "check_id", checkId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/orders/%s/courier-code-checks/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewLabelDeleteRequest constructs an http.Request for the LabelDelete method
 func NewLabelDeleteRequest(server string, id string, number int) (*http.Request, error) {
 	var err error
@@ -3588,6 +3845,24 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /orders/{id}/cancel (the `OrderCancel` operationId).
 	OrderCancelWithResponse(ctx context.Context, id string, body OrderCancelJSONRequestBody, reqEditors ...RequestEditorFn) (*OrderCancelResponse, error)
+
+	// CourierCodeAnswerWithBodyWithResponse Answer a courier's code
+	//
+	// The answer to the code a courier named for an order sent with `handover` `courier_code`, after the sender checked it with its marketplace. The parcels are given to the courier only after `accepted`. The code of a check is erased once the check is answered, or about 10 minutes after it was typed.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /orders/{id}/courier-code-checks/{check_id} (the `CourierCodeAnswer` operationId).
+	CourierCodeAnswerWithBodyWithResponse(ctx context.Context, id string, checkId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CourierCodeAnswerResponse, error)
+
+	// CourierCodeAnswerWithResponse Answer a courier's code
+	//
+	// The answer to the code a courier named for an order sent with `handover` `courier_code`, after the sender checked it with its marketplace. The parcels are given to the courier only after `accepted`. The code of a check is erased once the check is answered, or about 10 minutes after it was typed.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /orders/{id}/courier-code-checks/{check_id} (the `CourierCodeAnswer` operationId).
+	CourierCodeAnswerWithResponse(ctx context.Context, id string, checkId string, body CourierCodeAnswerJSONRequestBody, reqEditors ...RequestEditorFn) (*CourierCodeAnswerResponse, error)
 
 	// LabelDeleteWithResponse Remove a parcel's label
 	//
@@ -5032,6 +5307,111 @@ func (r OrderCancelResponse) ContentType() string {
 	return ""
 }
 
+type CourierCodeAnswerResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *struct {
+		// Order An order as the fulfilment centre holds it. It carries no buyer data.
+		Order Order                                     `json:"order"`
+		State CourierCodeAnswer200JSONResponseBodyState `json:"state"`
+	}
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *NotFound
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Conflict
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *TooLarge
+	// JSON429 the response for an HTTP 429 `application/json` response
+	JSON429 *RateLimited
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Unavailable
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CourierCodeAnswerResponse) GetJSON200() *struct {
+	// Order An order as the fulfilment centre holds it. It carries no buyer data.
+	Order Order                                     `json:"order"`
+	State CourierCodeAnswer200JSONResponseBodyState `json:"state"`
+} {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r CourierCodeAnswerResponse) GetJSON400() *BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r CourierCodeAnswerResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r CourierCodeAnswerResponse) GetJSON403() *Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r CourierCodeAnswerResponse) GetJSON404() *NotFound {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r CourierCodeAnswerResponse) GetJSON409() *Conflict {
+	return r.JSON409
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r CourierCodeAnswerResponse) GetJSON413() *TooLarge {
+	return r.JSON413
+}
+
+// GetJSON429 returns the response for an HTTP 429 `application/json` response
+func (r CourierCodeAnswerResponse) GetJSON429() *RateLimited {
+	return r.JSON429
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r CourierCodeAnswerResponse) GetJSON503() *Unavailable {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r CourierCodeAnswerResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CourierCodeAnswerResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CourierCodeAnswerResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CourierCodeAnswerResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type LabelDeleteResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -5915,6 +6295,36 @@ func (c *ClientWithResponses) OrderCancelWithResponse(ctx context.Context, id st
 		return nil, err
 	}
 	return ParseOrderCancelResponse(rsp)
+}
+
+// CourierCodeAnswerWithBodyWithResponse Answer a courier's code
+//
+// The answer to the code a courier named for an order sent with `handover` `courier_code`, after the sender checked it with its marketplace. The parcels are given to the courier only after `accepted`. The code of a check is erased once the check is answered, or about 10 minutes after it was typed.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /orders/{id}/courier-code-checks/{check_id} (the `CourierCodeAnswer` operationId).
+func (c *ClientWithResponses) CourierCodeAnswerWithBodyWithResponse(ctx context.Context, id string, checkId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CourierCodeAnswerResponse, error) {
+	rsp, err := c.CourierCodeAnswerWithBody(ctx, id, checkId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCourierCodeAnswerResponse(rsp)
+}
+
+// CourierCodeAnswerWithResponse Answer a courier's code
+//
+// The answer to the code a courier named for an order sent with `handover` `courier_code`, after the sender checked it with its marketplace. The parcels are given to the courier only after `accepted`. The code of a check is erased once the check is answered, or about 10 minutes after it was typed.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /orders/{id}/courier-code-checks/{check_id} (the `CourierCodeAnswer` operationId).
+func (c *ClientWithResponses) CourierCodeAnswerWithResponse(ctx context.Context, id string, checkId string, body CourierCodeAnswerJSONRequestBody, reqEditors ...RequestEditorFn) (*CourierCodeAnswerResponse, error) {
+	rsp, err := c.CourierCodeAnswer(ctx, id, checkId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCourierCodeAnswerResponse(rsp)
 }
 
 // LabelDeleteWithResponse Remove a parcel's label
@@ -7130,6 +7540,92 @@ func ParseOrderCancelResponse(rsp *http.Response) (*OrderCancelResponse, error) 
 	return response, nil
 }
 
+// ParseCourierCodeAnswerResponse parses an HTTP response from a CourierCodeAnswerWithResponse call
+func ParseCourierCodeAnswerResponse(rsp *http.Response) (*CourierCodeAnswerResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CourierCodeAnswerResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			// Order An order as the fulfilment centre holds it. It carries no buyer data.
+			Order Order                                     `json:"order"`
+			State CourierCodeAnswer200JSONResponseBodyState `json:"state"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Conflict
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest TooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest RateLimited
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Unavailable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseLabelDeleteResponse parses an HTTP response from a LabelDeleteWithResponse call
 func ParseLabelDeleteResponse(rsp *http.Response) (*LabelDeleteResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -7695,6 +8191,11 @@ type WebhookInitiatorInterface interface {
 
 	WebhookOrderChangeWaits(ctx context.Context, targetURL string, params *WebhookOrderChangeWaitsParams, body WebhookOrderChangeWaitsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// WebhookOrderCourierCodeEnteredWithBody fires the order.courier_code_entered webhook with any body
+	WebhookOrderCourierCodeEnteredWithBody(ctx context.Context, targetURL string, params *WebhookOrderCourierCodeEnteredParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	WebhookOrderCourierCodeEntered(ctx context.Context, targetURL string, params *WebhookOrderCourierCodeEnteredParams, body WebhookOrderCourierCodeEnteredJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// WebhookOrderHandedOverWithBody fires the order.handed_over webhook with any body
 	WebhookOrderHandedOverWithBody(ctx context.Context, targetURL string, params *WebhookOrderHandedOverParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -7890,6 +8391,30 @@ func (p *WebhookInitiator) WebhookOrderChangeWaitsWithBody(ctx context.Context, 
 
 func (p *WebhookInitiator) WebhookOrderChangeWaits(ctx context.Context, targetURL string, params *WebhookOrderChangeWaitsParams, body WebhookOrderChangeWaitsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewWebhookOrderChangeWaitsWebhookRequest(targetURL, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := p.applyWebhookEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return p.Client.Do(req)
+}
+
+func (p *WebhookInitiator) WebhookOrderCourierCodeEnteredWithBody(ctx context.Context, targetURL string, params *WebhookOrderCourierCodeEnteredParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewWebhookOrderCourierCodeEnteredWebhookRequestWithBody(targetURL, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := p.applyWebhookEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return p.Client.Do(req)
+}
+
+func (p *WebhookInitiator) WebhookOrderCourierCodeEntered(ctx context.Context, targetURL string, params *WebhookOrderCourierCodeEnteredParams, body WebhookOrderCourierCodeEnteredJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewWebhookOrderCourierCodeEnteredWebhookRequest(targetURL, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -8506,6 +9031,67 @@ func NewWebhookOrderChangeWaitsWebhookRequest(targetURL string, params *WebhookO
 
 // NewWebhookOrderChangeWaitsWebhookRequestWithBody builds a POST request for the order.change_waits webhook with any body
 func NewWebhookOrderChangeWaitsWebhookRequestWithBody(targetURL string, params *WebhookOrderChangeWaitsParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+	_ = err
+
+	reqURL, err := url.Parse(targetURL)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, reqURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	if params != nil {
+
+		var headerParam0 string
+
+		headerParam0, err = runtime.StyleParamWithOptions("simple", false, "webhook-id", params.WebhookId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("webhook-id", headerParam0)
+
+		var headerParam1 string
+
+		headerParam1, err = runtime.StyleParamWithOptions("simple", false, "webhook-timestamp", params.WebhookTimestamp, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("webhook-timestamp", headerParam1)
+
+		var headerParam2 string
+
+		headerParam2, err = runtime.StyleParamWithOptions("simple", false, "webhook-signature", params.WebhookSignature, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+		if err != nil {
+			return nil, err
+		}
+
+		req.Header.Set("webhook-signature", headerParam2)
+
+	}
+	return req, nil
+}
+
+// NewWebhookOrderCourierCodeEnteredWebhookRequest builds a application/json POST request for the order.courier_code_entered webhook
+func NewWebhookOrderCourierCodeEnteredWebhookRequest(targetURL string, params *WebhookOrderCourierCodeEnteredParams, body WebhookOrderCourierCodeEnteredJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewWebhookOrderCourierCodeEnteredWebhookRequestWithBody(targetURL, params, "application/json", bodyReader)
+}
+
+// NewWebhookOrderCourierCodeEnteredWebhookRequestWithBody builds a POST request for the order.courier_code_entered webhook with any body
+func NewWebhookOrderCourierCodeEnteredWebhookRequestWithBody(targetURL string, params *WebhookOrderCourierCodeEnteredParams, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 	_ = err
 
@@ -9333,6 +9919,9 @@ type ServerInterface interface {
 	// OrderCancel Cancel an order
 	// (POST /orders/{id}/cancel)
 	OrderCancel(w http.ResponseWriter, r *http.Request, id string)
+	// CourierCodeAnswer Answer a courier's code
+	// (PUT /orders/{id}/courier-code-checks/{check_id})
+	CourierCodeAnswer(w http.ResponseWriter, r *http.Request, id string, checkId string)
 	// LabelDelete Remove a parcel's label
 	// (DELETE /orders/{id}/parcels/{number}/label)
 	LabelDelete(w http.ResponseWriter, r *http.Request, id string, number int)
@@ -9854,6 +10443,41 @@ func (siw *ServerInterfaceWrapper) OrderCancel(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// CourierCodeAnswer operation middleware
+func (siw *ServerInterfaceWrapper) CourierCodeAnswer(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", r.PathValue("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "check_id" -------------
+	var checkId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "check_id", r.PathValue("check_id"), &checkId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "check_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CourierCodeAnswer(w, r, id, checkId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // LabelDelete operation middleware
 func (siw *ServerInterfaceWrapper) LabelDelete(w http.ResponseWriter, r *http.Request) {
 
@@ -10146,6 +10770,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/orders/{id}/reduce", wrapper.OrderReduce)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/orders/{id}/problem", wrapper.OrderProblemClear)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/orders/{id}/problem", wrapper.OrderProblemSet)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/orders/{id}/courier-code-checks/{check_id}", wrapper.CourierCodeAnswer)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/orders/{id}/parcels/{number}/label", wrapper.LabelDelete)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/orders/{id}/parcels/{number}/label", wrapper.LabelPut)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/held-orders", wrapper.HeldList)
@@ -10185,6 +10810,9 @@ type WebhookReceiverInterface interface {
 	// A cancel or a cut waits for a person at the fulfilment centre (`details.field`, `details.why`).
 	// HandleWebhookOrderChangeWaitsWebhook handles the POST webhook for order.change_waits.
 	HandleWebhookOrderChangeWaitsWebhook(w http.ResponseWriter, r *http.Request, params WebhookOrderChangeWaitsParams)
+	// A courier named a code for an order that leaves alone; `details.check_id` and `details.code` (null once the code is erased). Answer with `PUT /orders/{id}/courier-code-checks/{check_id}`.
+	// HandleWebhookOrderCourierCodeEnteredWebhook handles the POST webhook for order.courier_code_entered.
+	HandleWebhookOrderCourierCodeEnteredWebhook(w http.ResponseWriter, r *http.Request, params WebhookOrderCourierCodeEnteredParams)
 	// The last parcel left with the carrier.
 	// HandleWebhookOrderHandedOverWebhook handles the POST webhook for order.handed_over.
 	HandleWebhookOrderHandedOverWebhook(w http.ResponseWriter, r *http.Request, params WebhookOrderHandedOverParams)
@@ -10772,6 +11400,98 @@ func WebhookOrderChangeWaitsWebhookHandler(si WebhookReceiverInterface, errHandl
 		}
 
 		si.HandleWebhookOrderChangeWaitsWebhook(w, r, params)
+	})
+	for _, mw := range middlewares {
+		h = mw(h)
+	}
+	return h
+}
+
+// WebhookOrderCourierCodeEnteredWebhookHandler returns the http.Handler for the order.courier_code_entered webhook.
+// Mount this at the URL path advertised to webhook senders. errHandler
+// may be nil; if so, parameter-binding errors return 400 with the error
+// message. Middlewares are applied in the order provided -- the last
+// argument becomes the outermost wrapper.
+func WebhookOrderCourierCodeEnteredWebhookHandler(si WebhookReceiverInterface, errHandler func(w http.ResponseWriter, r *http.Request, err error), middlewares ...WebhookReceiverMiddlewareFunc) http.Handler {
+	if errHandler == nil {
+		errHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+	}
+	var h http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var err error
+		_ = err
+
+		// Parameter object where we will unmarshal all parameters from the request.
+		var params WebhookOrderCourierCodeEnteredParams
+
+		// ------------- Required header parameter "webhook-id" -------------
+		if valueList, found := r.Header[http.CanonicalHeaderKey("webhook-id")]; found {
+			var WebhookId string
+			n := len(valueList)
+			if n != 1 {
+				errHandler(w, r, &TooManyValuesForParamError{ParamName: "webhook-id", Count: n})
+				return
+			}
+
+			err = runtime.BindStyledParameterWithOptions("simple", "webhook-id", valueList[0], &WebhookId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+			if err != nil {
+				errHandler(w, r, &InvalidParamFormatError{ParamName: "webhook-id", Err: err})
+				return
+			}
+			params.WebhookId = WebhookId
+
+		} else {
+			err := fmt.Errorf("Header parameter webhook-id is required, but not found")
+			errHandler(w, r, &RequiredHeaderError{ParamName: "webhook-id", Err: err})
+			return
+		}
+
+		// ------------- Required header parameter "webhook-timestamp" -------------
+		if valueList, found := r.Header[http.CanonicalHeaderKey("webhook-timestamp")]; found {
+			var WebhookTimestamp string
+			n := len(valueList)
+			if n != 1 {
+				errHandler(w, r, &TooManyValuesForParamError{ParamName: "webhook-timestamp", Count: n})
+				return
+			}
+
+			err = runtime.BindStyledParameterWithOptions("simple", "webhook-timestamp", valueList[0], &WebhookTimestamp, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+			if err != nil {
+				errHandler(w, r, &InvalidParamFormatError{ParamName: "webhook-timestamp", Err: err})
+				return
+			}
+			params.WebhookTimestamp = WebhookTimestamp
+
+		} else {
+			err := fmt.Errorf("Header parameter webhook-timestamp is required, but not found")
+			errHandler(w, r, &RequiredHeaderError{ParamName: "webhook-timestamp", Err: err})
+			return
+		}
+
+		// ------------- Required header parameter "webhook-signature" -------------
+		if valueList, found := r.Header[http.CanonicalHeaderKey("webhook-signature")]; found {
+			var WebhookSignature string
+			n := len(valueList)
+			if n != 1 {
+				errHandler(w, r, &TooManyValuesForParamError{ParamName: "webhook-signature", Count: n})
+				return
+			}
+
+			err = runtime.BindStyledParameterWithOptions("simple", "webhook-signature", valueList[0], &WebhookSignature, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+			if err != nil {
+				errHandler(w, r, &InvalidParamFormatError{ParamName: "webhook-signature", Err: err})
+				return
+			}
+			params.WebhookSignature = WebhookSignature
+
+		} else {
+			err := fmt.Errorf("Header parameter webhook-signature is required, but not found")
+			errHandler(w, r, &RequiredHeaderError{ParamName: "webhook-signature", Err: err})
+			return
+		}
+
+		si.HandleWebhookOrderCourierCodeEnteredWebhook(w, r, params)
 	})
 	for _, mw := range middlewares {
 		h = mw(h)
@@ -11888,186 +12608,202 @@ func WebhookPingWebhookHandler(si WebhookReceiverInterface, errHandler func(w ht
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

@@ -2,6 +2,7 @@ package archtest_test
 
 import (
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -310,11 +311,92 @@ func TestTheGeneratorsListOfOzonMethodsNamesExactlyTheMethodsThePlansNeed(t *tes
 
 // yandexNever are the operations of Яндекс Маркет's description that the wyo server never calls (YMC §5): each removes goods
 // from an order, accepts a cancellation or moves orders out of a shipment, which lowers the shop's quality index or cannot be
-// undone. The cancelling status of updateOrderStatus is refused by a test of Plan 8, which first generates that method.
+// undone. updateOrderStatus can cancel and is generated, but only one function may call it
+// (TestTheStatusMethodOfYandexMarketIsCalledOnlyByItsOneReadyFunction).
 var yandexNever = []string{"updateOrderItems", "acceptOrderCancellation", "transferOrdersFromShipment"}
 
-// yandexMethods are the operations the generator's list must name: the reading ones of Plan 7 (YMC §5).
-var yandexMethods = []string{"getAuthTokenInfo", "getCampaigns", "getBusinessOrders", "getPartnerWarehouses", "getOfferMappings"}
+// yandexMethods are the operations the generator's list must name: the reading ones of Plan 7, then the nine of Plan 8 — the boxes
+// with their marking codes, the verdict on the codes, a box's label, the status «Готов к отгрузке», the courier's code, the search
+// and the reading of the daily shipment, its confirmation and its act (YMC §5).
+var yandexMethods = []string{
+	"getAuthTokenInfo", "getCampaigns", "getBusinessOrders", "getPartnerWarehouses", "getOfferMappings",
+	"setOrderBoxLayout", "getOrderIdentifiersStatus", "generateOrderLabel", "updateOrderStatus", "verifyOrderEac", "searchShipments",
+	"getShipment", "confirmShipment", "downloadShipmentAct",
+}
+
+// yandexStatus are the fragments of the names of the generated method that changes an order's status, which can cancel an order
+// (the status CANCELLED with the reason SHOP_FAILED) and so is called by one function only: MakeReady of status.go, which sends
+// nothing but PROCESSING / READY_TO_SHIP. The generated client holds it; the fake reads the request's type to answer it and never
+// calls the client.
+//
+// The fragments are the forms of the call with a body and a response, and the request's and response's types; the plain form
+// «UpdateOrderStatus(» is read by the test itself in the adapter's folder, because the store of the wyo server has a function of that
+// name of its own.
+var yandexStatus = []string{"UpdateOrderStatusWith", "UpdateOrderStatusRequest", "UpdateOrderStatusResponse", "UpdateOrderStatusJSON"}
+
+var yandexStatusAllowed = []string{"internal/marketplace/yandex/yandexapi", "internal/marketplace/yandex/status.go", "internal/fakes/yandex"}
+
+func TestTheStatusMethodOfYandexMarketIsCalledOnlyByItsOneReadyFunction(t *testing.T) {
+	t.Parallel()
+
+	found, err := archtest.IdentifiersUsedOutside(os.DirFS(moduleRoot), yandexStatus, yandexStatusAllowed...)
+	if err != nil {
+		t.Fatalf("IdentifiersUsedOutside: %v", err)
+	}
+
+	if len(found) > 0 {
+		t.Fatalf("only MakeReady (internal/marketplace/yandex/status.go) may call updateOrderStatus, which can cancel an order:\n%s", strings.Join(found, "\n"))
+	}
+
+	files, err := filepath.Glob(moduleRoot + "/internal/marketplace/yandex/*.go")
+	if err != nil || len(files) == 0 {
+		t.Fatalf("the adapter's files: %v, %v", files, err)
+	}
+
+	for _, file := range files {
+		raw, err := os.ReadFile(file) //nolint:gosec // G304: a file of this repository found by a glob of this test
+		if err != nil {
+			t.Fatalf("read %s: %v", file, err)
+		}
+
+		if filepath.Base(file) != "status.go" && strings.Contains(string(raw), ".UpdateOrderStatus(") {
+			t.Errorf("%s calls the generated updateOrderStatus: only MakeReady of status.go may", file)
+		}
+	}
+
+	source, err := os.ReadFile(moduleRoot + "/internal/marketplace/yandex/status.go")
+	if err != nil {
+		t.Fatalf("read status.go: %v", err)
+	}
+
+	// The one function takes no status: its signature is the order's number and nothing else.
+	if !strings.Contains(string(source), "func (a *Adapter) MakeReady(ctx context.Context, conn marketplace.Conn, number string) error") {
+		t.Fatal("MakeReady of status.go takes another argument than the order's number: it must be able to send nothing but READY_TO_SHIP")
+	}
+}
+
+func TestTheStatusMethodOfYandexMarketIsCaughtWhereverItIsPlanted(t *testing.T) {
+	t.Parallel()
+
+	for _, where := range []string{
+		"internal/marketplace/yandex/pack.go", "internal/marketplace/yandex/close.go", "internal/exchange/steps.go", "cmd/wyo/main.go",
+		"internal/marketplace/yandex/status_test.go",
+	} {
+		t.Run(where, func(t *testing.T) {
+			t.Parallel()
+
+			tree := fstest.MapFS{
+				where:                                   {Data: []byte("package x\nfunc cancel() { client.UpdateOrderStatusWithResponse(ctx, 1, 2, body) }")},
+				"internal/marketplace/yandex/status.go": {Data: []byte("package yandex\nfunc ready() { client.UpdateOrderStatusWithResponse(ctx, 1, 2, body) }")},
+			}
+
+			found, err := archtest.IdentifiersUsedOutside(tree, yandexStatus, yandexStatusAllowed...)
+			if err != nil || len(found) != 1 || !strings.Contains(found[0], where) {
+				t.Fatalf("found %v, %v; want the planted use in %s only", found, err, where)
+			}
+		})
+	}
+}
 
 func TestTheMethodsThatCutOrMoveAYandexMarketOrderAreNeverGeneratedInThisRepository(t *testing.T) {
 	t.Parallel()

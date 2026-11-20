@@ -19,6 +19,22 @@ const (
 	codeShopAPIOff         = "shop_api_off"
 	codeNoShops            = "no_shops"
 	codeRequestRefused     = "request_refused"
+
+	// The refusals of the writing half. write_level_missing is Яндекс Маркет's refusal of a call because the key lacks the level
+	// «Обработка заказов и учёт товаров»; the others are the adapter's own, made when what was asked or answered is not what the
+	// exchange can go on with (their texts are problem.marketplace_refused of messages/ru.json, with Яндекс Маркет's own words
+	// beside where it gave some).
+	codeWriteLevelMissing = "write_level_missing"
+	codeOrderNotFound     = "order_not_found"
+	codeLineNotInOrder    = "line_not_in_order"
+	codeBoxNotFound       = "box_not_found"
+	codeBatchNotFound     = "batch_not_found"
+	codeBatchAmbiguous    = "batch_ambiguous"
+	codeOrdersNotReady    = "shipment_orders_not_ready"
+	codeOrdersRequired    = "orders_required"
+	codeAnswerUnreadable  = "answer_unreadable"
+	codeFileTooLarge      = "file_too_large"
+	codeFileNotAFile      = "file_not_a_label_or_document"
 )
 
 // fieldPathAPIKey is the form field a refusal of the key lies on (api/wyo.yaml, createAccount: `key.<field>`).
@@ -54,6 +70,10 @@ func refusalOf(status int, body []byte, category string) error {
 		return keyRefusal(codeKeyRevoked, status)
 	case status == http.StatusUnauthorized:
 		return keyRefusal(codeKeyRefused, status)
+	case status == http.StatusForbidden && strings.Contains(words, "scopes") && category == categoryOrdersWrite:
+		return &marketplace.Refusal{
+			Code: codeWriteLevelMissing, Field: fieldPathAPIKey, Status: status, Params: map[string]any{"level": levelNames[category]},
+		}
 	case status == http.StatusForbidden && strings.Contains(words, "scopes"):
 		return &marketplace.Refusal{
 			Code: codeAccessLevelMissing, Field: fieldPathAPIKey, Status: status, Params: map[string]any{"level": levelNames[category]},
@@ -74,4 +94,9 @@ func keyRefusal(code string, status int) *marketplace.Refusal {
 	return &marketplace.Refusal{
 		Code: code, Field: fieldPathAPIKey, Status: status, State: marketplace.AccountKeyRefused, StopsJobs: true,
 	}
+}
+
+// ownRefusal is a refusal the adapter makes itself, with no answer of Яндекс Маркет behind it.
+func ownRefusal(code string, params map[string]any) *marketplace.Refusal {
+	return &marketplace.Refusal{Code: code, Params: params}
 }

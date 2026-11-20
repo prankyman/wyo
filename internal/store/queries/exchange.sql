@@ -71,10 +71,11 @@ UPDATE fc_events SET applied_at = ? WHERE id = ?;
 DELETE FROM fc_events WHERE received_at < ? AND applied_at IS NOT NULL;
 
 -- name: OrdersToSend :many
--- Only the orders of the marketplaces whose adapters hand orders over (sqlc.slice(marketplaces)) are sent. The limit is a plain
--- placeholder: sqlc numbers a named one after the slice's first placeholder (`?2`), which with two marketplaces is the second
--- marketplace's name, not the limit.
-SELECT o.id, o.account_id, o.number, o.basket, o.item_id, o.created_at, o.ship_by, o.warehouse_number,
+-- Only the orders of the marketplaces whose adapters hand orders over (the list marketplaces) are sent, and none whose own
+-- status at the marketplace is one its adapter says waits (a JSON list of texts, each a marketplace and a status). The limit is a
+-- plain placeholder: sqlc numbers a named one after the first placeholder of a slice (`?2`), which with two marketplaces is
+-- the name of the second marketplace, not the limit.
+SELECT o.id, o.account_id, o.number, o.basket, o.item_id, o.created_at, o.ship_by, o.warehouse_number, o.test, o.scheme_name,
        a.deadline_hours, m.fc_marketplace, w.fc_warehouse
 FROM orders o
 JOIN marketplace_accounts a ON a.id = o.account_id
@@ -84,6 +85,7 @@ LEFT JOIN exchange_orders x ON x.order_id = o.id
 WHERE o.scheme = 'fbs' AND o.state = 'new' AND x.order_id IS NULL
   AND a.state IN ('working', 'key_expiring', 'no_connection') AND a.read_only = 0
   AND a.marketplace IN (sqlc.slice(marketplaces))
+  AND NOT EXISTS (SELECT 1 FROM json_each(CAST(? AS TEXT)) j WHERE j.value = a.marketplace || char(32) || o.marketplace_status)
 ORDER BY o.created_at, o.id
 LIMIT ?;
 
@@ -101,8 +103,8 @@ INSERT INTO exchange_orders (
     order_id, fc_id, fc_number, fc_held_id, state, held_reasons, attention, problem_code, problem_params, problem_mp_code,
     problem_words, problem_at, problem_sent, failed_step, supply_id, confirmed_at, pack_reported_at, pack_tries, pack_next_at,
     codes_resends, packed_at, ship_by_sent, codes_state, codes_sent_at, next_check_at, cancel_answer, handed_over_at, sent_at,
-    updated_at, pack_sent_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    updated_at, pack_sent_at, ready_at, handover
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT (order_id) DO UPDATE SET fc_id = excluded.fc_id, fc_number = excluded.fc_number,
     fc_held_id = excluded.fc_held_id, state = excluded.state, held_reasons = excluded.held_reasons,
     attention = excluded.attention, problem_code = excluded.problem_code, problem_params = excluded.problem_params,
@@ -112,7 +114,7 @@ ON CONFLICT (order_id) DO UPDATE SET fc_id = excluded.fc_id, fc_number = exclude
     pack_next_at = excluded.pack_next_at, codes_resends = excluded.codes_resends, packed_at = excluded.packed_at, ship_by_sent = excluded.ship_by_sent,
     codes_state = excluded.codes_state, codes_sent_at = excluded.codes_sent_at, next_check_at = excluded.next_check_at,
     cancel_answer = excluded.cancel_answer, handed_over_at = excluded.handed_over_at, updated_at = excluded.updated_at,
-    pack_sent_at = excluded.pack_sent_at;
+    pack_sent_at = excluded.pack_sent_at, ready_at = excluded.ready_at, handover = excluded.handover;
 
 -- name: GetExchangeOrderByNumber :one
 SELECT x.* FROM exchange_orders x
@@ -154,6 +156,12 @@ SELECT x.attention AS code, count(*) AS orders FROM exchange_orders x
 WHERE x.attention <> ''
 GROUP BY x.attention;
 
+-- name: CountWarehouseUnknown :one
+-- The new orders of a matched marketplace that are not sent because the marketplace did not tell their warehouse.
+SELECT count(*) FROM orders o
+WHERE o.scheme = 'fbs' AND o.state = 'new' AND o.warehouse_number = '' AND o.warehouse_text <> ''
+  AND EXISTS (SELECT 1 FROM fc_connection) AND EXISTS (SELECT 1 FROM fc_marketplace_map m WHERE m.account_id = o.account_id);
+
 -- name: CountNotReservedInTime :one
 SELECT count(*) FROM exchange_orders x
 JOIN orders o ON o.id = x.order_id
@@ -192,7 +200,7 @@ WHERE account_id = ? AND role = 'assembly' AND grp = ? AND open = 1 AND deleted 
 ORDER BY id DESC LIMIT 1;
 
 -- name: InsertSupply :one
-INSERT INTO marketplace_supplies (account_id, number, grp, role, handover_id, created_at) VALUES (?, ?, ?, ?, ?, ?)
+INSERT INTO marketplace_supplies (account_id, number, grp, role, handover_id, created_at, kind) VALUES (?, ?, ?, ?, ?, ?, ?)
 RETURNING id;
 
 -- name: GetSupply :one
@@ -261,9 +269,9 @@ DELETE FROM handover_steps WHERE handover_id = ?;
 DELETE FROM exchange_orders WHERE order_id = ?;
 
 -- name: SaveParcel :exec
-INSERT INTO exchange_parcels (order_id, number, mp_number, ticket, label_print, label_sent_at, label_asked_at, label_next_at, label_tries)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-ON CONFLICT (order_id, number) DO UPDATE SET mp_number = excluded.mp_number, ticket = excluded.ticket,
+INSERT INTO exchange_parcels (order_id, number, mp_number, ticket, label_print, label_sent_at, label_asked_at, label_next_at, label_tries, box)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT (order_id, number) DO UPDATE SET mp_number = excluded.mp_number, ticket = excluded.ticket, box = excluded.box,
     label_print = excluded.label_print, label_sent_at = excluded.label_sent_at, label_asked_at = excluded.label_asked_at,
     label_next_at = excluded.label_next_at, label_tries = excluded.label_tries;
 
@@ -279,3 +287,47 @@ JOIN exchange_orders x ON x.order_id = p.order_id
 WHERE p.label_next_at <= ? AND p.label_sent_at IS NULL
   AND x.state NOT IN ('handed_over', 'cancelled') AND x.cancel_answer = ''
 ORDER BY p.label_next_at, p.order_id, p.number LIMIT ?;
+
+-- name: SetSupplyKind :exec
+UPDATE marketplace_supplies SET kind = ? WHERE id = ?;
+
+-- name: DeleteLabelSizes :exec
+DELETE FROM fc_label_sizes;
+
+-- name: InsertLabelSize :exec
+INSERT INTO fc_label_sizes (fc_warehouse, fc_marketplace, width_mm, height_mm, read_at) VALUES (?, ?, ?, ?, ?)
+ON CONFLICT (fc_warehouse, fc_marketplace) DO UPDATE SET width_mm = excluded.width_mm, height_mm = excluded.height_mm,
+    read_at = excluded.read_at;
+
+-- name: SetLabelSizesRead :execrows
+UPDATE fc_connection SET label_sizes_read_at = ? WHERE id = 1;
+
+-- name: ListLabelSizes :many
+SELECT * FROM fc_label_sizes ORDER BY fc_warehouse, fc_marketplace;
+
+-- name: GetOrderFcPlace :one
+-- The fulfilment centre's warehouse and marketplace an order is matched to.
+SELECT w.fc_warehouse, m.fc_marketplace
+FROM orders o
+JOIN fc_marketplace_map m ON m.account_id = o.account_id
+JOIN fc_warehouse_map w ON w.account_id = o.account_id AND w.warehouse_number = o.warehouse_number
+WHERE o.id = ?;
+
+-- name: InsertCourierCheck :execrows
+INSERT INTO exchange_courier_checks (check_id, order_id, came_at) VALUES (?, ?, ?) ON CONFLICT (check_id) DO NOTHING;
+
+-- name: AnswerCourierCheck :exec
+UPDATE exchange_courier_checks SET result = ?, attempts_left = ?, words = ?, answered_at = ? WHERE check_id = ?;
+
+-- name: GetCourierCheck :one
+SELECT * FROM exchange_courier_checks WHERE check_id = ?;
+
+-- name: ListCourierChecks :many
+SELECT * FROM exchange_courier_checks WHERE order_id IN (sqlc.slice(ids)) ORDER BY order_id, came_at, check_id;
+
+-- name: SetFcEventBody :exec
+UPDATE fc_events SET body = ? WHERE id = ?;
+
+-- name: ListTestOrderNumbers :many
+-- The numbers among the given ones of the test orders of an account.
+SELECT number FROM orders WHERE account_id = ? AND test = 1 AND number IN (sqlc.slice(numbers)) ORDER BY number;

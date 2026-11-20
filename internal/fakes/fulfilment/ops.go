@@ -40,6 +40,7 @@ func (st *state) accept(in fcapi.OrderIn, via fcapi.OrderVia, warehouse string) 
 		whStatus: fcapi.OrderWarehouseStatusNew, shipBy: in.ShipBy.UTC(), packingNote: in.PackingNote,
 		lines: st.resolveLines(in.Lines), parcels: []*parcel{{number: 1}}, updatedAt: st.now(),
 		fingerprint: fingerprint(in.Lines), waitsFor: map[string]bool{},
+		test: in.Test != nil && *in.Test, handover: handoverOf(in.Handover),
 	}
 
 	st.orders[o.id] = o
@@ -426,7 +427,10 @@ func (st *state) pack(o *order, units []unit) error {
 		st.emit("order.parcel_closed", o, nil, nil, map[string]any{"parcel": p.number})
 	}
 
-	st.attachToHandover(o)
+	if o.leavesInHandover() {
+		st.attachToHandover(o)
+	}
+
 	st.emit("order.packed", o, nil, nil, nil)
 
 	return nil
@@ -462,6 +466,10 @@ func (st *state) reopen(o *order) error {
 
 // handOver gives the packed parcel to the carrier; the hand-over completes with its last parcel.
 func (st *state) handOver(o *order) error {
+	if err := o.handOverRefusal(); err != nil {
+		return err
+	}
+
 	if o.status != fcapi.OrderStatusPacked {
 		return stepError("an order that is %s has no closed parcel to hand over", o.status)
 	}

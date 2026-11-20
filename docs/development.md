@@ -151,8 +151,10 @@ docs/, .agents/, .specify/, .github/workflows/ci-cd.yml, .husky/
   `openapi.yaml` names it, makes every component file an entry of `components/<kind>`, and writes every reference to a component file as
   `#/components/<kind>/<Name>`. A reference that is neither a component file nor, in the paths of `openapi.yaml`, a path file stops the
   generation, so a person reads a new kind of reference before a rule is added. The generator reads the joined copy, and the copy is
-  deleted. It builds only the five reading methods that `api/codegen/yandex.cfg.yaml` lists; a test reads that file to keep the three
-  methods that change an order or a shipment (`updateOrderItems`, `acceptOrderCancellation`, `transferOrdersFromShipment`) out of it. How a
+  deleted. It builds only the fourteen methods that `api/codegen/yandex.cfg.yaml` lists (the five that read and the nine of the exchange with a
+  fulfilment centre); a test reads that file to keep the three methods that remove goods from an order, accept a cancellation or move an
+  order out of a shipment (`updateOrderItems`, `acceptOrderCancellation`, `transferOrdersFromShipment`) out of it, and another one lets only one
+  function call `updateOrderStatus`, which can cancel an order. How a
   later version is taken (the clone, the difference by commit, every difference in a method the wyo server calls read before it is
   accepted) is in `api/yandex/README.md`; what the wyo server calls, and how often, is in `docs/yandex.md`.
 - **`fetch` is called only inside `src/lib/api/`,** and only for the wyo server's own addresses. The form library is imported only by
@@ -193,10 +195,11 @@ No test and no development run ever calls a real marketplace or a real fulfilmen
   Ozon's documents do not give the HTTP status of its key errors; the fake chooses them (401 for an invalid key, 403 for the others)
   and says so in its code.
 - **The fake Яндекс Маркет** (`internal/fakes/yandex`, `127.0.0.1:8791`, the same address as the other two fake marketplaces) answers the
-  five methods the Яндекс Маркет adapter uses, in the shapes of Яндекс Маркет's own description files (`api/yandex/`): the key's access
+  fourteen methods the Яндекс Маркет adapter uses (five that read and nine of the exchange: the boxes of an order with their marking codes, the
+  verdict on the codes, a box's label, the status `READY_TO_SHIP`, the courier's code and the daily shipment with its confirmation and act), in the shapes of Яндекс Маркет's own description files (`api/yandex/`): the key's access
   levels, the cabinet's shops, its warehouses, the orders (FBS, Express, FBY and DBS, real and test) and the products' barcodes. Test
   orders are made by a seller in the cabinet, not in a test environment (YMC §9), so the fake makes them as orders with `fake: true`
-  (`/__control/orders`). It keeps Яндекс Маркет's limits for one key — the five methods' amounts are 100, 1 000, 10 000 and 100 calls an
+  (`/__control/orders`). It keeps Яндекс Маркет's limits for one key — the amounts are those of the description files: 100, 200, 1 000 and 10 000 calls an
   hour and 100 calls a minute — on the injected clock, answers `420` with the three headers `X-RateLimit-Resource-Limit`, `-Until` (a date) and
   `-Remaining` (and `420` for a fifth request at once, because only four may run at once), and puts the made-up buyer comment, delivery
   address and courier name and telephone (`yandex.BuyerValues()`) in every answer about orders so that the wyo server's dropping of them
@@ -254,6 +257,17 @@ test a key of its own.
       substatus). `orders/cancel` (notifies `ORDER_CANCELLED`) — `order_id`, `substatus` (the reason, such as `SHOP_FAILED`): sets the
       status `CANCELLED`. `orders/shipment` (notifies `ORDER_UPDATED` with the update type `SHIPMENT_DATE_UPDATED`) — `order_id`,
       `shipment_date`, `shipment_time`.
+    - `orders/verdict` — `order_id`, `status` (`OK`, `IN_PROGRESS`, `FAILED`, `INVALID` or `NOT_ON_VALIDATION`: what every marking code of the
+      order is read as by `getOrderIdentifiersStatus`; `""` gives back the fake's own course, in progress at the first reading and accepted after),
+      `substatus` (a reason of Яндекс Маркет's, optional). `orders/courier-code` — `order_id`, `code` (the code an Express courier names and the
+      order expects from `verifyOrderEac`), `attempts_left` (3 when left out), `need_update` (`true`: the next check answers `NEED_UPDATE`).
+    - `shipments` — answers `shipment_id`: a daily shipment of a warehouse and a day: `warehouse_id` (a number), `date` (`YYYY-MM-DD`), `kind`
+      (`WITHDRAW` or `IMPORT`), `order_ids` (they join it, and each shows its number), `cutoff_passed` (`CONFIRM` is offered only after it),
+      `excluding_order_ids` (orders Яндекс Маркет is taking out of it: they are not listed in its answers, and the confirmation refuses with the
+      words «… in the process of being excluded from shipment …»). `shipments/update` — `shipment_id` and any of `cutoff_passed`,
+      `excluding_order_ids`, `order_ids` (replaces the list). The confirmation refuses before the cutoff, for orders that are not `READY_TO_SHIP`
+      (test orders and cancelled ones do not count) and for a shipment with no order; the act is given after the confirmation only. The call log
+      (`/__control/calls`) keeps the bodies of the writes, so a test can count them and read what was sent.
     - `campaigns/api-off` — `campaign_id`, `off`: turns a shop's API off or on, so that its `apiAvailability` and the answers that name the
       shop change.
     - `notifications` (notifies) — `address` (the URL to `POST` to, `http` or `https`; setting it sends one `PING`), `lose_next` and

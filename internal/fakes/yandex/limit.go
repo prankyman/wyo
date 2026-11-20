@@ -21,6 +21,11 @@ var (
 	limitOrders     = limitSpec{10000, time.Hour}
 	limitWarehouses = limitSpec{100, time.Hour}
 	limitOffers     = limitSpec{100, time.Minute}
+
+	// The limits of the nine writing methods (x-resource-limit-config of their description files).
+	limitWrite     = limitSpec{10000, time.Hour} // setOrderBoxLayout, generateOrderLabel, updateOrderStatus, verifyOrderEac
+	limitVerdicts  = limitSpec{1000, time.Hour}  // getOrderIdentifiersStatus
+	limitShipments = limitSpec{200, time.Hour}   // searchShipments, getShipment, confirmShipment, downloadShipmentAct
 )
 
 // A queued rate_limited fault knows nothing of the method it meets, so it says the smallest amount of the five as its limit.

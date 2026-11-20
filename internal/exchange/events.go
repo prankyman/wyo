@@ -165,6 +165,10 @@ func (s *Service) apply(ctx context.Context, sess *session, e fulfilment.Event) 
 		s.write(ctx, func(q *store.Queries) error { return q.TouchNotification(ctx, s.opts.Clock.Now(), true) })
 	case eventHeld:
 		return s.applyHeld(ctx, e)
+	case eventCourierCode:
+		if e.Data.Order != nil {
+			return s.courierCode(ctx, sess, e)
+		}
 	default:
 		if e.Data.Order != nil {
 			return s.applyOrder(ctx, sess, e)
@@ -259,6 +263,10 @@ func (s *Service) applyOrder(ctx context.Context, sess *session, e fulfilment.Ev
 		if o.x.State == stateReserved || o.x.State == stateLabelSent {
 			s.note(o, statePacked, "packed")
 			s.save(ctx, o)
+		}
+
+		if s.codesInPack(ctx, o) {
+			s.readyStep(ctx, sess, o)
 		}
 	case eventReopened:
 		return s.reopened(ctx, sess, o)

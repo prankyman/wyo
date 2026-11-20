@@ -194,7 +194,15 @@ func (s *Service) attachLabel(ctx context.Context, sess *session, o *order) erro
 		return errSkipped
 	}
 
-	labels, err := fetcher.Labels(ctx, conn, []string{o.row.Number})
+	var labels []marketplace.Label
+
+	// A marketplace that makes its label in more than one size is asked for the size the fulfilment centre names.
+	if sized, ok := fetcher.(marketplace.SizedLabelFetcher); ok {
+		labels, err = sized.LabelsOfSize(ctx, conn, []string{o.row.Number}, s.sizeOf(ctx, sess, o))
+	} else {
+		labels, err = fetcher.Labels(ctx, conn, []string{o.row.Number})
+	}
+
 	if err != nil {
 		return s.refusedOrStopped(ctx, sess, o, stepLabels, err)
 	}

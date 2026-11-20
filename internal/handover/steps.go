@@ -141,7 +141,7 @@ func (rn *run) makeBatch(g group, p parts, sup store.Supply) (store.Supply, erro
 	}
 
 	number, err := p.group.MakeBatch(rn.ctx, p.conn, marketplace.BatchRequest{
-		Name: marketplace.HandoverBatchName(rn.h.Number, rn.day()), Warehouse: g.warehouse(), Day: rn.day(),
+		Name: marketplace.HandoverBatchName(rn.h.Number, rn.day()), Warehouse: g.warehouse(), Day: rn.day(), Numbers: orderNumbers(g.orders),
 	})
 
 	var wait *marketplace.BatchWait
@@ -156,6 +156,16 @@ func (rn *run) makeBatch(g group, p parts, sup store.Supply) (store.Supply, erro
 	sup = store.Supply{
 		AccountID: g.account, Number: number, Group: g.name, Role: roleHandover, HandoverID: rn.h.ID, Open: true,
 		CreatedAt: rn.r.opts.Clock.Now(),
+	}
+
+	// A batch the marketplace made by itself is kept with its kind (how it leaves), which the hand-over's page names.
+	if p.desc.BatchFound {
+		state, err := p.reader.Batch(rn.ctx, p.conn, number)
+		if err != nil {
+			return store.Supply{}, rn.refused(StepBatch, err)
+		}
+
+		sup.Kind = state.Kind
 	}
 
 	err = rn.r.opts.Store.Do(rn.ctx, func(q *store.Queries) error {
@@ -188,9 +198,24 @@ func numbersOf(orders []store.HandoverOrder) []string {
 	return out
 }
 
+// orderNumbers are the marketplace's numbers of the hand-over's orders themselves.
+func orderNumbers(orders []store.HandoverOrder) []string {
+	out := make([]string, 0, len(orders))
+	for _, o := range orders {
+		out = append(out, o.Number)
+	}
+
+	return out
+}
+
 // move makes the batch hold exactly the hand-over's orders, then, for a marketplace that answers labels at once, reads
-// their labels again: a label that changed stops the hand-over, because a parcel with the old label would not be accepted.
+// their labels again: a label that changed stops the hand-over, because a parcel with the old label would not be accepted. A
+// batch the marketplace makes by itself is never changed: it is only compared (compare).
 func (rn *run) move(g group, p parts, sup store.Supply) error {
+	if p.desc.BatchFound {
+		return rn.compare(g, p, sup)
+	}
+
 	if err := p.group.FillBatch(rn.ctx, p.conn, sup.Number, numbersOf(g.orders)); err != nil {
 		return rn.refused(StepMove, err)
 	}
@@ -316,6 +341,10 @@ func (rn *run) ship(g group, p parts, sup store.Supply) error {
 // rewrites the list, and the batch is read and compared again. A second difference stops the hand-over with the problem
 // «batch_differs», which names the missing and the extra orders.
 func (rn *run) close(g group, p parts, sup store.Supply) error {
+	if p.desc.BatchFound {
+		return rn.confirm(g, p, sup)
+	}
+
 	state, err := p.reader.Batch(rn.ctx, p.conn, sup.Number)
 	if err != nil {
 		return rn.refused(StepClose, err)

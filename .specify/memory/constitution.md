@@ -1,6 +1,13 @@
 <!--
 Sync Impact Report:
-- Version change: 1.7.0 → 1.8.0 (MINOR) — the maintainer, 2026-11-19: «гонять финальные тесты сначала на mac mini m4 … а на GH -
+- Version change: 1.8.0 → 1.9.0 (MINOR) — Plan 8
+  (`.agents/plans/wyo-yandex-market-fbs-and-express-exchange-with-a-fulfilment-centre-codes-labels-daily-shipment-courier-code.md`):
+  rules widened, nothing removed. Principle XII: the codes inside the packing report (`CodesInPack`), the final «ready» write
+  (`orders.ready`, one function that can write nothing else), a batch the marketplace makes alone (found, compared both ways,
+  confirmed, never changed), the courier-code hand-over (`orders.courier_code`) and the code never kept, the label size the
+  fulfilment centre's («the wyo server chooses nothing the fulfilment centre names»), the test mark passed on, an order whose
+  marketplace status waits never sent; their tests named. Principle X names the new parts.
+- Earlier: 1.7.0 → 1.8.0 (MINOR) — the maintainer, 2026-11-19: «гонять финальные тесты сначала на mac mini m4 … а на GH -
   отключи их все, ибо он страшно медленный» (register item 39; plan
   `.agents/plans/wyo-final-tests-on-the-mac-mini-github-actions-only-builds-and-releases.md`). «Plan Implementation Workflow», steps
   3, 5 and 7: the whole gate runs on the Mac mini (`pnpm remote:gate`) on every machine, and only a commit it passed is pushed;
@@ -400,6 +407,11 @@ adapter drops a buyer's name, phone, e-mail, address, comment and region at its 
   (`marketplace.<code>.refusal.<code>`, `marketplace.<code>.note.<code>`), then in the shared one, by one function
   (`src/lib/marketplaces/refusals.ts`); a shared text holds only neutral words.
 - **Shared helpers** of adapters live once in `internal/adapterkit`, never copied into an adapter.
+- **Boxes, «ready» and a courier's code (Plan 8).** An adapter may claim `orders.ready` (the order is told ready to ship) and
+  `orders.courier_code` (a courier's code is checked), declare `CodesInPack` (its `orders.pack` takes each box's units with their
+  marking codes in one report, `BoxPacker`), `BatchFound` (its day's batch is found, never made or changed), `CourierSchemes`
+  (the schemes whose orders leave alone, to a courier) and `WaitStatuses` (its own status words of an order not to be sent yet).
+  An order line is named to such an adapter by its place in the order, never by a product number sent elsewhere.
 - **Read by changes and notified (Plan 7).** An adapter may claim `orders.changes` (every order changed since a moment, read in
   place of `orders.new` and `orders.states`), `orders.named` (the orders a notification names) and `notifications.receive` (it
   reads a marketplace's notification and writes the answer the marketplace wants, and declares the networks notifications come
@@ -484,6 +496,25 @@ through the adapter contract's writing parts. It knows no marketplace and no ful
   only up to the last one read in order; a notification is accepted only with a right signature and a time within five minutes.
 - **What never travels:** a marketplace key never reaches the fulfilment centre, its key never reaches a marketplace, and neither, nor a
   marking code, reaches a log line, a journal row or an answer; the browser never sees a marking code.
+- **The wyo server chooses nothing the fulfilment centre names (Plan 8).** The label size of each of the fulfilment centre's
+  warehouses and marketplaces (`label_sizes` of `GET /warehouses`) is kept and asked of the marketplace exactly; a size the
+  marketplace does not make is a problem in its words (`label_size_unsupported`), never a size of the wyo server's choice; no size
+  named is the marketplace's own default. An order is sent with its test mark (`test`) and its way out (`handover`); a test order
+  walks the exchange like any other, and the fulfilment centre never hands it over.
+- **Boxes and codes in one report, then «ready» (Plan 8):** for an adapter that declares `CodesInPack` the fulfilment centre's
+  parcels are reported as boxes with each unit's code (a later report replaces the earlier until the order is ready), the verdict
+  is waited for, each box's label is fetched in the fulfilment centre's size, and only when every parcel is closed, the codes
+  passed and every label attached is the order told ready — read first, never written twice, through the one function that can
+  write nothing but «ready». No box report carries a removal of goods.
+- **A batch the marketplace makes alone (Plan 8)** is found, compared with the hand-over both ways (the marketplace's test
+  orders left out) with the one comparison, confirmed only when it holds exactly the hand-over's orders, and never changed: an
+  order in it that the fulfilment centre does not hand over is a problem the owner settles in the cabinet. A batch the
+  marketplace cannot confirm yet (its cutoff) waits and is tried again every five minutes.
+- **A courier's code (Plan 8)** is checked with the marketplace at once and answered to the fulfilment centre; the answer is kept
+  before it is sent, so a lost answer is sent again without asking the marketplace twice; the code is blanked in the stored event
+  once answered and reaches no log line, journal row or answer.
+- **An order whose marketplace status waits** (`WaitStatuses`) is not sent; an order whose warehouse the marketplace did not tell
+  is not sent and needs the owner («Требуют внимания»).
 - **Tests:** the tests of `internal/exchange` (the whole walk with both fakes, every branch, every step interrupted in turn with no write
   made twice, the events, the budget of a made-up hour); `TestNeitherKeyNorAMarkingCodeLeavesItsOwnSide` (`internal/server`);
   `TestTheCancelMethodOfWildberriesIsCalledNowhereInThisRepository`, `TestTheCancelMethodsOfOzonAreNeverGeneratedInThisRepository`,
@@ -494,7 +525,12 @@ through the adapter contract's writing parts. It knows no marketplace and no ful
   `TestACodeIsSentWithItsSeparatorEscapedOnceAndNeverTwice` (`internal/exchange`),
   `TestARequestToAFileLinkCarriesNoKeyAndItsJournalRowNamesNoLink` and
   `TestARequestToAHostOutsideTheRoutesDomainIsRefusedBeforeItLeaves` (`internal/sync`),
-  `TestTheExchangeAtItsPeriodsNeverExceedsEitherBudget` (`internal/exchange`).
+  `TestTheExchangeAtItsPeriodsNeverExceedsEitherBudget` (`internal/exchange`); for Plan 8: the Яндекс Маркет walks of
+  `internal/exchange` (FBS, Express, a test order, every branch, every step interrupted in turn with no write made twice),
+  `TestTheStatusMethodOfYandexMarketIsCalledOnlyByItsOneReadyFunction` (`internal/archtest`),
+  `TestTheStickerIsAskedForInTheSizeTheFulfilmentCentreNamesAndASizeWildberriesDoesNotMakeIsRefusedBeforeACall`
+  (`internal/marketplace/wildberries`), `TestAnOrderWhoseMarketplaceStatusWaitsIsNotSentAndItsTestMarkAndSchemeNameGoWithTheOthers`
+  and `TestANewOrderWhoseWarehouseTheMarketplaceDidNotTellNeedsTheOwnerWhileTheExchangeIsOn` (`internal/store`).
 
 ## Development Standards
 
@@ -821,4 +857,4 @@ file records every amendment with its version change and the request that caused
 pull request's description. The version follows semantic versioning of the rules: a principle added or a rule tightened raises the
 second number, a wording change the third; the first number is raised only by the maintainer.
 
-**Version**: 1.8.0 | **Ratified**: 2026-11-17 | **Last Amended**: 2026-11-19
+**Version**: 1.9.0 | **Ratified**: 2026-11-17 | **Last Amended**: 2026-11-20

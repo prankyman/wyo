@@ -11,14 +11,16 @@ import (
 
 // The reasons an order is not sent (api/wyo.yaml, ExchangeReason).
 const (
-	reasonEmpty         = "external_api_empty"
-	reasonMarketplace   = "marketplace_not_matched"
-	reasonWarehouse     = "warehouse_not_matched"
-	reasonOnAssembly    = "already_on_assembly"
-	reasonNotSeller     = "not_seller_warehouse"
-	reasonKeyReadOnly   = "key_read_only"
-	notReservedInTime   = "not_reserved_in_time"
-	reservationQuarters = 4
+	reasonEmpty       = "external_api_empty"
+	reasonMarketplace = "marketplace_not_matched"
+	reasonWarehouse   = "warehouse_not_matched"
+	// reasonWarehouseUnknown is a new order the marketplace did not tell the warehouse of: it is not sent, and it needs the owner.
+	reasonWarehouseUnknown = store.AttentionWarehouseUnknown
+	reasonOnAssembly       = "already_on_assembly"
+	reasonNotSeller        = "not_seller_warehouse"
+	reasonKeyReadOnly      = "key_read_only"
+	notReservedInTime      = "not_reserved_in_time"
+	reservationQuarters    = 4
 )
 
 // View is an order's exchange as the order list shows it.
@@ -129,6 +131,8 @@ func (l lookup) view(o store.OrderView, x store.ExchangeOrder, sent bool, now ti
 		v.Reason = reasonEmpty
 	case l.markets[o.AccountID] == "":
 		v.Reason = reasonMarketplace
+	case o.WarehouseNumber == "" && o.WarehouseText != "" && o.State == string(marketplace.StateNew):
+		v.Reason, v.Attention = reasonWarehouseUnknown, store.AttentionWarehouseUnknown
 	case !l.warehouses[[2]string{itoa(int(o.AccountID)), o.WarehouseNumber}]:
 		v.Reason = reasonWarehouse
 	case l.readOnly[o.AccountID]:
@@ -146,6 +150,8 @@ type Details struct {
 
 	History  []store.ExchangeHistory
 	Verdicts []store.OrderCode
+	// CourierChecks are the codes a courier named for the order, each with the marketplace's answer — never the code.
+	CourierChecks []store.CourierCheck
 }
 
 // Details gives one order's exchange; false for an order of the marketplace's own warehouses.
@@ -169,6 +175,13 @@ func (s *Service) Details(ctx context.Context, o store.OrderView) (Details, bool
 	if d.Verdicts, err = s.opts.Store.Read().OrderCodes(ctx, o.ID); err != nil {
 		return Details{}, false, err
 	}
+
+	checks, err := s.opts.Store.Read().CourierChecksOf(ctx, []int64{o.ID})
+	if err != nil {
+		return Details{}, false, err
+	}
+
+	d.CourierChecks = checks[o.ID]
 
 	return d, true, nil
 }

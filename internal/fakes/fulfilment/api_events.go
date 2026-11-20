@@ -15,7 +15,7 @@ var eventTypes = map[string]bool{
 	"order.accepted": true, "order.held": true, "order.reserved": true, "order.picking_started": true, "order.picked": true,
 	"order.packing_finished": true, "order.label_attached": true, "order.parcel_closed": true, "order.packed": true,
 	"order.reopened": true, "order.reduced": true, "order.change_waits": true, "order.cancelled": true,
-	"order.handed_over": true, "handover.requested": true, "handover.request_withdrawn": true, "handover.completed": true,
+	"order.handed_over": true, "order.courier_code_entered": true, "handover.requested": true, "handover.request_withdrawn": true, "handover.completed": true,
 	"ping": true,
 }
 

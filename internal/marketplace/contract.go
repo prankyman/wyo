@@ -40,6 +40,11 @@ const (
 	OrdersNamed          Capability = "orders.named"
 	NotificationsReceive Capability = "notifications.receive"
 
+	// Plan 8: the order is told ready to ship after its boxes, codes and labels; and the code a courier names for an order
+	// that leaves alone is checked.
+	OrdersReady       Capability = "orders.ready"
+	OrdersCourierCode Capability = "orders.courier_code"
+
 	// Stages 2 to 5 of the high-level plan: named, not supported by any adapter yet.
 	StockPush        Capability = "stock.push"
 	StockRead        Capability = "stock.read"
@@ -54,7 +59,7 @@ const (
 var supportedNow = []Capability{
 	KeyCheck, WarehousesRead, OrdersNew, OrdersStates, OrdersFeed,
 	OrdersConfirm, LabelsFetch, CodesReport, CodesVerdict, HandoverGroup, HandoverClose, HandoverDocuments, OrdersPack,
-	OrdersChanges, OrdersNamed, NotificationsReceive,
+	OrdersChanges, OrdersNamed, NotificationsReceive, OrdersReady, OrdersCourierCode,
 }
 
 // AllCapabilities lists every part of the contract, the supported ones first.
@@ -119,6 +124,18 @@ type Description struct {
 	CodesReplace bool
 	// HandoverSteps are the hand-over steps the adapter needs, in the order of HandoverStepsAll; an empty list means all six.
 	HandoverSteps []string
+	// CodesInPack says the part orders.pack takes each box's units with their marking codes in one report (BoxPacker), and no
+	// separate codes.report is made; codes.verdict is read after the report.
+	CodesInPack bool
+	// BatchFound says the marketplace makes the day's batch of a warehouse by itself: the hand-over's step «batch» finds it,
+	// «move» only compares it with the hand-over, both ways, and nothing is ever put into it or taken out of it.
+	BatchFound bool
+	// CourierSchemes are the schemes whose orders leave the fulfilment centre alone, to a courier whose code is checked
+	// (orders.courier_code); they join no hand-over.
+	CourierSchemes []Scheme
+	// WaitStatuses are the marketplace's own words of an order's status (Status.Marketplace) for an order that is new but
+	// must not be worked on yet (not paid, not yet confirmed by the marketplace): it is not sent to a fulfilment centre.
+	WaitStatuses []string
 	// OrdersPeriod and StatesPeriod are how often the exchange reads the new orders and the states of the open orders of
 	// the adapter's accounts; zero means the defaults, one minute and five minutes.
 	OrdersPeriod, StatesPeriod time.Duration

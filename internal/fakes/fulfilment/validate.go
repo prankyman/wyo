@@ -17,16 +17,17 @@ import (
 )
 
 const (
-	maxJSONBody    = 1 << 20
-	maxFileBody    = 8 << 20
-	maxFileBytes   = 5 << 20
-	maxExternalID  = 64
-	maxNote        = 300
-	maxOrderLines  = 200
-	maxDocuments   = 60
-	maxProblemCode = 64
-	defaultPage    = 50
-	maxPage        = 200
+	maxJSONBody     = 1 << 20
+	maxFileBody     = 8 << 20
+	maxFileBytes    = 5 << 20
+	maxExternalID   = 64
+	maxNote         = 300
+	maxOrderLines   = 200
+	maxDocuments    = 60
+	maxProblemCode  = 64
+	maxAttemptsLeft = 1000
+	defaultPage     = 50
+	maxPage         = 200
 )
 
 var problemCode = regexp.MustCompile(`^[a-z0-9_.-]+$`)
@@ -90,6 +91,10 @@ func validateOrderIn(in *fcapi.OrderIn) issues {
 
 	if in.PackingNote != nil && utf8.RuneCountInString(*in.PackingNote) > maxNote {
 		out.add("packing_note", "too_long")
+	}
+
+	if in.Handover != nil && !in.Handover.Valid() {
+		out.add("handover", "invalid_value")
 	}
 
 	switch {
@@ -274,6 +279,27 @@ func validatePatch(in *patchBody) issues {
 		out.add("packing_note", "invalid_type")
 	case value != nil && utf8.RuneCountInString(*value) > maxNote:
 		out.add("packing_note", "too_long")
+	}
+
+	return out
+}
+
+func validateCourierAnswer(in *fcapi.CourierCodeAnswerIn) issues {
+	var out issues
+
+	switch {
+	case in.Result == "":
+		out.add("result", "required")
+	case !in.Result.Valid():
+		out.add("result", "invalid_value")
+	}
+
+	if in.AttemptsLeft != nil && (*in.AttemptsLeft < 0 || *in.AttemptsLeft > maxAttemptsLeft) {
+		out.add("attempts_left", "out_of_range")
+	}
+
+	if in.Message != nil && utf8.RuneCountInString(*in.Message) > maxNote {
+		out.add("message", "too_long")
 	}
 
 	return out

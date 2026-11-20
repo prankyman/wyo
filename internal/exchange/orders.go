@@ -151,9 +151,27 @@ func (s *Service) marketplaceProblem(ctx context.Context, sess *session, o *orde
 		return false
 	}
 
-	s.problem(ctx, sess, o, store.Problem{Code: problemMarketplace, Params: map[string]any{"step": step}, MpCode: code, Words: words}, step)
+	s.problem(ctx, sess, o, store.Problem{Code: problemMarketplace, Params: refusalParams(err, step), MpCode: code, Words: words}, step)
 
 	return true
+}
+
+// refusalParams are the params of a problem made of a marketplace's refusal at a step: the step, and what else the refusal
+// names (a label's size, the identifiers it needs), so that the problem's sentence in the marketplace's words can name them.
+// The words and the status are kept in their own fields, never here.
+func refusalParams(err error, step string) map[string]any {
+	params := map[string]any{"step": step}
+
+	var refusal *marketplace.Refusal
+	if errors.As(err, &refusal) {
+		for k, v := range refusal.Params {
+			if k != "text" && k != "step" && k != "status" {
+				params[k] = v
+			}
+		}
+	}
+
+	return params
 }
 
 // clearProblem removes an order's problem here and at the fulfilment centre.

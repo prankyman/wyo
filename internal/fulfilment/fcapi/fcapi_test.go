@@ -29,6 +29,7 @@ var wantCalls = []string{
 	"POST /orders/{id}/reduce",
 	"PUT /handovers/{id}/documents",
 	"PUT /handovers/{id}/problem",
+	"PUT /orders/{id}/courier-code-checks/{check_id}",
 	"PUT /orders/{id}/parcels/{number}/label",
 	"PUT /orders/{id}/problem",
 }
@@ -82,7 +83,7 @@ func TestEveryEventOfTheListIsDescribedAsANotification(t *testing.T) {
 
 	want := []string{
 		"handover.completed", "handover.request_withdrawn", "handover.requested", "order.accepted", "order.cancelled",
-		"order.change_waits", "order.handed_over", "order.held", "order.label_attached", "order.packed",
+		"order.change_waits", "order.courier_code_entered", "order.handed_over", "order.held", "order.label_attached", "order.packed",
 		"order.packing_finished", "order.parcel_closed", "order.picked", "order.picking_started", "order.reduced",
 		"order.reopened", "order.reserved", "ping",
 	}

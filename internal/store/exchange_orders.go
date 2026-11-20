@@ -57,7 +57,22 @@ type ExchangeOrder struct {
 	HandedOverAt time.Time
 	SentAt       time.Time
 	UpdatedAt    time.Time
+	// ReadyAt is when the marketplace was told, or found to know, that the order is ready to ship (the part orders.ready).
+	ReadyAt time.Time
+	// Handover is how the order leaves: HandoverShipment with the others of its day, HandoverCourierCode alone to a courier
+	// whose code was checked. Empty means HandoverShipment, and a row read back says so with an empty one.
+	Handover string
 }
+
+// AttentionWarehouseUnknown is the cause a new order of a matched marketplace needs the owner for when the marketplace did not
+// tell its warehouse: it is not sent until it can be.
+const AttentionWarehouseUnknown = "warehouse_unknown"
+
+// The ways an order leaves the fulfilment centre (exchange_orders.handover).
+const (
+	HandoverShipment    = "shipment"
+	HandoverCourierCode = "courier_code"
+)
 
 // OrderToSend is an order of a matched account and warehouse that the exchange has not sent yet.
 type OrderToSend struct {
@@ -72,6 +87,9 @@ type OrderToSend struct {
 	DeadlineHours int64
 	FcMarketplace string
 	FcWarehouse   string
+	// Test marks a test order; SchemeName is the marketplace's own name of its scheme ('' for the connector's own).
+	Test       bool
+	SchemeName string
 }
 
 // ExchangeHistory is one change of an order's exchange state.
@@ -129,7 +147,7 @@ func exchangeOrder(r db.ExchangeOrder) ExchangeOrder {
 		CodesResends: r.CodesResends, PackedAt: optionalMoment(r.PackedAt), ShipBySent: optionalMoment(r.ShipBySent),
 		CodesState: r.CodesState, CodesSentAt: optionalMoment(r.CodesSentAt),
 		NextCheckAt: optionalMoment(r.NextCheckAt), CancelAnswer: r.CancelAnswer, HandedOverAt: optionalMoment(r.HandedOverAt),
-		SentAt: moment(r.SentAt), UpdatedAt: moment(r.UpdatedAt),
+		SentAt: moment(r.SentAt), UpdatedAt: moment(r.UpdatedAt), ReadyAt: optionalMoment(r.ReadyAt), Handover: handoverRead(r.Handover),
 	}
 }
 
@@ -151,8 +169,26 @@ func (q *Queries) SaveExchangeOrder(ctx context.Context, x ExchangeOrder) error 
 		CodesResends: x.CodesResends, PackedAt: optionalSeconds(x.PackedAt), ShipBySent: optionalSeconds(x.ShipBySent),
 		CodesState: x.CodesState, CodesSentAt: optionalSeconds(x.CodesSentAt), NextCheckAt: optionalSeconds(x.NextCheckAt),
 		CancelAnswer: x.CancelAnswer, HandedOverAt: optionalSeconds(x.HandedOverAt), SentAt: seconds(x.SentAt),
-		UpdatedAt: seconds(x.UpdatedAt),
+		UpdatedAt: seconds(x.UpdatedAt), ReadyAt: optionalSeconds(x.ReadyAt), Handover: handoverOf(x.Handover),
 	}))
+}
+
+// handoverRead is the way out as read: empty for HandoverShipment, which an empty one means.
+func handoverRead(h string) string {
+	if h == HandoverShipment {
+		return ""
+	}
+
+	return h
+}
+
+// handoverOf is the way out as kept: HandoverShipment when none is named.
+func handoverOf(h string) string {
+	if h == "" {
+		return HandoverShipment
+	}
+
+	return h
 }
 
 // optionalNumber is NULL for 0.
@@ -278,18 +314,33 @@ func (q *Queries) AttentionCounts(ctx context.Context, now time.Time) (map[strin
 		out["not_reserved_in_time"] = late
 	}
 
+	unknown, err := q.q.CountWarehouseUnknown(ctx)
+	if err != nil {
+		return nil, kind(err)
+	}
+
+	if unknown > 0 {
+		out[AttentionWarehouseUnknown] = unknown
+	}
+
 	return out, nil
 }
 
 // OrdersToSend lists up to limit orders the exchange may send now: of the seller's warehouses, new, of an account of one
 // of the marketplaces given that is read and may write, with the account's marketplace and the warehouse matched, never
-// sent before; each with its lines.
-func (q *Queries) OrdersToSend(ctx context.Context, limit int, marketplaces []string) ([]OrderToSend, error) {
+// sent before; each with its lines. An order whose marketplace's own status is among the ones that wait (each
+// «<marketplace> <status>», WaitingStatus) is not sent yet.
+func (q *Queries) OrdersToSend(ctx context.Context, limit int, marketplaces []string, waiting ...string) ([]OrderToSend, error) {
 	if len(marketplaces) == 0 {
 		return nil, nil
 	}
 
-	rows, err := q.q.OrdersToSend(ctx, db.OrdersToSendParams{Marketplaces: marketplaces, Limit: int64(limit)})
+	if waiting == nil {
+		waiting = []string{}
+	}
+
+	// The second parameter is the JSON list of the statuses that wait.
+	rows, err := q.q.OrdersToSend(ctx, db.OrdersToSendParams{Marketplaces: marketplaces, Column2: jsonText(waiting), Limit: int64(limit)})
 	if err != nil {
 		return nil, kind(err)
 	}
@@ -309,12 +360,15 @@ func (q *Queries) OrdersToSend(ctx context.Context, limit int, marketplaces []st
 		list = append(list, OrderToSend{
 			OrderID: r.ID, AccountID: r.AccountID, Number: r.Number, Basket: r.Basket, Lines: lines[r.ID], ItemID: r.ItemID,
 			CreatedAt: moment(r.CreatedAt), ShipBy: optionalMoment(r.ShipBy), DeadlineHours: r.DeadlineHours,
-			FcMarketplace: r.FcMarketplace, FcWarehouse: r.FcWarehouse,
+			FcMarketplace: r.FcMarketplace, FcWarehouse: r.FcWarehouse, Test: r.Test == 1, SchemeName: r.SchemeName,
 		})
 	}
 
 	return list, nil
 }
+
+// WaitingStatus is the text OrdersToSend compares with, for a marketplace's own status of an order that waits.
+func WaitingStatus(marketplace, status string) string { return marketplace + " " + status }
 
 // InsertExchangeHistory records one change of an order's exchange state.
 func (q *Queries) InsertExchangeHistory(ctx context.Context, orderID int64, h ExchangeHistory) error {

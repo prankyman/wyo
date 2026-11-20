@@ -1,8 +1,8 @@
 // Package yandex is the Яндекс Маркет adapter: the one package that knows Яндекс Маркет (rule R6). It reads the Api-Key
 // token, checks it with Яндекс Маркет's list of its access levels, reads the cabinet's shops and warehouses, the FBS, Express
 // and FBY orders of every shop changed since a moment or named by a notification, real and test ones, and the products'
-// barcodes, and turns Яндекс Маркет's answers and notifications into the connector's own words. It writes nothing to
-// Яндекс Маркет: the generated client holds only reading methods (an architecture test). It never makes a request itself:
+// barcodes, and turns Яндекс Маркет's answers and notifications into the connector's own words. It writes to
+// Яндекс Маркет only what Plan 8 says (writing.go and its neighbours). It never makes a request itself:
 // every request goes through the marketplace.Conn the engine gives it, and its generated client (yandexapi/) is always built
 // on that Conn (an architecture test).
 //
@@ -59,6 +59,17 @@ const (
 	pathOrders     = "/v1/businesses/{businessId}/orders"
 	pathWarehouses = "/v3/businesses/{businessId}/warehouses"
 	pathOffers     = "/v2/businesses/{businessId}/offer-mappings"
+
+	// The nine methods of Plan 8 (YMC §5, §10, §11, §12).
+	pathBoxes    = "/v2/campaigns/{campaignId}/orders/{orderId}/boxes"
+	pathVerdicts = "/v2/campaigns/{campaignId}/orders/{orderId}/identifiers/status"
+	pathLabel    = "/v2/campaigns/{campaignId}/orders/{orderId}/delivery/shipments/{shipmentId}/boxes/{boxId}/label"
+	pathStatus   = "/v2/campaigns/{campaignId}/orders/{orderId}/status"
+	pathEac      = "/v2/campaigns/{campaignId}/orders/{orderId}/verifyEac"
+	pathSearch   = "/v2/campaigns/{campaignId}/first-mile/shipments"
+	pathShipment = "/v2/campaigns/{campaignId}/first-mile/shipments/{shipmentId}"
+	pathConfirm  = "/v2/campaigns/{campaignId}/first-mile/shipments/{shipmentId}/confirm"
+	pathShipAct  = "/v2/campaigns/{campaignId}/first-mile/shipments/{shipmentId}/act"
 )
 
 // The headers by which Яндекс Маркет tells its limit: «X-RateLimit-Resource-Remaining» on every answer, and with «420
@@ -81,13 +92,26 @@ func limitOf(name string, interval time.Duration, burst int) marketplace.LimitGr
 
 // groups are the limits of the methods (YMC §5): getAuthTokenInfo and getPartnerWarehouses 100 an hour (10 + 3 600 s / 40 s =
 // 100), getCampaigns 1 000 an hour (50 + 947 = 997), getBusinessOrders 10 000 an hour (100 + 9 890 = 9 990) and
-// getOfferMappings 100 a minute (10 + 89 = 99).
+// getOfferMappings 100 a minute (10 + 89 = 99). The nine methods of Plan 8 each have a limit of their own
+// (x-resource-limit-config of each description file in api/yandex/paths/): setOrderBoxLayout, generateOrderLabel,
+// updateOrderStatus and verifyOrderEac 10 000 an hour (100 + 9 890 = 9 990), getOrderIdentifiersStatus 1 000 an hour
+// (50 + 947 = 997), and searchShipments, getShipment, confirmShipment and downloadShipmentAct 200 an hour (10 + 189 = 199).
 var groups = map[string]marketplace.LimitGroup{
 	"token":      limitOf("token", 40*time.Second, 10),
 	"campaigns":  limitOf("campaigns", 3800*time.Millisecond, 50),
 	"orders":     limitOf("orders", 364*time.Millisecond, 100),
 	"warehouses": limitOf("warehouses", 40*time.Second, 10),
 	"offers":     limitOf("offers", 667*time.Millisecond, 10),
+
+	"boxes":    limitOf("boxes", 364*time.Millisecond, 100),
+	"verdicts": limitOf("verdicts", 3800*time.Millisecond, 50),
+	"label":    limitOf("label", 364*time.Millisecond, 100),
+	"status":   limitOf("status", 364*time.Millisecond, 100),
+	"eac":      limitOf("eac", 364*time.Millisecond, 100),
+	"search":   limitOf("search", 19*time.Second, 10),
+	"shipment": limitOf("shipment", 19*time.Second, 10),
+	"confirm":  limitOf("confirm", 19*time.Second, 10),
+	"act":      limitOf("act", 19*time.Second, 10),
 }
 
 // Options builds the adapter.
@@ -134,14 +158,30 @@ func (a *Adapter) Describe() marketplace.Description {
 		Capabilities: []marketplace.Capability{
 			marketplace.KeyCheck, marketplace.WarehousesRead, marketplace.OrdersChanges, marketplace.OrdersNamed,
 			marketplace.NotificationsReceive,
+			marketplace.OrdersPack, marketplace.OrdersReady, marketplace.LabelsFetch, marketplace.CodesVerdict, marketplace.OrdersCourierCode,
+			marketplace.HandoverGroup, marketplace.HandoverClose, marketplace.HandoverDocuments,
 		},
+		// The boxes go with their marking codes in one report, and a later report replaces the earlier (YMC §10).
+		CodesInPack: true, CodesReplace: true,
+		// Яндекс Маркет makes the day's shipment itself; the hand-over finds it, compares it, confirms it and takes its act, and
+		// never puts an order into it or takes one out (YMC §11). There are no transport boxes and no shipping to set.
+		BatchFound:    true,
+		HandoverSteps: []string{marketplace.StepBatch, marketplace.StepMove, marketplace.StepClose, marketplace.StepDocuments},
+		// An Express order leaves with a courier whose code is checked, and joins no hand-over (YMC §12).
+		CourierSchemes: []marketplace.Scheme{marketplace.SchemeExpress},
+		// «UNPAID» and «PENDING» are orders that are new and must not be worked on yet: they wait (plan section B, YMC §7).
+		WaitStatuses:  []string{"UNPAID", "PENDING"},
 		GivesDeadline: true,
 		MaxInFlight:   maxInFlight,
 		ProgramHeader: programHeader,
 	}
 }
 
-// Routes implements marketplace.Adapter: the five reading methods of YMC §5, each in a limit group of its own.
+// Routes implements marketplace.Adapter: the five reading methods of YMC §5 and the nine of Plan 8, each in a limit group of its
+// own. Four of the nine change something at Яндекс Маркет and are marked as writes: the boxes, the status, the courier's code
+// and the confirmation of a shipment; the verdicts, the labels, the search and the reading of a shipment, and the act, only
+// read or make a file. The levels are those of x-auth-scopes of each description file: the reading ones need the level for
+// reading orders, the others «Обработка заказов и учёт товаров».
 func (a *Adapter) Routes() []marketplace.Route {
 	return []marketplace.Route{
 		{Method: http.MethodPost, Template: pathToken, Group: "token"},
@@ -149,6 +189,15 @@ func (a *Adapter) Routes() []marketplace.Route {
 		{Method: http.MethodPost, Template: pathOrders, Group: "orders", Category: categoryOrders},
 		{Method: http.MethodPost, Template: pathWarehouses, Group: "warehouses", Category: categoryOrders},
 		{Method: http.MethodPost, Template: pathOffers, Group: "offers", Category: categoryProducts},
+		{Method: http.MethodPut, Template: pathBoxes, Group: "boxes", Category: categoryOrdersWrite, Write: true},
+		{Method: http.MethodPost, Template: pathVerdicts, Group: "verdicts", Category: categoryOrders},
+		{Method: http.MethodGet, Template: pathLabel, Group: "label", Category: categoryOrdersWrite},
+		{Method: http.MethodPut, Template: pathStatus, Group: "status", Category: categoryOrdersWrite, Write: true},
+		{Method: http.MethodPut, Template: pathEac, Group: "eac", Category: categoryOrdersWrite, Write: true},
+		{Method: http.MethodPut, Template: pathSearch, Group: "search", Category: categoryOrders},
+		{Method: http.MethodGet, Template: pathShipment, Group: "shipment", Category: categoryOrders},
+		{Method: http.MethodPost, Template: pathConfirm, Group: "confirm", Category: categoryOrdersWrite, Write: true},
+		{Method: http.MethodGet, Template: pathShipAct, Group: "act", Category: categoryOrdersWrite},
 	}
 }
 

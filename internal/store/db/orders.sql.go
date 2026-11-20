@@ -28,7 +28,9 @@ WHERE (?1 IS NULL OR o.account_id = ?1)
   AND (?8 IS NULL OR EXISTS (
        SELECT 1 FROM exchange_orders x
        WHERE x.order_id = o.id
-         AND (x.attention <> '' OR (x.state = 'sent' AND o.created_at + a.deadline_hours * 900 <= ?8))))
+         AND (x.attention <> '' OR (x.state = 'sent' AND o.created_at + a.deadline_hours * 900 <= ?8)))
+       OR (o.scheme = 'fbs' AND o.state = 'new' AND o.warehouse_number = '' AND o.warehouse_text <> ''
+           AND EXISTS (SELECT 1 FROM fc_connection) AND EXISTS (SELECT 1 FROM fc_marketplace_map m WHERE m.account_id = o.account_id)))
 `
 
 type CountOrderViewsParams struct {
@@ -641,7 +643,9 @@ WHERE (?1 IS NULL OR o.account_id = ?1)
   AND (?8 IS NULL OR EXISTS (
        SELECT 1 FROM exchange_orders x
        WHERE x.order_id = o.id
-         AND (x.attention <> '' OR (x.state = 'sent' AND o.created_at + a.deadline_hours * 900 <= ?8))))
+         AND (x.attention <> '' OR (x.state = 'sent' AND o.created_at + a.deadline_hours * 900 <= ?8)))
+       OR (o.scheme = 'fbs' AND o.state = 'new' AND o.warehouse_number = '' AND o.warehouse_text <> ''
+           AND EXISTS (SELECT 1 FROM fc_connection) AND EXISTS (SELECT 1 FROM fc_marketplace_map m WHERE m.account_id = o.account_id)))
 ORDER BY o.created_at DESC, o.id DESC
 LIMIT ?10 OFFSET ?9
 `

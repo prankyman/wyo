@@ -176,7 +176,8 @@ func (c *Client) done(status int, body []byte) error {
 // maxMessage is the longest problem message the API takes.
 const maxMessage = 300
 
-func message(text string) string {
+// cutText cuts a text to the longest message the API takes.
+func cutText(text string) string {
 	if runes := []rune(text); len(runes) > maxMessage {
 		return string(runes[:maxMessage])
 	}
@@ -186,7 +187,7 @@ func message(text string) string {
 
 // PutProblem is PUT /orders/{id}/problem.
 func (c *Client) PutProblem(ctx context.Context, id, code, text string) error {
-	res, err := c.api.OrderProblemSetWithResponse(ctx, id, fcapi.ProblemIn{Code: code, Message: message(text)})
+	res, err := c.api.OrderProblemSetWithResponse(ctx, id, fcapi.ProblemIn{Code: code, Message: cutText(text)})
 	if err != nil {
 		return err
 	}
@@ -197,6 +198,29 @@ func (c *Client) PutProblem(ctx context.Context, id, code, text string) error {
 // ClearProblem is DELETE /orders/{id}/problem.
 func (c *Client) ClearProblem(ctx context.Context, id string) error {
 	res, err := c.api.OrderProblemClearWithResponse(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	return c.done(res.StatusCode(), res.Body)
+}
+
+// AnswerCourierCode is PUT /orders/{id}/courier-code-checks/{check_id}: the marketplace's answer (one of the Courier* words) to
+// the code a courier named. attemptsLeft below zero sends no number of tries, and an empty message sends no words. The same
+// answer sent again is done again; another answer to an answered check is the refusal conflict.
+func (c *Client) AnswerCourierCode(ctx context.Context, id, checkID, result string, attemptsLeft int, message string) error {
+	in := fcapi.CourierCodeAnswerIn{Result: fcapi.CourierCodeAnswerInResult(result)}
+
+	if attemptsLeft >= 0 {
+		in.AttemptsLeft = &attemptsLeft
+	}
+
+	if message != "" {
+		words := cutText(message)
+		in.Message = &words
+	}
+
+	res, err := c.api.CourierCodeAnswerWithResponse(ctx, id, checkID, in)
 	if err != nil {
 		return err
 	}
@@ -305,7 +329,7 @@ func (c *Client) PutDocuments(ctx context.Context, id, externalID string, docs [
 
 // PutHandoverProblem is PUT /handovers/{id}/problem.
 func (c *Client) PutHandoverProblem(ctx context.Context, id, code, text string) error {
-	res, err := c.api.HandoverProblemSetWithResponse(ctx, id, fcapi.ProblemIn{Code: code, Message: message(text)})
+	res, err := c.api.HandoverProblemSetWithResponse(ctx, id, fcapi.ProblemIn{Code: code, Message: cutText(text)})
 	if err != nil {
 		return err
 	}

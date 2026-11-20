@@ -1020,6 +1020,14 @@ export interface components {
             code: string;
             name: string;
             city?: string;
+            /** @description The label size the fulfilment centre names for this warehouse and a marketplace (its code in the fulfilment centre's list); a marketplace without an entry is given its own default size. */
+            labelSizes?: components["schemas"]["FcLabelSize"][];
+        };
+        FcLabelSize: {
+            /** @description The marketplace's code in the fulfilment centre's list. */
+            marketplace: string;
+            widthMm: number;
+            heightMm: number;
         };
         WarehouseMatch: {
             /** Format: int64 */
@@ -1031,6 +1039,10 @@ export interface components {
             warehouseName: string;
             /** @description The marketplace assembles and packs the orders of this warehouse itself (automatic assembly). */
             autoAssembly: boolean;
+            /** @description A courier takes the orders of this warehouse one by one within hours, after a code check. */
+            express?: boolean;
+            /** @description The account's marketplace in the fulfilment centre's list; absent - not matched. */
+            fcMarketplace?: string;
             /** @description The fulfilment centre's warehouse code; absent - not matched. */
             fcWarehouse?: string;
         };
@@ -1106,17 +1118,17 @@ export interface components {
          * @description The exchange's own state of an order; the text is `exchange.state.<state>`.
          * @enum {string}
          */
-        ExchangeState: "not_sent" | "sent" | "held" | "reserved" | "label_sent" | "packed" | "codes_checking" | "codes_accepted" | "handed_over" | "cancelled";
+        ExchangeState: "not_sent" | "sent" | "held" | "reserved" | "label_sent" | "packed" | "codes_checking" | "codes_accepted" | "ready" | "handed_over" | "cancelled";
         /**
          * @description Why an order is not sent; the text is `exchange.reason.<reason>`.
          * @enum {string}
          */
-        ExchangeReason: "external_api_empty" | "marketplace_not_matched" | "warehouse_not_matched" | "already_on_assembly" | "not_seller_warehouse" | "key_read_only";
+        ExchangeReason: "external_api_empty" | "marketplace_not_matched" | "warehouse_not_matched" | "already_on_assembly" | "not_seller_warehouse" | "key_read_only" | "warehouse_unknown";
         /**
          * @description Why an order needs the owner; the text is `exchange.attention.<code>`.
          * @enum {string}
          */
-        Attention: "held" | "not_reserved_in_time" | "problem" | "codes_refused" | "cancelled_by_warehouse" | "change_waits";
+        Attention: "held" | "not_reserved_in_time" | "problem" | "codes_refused" | "cancelled_by_warehouse" | "change_waits" | "warehouse_unknown";
         Problem: {
             /** @description The wyo server's code of the problem; the text is `problem.<code>`. */
             code: string;
@@ -1183,6 +1195,36 @@ export interface components {
             retryable: boolean;
             /** @description The order's parcels in the order of their numbers; none before the packing is known. */
             parcels: components["schemas"]["OrderParcel"][];
+            /**
+             * @description How the order leaves the fulfilment centre: with the day's batch, or alone to a courier who names a code.
+             * @enum {string}
+             */
+            handover?: "shipment" | "courier_code";
+            /**
+             * Format: date-time
+             * @description When the marketplace was told the order is ready to ship.
+             */
+            readyAt?: string;
+            /** @description The codes a courier named for the order, oldest first, each with the marketplace's answer; never the code. */
+            courierChecks?: components["schemas"]["CourierCheck"][];
+        };
+        CourierCheck: {
+            /**
+             * Format: date-time
+             * @description When the fulfilment centre reported the code.
+             */
+            at: string;
+            /**
+             * @description The marketplace's answer; absent while it is awaited. The text is `exchange.courier.<result>`.
+             * @enum {string}
+             */
+            result?: "accepted" | "refused" | "new_code_needed";
+            /** @description The tries the marketplace still allows */
+            attemptsLeft?: number;
+            /** @description The marketplace's own words, as received. */
+            words?: string;
+            /** Format: date-time */
+            answeredAt?: string;
         };
         OrderParcel: {
             /** @description The parcel's number in its order */
@@ -1193,6 +1235,8 @@ export interface components {
             labelSent: boolean;
             /** Format: date-time */
             labelSentAt?: string;
+            /** @description The marketplace's own number of the box the parcel became, when it numbers boxes. */
+            box?: string;
         };
         /**
          * @description The text is `handovers.state.<state>`.
@@ -1217,6 +1261,8 @@ export interface components {
             step: components["schemas"]["HandoverStep"];
             /** @description The marketplace's numbers of the hand-over's batches (Wildberries' supplies). */
             batches: string[];
+            /** @description For a batch the marketplace makes by itself, how it leaves, in the marketplace's own word; the text is `marketplace.<code>.batchKind.<word>`. */
+            batchKind?: string;
             orders: number;
             /** @description Transport boxes the fulfilment centre named. */
             boxes: number;

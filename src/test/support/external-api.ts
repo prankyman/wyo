@@ -1,4 +1,4 @@
-import type { TOrderExchangeDetails, TOrderParcel, TProblem } from '$lib/components/exchange/types';
+import type { TCourierCheck, TOrderExchangeDetails, TOrderParcel, TProblem } from '$lib/components/exchange/types';
 import type {
     TEventsSetting,
     TExternalApi,
@@ -131,6 +131,11 @@ export function exchangeDetailsOf(overrides: Partial<TOrderExchangeDetails> = {}
 /** One parcel of an order: the marketplace's own number of it, and whether its label was attached at the fulfilment centre. */
 export function parcelOf(overrides: Partial<TOrderParcel> = {}): TOrderParcel {
     return { number: 1, marketplaceNumber: '4455667788-1', labelSent: false, ...overrides };
+}
+
+/** One code a courier named for an order, awaiting the marketplace's answer unless `overrides` give one. */
+export function courierCheckOf(overrides: Partial<TCourierCheck> = {}): TCourierCheck {
+    return { at: '2026-11-18T12:30:00', ...overrides };
 }
 
 /** A hand-over of the day that waits at its third step. */

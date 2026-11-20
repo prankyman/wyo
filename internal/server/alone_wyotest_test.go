@@ -4,11 +4,13 @@ package server_test
 
 import (
 	"context"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/prankyman/wyo/internal/clock"
+	"github.com/prankyman/wyo/internal/fakes/fakekit"
 	"github.com/prankyman/wyo/internal/server"
 	"github.com/prankyman/wyo/internal/store"
 	"github.com/prankyman/wyo/internal/testkit/daykit"
@@ -61,6 +63,16 @@ func TestAMadeUpDayReachesOnlyTheMarketplacesOfTheAccounts(t *testing.T) {
 
 			for range tc.yandex {
 				addYandexAccount(t, app, fake.URL, "west", clk.Now())
+
+				// Orders arrive during the day, one of them a test order: with «Внешний API» empty they are only read.
+				key := "yandex-west-" + strings.ReplaceAll(t.Name(), "/", "-")
+				for _, test := range []bool{false, true} {
+					if err := fakekit.NewControl(fake.URL+"/"+yandexHost, key, nil).Do(t.Context(), http.MethodPost, "/__control/orders", map[string]any{
+						"campaign_id": 5001, "fake": test, "items": []map[string]any{{"offer_id": "SHIRT", "count": 1, "required_instance_types": []string{"CIS"}}},
+					}, nil); err != nil {
+						t.Fatalf("an order at the fake Яндекс Маркет: %v", err)
+					}
+				}
 			}
 
 			// One party per job: the copy's, the engine's and the exchange's (which do nothing while «Внешний API» is empty).
@@ -110,6 +122,14 @@ func TestAMadeUpDayReachesOnlyTheMarketplacesOfTheAccounts(t *testing.T) {
 
 			if reached[yandexHost] != (tc.yandex > 0) {
 				t.Fatalf("Яндекс Маркет's host reached: %v, with %d accounts of it; hosts %v", reached[yandexHost], tc.yandex, reached)
+			}
+
+			// Nothing but readings reached a marketplace: no box report, status, courier's code or confirmation of a shipment.
+			for _, row := range rows {
+				if strings.HasSuffix(row.Path, "/boxes") || strings.HasSuffix(row.Path, "/verifyEac") || strings.HasSuffix(row.Path, "/confirm") ||
+					(strings.HasSuffix(row.Path, "/status") && !strings.HasSuffix(row.Path, "/identifiers/status")) {
+					t.Fatalf("with «Внешний API» empty the wyo server wrote %s %s", row.Method, row.Path)
+				}
 			}
 		})
 	}

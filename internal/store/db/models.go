@@ -8,6 +8,16 @@ import (
 	"database/sql"
 )
 
+type ExchangeCourierCheck struct {
+	CheckID      string
+	OrderID      int64
+	CameAt       int64
+	Result       string
+	AttemptsLeft sql.NullInt64
+	Words        string
+	AnsweredAt   sql.NullInt64
+}
+
 type ExchangeHistory struct {
 	ID      int64
 	OrderID int64
@@ -47,6 +57,8 @@ type ExchangeOrder struct {
 	PackedAt       sql.NullInt64
 	ShipBySent     sql.NullInt64
 	PackSentAt     sql.NullInt64
+	ReadyAt        sql.NullInt64
+	Handover       string
 }
 
 type ExchangeParcel struct {
@@ -59,6 +71,7 @@ type ExchangeParcel struct {
 	LabelAskedAt sql.NullInt64
 	LabelNextAt  sql.NullInt64
 	LabelTries   int64
+	Box          string
 }
 
 type FcConnection struct {
@@ -77,6 +90,7 @@ type FcConnection struct {
 	LastEventAt        sql.NullInt64
 	LastNotificationAt sql.NullInt64
 	LastPingAt         sql.NullInt64
+	LabelSizesReadAt   sql.NullInt64
 }
 
 type FcEvent struct {
@@ -86,6 +100,14 @@ type FcEvent struct {
 	Body       string
 	ReceivedAt int64
 	AppliedAt  sql.NullInt64
+}
+
+type FcLabelSize struct {
+	FcWarehouse   string
+	FcMarketplace string
+	WidthMm       int64
+	HeightMm      int64
+	ReadAt        int64
 }
 
 type FcMarketplaceMap struct {
@@ -193,6 +215,7 @@ type MarketplaceSupply struct {
 	Open       int64
 	Deleted    int64
 	CreatedAt  int64
+	Kind       string
 }
 
 type MarketplaceWarehouse struct {

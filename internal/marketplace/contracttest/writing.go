@@ -32,6 +32,8 @@ func writingCases() map[marketplace.Capability]func(t *testing.T, f Fixture) {
 		marketplace.HandoverGroup:     handoverGroup,
 		marketplace.HandoverClose:     handoverClose,
 		marketplace.HandoverDocuments: handoverDocuments,
+		marketplace.OrdersReady:       ordersReady,
+		marketplace.OrdersCourierCode: ordersCourierCode,
 	}
 }
 
@@ -72,7 +74,7 @@ func orderOn(t *testing.T, f Fixture, key map[string]string, conn marketplace.Co
 		number = f.NewMarkedOrder(t, key)
 	}
 
-	return scene{key: key, conn: conn, number: number, parts: []string{number}, order: orderRead(t, f, conn, number)}
+	return scene{key: key, conn: conn, number: number, parts: []string{number}, order: orderOfAdapter(t, f, conn, number)}
 }
 
 // orderRead reads an order from the adapter's list of new orders; a zero order when the adapter has no such list or the
@@ -122,6 +124,12 @@ func (s *scene) pack(t *testing.T, f Fixture) {
 	t.Helper()
 
 	if !claimsPack(f.Adapter) {
+		return
+	}
+
+	if boxes, ok := f.Adapter.(marketplace.BoxPacker); ok {
+		s.packInBoxes(t, boxes)
+
 		return
 	}
 
@@ -210,6 +218,9 @@ func reportMarking(t *testing.T, f Fixture, s scene) {
 	case marketplace.ProductCodeReporter:
 		sent, err := r.ReportProductCodes(t.Context(), s.conn, s.number, marketplace.IdentifierMarking, unitCodes(s.order.Lines))
 		expect(t, err == nil && sent, "ReportProductCodes: sent %v, %v: want the codes of an order that needs them sent", sent, err)
+	case marketplace.BoxPacker:
+		boxed, err := r.PackBoxes(t.Context(), s.conn, s.number, []marketplace.Box{allInBox(s.order)})
+		expect(t, err == nil && boxed.Codes, "PackBoxes: %+v, %v: want the codes of an order that needs them sent with its box", boxed, err)
 	default:
 		t.Fatal("the adapter has no form of codes.report")
 	}
@@ -373,6 +384,12 @@ func sameLines(a, b []marketplace.ParcelLine) bool {
 }
 
 func ordersPack(t *testing.T, f Fixture) {
+	if _, ok := f.Adapter.(marketplace.BoxPacker); ok {
+		boxesPack(t, f)
+
+		return
+	}
+
 	packer := implements[marketplace.OrderPacker](t, f.Adapter, marketplace.OrdersPack)
 	s := newScene(t, f, false)
 
@@ -452,6 +469,8 @@ func labelsFetch(t *testing.T, f Fixture) {
 		labelsAtOnce(t, f, l)
 	case marketplace.LabelMaker:
 		labelsLater(t, f, l)
+	case marketplace.BoxLabeler:
+		labelsOfBoxes(t, f, l)
 	default:
 		t.Fatalf("the adapter claims %s and implements neither form of it", marketplace.LabelsFetch)
 	}

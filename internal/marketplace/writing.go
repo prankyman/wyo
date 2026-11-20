@@ -74,6 +74,8 @@ type BatchState struct {
 	Boxes         []string
 	ShippingSet   bool
 	ShippingPoint string
+	// Kind is the marketplace's own word for how a batch it made by itself leaves (Description.BatchFound); empty otherwise.
+	Kind string
 }
 
 // Label is the label of one order or one of its parts: a file to print (a PDF, a PNG or a JPEG, as the neutral API takes
@@ -250,6 +252,9 @@ type BatchRequest struct {
 	Name      string
 	Warehouse string
 	Day       time.Time
+	// Numbers are the marketplace's numbers of the hand-over's orders, by which a marketplace that makes the batch by itself
+	// finds it (Description.BatchFound).
+	Numbers []string
 }
 
 // BatchWait is the answer of a marketplace that cannot make the batch yet; Words are its own words. The hand-over waits,

@@ -307,7 +307,10 @@ func (s *Service) runOrders(ctx context.Context, all bool) error {
 
 	read := s.opts.Engine.RunNewOrdersDue
 	if all {
-		read = s.opts.Engine.RunNewOrders
+		// A marketplace read by changes has its new orders among them: they are read at once too.
+		read = func(ctx context.Context) error {
+			return errors.Join(s.opts.Engine.RunNewOrders(ctx), s.opts.Engine.RunChanges(ctx))
+		}
 	}
 
 	if err := read(ctx); err != nil {
@@ -316,6 +319,8 @@ func (s *Service) runOrders(ctx context.Context, all bool) error {
 
 	s.run.Lock()
 	defer s.run.Unlock()
+
+	s.freshLabelSizes(ctx, sess)
 
 	if err := s.sendOrders(ctx, sess); err != nil {
 		return err

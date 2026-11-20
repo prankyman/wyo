@@ -2,10 +2,13 @@ package wildberries_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"image/png"
 	"net/http"
 	"testing"
+
+	"github.com/prankyman/wyo/internal/marketplace"
 )
 
 func TestTheLabelOfAConfirmedOrderIsAPictureOfFiftyEightByFortyMillimetresAndItsCode(t *testing.T) {
@@ -101,5 +104,58 @@ func TestAPictureThatIsNoBase64OrAnOrderWithoutAnIDIsNotMadeIntoALabel(t *testin
 
 	if _, err := r.adapter.Labels(t.Context(), conn, []string{"5"}); err == nil {
 		t.Fatal("a picture that cannot be read was handed back")
+	}
+}
+
+// TestTheStickerIsAskedForInTheSizeTheFulfilmentCentreNamesAndASizeWildberriesDoesNotMakeIsRefusedBeforeACall asks for the
+// stickers of one order in each size the fulfilment centre may name: none (Wildberries' 58 × 40), 58 × 40 and 40 × 30 are
+// asked for in that size; 75 × 120 is refused with the one refusal of a size the marketplace does not make, and nothing is
+// asked.
+func TestTheStickerIsAskedForInTheSizeTheFulfilmentCentreNamesAndASizeWildberriesDoesNotMakeIsRefusedBeforeACall(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name   string
+		size   marketplace.LabelSize
+		query  string
+		pixels [2]int
+	}{
+		{name: "none named", query: "height=40&type=png&width=58", pixels: [2]int{580, 400}},
+		{name: "58 × 40", size: marketplace.LabelSize{WidthMM: 58, HeightMM: 40}, query: "height=40&type=png&width=58", pixels: [2]int{580, 400}},
+		{name: "40 × 30", size: marketplace.LabelSize{WidthMM: 40, HeightMM: 30}, query: "height=30&type=png&width=40", pixels: [2]int{400, 300}},
+		{name: "75 × 120 is not made", size: marketplace.LabelSize{WidthMM: 75, HeightMM: 120}},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			r := newRig(t)
+			token := r.token(t)
+			conn := r.conn(t, token, false)
+			_, numbers := r.confirmed(t, token, conn, 1, nil)
+
+			labels, err := r.adapter.LabelsOfSize(t.Context(), conn, numbers, c.size)
+			asked := r.callsTo(t, token, http.MethodPost, "/api/v3/orders/stickers")
+
+			if c.query == "" {
+				var refusal *marketplace.Refusal
+				if !errors.As(err, &refusal) || refusal.Code != marketplace.CodeLabelSizeUnsupported ||
+					refusal.Params["width"] != 75 || refusal.Params["height"] != 120 || len(asked) != 0 {
+					t.Fatalf("LabelsOfSize = %+v, %v after %d calls; want the size refused before a call", labels, err, len(asked))
+				}
+
+				return
+			}
+
+			if err != nil || len(labels) != 1 || len(asked) != 1 || asked[0].Query != c.query {
+				t.Fatalf("LabelsOfSize = %+v, %v, asked %+v; want one sticker asked with %s", labels, err, asked, c.query)
+			}
+
+			cfg, err := png.DecodeConfig(bytes.NewReader(labels[0].Data))
+			if err != nil || cfg.Width != c.pixels[0] || cfg.Height != c.pixels[1] {
+				t.Fatalf("the picture: %+v, %v", cfg, err)
+			}
+		})
 	}
 }

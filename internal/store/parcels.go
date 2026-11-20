@@ -23,13 +23,15 @@ type Parcel struct {
 	LabelAskedAt time.Time
 	LabelNextAt  time.Time
 	LabelTries   int64
+	// Box is the marketplace's own number of the box the parcel became, for a marketplace that numbers an order's boxes.
+	Box string
 }
 
 func parcel(r db.ExchangeParcel) Parcel {
 	return Parcel{
 		OrderID: r.OrderID, Number: r.Number, MpNumber: r.MpNumber, Ticket: r.Ticket, LabelPrint: r.LabelPrint,
 		LabelSentAt: optionalMoment(r.LabelSentAt), LabelAskedAt: optionalMoment(r.LabelAskedAt),
-		LabelNextAt: optionalMoment(r.LabelNextAt), LabelTries: r.LabelTries,
+		LabelNextAt: optionalMoment(r.LabelNextAt), LabelTries: r.LabelTries, Box: r.Box,
 	}
 }
 
@@ -37,7 +39,7 @@ func (q *Queries) saveParcel(ctx context.Context, p Parcel) error {
 	return kind(q.q.SaveParcel(ctx, db.SaveParcelParams{
 		OrderID: p.OrderID, Number: p.Number, MpNumber: p.MpNumber, Ticket: p.Ticket, LabelPrint: p.LabelPrint,
 		LabelSentAt: optionalSeconds(p.LabelSentAt), LabelAskedAt: optionalSeconds(p.LabelAskedAt),
-		LabelNextAt: optionalSeconds(p.LabelNextAt), LabelTries: p.LabelTries,
+		LabelNextAt: optionalSeconds(p.LabelNextAt), LabelTries: p.LabelTries, Box: p.Box,
 	}))
 }
 

@@ -13,7 +13,7 @@ import (
 // sendOrders is step 1: every new order of a matched warehouse not sent yet goes to the fulfilment centre. The same order
 // sent twice is one order there, so an order whose answer was lost is simply sent again by the next run.
 func (s *Service) sendOrders(ctx context.Context, sess *session) error {
-	list, err := s.opts.Store.Read().OrdersToSend(ctx, batch, HandingOver(s.opts.Registry))
+	list, err := s.opts.Store.Read().OrdersToSend(ctx, batch, HandingOver(s.opts.Registry), waiting(s.opts.Registry)...)
 	if err != nil {
 		return err
 	}
@@ -47,10 +47,50 @@ func HandingOver(registry *marketplace.Registry) []string {
 	return codes
 }
 
+// waiting lists the statuses, in each marketplace's own words, of the orders that wait and are not sent yet.
+func waiting(registry *marketplace.Registry) []string {
+	var out []string
+
+	for _, adapter := range registry.All() {
+		d := adapter.Describe()
+		for _, status := range d.WaitStatuses {
+			out = append(out, store.WaitingStatus(d.Code, status))
+		}
+	}
+
+	return out
+}
+
+// handoverOf is how an order leaves the fulfilment centre: alone to a courier whose code is checked when its adapter says
+// orders of its scheme leave so, otherwise with the others of its day.
+func (s *Service) handoverOf(ctx context.Context, o store.OrderToSend) string {
+	account, err := s.opts.Store.Read().Account(ctx, o.AccountID)
+	if err != nil {
+		return store.HandoverShipment
+	}
+
+	adapter, ok := s.opts.Registry.Get(account.Marketplace)
+	if !ok {
+		return store.HandoverShipment
+	}
+
+	scheme := marketplace.SchemeFBS
+	if o.SchemeName != "" {
+		scheme = marketplace.Scheme(o.SchemeName)
+	}
+
+	if adapter.Describe().LeavesByCourierCode(scheme) {
+		return store.HandoverCourierCode
+	}
+
+	return store.HandoverShipment
+}
+
 // orderIn is the order as the neutral API takes it: the marketplace's number as the sender's own, the marketplace's code
 // in the fulfilment centre's list, the basket, the matched warehouse, one line for each of the order's products with
-// its units, and the hand-over deadline (the marketplace's own when it gave one).
-func orderIn(o store.OrderToSend) fulfilment.OrderIn {
+// its units, the hand-over deadline (the marketplace's own when it gave one), the test mark of a test order, and how the
+// order leaves (handover, a store.Handover* word).
+func orderIn(o store.OrderToSend, handover string) fulfilment.OrderIn {
 	lines := make([]fulfilment.OrderLine, 0, len(o.Lines))
 
 	for _, l := range o.Lines {
@@ -81,6 +121,16 @@ func orderIn(o store.OrderToSend) fulfilment.OrderIn {
 	}
 	in.GroupId = text(o.Basket)
 
+	if o.Test {
+		test := true
+		in.Test = &test
+	}
+
+	if handover == store.HandoverCourierCode {
+		way := fulfilment.HandoverCourierCode
+		in.Handover = &way
+	}
+
 	return in
 }
 
@@ -96,9 +146,10 @@ func text(s string) *string {
 // sendOne sends one order and stores the answer; it says whether the run should stop.
 func (s *Service) sendOne(ctx context.Context, sess *session, out store.OrderToSend) bool {
 	now := s.opts.Clock.Now()
-	o := &order{x: store.ExchangeOrder{OrderID: out.OrderID, SentAt: now}}
+	way := s.handoverOf(ctx, out)
+	o := &order{x: store.ExchangeOrder{OrderID: out.OrderID, SentAt: now, Handover: way}}
 
-	in := orderIn(out)
+	in := orderIn(out, way)
 	o.x.ShipBySent = in.ShipBy
 
 	sent, err := sess.fc.SendOrder(ctx, in)

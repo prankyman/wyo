@@ -1,5 +1,6 @@
 import { messageParams } from '$lib/api/api';
 import { hasMessage, t } from '$lib/i18n/i18n';
+import { accountTextKey } from '$lib/marketplaces/refusals';
 import type { TLocale } from '$lib/i18n/types';
 import type { TProblem } from './types';
 
@@ -55,14 +56,37 @@ function keyOf(problem: TProblem, lang: TLocale): string | null {
     return hasMessage(`problem.${problem.code}`, lang) ? `problem.${problem.code}` : null;
 }
 
-/** wyo's sentence for a problem's code; a code wyo has no text for gets the general text that names the code. */
-export function problemSentence(problem: TProblem, lang: TLocale): string {
+/**
+ * The key of the sentence of a refusal of the marketplace that has words of its own in the marketplace's family
+ * (`marketplace.<marketplace>.refusal.<code>`, found by `accountTextKey`): a label size the marketplace does not make names the
+ * marketplaces' own sizes. `null` when the problem is not a refusal, the order's marketplace is not known, or the family has no text for
+ * the refusal's code, and then the general sentence of the problem stands.
+ */
+function refusalKeyOf(problem: TProblem, marketplace: string | undefined, lang: TLocale): string | null {
+    if (problem.code !== 'marketplace_refused' || !problem.marketplaceCode || !marketplace) return null;
+    const key = accountTextKey('refusal', problem.marketplaceCode, marketplace, lang);
+    return key !== null && hasMessage(key, lang) ? key : null;
+}
+
+/**
+ * wyo's sentence for a problem's code; a code wyo has no text for gets the general text that names the code. `marketplace` is the
+ * code of the marketplace the order or the hand-over belongs to: a refusal it has its own words for is worded by them.
+ */
+export function problemSentence(problem: TProblem, lang: TLocale, marketplace?: string): string {
+    const own = refusalKeyOf(problem, marketplace, lang);
+    if (own) return t(own, lang, paramsOf(problem, lang));
     const key = keyOf(problem, lang);
     return key ? t(key, lang, paramsOf(problem, lang)) : t('problem.unknown', lang, { code: problem.code });
 }
 
-/** What a problem means and what the owner does about it: the text behind its «?». */
-export function problemHelp(problem: TProblem, lang: TLocale): string {
+/** What a problem means and what the owner does about it: the text behind its «?». A refusal worded by the marketplace's family is explained by its `.help` when it has one, and by the general text of a refusal when it has not. */
+export function problemHelp(problem: TProblem, lang: TLocale, marketplace?: string): string {
+    const own = refusalKeyOf(problem, marketplace, lang);
+    if (own) {
+        return hasMessage(`${own}.help`, lang)
+            ? t(`${own}.help`, lang, paramsOf(problem, lang))
+            : t('problem.marketplace_refused.help', lang);
+    }
     const key = keyOf(problem, lang);
     return key ? t(`${key}.help`, lang, paramsOf(problem, lang)) : t('problem.unknown.help', lang);
 }

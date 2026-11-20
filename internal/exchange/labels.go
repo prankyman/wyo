@@ -89,6 +89,12 @@ func (s *Service) labelStep(ctx context.Context, sess *session, o *order, at tim
 		return
 	}
 
+	if boxes, ok := part[marketplace.BoxLabeler](adapter, marketplace.LabelsFetch, conn.Test); ok {
+		s.boxLabelStep(ctx, sess, o, boxes, conn, rows, at)
+
+		return
+	}
+
 	maker, ok := part[marketplace.LabelMaker](adapter, marketplace.LabelsFetch, conn.Test)
 	if !ok {
 		return
@@ -229,6 +235,45 @@ func (s *Service) labelsDone(ctx context.Context, sess *session, o *order) {
 	}
 
 	s.save(ctx, o)
+
+	if s.codesInPack(ctx, o) {
+		s.readyStep(ctx, sess, o)
+	}
+}
+
+// boxLabelStep is the labels of the flow of boxes: each box's label due is fetched in the size the fulfilment centre names
+// for the order's warehouse and attached to its parcel; when the last is attached the order is made ready.
+func (s *Service) boxLabelStep(ctx context.Context, sess *session, o *order, l marketplace.BoxLabeler, conn marketplace.Conn, rows []store.Parcel, at time.Time) {
+	size := s.sizeOf(ctx, sess, o)
+
+	for i := range rows {
+		p := &rows[i]
+		if !p.LabelSentAt.IsZero() || p.LabelNextAt.IsZero() || p.LabelNextAt.After(at) || p.Box == "" {
+			continue
+		}
+
+		label, err := l.BoxLabel(ctx, conn, o.row.Number, p.Box, size)
+		if err != nil {
+			if s.labelFailed(ctx, sess, o, p, err) {
+				return
+			}
+
+			continue
+		}
+
+		if err := sess.fc.PutLabel(ctx, o.x.FcID, int(p.Number), label.ContentType, label.Data); err != nil {
+			if !s.failed(ctx, err) {
+				s.labelProblem(ctx, sess, o, p, fcProblem(stepLabels, err))
+			}
+
+			return
+		}
+
+		p.LabelPrint, p.LabelSentAt, p.LabelNextAt, p.LabelTries = label.Print(), s.opts.Clock.Now(), time.Time{}, p.LabelTries+1
+		s.saveParcel(ctx, *p)
+	}
+
+	s.labelsDone(ctx, sess, o)
 }
 
 // resetLabels makes the labels of an order be asked for again (the owner pressed «Передать заново»).

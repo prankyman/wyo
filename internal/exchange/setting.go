@@ -265,6 +265,9 @@ func (s *Service) FcWarehouses(ctx context.Context) []fulfilment.Warehouse {
 		return nil
 	}
 
+	// The label sizes come with the warehouses: the reading is kept, as the hourly one is.
+	s.keepLabelSizes(ctx, list)
+
 	return list
 }
 
