@@ -3,7 +3,8 @@
 #  - golangci-lint: the official release archive, its sha256 checked against the release's own checksums file
 #    (https://golangci-lint.run/docs/welcome/install/#binaries).
 #  - sqlc and shellcheck: the official release archive, its sha256 checked against the value written in versions.sh
-#    (neither release publishes a checksum file). Linux only: the development machines and the pipeline are Linux.
+#    (neither release publishes a checksum file). Linux, and macOS on Apple silicon for the Mac mini of the final runs
+#    (scripts/remote/).
 #  - gofumpt and oapi-codegen: `go install <module>@<version>`; Go checks the module against the public checksum database.
 set -euo pipefail
 
@@ -14,6 +15,10 @@ source "$root/scripts/tools/versions.sh"
 
 bin="$root/.tools/bin"
 mkdir -p "$bin"
+
+# A download that stops (less than 10 kB/s for 30 s) is dropped and tried again, up to 5 times: the Mac mini of the final runs once
+# waited 4 minutes on a transfer that never moved (2026-11-19).
+fetch() { curl -fsSL --retry 5 --retry-all-errors --connect-timeout 20 --speed-limit 10000 --speed-time 30 "$@"; }
 
 case "$(uname -s)" in
 Linux) os=linux ;;
@@ -47,8 +52,8 @@ install_golangci_lint() {
     local tmp
     tmp="$(mktemp -d)"
     trap 'rm -rf "$tmp"; trap - RETURN' RETURN
-    curl -fsSL -o "$tmp/$name.tar.gz" "$base/$name.tar.gz"
-    curl -fsSL -o "$tmp/checksums.txt" "$base/golangci-lint-$GOLANGCI_LINT_VERSION-checksums.txt"
+    fetch -o "$tmp/$name.tar.gz" "$base/$name.tar.gz"
+    fetch -o "$tmp/checksums.txt" "$base/golangci-lint-$GOLANGCI_LINT_VERSION-checksums.txt"
     (
         cd "$tmp"
         awk -v f="$name.tar.gz" '$2 == f' checksums.txt >one.txt
@@ -84,36 +89,46 @@ install_archive() {
         echo "$name $want is installed"
         return
     fi
-    if [ "$os" != linux ]; then
-        echo "$name: only Linux archives are pinned in versions.sh" >&2
+    if [ -z "$sum" ]; then
+        echo "$name: no archive for $os/$arch is pinned in versions.sh" >&2
         exit 1
     fi
     local tmp
     tmp="$(mktemp -d)"
     trap 'rm -rf "$tmp"; trap - RETURN' RETURN
-    curl -fsSL -o "$tmp/archive.tar.gz" "$url"
-    echo "$sum  $tmp/archive.tar.gz" | sha256sum -c - >/dev/null
+    fetch -o "$tmp/archive.tar.gz" "$url"
+    if command -v sha256sum >/dev/null 2>&1; then
+        echo "$sum  $tmp/archive.tar.gz" | sha256sum -c - >/dev/null
+    else
+        echo "$sum  $tmp/archive.tar.gz" | shasum -a 256 -c - >/dev/null
+    fi
     tar -xzf "$tmp/archive.tar.gz" -C "$tmp"
     install -m 0755 "$tmp/$inside" "$bin/$name"
     echo "$name $want installed"
 }
 
 install_sqlc() {
-    local sum="$SQLC_SHA256_LINUX_AMD64"
-    [ "$arch" = arm64 ] && sum="$SQLC_SHA256_LINUX_ARM64"
+    local sum=""
+    case "$os/$arch" in
+    linux/amd64) sum="$SQLC_SHA256_LINUX_AMD64" ;;
+    linux/arm64) sum="$SQLC_SHA256_LINUX_ARM64" ;;
+    darwin/arm64) sum="$SQLC_SHA256_DARWIN_ARM64" ;;
+    esac
     install_archive sqlc "v$SQLC_VERSION" \
-        "https://github.com/sqlc-dev/sqlc/releases/download/v$SQLC_VERSION/sqlc_${SQLC_VERSION}_linux_$arch.tar.gz" \
+        "https://github.com/sqlc-dev/sqlc/releases/download/v$SQLC_VERSION/sqlc_${SQLC_VERSION}_${os}_$arch.tar.gz" \
         "$sum" sqlc
 }
 
 install_shellcheck() {
-    local sum="$SHELLCHECK_SHA256_LINUX_AMD64" machine=x86_64
-    if [ "$arch" = arm64 ]; then
-        sum="$SHELLCHECK_SHA256_LINUX_ARM64"
-        machine=aarch64
-    fi
+    local sum="" machine=x86_64
+    [ "$arch" = arm64 ] && machine=aarch64
+    case "$os/$arch" in
+    linux/amd64) sum="$SHELLCHECK_SHA256_LINUX_AMD64" ;;
+    linux/arm64) sum="$SHELLCHECK_SHA256_LINUX_ARM64" ;;
+    darwin/arm64) sum="$SHELLCHECK_SHA256_DARWIN_ARM64" ;;
+    esac
     install_archive shellcheck "version: $SHELLCHECK_VERSION" \
-        "https://github.com/koalaman/shellcheck/releases/download/v$SHELLCHECK_VERSION/shellcheck-v$SHELLCHECK_VERSION.linux.$machine.tar.gz" \
+        "https://github.com/koalaman/shellcheck/releases/download/v$SHELLCHECK_VERSION/shellcheck-v$SHELLCHECK_VERSION.$os.$machine.tar.gz" \
         "$sum" "shellcheck-v$SHELLCHECK_VERSION/shellcheck"
 }
 

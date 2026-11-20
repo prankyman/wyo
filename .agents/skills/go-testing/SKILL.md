@@ -173,6 +173,7 @@ again.
 | `pnpm tools:install`              | Install the Go tools at the pinned versions into `.tools/bin`                        |
 | `go vet ./<package>/...`          | A subagent may run it over its own package                                           |
 | `go build ./<package>/...`        | A subagent may run it over its own package                                           |
+| `pnpm remote:gate`                | The whole gate of the committed HEAD on the Mac mini — main agent only, see below    |
 
 Both `pnpm go:test` and `pnpm test:coverage` run every package as the release build, and a second time, with the `wyotest` tag,
 only the packages of `scripts/go/test-tag-packages.txt`: the ones whose code differs between the two builds. Any other package
@@ -183,6 +184,12 @@ hold such a package) fails `internal/archtest` until it is added to the list.
 - **Never `go test ./...` over the whole module, and never `golangci-lint run` over the whole module, in a subagent.** Only the main
   agent runs whole-codebase checks and full test suites; a subagent runs the tests of its own package and the lint of its own changed
   files. Check `free -g` shows at least 3 GB available before a run.
+- **The whole run is on the Mac mini, never in GitHub Actions** (`AGENTS.md`, «The test flow of every plan»): focused runs of the
+  changed and failed packages here; then commit, `pnpm remote:gate` (commit messages, `pnpm precommit` with every Go and interface
+  test, the browser suite, `pnpm go:measure`; about 5 minutes), then push only the commit it passed. GitHub Actions runs no test
+  and does not check the Mac's run: it scans for secrets and tests the installer. A failure on the Mac is fixed here with a focused run of the failed package
+  first; the Mac is never used to find out whether one test passes. The Go tests run on macOS there: a test that needs Linux itself
+  (`/proc`, systemd) reads it only where it exists.
 - **Never `--` before a script's arguments:** `pnpm go:test ./internal/webui`, not `pnpm go:test -- ./internal/webui`.
 - No command runs longer than 2 minutes. A test that runs longer than 20 seconds probably waits for something that never comes.
 

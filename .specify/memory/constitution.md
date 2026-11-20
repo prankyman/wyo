@@ -1,6 +1,12 @@
 <!--
 Sync Impact Report:
-- Version change: 1.6.0 → 1.7.0 (MINOR) — Plan 7
+- Version change: 1.7.0 → 1.8.0 (MINOR) — the maintainer, 2026-11-19: «гонять финальные тесты сначала на mac mini m4 … а на GH -
+  отключи их все, ибо он страшно медленный» (register item 39; plan
+  `.agents/plans/wyo-final-tests-on-the-mac-mini-github-actions-only-builds-and-releases.md`). «Plan Implementation Workflow», steps
+  3, 5 and 7: the whole gate runs on the Mac mini (`pnpm remote:gate`) on every machine, and only a commit it passed is pushed;
+  GitHub Actions scans for secrets, tests the installer and releases, and does not check the Mac's run (the maintainer, 2026-11-19:
+  «сделай так же, без отметки»); a pull request merges only when its run's own conclusion is `success`. Nothing removed.
+- Earlier: 1.6.0 → 1.7.0 (MINOR) — Plan 7
   (`.agents/plans/wyo-yandex-market-key-reading-orders-notifications-safety-read-test-orders-fake-yandex-market.md`): rules
   widened, nothing removed. Principle VI names Яндекс Маркет's tree of description files, its comparison by commit and the rule
   «join» of the temporary copy; principle X — the parts `orders.changes`, `orders.named`, `notifications.receive`, a limit
@@ -762,19 +768,21 @@ Every approved plan is carried out in exactly this order, by every AI agent and 
    allow-list).
 3. **The test flow** of `AGENTS.md`, «The test flow of every plan». `nproc` and `free -g` are read at the start of the plan: fewer than
    6 cores, or 16 GB of memory or less, is a **limited** machine; anything bigger is a **big** machine. First focused runs of exactly
-   the files that changed or failed; then, by the main agent only, `pnpm precommit` once on a big machine (a limited machine never runs
-   it, because it holds the whole-project type check: there the pull request's run is the first whole gate).
-   The browser tests run in the pull request's run on a limited machine and locally on a big one.
+   the files that changed or failed; then, by the main agent only, the whole gate on the Mac mini M4, `pnpm remote:gate`, on every
+   machine (a limited machine never runs a whole-project type check locally).
 4. **Smoke test.** Required for features and bug fixes; skipped for documentation-only and chore work. Exercise the change on the built
    wyo server and the fakes with the `smoke-testing` skill, one browser, and inspect every changed screen with screenshots.
-5. **The gate passes.** The whole set of checks a commit must pass: secret scan, commit-message check, formatting and lint, type checks,
-   every test with its coverage floors, the build, the browser tests. On a big machine locally; on a limited machine the missing part is
-   the pull request's run in GitHub Actions on a clean machine. A GitHub Actions run is never used to find out whether one test passes.
+5. **The gate passes.** The whole set of checks a commit must pass: commit-message check, formatting and lint, type checks, every test
+   with its coverage floors, the build, the browser tests — on the Mac mini (`pnpm remote:gate`, `scripts/remote/mac-gate.sh`); then,
+   in the pull request's run in GitHub Actions, the secret scan and the installer on three clean Ubuntu machines. GitHub Actions does
+   not check the Mac's run: only a commit `pnpm remote:gate` passed is pushed, and it runs again after an amend or rebase that changes code; one that touches only documents or `.github/workflows/` needs no new run. Neither the Mac nor GitHub Actions is used to find out whether one
+   test passes.
 6. **One commit per plan.** If the branch holds more than one commit, squash them into one. The message follows «Commit messages» above.
    The commit is made with `git commit --no-verify` (and amended the same way): the gate does the hooks' work.
-7. **Push with `git push --no-verify -u origin <branch>`,** after the check of rule R1 (`AGENTS.md`) found nothing. A failure of the
-   pull request's run is fixed locally, amended, and pushed with `git push --force-with-lease --no-verify` — the plan's own branch only.
-   Nothing is pushed to `main` while a release run is going.
+7. **Push with `git push --no-verify -u origin <branch>`,** after the check of rule R1 (`AGENTS.md`) found nothing, and
+   only when the Mac passed that very commit. A failure is fixed locally, amended, run on the Mac again, and pushed with `git push --force-with-lease
+--no-verify` — the plan's own branch only. A pull request is merged only when its run's own conclusion is `success`. Nothing is
+   pushed to `main` while a release run is going.
 8. **Open the pull request on GitHub and merge it** into `main` with a merge commit.
 9. **Confirm the merge landed on `main`, then watch the release run of `.github/workflows/ci-cd.yml` that the merge triggered** until it
    finishes, the release job included. Pull `main` afterwards.
@@ -813,4 +821,4 @@ file records every amendment with its version change and the request that caused
 pull request's description. The version follows semantic versioning of the rules: a principle added or a rule tightened raises the
 second number, a wording change the third; the first number is raised only by the maintainer.
 
-**Version**: 1.7.0 | **Ratified**: 2026-11-17 | **Last Amended**: 2026-11-19
+**Version**: 1.8.0 | **Ratified**: 2026-11-17 | **Last Amended**: 2026-11-19

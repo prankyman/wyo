@@ -6,6 +6,8 @@
     "packageManager": "pnpm@12.10.1",
     "scripts": {
         "tools:install": "bash scripts/tools/install.sh",
+        "remote:setup": "bash scripts/remote/setup-mac.sh",
+        "remote:gate": "bash scripts/remote/gate.sh",
         "generate": "bash scripts/generate.sh",
         "generate:check": "bash scripts/generate.sh --check",
         "dev": "bash scripts/dev.sh",

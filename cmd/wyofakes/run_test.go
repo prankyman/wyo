@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/prankyman/wyo/internal/clock"
 	"github.com/prankyman/wyo/internal/testkit/httpkit"
 )
 
@@ -247,11 +248,18 @@ func TestAnAddressThatCannotBeListenedOnEndsTheProgramAndFreesTheOther(t *testin
 	mu.Lock()
 	defer mu.Unlock()
 
+	// The program closed the listener it opened first. Dialing the address is no proof: on macOS another test running in
+	// the same process was given the freed port at once and answered there (2026-11-19, the Mac mini's runs).
 	for _, ln := range opened {
-		if c, err := (&net.Dialer{Timeout: time.Second}).DialContext(context.Background(), "tcp", ln.Addr().String()); err == nil {
-			_ = c.Close()
+		tcp, ok := ln.(*net.TCPListener)
+		if !ok {
+			t.Fatalf("the listener is a %T", ln)
+		}
 
-			t.Errorf("the listener that was opened first still accepts connections")
+		_ = tcp.SetDeadline(clock.Real{}.Now().Add(100 * time.Millisecond))
+
+		if _, err := ln.Accept(); !errors.Is(err, net.ErrClosed) {
+			t.Errorf("the listener that was opened first on %s is not closed: Accept says %v", ln.Addr(), err)
 		}
 	}
 }

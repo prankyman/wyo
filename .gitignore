@@ -37,3 +37,7 @@ Thumbs.db
 
 # The data folder of `pnpm dev` (scripts/dev.sh)
 .dev-data/
+
+# The runs on the Mac mini (scripts/remote/): its address and the reports copied back
+/scripts/remote/hosts.env
+/.remote-runs

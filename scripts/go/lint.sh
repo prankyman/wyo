@@ -16,11 +16,14 @@ if [ -n "$unformatted" ]; then
     exit 1
 fi
 
+# The wyo server is built for Linux only (scripts/go/build-check.sh): the linters read the Linux build on any machine, the Mac mini of
+# the final runs included (scripts/remote/), where some system types differ.
+export GOOS=linux CGO_ENABLED=0
 golangci-lint run "${GO_PACKAGES[@]}"
 # The files that exist only in a build made with the wyotest tag.
 golangci-lint run --build-tags wyotest "${GO_PACKAGES[@]}"
 # The scripts a seller runs (the installer) and the pipeline's installer job runs.
-shellcheck scripts/install.sh scripts/ci/*.sh
+shellcheck scripts/install.sh scripts/ci/*.sh scripts/remote/*.sh
 go vet "${GO_PACKAGES[@]}"
 # The same code with the development and test build tag.
 go vet -tags wyotest "${GO_PACKAGES[@]}"

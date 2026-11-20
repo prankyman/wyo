@@ -31,6 +31,21 @@ as entered or adds `/notification` (YMC §15; both are answered); the `PING` and
 whether `orderIds` alone returns a test order (both kinds are asked); the real limit headers and the budget's agreement with them;
 how a shop with its API off answers. What they find becomes Plan 8's premises.
 
+### 39. The final tests on the Mac mini, none in GitHub Actions (2026-11-19)
+
+The maintainer, 2026-11-19: «настроишь такую-же систему для wyo - гонять финальные тесты сначала на mac mini m4 (and/or webserver? split
+70|30%? think if the webserver is needed in this case), а на GH - отключи их все, ибо он страшно медленный». The model is the maintainer's
+other repository: the whole checks and suites run on the Mac mini M4 before the push, and its pipeline only builds and releases. A pull
+request's run in GitHub Actions took 16 to 28 minutes. His answers the same day: the installer's test stays in GitHub Actions; the Mac
+only, the Go tests on macOS too; the release knows by a mark the agent chose (the commit status `remote-gate`). The token may not set it
+(HTTP 403), and the maintainer, the same day: «сделай так же, без отметки» — GitHub does not check the Mac's run; only a commit it passed
+is pushed.
+
+Built by the branch `chore/final-tests-on-the-mac-mini` (plan
+`.agents/plans/wyo-final-tests-on-the-mac-mini-github-actions-only-builds-and-releases.md`): `pnpm remote:gate`, `pnpm remote:setup`;
+GitHub's gate only scans for secrets. A GitHub ruleset that would refuse a merge without the gate was not
+created: the token may not (HTTP 403); the maintainer can add it, or give the token the «Administration» permission.
+
 ### 38. What the final review of Plan 6 left (2026-11-19)
 
 Plan 6a (`.agents/plans/wyo-plan-6a-ozon-exchange-review-fixes-endless-retries-shipment-recheck-split-original-docs.md`) fixed what the

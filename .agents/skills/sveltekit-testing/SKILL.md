@@ -216,13 +216,14 @@ Fewer than 6 cores, or 16 GB of memory or less, is a **limited** machine; anythi
 
 - **Focused runs first, on any machine:** ESLint on the files you changed, `pnpm test:headless <file>` for an interface test file,
   `pnpm test:e2e e2e/specs/<file>.spec.ts` for one browser test file, `pnpm go:test <package>` for Go. At most 2–3 test files at once.
-- **The whole gate, `pnpm precommit`, only by the main agent, once, as the final local step** — on a big machine only; a limited machine
-  never runs it, and the pull request's run is its first whole gate. **On a limited machine no whole-project type check ever runs locally**
-  (`pnpm check`, `svelte-check`, any `tsc` with any configuration): it runs in the pull request's GitHub Actions run. So write test code
-  type-safely — a typed stub, no tuple index on an untyped mock, no property that a union type may lack — and never fix a type error blind:
-  read every error of the run's output, fix all of them, then push again.
-- **The pull request's GitHub Actions run is the gate on a clean machine.** It is never used to find out whether one test passes. A
-  failure is fixed locally with focused runs of the failed files.
+- **The whole gate runs on the Mac mini, only by the main agent: `pnpm remote:gate`** (`AGENTS.md`, «The test flow of every plan»): the
+  commit messages, `pnpm precommit` and the whole browser suite. **On a limited machine no whole-project type check ever runs locally**
+  (`pnpm check`, `svelte-check`, any `tsc` with any configuration): it runs on the Mac. So write test code type-safely — a typed stub, no
+  tuple index on an untyped mock, no property that a union type may lack — and never fix a type error blind: read every error of the
+  run's report, fix all of them, then run again.
+- **The Mac's run is the gate; GitHub Actions runs no test and does not check the Mac's run**, so only a commit the Mac passed is
+  pushed. Neither is used to find out whether one test passes. A failure is fixed
+  locally with focused runs of the failed files.
 - A subagent runs only its own test files and lints only its own changed files — never a whole suite.
 
 **Frugality.** `pnpm precommit` is the final gate, not an iteration tool. While fixing what a run surfaced, re-run only the specific
@@ -589,6 +590,6 @@ exists — the same rule §1.5 states for CSS.
 
 - [ ] My own files pass `pnpm test:headless <file>` and `pnpm exec eslint <file>`; no whole suite, no type check run by a subagent or on
       a limited machine
-- [ ] The main agent's `pnpm precommit` passes (or, on a limited machine, the pull request's run does)
+- [ ] The main agent's `pnpm remote:gate` passes on the Mac mini
 - [ ] Manual browser verification done where the interface changed
 - [ ] Dev servers started this session have been stopped; pre-existing ones left running

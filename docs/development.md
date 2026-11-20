@@ -47,12 +47,18 @@ Always a script of `package.json`, never an ad-hoc command, and never `--` befor
 - `pnpm precommit` — `generate:check`, `lint`, `check`, `test:coverage`, `coverage:enforce`, `build`, in this order, stopping at the first
   failure.
 - `pnpm release` — `commit-and-tag-version`; the release job of the pipeline runs it, do not run it by hand.
+- `pnpm remote:gate` — the final run of the committed HEAD on the Mac mini M4 (`scripts/remote/`): the commit messages, `pnpm precommit`,
+  the whole browser suite and `pnpm go:measure`; the report comes back into `.remote-runs/<stamp>/`. `pnpm remote:setup` prepares the
+  Mac once. The Mac's address is in
+  `scripts/remote/hosts.env` (ignored by git; copy `scripts/remote/hosts.env.example`). A session that works in a `git worktree` of its
+  own copies that file into its worktree. Runs of several sessions queue on the Mac's run lock.
 
 **Which of them you run depends on your machine** (`AGENTS.md`, «The test flow of every plan»): read `nproc` and `free -g`; a machine
 with fewer than 6 cores, or 16 GB of memory or less, is **limited**. On a limited machine you run focused checks only — ESLint on the
 files you changed, `pnpm test:headless <file>`, `pnpm go:test <package>`, `pnpm test:e2e e2e/specs/<file>.spec.ts` — and never a
-whole-project type check (`pnpm check`, `svelte-check`, `tsc`); the pull request's run in GitHub Actions does the rest. A big machine
-runs `pnpm precommit` and the whole browser suite locally. Never `pnpm test` (it waits for changes and never ends).
+whole-project type check (`pnpm check`, `svelte-check`, `tsc`). On any machine the whole gate is `pnpm remote:gate` on the Mac mini:
+GitHub Actions runs no test of its own and does not check that the Mac's run passed, only the secret scan and the installer's test on
+three clean Ubuntu machines; a commit is pushed only after `pnpm remote:gate` passed on it. Never `pnpm test` (it waits for changes and never ends).
 
 ## Ports
 
@@ -330,5 +336,6 @@ pages saved on 2026-11-17); a gap is marked "not documented" and goes to the che
 
 1. The check of rule R1 (`AGENTS.md`, «The rules R1 to R7»): from outside the repository, search every tracked file and every commit message
    not yet on `origin/main` for each word of the maintainer's list. Push only when nothing is found.
-2. One plan = one branch = one commit = one pull request. Commit and push with `--no-verify`; the pull request's run does the hooks' work.
+2. One plan = one branch = one commit = one pull request. Commit with `--no-verify`, run `pnpm remote:gate` (the Mac does the hooks'
+   work), push with `--no-verify` only a commit the Mac passed. Merge only when the pull request's run's own conclusion is `success`.
 3. A commit of documents only ends its subject with `[skip ci]`.
