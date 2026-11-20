@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.13](https://github.com/prankyman/wyo/compare/v0.0.12...v0.0.13) (2026-11-20)
+
+### Features
+
+* the FBS and Express exchange of Яндекс Маркет through the fulfilment centre (Plan 8) ([90099b7](https://github.com/prankyman/wyo/commit/90099b7930352629b1e9b47ce53bbd82a549c466))
+
 ## [0.0.12](https://github.com/prankyman/wyo/compare/v0.0.11...v0.0.12) (2026-11-20)
 
 ### Bug Fixes
