@@ -177,6 +177,29 @@ them. What they find becomes Plan 6's premises.
 Register item 1's second half, left out of Plan 5: what lies in each marketplace's warehouses and the fulfilment centre's free stock
 sent to every marketplace. A plan of its own after Яндекс Маркет, with the stock part of the neutral fulfilment-centre API first.
 
+**2026-11-21 — written as three plans, not started** (the maintainer: «Go ahead and create a plan», «2 plans», then «3 plans»).
+His answers: with a fulfilment centre, its number as it comes («The fulfillment center's number if there is FO plugged in. if not -
+then it is wyo that takes care of it … this software may not have the FO plugged in and function purely stand-alone so the business
+logic must take it into consideration»); three modes, mixed per marketplace («WYO only reads data from Marketplaces while the WMS for
+the same seller is integrated with marketplaces but not with WYO; WYO reads and writes the products because it itself takes care of
+product counts …; and WYO reads and writes the product counts but writes only via integrated WMS», and the fulfilment centre's system
+may write Ozon's and Яндекс Маркет's stock itself «even if the integration from WYO to WMS is off»); a switch, nothing written by
+default («Let's make a switch»); the choice «Остатки этого склада» per seller's warehouse — «Yes»; the warning «Остатки этого склада
+меняет кто-то ещё» — «Yes»; own warehouses as a list — «A list»; the first count typed, from a file and from a marketplace — «All
+three»; a product the fulfilment centre does not know — «Writing 0». Research:
+`.agents/research/marketplaces-stock-official-documents-check-2026-11-21.md`. The plans, in order, each after the release of the one
+before:
+
+- Plan 9 `.agents/plans/wyo-stock-part-1-of-3-products-and-stock-read-from-the-marketplaces-and-the-fulfilment-centre-stock-page-wildberries-product-names.md`
+  — products and stock read from the three marketplaces and the fulfilment centre, the one matching rule, the page «Остатки» that only
+  shows, Wildberries names in order lines (item 20);
+- Plan 10 `.agents/plans/wyo-stock-part-2-of-3-the-choice-per-warehouse-and-sending-the-fulfilment-centres-free-stock-to-the-marketplaces.md`
+  — the choice per warehouse, the fulfilment centre's numbers written as they come, 0 for a product it does not know, the warning;
+- Plan 11 `.agents/plans/wyo-stock-part-3-of-3-own-warehouses-and-own-count-without-a-fulfilment-centre-lowered-by-orders-written-to-the-marketplaces.md`
+  — «Мои склады», wyo's own count lowered by orders and raised by cancellations, every change recorded, written to the chosen warehouses.
+
+This item and item 1's stock half close at Plan 11's merge.
+
 ### 27. Several fulfilment centres at once (2026-11-18)
 
 Left out of Plan 4 (`.agents/plans/wyo-external-api-wildberries-fbs-exchange-with-a-fulfilment-centre-orders-stickers-codes-hand-over.md`,
@@ -236,6 +259,9 @@ items, a label cut to its width), so Plan 3 did not change it. To decide: a shor
 `nav.journal.short`), fewer items in the strip, or two lines of small letters.
 
 ### 20. Wildberries' product cards, prices of orders, old orders (2026-11-18)
+
+Taken into Plan 9 (2026-11-21, the maintainer: «Yes, include the names»): a Wildberries order line gets its product's name from the
+product cards (the contract part `products.read`). Prices of orders and orders older than 90 days stay open here.
 
 Widened by Plan 7 (2026-11-19): Яндекс Маркет's product cards and prices; an order's lines show the article, the name and the
 barcodes (read by `getOfferMappings` when the key has the level «Просмотр товаров и карточек»).
